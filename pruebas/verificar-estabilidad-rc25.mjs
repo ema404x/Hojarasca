@@ -7,9 +7,10 @@ const main = leer('../src/main.js');
 const jugador = leer('../src/jugador.js');
 const pkg = JSON.parse(leer('../package.json'));
 
+// (4.10.3: ahora se arma la nueva y se escribe con reemplazarProgreso, que recién ahí borra lo viejo; el orden de este chequeo se ajustó a eso)
 // Reiniciar partida nunca debe reutilizar la posición del jugador viejo.
 assert.match(main, /let reiniciandoPartida = false/);
-assert.match(main, /reiniciandoPartida = true;[\s\S]*cancelarGuardadoSuave\(\);[\s\S]*borrarProgreso\(\);[\s\S]*progreso = progresoNuevo\(\);[\s\S]*guardarProgreso\(progreso\);[\s\S]*location\.reload\(\)/);
+assert.match(main, /reiniciandoPartida = true;[\s\S]*cancelarGuardadoSuave\(\);[\s\S]*progresoNuevo\(\);[\s\S]*reemplazarProgreso\(nueva\)[\s\S]*progreso = nueva;[\s\S]*location\.reload\(\)/);
 assert.match(main, /function guardar\(\) \{\s*if \(reiniciandoPartida \|\| !jugador\) return false;/);
 const bloqueNuevo = main.match(/\$\('btn-nuevo'\)\.addEventListener\('click',[\s\S]*?\n\}\);/)?.[0] || '';
 assert.ok(bloqueNuevo, 'no se encontró handler de btn-nuevo');

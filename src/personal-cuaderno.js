@@ -5,7 +5,7 @@
 // toca: la tapa es un borde del libro y los adornos van en una capa encima, que no
 // ataja los clics.
 import { registrarSeccion, color, texto, numero } from './personalizacion.js';
-import { campoColores, campoSi, subtitulo, nota, fila, enLinea, boton, lista as listaDesplegable, CUEROS, TINTAS } from './personal-campos.js';
+import { campoColores, campoSi, marcarSi, subtitulo, nota, fila, enLinea, boton, lista as listaDesplegable, CUEROS, TINTAS } from './personal-campos.js';
 
 // Dibujos de 48×48, a pluma (sólo trazos)
 export const SELLOS = [
@@ -151,8 +151,8 @@ export const SECCION_CUADERNO = registrarSeccion({
     // (se lleva la cuenta acá: `api.datos` puede ser la foto de cuando se abrió el panel)
     const cambiar = (parcial) => { d = sanearCuaderno({ ...d, ...parcial }); api.cambiar(parcial); };
     campoColores(cont, 'Tapa', [...CUEROS, { id: '#2f5a74', nombre: 'azul lago' }, { id: '#4f6b2a', nombre: 'verde lenga' }], d.tapa, (v) => cambiar({ tapa: v }));
-    campoSi(cont, 'Con elástico', d.conElastico, (v) => cambiar({ conElastico: v }));
-    campoColores(cont, 'Elástico', TINTAS, d.elastico, (v) => cambiar({ elastico: v, conElastico: true }));
+    const siElastico = campoSi(cont, 'Con elástico', d.conElastico, (v) => cambiar({ conElastico: v }));
+    campoColores(cont, 'Elástico', TINTAS, d.elastico, (v) => { cambiar({ elastico: v, conElastico: true }); marcarSi(siElastico, true); });   // 4.10.3 (P7)
     campoColores(cont, 'Tinta', [{ id: '#5a4524', nombre: 'sepia' }, { id: '#2a2723', nombre: 'negra' }, { id: '#2f4a74', nombre: 'azul' }, { id: '#7c2f22', nombre: 'roja' }, { id: '#3f5a2a', nombre: 'verde' }], d.tinta, (v) => { cambiar({ tinta: v }); dibujarVista(); });
 
     subtitulo(cont, 'Lo que le pegaste');

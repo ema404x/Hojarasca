@@ -80,8 +80,9 @@ ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.s
   ok(enUnaLinea(main, [/^\s*if \(/, 'm.recien.pausa', 'm.recien.agacharse', "modo === 'mapa' && m.recien.mapa", "{ golpeDeTecla('Escape'); return; }"]),'Start, B (y la cruceta en el mapa) hacen de Esc');   // 4.0.3: con `return` (si no, seguía a la navegación)
 }
 
+// (4.10.3: la condición es `recuperadaPendiente`, que vale origenGuardado === 'backup' o el aviso pendiente de una recarga de la portada)
 // 9. «Partida recuperada» (se cargó la copia de seguridad) se avisa al entrar la primera vez, no cada vez que se vuelve
 //    de la portada.
-ok(main.includes("if (origenGuardado === 'backup' && !entroAlJuego) setTimeout(() => nota('Partida recuperada'"), 'el aviso de la copia, una vez');
+ok(main.includes("if (recuperadaPendiente && !entroAlJuego) { setTimeout(() => nota('Partida recuperada'"), 'el aviso de la copia, una vez');
 
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);

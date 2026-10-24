@@ -1,6 +1,5 @@
 // Progreso y ajustes en el almacenamiento local.
 // RC2: guardado transaccional, migraciones y saneamiento de datos.
-import { GRILLA_EXPLORADA } from './mapa.js';
 import { LIMITE, sanearDistancia, sanearPlantas } from './config.js';
 import { sanearDesafio } from './desafio-reglas.js';
 import { sanearChinches } from './chinches.js';
@@ -259,7 +258,8 @@ const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 // 3.8.6: `Number` tira con un objeto cuyo toString no es función (`{ "toString": 1 }` en una partida retocada): no es número
 const numero = (v) => { try { return Number(v); } catch { return NaN; } };
 const finito = (v, defecto) => { const n = numero(v); return Number.isFinite(n) ? n : defecto; };
-const acotar = (v, min, max, defecto) => Math.min(max, Math.max(min, finito(v, defecto)));
+// 4.10.3 (P9): `null`, `""`, `false` y `[]` no son números (`Number(null)` da 0): valen el defecto, no el mínimo (arrancaba mudo con un ajuste en null)
+const acotar = (v, min, max, defecto) => (v == null || v === '' || typeof v === 'boolean' || Array.isArray(v) ? defecto : Math.min(max, Math.max(min, finito(v, defecto))));
 const opcion = (v, permitidas, defecto) => permitidas.includes(v) ? v : defecto;
 
 function parsear(texto) {
@@ -445,8 +445,9 @@ export function progresoNuevo() {
     // 3.7.5 (rincones): nada encontrado ni aprendido; el lote de tu casa, libre; sin sulky; el camino, una huella
     ...(desafio ? {} : { rincones: rinconesNuevos() }),
     ...(desafio ? {} : { huevos: huevosNuevos() }),   // 4.2 (huevos de pascua)
-    // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
-    explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
+    // Se conserva la clave por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
+    // 4.10.3 (P11): vacío: eran 4096 ceros (8 KB) en cada partida y en su copia, para nada
+    explorado: [],
   };
 }
 
@@ -674,7 +675,7 @@ function sanearProgreso(p) {
     dia: Math.max(1, Math.floor(finito(p.dia, 1))),
     pos: sanearPos(p.pos),
     yaw: finito(p.yaw, 0),
-    explorado: Array.isArray(p.explorado) && p.explorado.length === base.explorado.length ? p.explorado : base.explorado,
+    explorado: [],   // 4.10.3 (P11): nadie lo lee; las partidas viejas sueltan sus 8 KB de ceros al guardarse
     modo: modoPartida,
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
     ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined, noticias: undefined, concursos: undefined } : { desafio: undefined }),
@@ -781,5 +782,24 @@ export function guardarProgreso(p) {
     principalRoto = false;
     return true;
   } catch { return false; }
+}
+// 4.10.3 (P10): una partida nueva en el lugar de la que había (Empezar de nuevo, Otra vuelta, Otra corrida): se escribe la nueva y
+// recién ahí se borran las fotos; si no cupo (cuota, disco), vuelve lo que había (principal, copia y miniatura) y devuelve false.
+// Antes se borraba todo primero y un `setItem` que fallaba dejaba la ranura vacía y sin copia.
+export function reemplazarProgreso(nuevo) {
+  const claves = [CLAVE, CLAVE_BACKUP, CLAVE_VISTA];
+  let previos = null;
+  try { previos = claves.map((k) => localStorage.getItem(k)); } catch { previos = null; }
+  const marcas = [ultimoPrincipalValidoTexto, ultimoSello, ultimaSecuencia];
+  ultimoPrincipalValidoTexto = null; ultimoSello = 0; ultimaSecuencia = 0;
+  try { for (const k of claves) localStorage.removeItem(k); } catch {}
+  if (guardarProgreso(nuevo)) {
+    borrarFotosDe(CLAVE_FOTOS);
+    try { localStorage.removeItem(CLAVE_FOTOS); } catch {}
+    return true;
+  }
+  [ultimoPrincipalValidoTexto, ultimoSello, ultimaSecuencia] = marcas;
+  try { claves.forEach((k, i) => { if (previos && previos[i] != null) localStorage.setItem(k, previos[i]); else localStorage.removeItem(k); }); } catch {}
+  return false;
 }
 export function borrarProgreso() { ultimoPrincipalValidoTexto = null; ultimoSello = 0; ultimaSecuencia = 0; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }

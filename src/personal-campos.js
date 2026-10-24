@@ -184,6 +184,13 @@ export function campoSi(cont, etiqueta, valor, alCambiar) {
   return g;
 }
 
+// 4.10.3 (P7): pone un interruptor «Sí/No» en `valor` sin redibujar el panel (el botón de color de «Collar», «Alforjas»… enciende el
+// «Con …» en los datos y el interruptor seguía diciendo «No» hasta cerrar y volver a abrir)
+export function marcarSi(grupo, valor) {
+  if (!grupo || typeof grupo.querySelectorAll !== 'function') return;
+  for (const b of grupo.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.valor === String(!!valor)));
+}
+
 export function boton(cont, texto, alTocar) {
   const b = docDe(cont).createElement('button');
   b.type = 'button';

@@ -14,10 +14,14 @@ const INTENTOS_GRAFICOS = [
   { 'ignore-gpu-blocklist': true, 'use-angle': 'd3d9' },
   { 'ignore-gpu-blocklist': true, 'use-angle': 'gl' },
 ];
+const { intentoVigente } = require('./recuperacion-main.cjs');
 const archivoGraficos = () => path.join(app.getPath('userData'), 'graficos.json');
 function intentoGraficos() {
-  try { const n = JSON.parse(fs.readFileSync(archivoGraficos(), 'utf8')).intento; return Number.isInteger(n) && n >= 0 && n < INTENTOS_GRAFICOS.length ? n : 0; }
-  catch { return 0; }
+  // 4.10.3 (P3): lo guardado por caídas de la placa vence a la semana (ver `intentoVigente`); la edad es la del archivo
+  try {
+    const a = archivoGraficos();
+    return intentoVigente(JSON.parse(fs.readFileSync(a, 'utf8')), Date.now() - fs.statSync(a).mtimeMs, INTENTOS_GRAFICOS.length);
+  } catch { return 0; }
 }
 for (const [clave, valor] of Object.entries(INTENTOS_GRAFICOS[intentoGraficos()])) {
   if (valor === true) app.commandLine.appendSwitch(clave); else app.commandLine.appendSwitch(clave, valor);
@@ -100,7 +104,10 @@ function escribirCrash(tipo, detalle) {
     const carpeta = path.join(app.getPath('userData'), 'logs');
     fs.mkdirSync(carpeta, { recursive: true });
     const linea = `[${new Date().toISOString()}] ${tipo}: ${detalle}\n`;
-    fs.appendFileSync(path.join(carpeta, 'hojarasca-crash.log'), linea);
+    const archivo = path.join(carpeta, 'hojarasca-crash.log');
+    // 4.10.3 (P8): el registro tiene tope (1 MB): al pasarse se guarda como .1 (pisando el anterior) y se empieza de nuevo
+    try { if (fs.statSync(archivo).size > 1024 * 1024) fs.renameSync(archivo, archivo + '.1'); } catch {}
+    fs.appendFileSync(archivo, linea);
   } catch {}
 }
 

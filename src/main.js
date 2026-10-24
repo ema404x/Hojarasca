@@ -138,7 +138,7 @@ import { puedeOtraVuelta, nuevaVuelta, multiplicadorVuelta } from './desafio-vue
 import { RAYO, sanearTormenta, avanzarCrecida, nivelArroyo, aguaTurbia, horasEntre, puedeCaerRayo, elegirArbolRayo, rumboTexto as rumboDesde } from './tormenta.js';
 import { crearMajada } from './majada-mundo.js';
 import { calidadParaEquipo, nombrePlaca } from './calidad-equipo.js';
-import { cargarAjustes, guardarAjustes, cargarProgreso, guardarProgreso, guardarFotos, progresoNuevo, borrarProgreso, origenUltimaCarga, usarModoGuardado, listaPartidas, borrarPartida, guardarVista, ranuraActual, leerPartida, escribirPartida, infoPartida } from './guardado.js';
+import { cargarAjustes, guardarAjustes, cargarProgreso, guardarProgreso, guardarFotos, progresoNuevo, borrarProgreso, reemplazarProgreso, origenUltimaCarga, usarModoGuardado, listaPartidas, borrarPartida, guardarVista, ranuraActual, leerPartida, escribirPartida, infoPartida } from './guardado.js';
 import { htmlPartidas, CSS_PARTIDAS } from './partidas.js';
 import { empaquetar, leerPaquete, avisoImportar, nombreArchivoPartida } from './transferir.js';
 import { nombreSync, tocaCopiar, compararCopia, textoOferta as textoOfertaSync, textoDosCambiaron } from './sincronia.js';
@@ -332,6 +332,14 @@ const PLANOS_JUEGO = PLANOS.filter((p) => (!p.soloDesafio || esDesafio) && (!p.s
 let progreso = cargarProgreso();
 let reiniciandoPartida = false;
 const origenGuardado = origenUltimaCarga();
+// 4.10.3 (P12): el aviso «Partida recuperada» sobrevive a la recarga de la portada (cambiar la calidad o el idioma recarga, y la
+// recarga ya leía el principal, reescrito con lo de la copia: el aviso no salía nunca). Se recuerda por ranura, en la sesión.
+const CLAVE_RECUPERADA = 'hojarasca-recuperada-pendiente';
+let recuperadaPendiente = origenGuardado === 'backup';
+try {
+  if (origenGuardado === 'backup') sessionStorage.setItem(CLAVE_RECUPERADA, String(ranuraActual()));
+  else if (sessionStorage.getItem(CLAVE_RECUPERADA) === String(ranuraActual())) recuperadaPendiente = true;
+} catch { /* sin sessionStorage: queda como antes */ }
 const habiaGuardado = !!progreso;
 if (!progreso) progreso = progresoNuevo();
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
@@ -390,6 +398,11 @@ const calidad = { ...(CALIDADES[ajustes.calidad] || CALIDADES.media) };
 // 3.5: la calidad que está andando y las distancias que rigen (ver aplicarDistancias)
 let calidadActiva = CALIDADES[calidadInicial] ? calidadInicial : 'media';
 let distActual = distanciasDe(calidadActiva, ajustes.distancia, ajustes.distanciaPlantas);
+// 4.10.3 (P5): ¿la calidad elegida pide reiniciar? Sí si no es con la que se armó el mundo, o si no es la que corre ahora (tras
+// «Bajar» corre una más baja que la de arranque: volver a elegir la de arranque no cambiaba nada y escondía el cartel)
+function calidadPideReinicio() {
+  return ajustes.calidad !== calidadInicial || ajustes.calidad !== calidadActiva;
+}
 // 1.6: el juego mide los cuadros por segundo reales y acomoda la calidad solo.
 const autoCalidad = crearEstadoAutocalidad(ajustes.calidad);
 
@@ -1905,7 +1918,7 @@ function moverCamaraBanco(avance) {
 function empezarBanco(recorrido = RECORRIDO) {
   if (banco.activa) return;
   const js = jugador.estado;
-  banco.guardado = { x: js.pos.x, y: js.pos.y, z: js.pos.z, yaw: js.yaw, horas: progreso.horas, auto: ajustes.autoCalidad, modo };
+  banco.guardado = { x: js.pos.x, y: js.pos.y, z: js.pos.z, yaw: js.yaw, horas: progreso.horas, dia: progreso.dia, auto: ajustes.autoCalidad, modo };
   banco.corrida = crearCorrida(Array.isArray(recorrido) && recorrido.length ? recorrido : RECORRIDO);
   banco.activa = true;
   ajustes.autoCalidad = false;   // el banco mide una calidad fija
@@ -1926,6 +1939,7 @@ function terminarBanco() {
   if (g) {
     ajustes.autoCalidad = g.auto;
     progreso.horas = g.horas;
+    if (Number.isFinite(g.dia)) progreso.dia = g.dia;   // 4.10.3 (P2): el banco no cambia el día de la partida (un tramo de noche podía cruzar la medianoche)
     jugador.ubicar(g.x, g.z, g.yaw, g.y);
   }
   const r = renderer.info.render;
@@ -2171,7 +2185,7 @@ function sincronizarAjustes() {
   });
   document.querySelectorAll('[data-ajuste-rango]').forEach((i) => { i.value = ajustes[i.dataset.ajusteRango]; });
   sonido.setMezcla({ ambiente: ajustes.volumenAmbiente, efectos: ajustes.volumenEfectos, musica: ajustes.volumenMusica });
-  $('aviso-calidad').classList.toggle('oculto', ajustes.calidad === calidadInicial);
+  $('aviso-calidad').classList.toggle('oculto', !calidadPideReinicio());
   textoAjustesDistancia();   // 3.5
   if ($('modo-texto')) $('modo-texto').textContent = ajustes.modo === 'desafio'
     ? 'Cada noche salen los duendes del bosque. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
@@ -2256,7 +2270,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     if (clave === 'tamanoLetra' || clave === 'paleta' || clave === 'subtitulos') aplicarAccesibilidad();
     // 3.5: la distancia de dibujo o de plantas, en vivo (y el ritmo se vuelve a medir)
     if (clave === 'distancia' || clave === 'distanciaPlantas') { aplicarDistancias(); ritmoAuto.reiniciar(); }
-    if (clave === 'calidad' && v === calidadInicial) $('aviso-calidad').classList.add('oculto');
+    if (clave === 'calidad' && !calidadPideReinicio()) $('aviso-calidad').classList.add('oculto');
     sincronizarAjustes();
   });
 });
@@ -2372,7 +2386,7 @@ $('btn-entrar').addEventListener('click', () => {
   }
   $('inicio').classList.add('oculto');
   // (3.8.3: sólo la primera vez: volviendo de la portada se repetía cada vez que se entraba)
-  if (origenGuardado === 'backup' && !entroAlJuego) setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
+  if (recuperadaPendiente && !entroAlJuego) { setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900); try { sessionStorage.removeItem(CLAVE_RECUPERADA); } catch { /* ya */ } recuperadaPendiente = false; }
   // (3.8.7: las del primer día, también sólo la primera vez que se entra)
   else if (esDesafio && (!habiaGuardado || !progreso.pos) && !entroAlJuego) {
     setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos con el hacha y piedra con el pico (H) y armá defensas (O → Defensa)', true), 1500);
@@ -2407,13 +2421,19 @@ $('btn-nuevo').addEventListener('click', async () => {
   // 2.8: lo personal (ropa, bandera, recetas) pasa a la partida nueva, y la receta de
   // "Tu partida" deja puestos la estación, el clima y la dificultad que eligió
   const conReceta = empezarConReceta(progreso.personal, ajustes);
+  const ajustesAntes = { ...ajustes };
   Object.assign(ajustes, conReceta.ajustes);
+  // 4.10.3 (P10): se arma y se escribe la partida nueva ANTES de borrar nada; si no cupo, la que tenías sigue ahí
+  const nueva = progresoNuevo();
+  nueva.personal = sanearPersonal(conReceta.personal);
+  if (esDesafio) aplicarCodigo(nueva);   // 2.3: el código que esté escrito en la portada
+  if (!reemplazarProgreso(nueva)) {
+    Object.assign(ajustes, ajustesAntes); reiniciandoPartida = false;
+    nota('No pude empezar de nuevo', 'No hay lugar para guardar la partida nueva: la que tenías sigue como estaba', true);
+    return;
+  }
   guardarAjustes(ajustes);
-  borrarProgreso();
-  progreso = progresoNuevo();
-  progreso.personal = sanearPersonal(conReceta.personal);
-  if (esDesafio) aplicarCodigo(progreso);   // 2.3: el código que esté escrito en la portada
-  guardarProgreso(progreso);
+  progreso = nueva;
   location.reload();
 });
 $('btn-seguir').addEventListener('click', volverAlJuego);
@@ -2429,7 +2449,7 @@ $('btn-foto').addEventListener('click', () => {
 });
 $('btn-inicio').addEventListener('click', () => {
   guardar();
-  if (ajustes.calidad !== calidadInicial) { location.reload(); return; }
+  if (calidadPideReinicio()) { location.reload(); return; }   // 4.10.3 (P5)
   for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
   $('hud').classList.add('oculto');
   $('inicio').classList.remove('oculto');
@@ -3127,10 +3147,10 @@ async function otraVuelta() {
   const nueva = nuevaVuelta(progreso, progresoNuevo());
   reiniciandoPartida = true;
   cancelarGuardadoSuave();
-  borrarProgreso();
   nueva.personal = progreso.personal;   // 2.8: tu ropa, tu bandera y tus recetas siguen con vos
+  // 4.10.3 (P10): primero se escribe la vuelta nueva; si no cupo, la campaña sigue como estaba
+  if (!reemplazarProgreso(nueva)) { reiniciandoPartida = false; nota('No pude empezar otra vuelta', 'No hay lugar para guardar: tu campaña sigue como estaba', true); return; }
   progreso = nueva;
-  guardarProgreso(progreso);
   location.reload();
 }
 $('victoria-vuelta').addEventListener('click', otraVuelta);
@@ -3197,12 +3217,13 @@ function nuevaCorrida(codigo = null) {
   reiniciandoPartida = true;
   cancelarGuardadoSuave();
   const personal = progreso.personal;
-  borrarProgreso();
-  progreso = progresoNuevo();
-  progreso.personal = personal;
-  progreso.desafio.sinFin = corridaNueva();
-  progreso.desafio.semilla = normalizarCodigo(codigo) || codigoAlAzar();
-  guardarProgreso(progreso);
+  const nueva = progresoNuevo();
+  nueva.personal = personal;
+  nueva.desafio.sinFin = corridaNueva();
+  nueva.desafio.semilla = normalizarCodigo(codigo) || codigoAlAzar();
+  // 4.10.3 (P10): primero se escribe la corrida nueva; si no cupo, la de antes sigue como estaba
+  if (!reemplazarProgreso(nueva)) { reiniciandoPartida = false; nota('No pude empezar otra corrida', 'No hay lugar para guardar: la corrida sigue como estaba', true); return; }
+  progreso = nueva;
   location.reload();
 }
 $('corrida-otra').addEventListener('click', () => nuevaCorrida(null));
@@ -10185,6 +10206,7 @@ function actualizarTiempo(dt) {
     return;
   }
   if (ajustes.duracion === 'reloj') {
+    if (banco.activa) return;   // 4.10.3 (P2): en el banco manda la hora de cada tramo (si no, se medía a la hora de la PC y «Noche» le sumaba un día a la partida)
     const d = new Date();
     const antes = progreso.horas;
     progreso.horas = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
@@ -10232,7 +10254,7 @@ function textoAjustesDistancia() {
 
 // Lo que se puede acomodar sin rehacer el mundo se aplica ya (distancias de
 // dibujo y detalle); la densidad de bosque y las sombras, al próximo arranque.
-const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'radioPasto', 'niebla', 'flotantes', 'aves'];
+const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'radioPasto', 'niebla', 'flotantes', 'aves', 'pixelRatio'];   // 4.10.3 (P6): + la resolución, lo que más pesa en una placa integrada
 // 3.8.4 (decisión 35): la calidad gráfica nunca cambia sola durante el juego. La autocalidad sigue midiendo (autocalidad.js)
 // y, si el equipo no da, pregunta «El juego va lento: ¿bajar la calidad?» con «Bajar» y «No, gracias» (el cuadro de las
 // preguntas del juego: Enter/Esc, clic o A/B del mando). Si dice que no, no vuelve a preguntar en la sesión. Subir, nunca
@@ -10289,6 +10311,7 @@ function aplicarCalidadAutomatica(cambio, avisar = true) {
   // la nueva (y ahora llega a los árboles, los carteles y la niebla, de a poco)
   calidadActiva = cambio.hasta;
   aplicarDistancias();
+  try { acomodarEscalaPantalla(); } catch { /* 4.10.3 (P6): la resolución baja con la calidad; si el lienzo no la acepta, queda como estaba */ }
   est?.molinoPaisaje?.aplicarCalidad(nueva.densidad ?? 1);   // 4.0: menos tulipanes en las calidades bajas
   // las sombras son lo más caro que se puede acomodar sin rehacer el mundo
   if (nueva.sombras !== calidad.sombras) {
@@ -10301,7 +10324,7 @@ function aplicarCalidadAutomatica(cambio, avisar = true) {
   ajustes.calidad = cambio.hasta;
   guardarAjustes(ajustes);
   sincronizarAjustes();
-  $('aviso-calidad')?.classList.toggle('oculto', ajustes.calidad === calidadInicial);
+  $('aviso-calidad')?.classList.toggle('oculto', !calidadPideReinicio());
   if (avisar) nota(cambio.aviso.texto, 'Calidad gráfica', true);
 }
 
@@ -10691,6 +10714,7 @@ function cuadroDelJuego(tRaf, manual) {
     ctxDesafio.noche = noche;
     ctxDesafio.dtReal = Math.min(0.1, dtReal);
     ctxDesafio.fotoActiva = foto.activo;   // 4.0.3 (F2): con el modo foto la hora es la del deslizador: no cuenta para las oleadas ni el amanecer
+    if (banco.activa) ctxDesafio.fotoActiva = true;   // 4.10.3 (P1): el tramo «Noche» del banco (22,3) hacía salir una oleada de verdad y gastaba la noche
     try { desafio.actualizar(dt, ctxDesafio); } catch (e) { fallaSistema('desafio', e); }
     perfilador.terminar('desafio', tDesafio, medirRendimiento);
   }

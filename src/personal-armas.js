@@ -5,7 +5,7 @@
 // la lanza de hielo escarchada, las flechas de rayo con la punta encendida y la honda
 // de empuje con su cristal.
 import { registrarSeccion, elegir, color, texto } from './personalizacion.js';
-import { campoColores, campoElegir, campoTexto, campoSi, refDelMundo, MADERAS, TINTAS } from './personal-campos.js';
+import { campoColores, campoElegir, campoTexto, campoSi, marcarSi, refDelMundo, MADERAS, TINTAS } from './personal-campos.js';
 
 export const GRABADOS = [
   { id: 'ninguno', nombre: 'Sin grabado' },
@@ -79,8 +79,8 @@ export const SECCION_ARMAS = registrarSeccion({
     campoElegir(cont, 'Grabado del mango', GRABADOS, d.grabado, (v) => api.cambiar({ grabado: v }));
     campoColores(cont, 'Plumas de las flechas', PLUMAS, d.plumas, (v) => api.cambiar({ plumas: v }));
     campoTexto(cont, 'Nombre de la ballesta', d.nombreBallesta, 18, (v) => api.cambiar({ nombreBallesta: v }), 'sin nombre');
-    campoSi(cont, 'Cintas en la lanza', d.conCintas, (v) => api.cambiar({ conCintas: v }));
-    campoColores(cont, 'Color de las cintas', TINTAS, d.cinta, (v) => api.cambiar({ cinta: v, conCintas: true }));
+    const siCintas = campoSi(cont, 'Cintas en la lanza', d.conCintas, (v) => api.cambiar({ conCintas: v }));
+    campoColores(cont, 'Color de las cintas', TINTAS, d.cinta, (v) => { api.cambiar({ cinta: v, conCintas: true }); marcarSi(siCintas, true); });
     campoSi(cont, 'Que se note lo forjado', d.lucirForja, (v) => api.cambiar({ lucirForja: v }));
   },
   aplicar(datos, api) {

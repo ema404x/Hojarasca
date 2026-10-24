@@ -6,7 +6,7 @@
 import { registrarSeccion, elegir, color, texto } from './personalizacion.js';
 // 4.7 pantalla: cuántas casillas suman las alforjas (carga.js)
 import { CASILLAS_ALFORJAS } from './carga.js';
-import { campoColores, campoElegir, campoTexto, campoSi, refDelMundo, CUEROS, TINTAS } from './personal-campos.js';
+import { campoColores, campoElegir, campoTexto, campoSi, marcarSi, refDelMundo, CUEROS, TINTAS } from './personal-campos.js';
 
 // pelo: el cuerpo; oscuro: crin, cola, hocico y medias; manchas: las del overo
 export const PELAJES_CABALLO = [
@@ -62,8 +62,8 @@ export const SECCION_CABALLO = registrarSeccion({
     campoColores(cont, 'Pelero', MANTAS, d.manta, (v) => api.cambiar({ manta: v }));
     campoColores(cont, 'Riendas', CUEROS, d.riendas, (v) => api.cambiar({ riendas: v }));
     // 4.7: las alforjas ya no son adorno: suman lugar en la mochila mientras vas montado
-    campoSi(cont, `Con alforjas (+${CASILLAS_ALFORJAS} casillas montado)`, d.conAlforjas, (v) => api.cambiar({ conAlforjas: v }));
-    campoColores(cont, 'Alforjas', CUEROS, d.alforjas, (v) => api.cambiar({ alforjas: v, conAlforjas: true }));
+    const siAlforjas = campoSi(cont, `Con alforjas (+${CASILLAS_ALFORJAS} casillas montado)`, d.conAlforjas, (v) => api.cambiar({ conAlforjas: v }));
+    campoColores(cont, 'Alforjas', CUEROS, d.alforjas, (v) => { api.cambiar({ alforjas: v, conAlforjas: true }); marcarSi(siAlforjas, true); });
   },
   aplicar(datos, api) {
     const caballo = refDelMundo(api, 'caballo', 'caballoMundo');

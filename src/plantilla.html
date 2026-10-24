@@ -1353,11 +1353,15 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   // 3.5.1: el mismo error repetido en cada cuadro se anota una vez (antes llenaba el registro
   // de caídas y mandaba un mensaje al proceso principal 60 veces por segundo)
   const yaReportados = new Set();
+  let erroresSinFiltro = 0;
   const registrarError = (detalle) => {
     if (!detalle) return;
     const clave = String(detalle).slice(0, 300);
     if (yaReportados.has(clave)) return;
+    // 4.10.3 (P8): pasados los 200 distintos el filtro ya no recuerda y un error con texto cambiante (coordenadas, ids) mandaba un
+    // mensaje al proceso principal por cada ocurrencia, cuadro tras cuadro: desde ahí, a lo sumo 100 más en toda la sesión
     if (yaReportados.size < 200) yaReportados.add(clave);
+    else if (++erroresSinFiltro > 100) return;
     window.hojarasca?.reportarError?.(String(detalle));
     if (!window.__hojarasca) { mostrarError(detalle); return; }
     if (!avisoErrorGameplay) {

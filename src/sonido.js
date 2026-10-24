@@ -367,7 +367,9 @@ export class Sonido {
     const t0 = performance.now();
     while (this.cola.length && performance.now() - t0 < plazo) {
       const tarea = this.cola[0];
-      const r = tarea.gen.next();
+      let r;
+      // 4.10.3 (Q11): una receta que tire se descarta; antes quedaba al frente de la cola y la trababa (todo lo de atrás sin sintetizar)
+      try { r = tarea.gen.next(); } catch { this.cola.shift(); if (tarea.nombre) this.pendientes.delete(tarea.nombre); continue; }
       if (r.done) { this.cola.shift(); this.terminar(tarea, r.value); }
     }
     this.programarCola();

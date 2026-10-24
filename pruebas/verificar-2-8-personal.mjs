@@ -273,7 +273,7 @@ const ok = (m) => pasos.push(m);
   assert.match(main, /crearFauna\(T, veg, col, escena, sonido, registrar, progreso, \{ animales: factorAnimales\(progreso\) \}\)/);
   assert.match(main, /gente: \(\) => \(vecinosActivos\(progreso\) \? gente : null\),/);
   assert.match(main, /if \(visitante \|\| !vecinosActivos\(progreso\) \|\| !tocaVisita\(/);
-  assert.match(main, /const conReceta = empezarConReceta\(progreso\.personal, ajustes\);[\s\S]*?progreso = progresoNuevo\(\);\s*progreso\.personal = sanearPersonal\(conReceta\.personal\);/, 'lo personal pasa a la partida nueva');
+  assert.match(main, /const conReceta = empezarConReceta\(progreso\.personal, ajustes\);[\s\S]*?const nueva = progresoNuevo\(\);\s*nueva\.personal = sanearPersonal\(conReceta\.personal\);/, 'lo personal pasa a la partida nueva');   // 4.10.3: se arma en `nueva` y se escribe con reemplazarProgreso
   assert.match(main, /nueva\.personal = progreso\.personal;/, 'y a la otra vuelta del Desafío');
   assert.match(main, /pintarBanderaEn\(\$\('victoria-bandera'\), progreso\.personal\?\.bandera\);/);
   assert.match(main, /escalaFinal\(escalaLetra\(ajustes\.tamanoLetra\), progreso\?\.personal\?\.interfaz\)/);

@@ -140,5 +140,18 @@ const nuevo = (mezcla, musicaActiva = true) => {
   assert.ok(l[i + 2].includes('tocarEvento('));
 }
 
+// ---------------------------------------------------------------- Q11: una receta que tira no traba la cola
+{
+  const s = nuevo({ ambiente: 1, efectos: 1, musica: 1 });
+  let llego = null;
+  function* rota() { yield; throw new Error('receta rota'); }
+  function* buena() { yield; return new Float32Array(480).fill(0.1); }
+  s.preparar('rota-q11', rota);
+  s.preparar('buena-q11', buena, (b) => { llego = b; });
+  while (s.cola.length) s.trabajarCola(1e9);
+  assert.ok(llego, 'la receta buena de atrás se sintetiza igual');
+  assert.ok(!s.pendientes.has('rota-q11'), 'y la rota no queda pendiente');
+}
+
 console.log('verificar-4-10-3-sonido: ok');
 process.exit(0);

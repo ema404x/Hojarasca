@@ -42,6 +42,16 @@ function siguienteGraficosPorCaidas(intentos, actual) {
   for (let j = actual + 1; j < intentos.length; j++) if (angle(j) !== angle(actual) && angle(j) !== 'd3d9') return j;
   return -1;
 }
+// 4.10.3 (P3): el intento de gráficos que vale hoy. Lo que se guardó por CAÍDAS de la placa (`porCaidas`) vence a los
+// VIGENCIA_CAIDAS_MS: dos caídas seguidas de un driver que ya anda bien (al despertar de la suspensión, por ejemplo) dejaban
+// el juego para siempre con OpenGL. Lo que se guardó porque el 3D no arrancaba (sin `porCaidas`) no vence: ahí no hay otra forma.
+const VIGENCIA_CAIDAS_MS = 7 * 24 * 60 * 60 * 1000;
+function intentoVigente(datos, edadMs, cuantos) {
+  const n = datos && datos.intento;
+  if (!Number.isInteger(n) || n < 0 || n >= cuantos) return 0;
+  if (datos.porCaidas === true && !(edadMs < VIGENCIA_CAIDAS_MS)) return 0;
+  return n;
+}
 function decidirGpu(motivo, recientes, umbral = UMBRAL_GPU, hayOtra = true) {
   if (motivo === 'clean-exit') return 'nada';
   return recientes >= umbral && hayOtra ? 'cambiar-graficos' : 'esperar';
@@ -120,4 +130,4 @@ function registrarRecuperacion(op) {
   return { vigilar, caidas, gpu };
 }
 
-module.exports = { registrarRecuperacion, crearVigia, decidirCaida, decidirGpu, siguienteGraficosPorCaidas, MAX_CAIDAS, UMBRAL_GPU, VENTANA_MS, ESPERA_COLGADA_MS };
+module.exports = { registrarRecuperacion, crearVigia, decidirCaida, decidirGpu, siguienteGraficosPorCaidas, intentoVigente, VIGENCIA_CAIDAS_MS, MAX_CAIDAS, UMBRAL_GPU, VENTANA_MS, ESPERA_COLGADA_MS };

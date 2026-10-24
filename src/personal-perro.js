@@ -2,7 +2,7 @@
 // que le enseñaste. Módulo puro (se prueba en Node). Lo dibuja `perro.js`, que también
 // lo lee de `progreso.personal.perro` al armarse, así la partida carga con tu perro.
 import { registrarSeccion, elegir, color, texto } from './personalizacion.js';
-import { campoColores, campoElegir, campoTexto, campoSi, subtitulo, nota, refDelMundo, TINTAS } from './personal-campos.js';
+import { campoColores, campoElegir, campoTexto, campoSi, marcarSi, subtitulo, nota, refDelMundo, TINTAS } from './personal-campos.js';
 
 export const PELAJES_PERRO = [
   { id: '#4a4038', nombre: 'pardo oscuro' }, { id: '#2a2521', nombre: 'negro' },
@@ -61,10 +61,10 @@ export const SECCION_PERRO = registrarSeccion({
     campoTexto(cont, 'Nombre', d.nombre, 16, (v) => api.cambiar({ nombre: v }), 'sin nombre');
     campoColores(cont, 'Pelaje', PELAJES_PERRO, d.pelo, (v) => api.cambiar({ pelo: v }));
     campoElegir(cont, 'Dibujo', DIBUJOS_PERRO, d.dibujo, (v) => api.cambiar({ dibujo: v }));
-    campoSi(cont, 'Con collar', d.conCollar, (v) => api.cambiar({ conCollar: v }));
-    campoColores(cont, 'Collar', TINTAS, d.collar, (v) => api.cambiar({ collar: v, conCollar: true }));
-    campoSi(cont, 'Con pañuelo al cuello', d.conBandana, (v) => api.cambiar({ conBandana: v }));
-    campoColores(cont, 'Pañuelo', TINTAS, d.bandana, (v) => api.cambiar({ bandana: v, conBandana: true }));
+    const siCollar = campoSi(cont, 'Con collar', d.conCollar, (v) => api.cambiar({ conCollar: v }));
+    campoColores(cont, 'Collar', TINTAS, d.collar, (v) => { api.cambiar({ collar: v, conCollar: true }); marcarSi(siCollar, true); });
+    const siBandana = campoSi(cont, 'Con pañuelo al cuello', d.conBandana, (v) => api.cambiar({ conBandana: v }));
+    campoColores(cont, 'Pañuelo', TINTAS, d.bandana, (v) => { api.cambiar({ bandana: v, conBandana: true }); marcarSi(siBandana, true); });
     subtitulo(cont, 'Lo que le enseñaste');
     nota(cont, 'Se aprende de a poco: lo que marques, lo hace cuando se da la ocasión.');
     // (se lleva la cuenta acá: `api.datos` puede ser la foto de cuando se abrió el panel)
