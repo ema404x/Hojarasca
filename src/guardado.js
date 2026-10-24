@@ -215,6 +215,9 @@ export function versionMasNueva(a, b) {
   for (let i = 0; i < 3; i++) if (p[i] !== q[i]) return p[i] > q[i];
   return false;
 }
+// 4.10.2: la versión que se escribe al guardar. Si la partida vino de una versión más nueva y el aviso todavía no se mostró, se conserva la
+// de la partida (el primer autoguardado la pisaba con la vieja y el aviso ya no tenía ni una segunda oportunidad).
+export function versionAlGuardar(pendiente, actual) { return versionMasNueva(pendiente, actual) ? sanearVersionJuego(pendiente) : sanearVersionJuego(actual); }
 let ultimoOrigenCarga = 'ninguno';
 // RC24: cache de la última copia principal ya validada. Evita releer y
 // parsear localStorage en cada guardado manteniendo el backup transaccional.

@@ -310,7 +310,7 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
   assert.ok(main.includes('estadoTren = tren.actualizar(dt, jugador, camara, ctxTren);\n  actualizarCabina(ctxTren.pausado ? 0 : dt);'));
   assert.ok(troch.includes('    if (est.conduce && mundo?.pausado) dt = 0;\n    const js = jugador.estado;'), 'trochita: sin tiempo mientras está en pausa, sólo manejando');
   assert.ok(main.includes("sostenerTecla('KeyW', m.mov.z > 0.2); sostenerTecla('KeyS', m.mov.z < -0.2);") && main.includes("if (m.recien.saltar) golpeDeTecla('Space');"), 'el mando maneja con el stick y silba con A');
-  assert.ok(main.includes("temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),"), 'los precios con la estación que se ve');
+  assert.ok(main.includes('temporada: () => temporadaDelDia(progreso.dia),'), 'los precios con la estación del calendario (4.10.2: antes la del cielo)');
   assert.ok(main.includes('function puestoDeCargasCerca() {\n  if (desafio ||'), 'el comercio sólo en el Relax');
   assert.ok(main.includes('__cargas: () => cargas(), __subirALaCabina: subirALaCabina'), 'la prueba de humo llega al puesto');
 

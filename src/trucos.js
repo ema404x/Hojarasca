@@ -122,10 +122,15 @@ function cmdMateriales(args, m) {
   const sobra = unico(args); if (sobra) return sobra;
   const lec = leerNumero(args[0], { min: 0, max: MAX_MATERIAL, signo: true });
   if (!lec.ok) return no(errorNumero(lec, args[0], AYUDA.materiales.uso, 0, MAX_MATERIAL));
-  const quedo = [];
-  for (const k of m.desafio ? MATERIALES_DESAFIO : MATERIALES_RELAX) { const r = fijarMaterial(p, k, lec, m); if (r.tope) quedo.push(`${cantidad(r.n)} ${NOMBRE_PLURAL[k] || k}`); }
+  const quedo = [], cambiaron = [];
+  for (const k of m.desafio ? MATERIALES_DESAFIO : MATERIALES_RELAX) {
+    const antes = Number(p.materiales[k]) || 0;
+    const r = fijarMaterial(p, k, lec, m);
+    if (r.tope) { const t = `${cantidad(r.n)} ${NOMBRE_PLURAL[k] || k}`; quedo.push(t); if (r.n !== antes) cambiaron.push(t); }
+  }
   m.refrescar?.();
-  if (quedo.length) return ok(R.materialesTope(quedo, casillasDe(p, m)));
+  // 4.10.2: el aviso lista sólo los que de verdad cambiaron (antes también los que seguían en cero o como estaban); si ninguno cambió, la lista de siempre
+  if (quedo.length) return ok(R.materialesTope(cambiaron.length ? cambiaron : quedo, casillasDe(p, m)));
   return ok(lec.rel ? R.materialesRel(lec.rel, lec.valor) : (m.desafio ? R.materialesDesafio(lec.valor) : R.materiales(lec.valor)));
 }
 

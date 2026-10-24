@@ -68,7 +68,7 @@ import { ENCARGOS_TEMPORADA, ENCARGO_TEMPORADA, encargoDeTemporada, anotarBase, 
 import { crearDiario, unArbol } from './diario.js';
 import { MAX_FOGATAS, BRASAS, consumirDormido, fogatasParaGuardar, sanearFogatas } from './fogatas.js';
 import { TRUEQUES, cantidadCosa, tieneYa } from './trueque.js';
-import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta } from './huerta.js';
+import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta, taparHuerta } from './huerta.js';
 import { crearMatasHuerta } from './huerta-malla.js';
 import { claveGallinero, gallineroNuevo, sanearGallineros, juntarHuevos, textoGallinero } from './gallinero.js';
 import { crearGallinas } from './gallinero-mundo.js';
@@ -82,6 +82,7 @@ import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpes
 import { crearOficiosUI } from './oficios-ui.js';
 import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
+import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
 import { crearAnimalesAldea } from './aldea-animales-mundo.js';
@@ -186,7 +187,7 @@ import { ESPEJO_QUE_SE_USA } from './planos-espejo.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
-import { AHUMADERO, sanearAhumadero, teLaQuedas, avanzarAhumado, usarAhumadero, avisoAhumadero } from './ahumadero.js';
+import { AHUMADERO, TRUCHAS, sanearAhumadero, teLaQuedas, avanzarAhumado, usarAhumadero, avisoAhumadero } from './ahumadero.js';
 import { VIVERO, ARBOLES_VIVERO, sanearVivero, sanearJuntadas, puedeJuntarSemilla, usarVivero, avisoVivero, plantinDisponible } from './vivero.js';
 import { LENA, sanearLenera, sanearHumedad, humedecer, guardarEnLenera, avisoLenera, lenaParaPrender, horasEntumecido, desentumecer } from './lena.js';
 import { MOLINO, sanearAserradero, sanearMuela, fuerzaDelAgua, horasDesde, avanzarAserradero, aserrando, avanzarMuela, moliendo, molinoQueMueve, usarAserradero, avisoAserradero, usarMolino, avisoMolino } from './molino.js';
@@ -228,7 +229,7 @@ import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo,
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
 // 3.0: la supervivencia sin fin y el mapa del Desafío que cambia con la semilla
 import { codigoAlAzar } from './semilla.js';
-import { RANURA_SIN_FIN, sanearVersionJuego, versionMasNueva } from './guardado.js';
+import { RANURA_SIN_FIN, sanearVersionJuego, versionMasNueva, versionAlGuardar } from './guardado.js';
 import { corridaNueva, registrarCorrida, sanearRecordsSinFin, listaDeCodigo, lineaRecord, resumenCorrida, dificultadDeCorrida, deDificultad, DIFICULTADES_SIN_FIN, NOMBRE_DIFICULTAD } from './desafio-supervivencia.js';
 import { mapaDesafio, mapaGuardadoNuevo, codigoAlAzarEnElRefugio } from './desafio-mapa.js';
 import { dibujarLamina, cargarImagen } from './lamina-dibujo.js';
@@ -346,7 +347,9 @@ const metaJuego = crearMetaJuego({
 });
 if (esDesafio) metaJuego.alCargar();   // 4.10.1: una campaña de la 4.9 sin `meta` recibe la suya; las partidas ganan su número
 // 4.10.1: una partida guardada con una versión más nueva que ésta: lo que esta versión no conoce se pierde al guardar
-setTimeout(() => { if (versionMasNueva(progreso?.versionJuego, versionDelJuego())) nota('Partida de una versión más nueva', `Se guardó con la ${progreso.versionJuego}: jugala con esa versión o una más nueva, o se pueden perder cosas nuevas al guardar`); }, 6000);
+// 4.10.2: el aviso ya no sale por un temporizador (con la portada abierta el HUD está oculto y la nota se perdía): sale al entrar al juego
+// (`avisosAlEntrar`, ver `avisarVersionMasNueva`) y, hasta que se muestre, el guardado no pisa la versión de la partida
+let versionPendiente = progreso?.versionJuego || '';
 // 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
 const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
 // 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
@@ -1068,9 +1071,10 @@ function estacionRopaDeAjustes() {
 
 // ------------------------------------------------------------------ cuaderno
 let fichaActual = null;
-function registrar(id, juntado = false) {
+// 4.10.2: `aunPausado`: lo que ya se pagó (cocinar al fuego) se acredita aunque en el medio se haya abierto la pausa, el cuaderno o una tarjeta
+function registrar(id, juntado = false, aunPausado = false) {
   const e = ENTRADA[id];
-  if (!e || modo !== 'jugando') return;
+  if (!e || (modo !== 'jugando' && !aunPausado)) return;
   const ya = progreso.entradas[id];
   if (!ya) {
     progreso.entradas[id] = { dia: progreso.dia, hora: progreso.horas, cantidad: juntado ? 1 : 0 };
@@ -1303,8 +1307,8 @@ function atrapar(pez) {
   const esRecord = pez.cm > reg.record && reg.cantidad > 1;
   reg.record = Math.max(reg.record, pez.cm);
   progreso.peces[pez.id] = reg;
-  // la picada de la tarde: lo que se saca entre las siete y las diez de la noche
-  if (progreso.horas >= 19 && progreso.horas < 22) progreso.pescaTarde = (progreso.pescaTarde || 0) + 1;
+  // la picada de la tarde: lo que se saca entre las siete y las diez de la noche (4.10.2: sólo truchas, como pide el encargo; la perca y el pejerrey son nativos)
+  if (progreso.horas >= 19 && progreso.horas < 22 && TRUCHAS.includes(pez.id)) progreso.pescaTarde = (progreso.pescaTarde || 0) + 1;
   registrar(pez.id);
   ganarOficio('pescador', XP.pez);   // 3.1
   // 3.8.6: si te la quedás para el ahumadero (el diario decía «la devolví al agua»)
@@ -2071,7 +2075,7 @@ function crearValle() {
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso) }; },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
-    pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()),
+    pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()), taparHuerta: () => { taparHuerta(huerta(), progreso.dia); },
     obras: () => obras, altura: (x, z) => T.altura(x, z), sincronizarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); },
     diario: (tipo, dato) => diario.anotar(tipo, dato), sonido: () => sonido,
     // 3.8.6: lo que el viento voltea devuelve lo que tenía adentro, como al desmontar (lo colgado en el tendal, los troncos
@@ -6147,7 +6151,7 @@ function cargas() {
     puestoCargas = crearPuestoDeCargas({
       panel: $('cargas'), tablero: $('cabina'), tren,
       progreso: () => progreso, dia: () => progreso.dia,
-      temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),
+      temporada: () => temporadaDelDia(progreso.dia),   // 4.10.2: la estación de la economía sale de la fecha (negocios-fx.js), no del cielo: con «Estación: invierno» fija en Ajustes los precios de los puestos quedaban en pleno invierno para siempre
       nota, sonido, guardar, refrescar: () => refrescarBarra(true), T_,
       alClic: (el, fn) => alClicHud(el, fn),   // 3.8.4: el clic mueve la marca del mando
       ...CARGA_CTX,   // 4.7 carga: lo que comprás tiene que entrar
@@ -7368,10 +7372,10 @@ function cocinar() {
   setTimeout(() => {
     sonido.juntar();
     if (rc.conserva) {
-      registrar(rc.id, true);
+      registrar(rc.id, true, true);   // 4.10.2: los ingredientes ya se gastaron: el frasco no se pierde si en este 1,2 s se abrió la pausa
       nota('Un frasco de dulce de frutilla', `Guardado para el invierno. Tenés ${progreso.entradas[rc.id]?.cantidad || 1}`);
     } else {
-      registrar(rc.id);
+      registrar(rc.id, false, true);   // 4.10.2
       nota(rc.nombre.charAt(0).toUpperCase() + rc.nombre.slice(1), 'Lo comés mirando el fuego');
     }
     guardar();
@@ -8476,6 +8480,10 @@ function cobrarPremio(e) {
   for (const c of premio.cosas || []) progreso.cosas[c] = 1;
   // 3.5.1: lo que se cuenta (la yerba) no vuelve a 1: el cierre del valle la dejaba en 1 aunque tuvieras 40
   for (const c of premio.cosas || []) if (Number(yaTenias[c]) > 1) progreso.cosas[c] = Number(yaTenias[c]);
+  // 4.10.2: lo que llega de regalo (la mosca, el farol, la manta, el hacha) también queda anotado en «Del almacén» del cuaderno (antes sólo el trueque lo anotaba)
+  for (const c of [premio.cosa, ...(premio.cosas || [])]) {
+    if (typeof c === 'string' && Object.hasOwn(ENTRADA, c) && ENTRADA[c].seccion === 'trueque' && !progreso.entradas[c]) progreso.entradas[c] = { dia: progreso.dia, hora: progreso.horas, cantidad: 0 };
+  }
   refrescarBarra(true);
   setTimeout(() => nota('Te dejaron algo', premio.texto || 'Un regalo por el encargo', true), 1200);
   guardar();
@@ -9356,7 +9364,7 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
-  progreso.versionJuego = versionDelJuego();   // 4.10.1: con qué versión se guardó (una versión más vieja que abra esta partida avisa que puede perder cosas)
+  progreso.versionJuego = versionAlGuardar(versionPendiente, versionDelJuego());   // 4.10.2: sin pisar la versión nueva hasta mostrar el aviso. 4.10.1: con qué versión se guardó (una versión más vieja que abra esta partida avisa que puede perder cosas)
   // 3.8.6: el entumecido y el descansado (antes se perdían al recargar: el castigo de la noche fría desaparecía)
   { const jc = jugador.estado; progreso.cuerpo = jc.entumecido > 0 || jc.descansado > 0 ? { entumecido: Math.max(0, Number(jc.entumecido) || 0), descansado: Math.max(0, Number(jc.descansado) || 0) } : undefined; }
   progreso.diarioHoy = diario.paraGuardar(progreso.dia);   // 3.8.4: la página del día que se va llenando
@@ -9894,6 +9902,7 @@ const ctxInteraccion = {
   usarDesafioCerca: () => !!desafio.usarCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
   tablonAldeaCerca: () => !!desafio?.aldeaMundo?.cerca(jugador.estado.pos), avisoTablonAldea: () => desafio.aldeaMundo.avisoCerca(jugador.estado.pos), abrirTablonAldea: () => desafio.aldeaMundo.usarCerca(jugador.estado.pos),   // 4.9 dias
   trofeosCerca: () => !!desafio?.baseCrece?.cerca(jugador.estado.pos), avisoTrofeos: () => desafio.baseCrece.avisoCerca(jugador.estado.pos), usarTrofeos: () => desafio.baseCrece.usarCerca(jugador.estado.pos),   // 4.10 base: el tablero de trofeos
+  distanciaTrofeos: () => desafio?.baseCrece?.distancia?.(jugador.estado.pos), distanciaPuerta: (p) => Math.hypot(p.x - jugador.estado.pos.x, p.z - jugador.estado.pos.z),   // 4.10.2: tablero o puerta, la más cercana
   puertaCerca: () => puertas && puertas.cerca(jugador.estado.pos), accionarPuerta: (p) => puertas.accionar(p),
   rastro: () => rastro, mirandoAlPerro: () => mirandoAlPerro(jugador.estado, perro.est.pos),
   dejarRastro: () => dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`),
@@ -11171,6 +11180,11 @@ function avisarCalidadInicial() {
   if (p) { p.textContent = T_(texto); p.classList.remove('oculto'); }
   avisosAlEntrar.push(() => nota(`Calidad ${nombreCalidad(calidadElegidaAlAbrir)}, según tu placa de video`, 'La podés cambiar en Ajustes (Esc)', true));   // (4.0.2: ver avisosAlEntrar)
 }
+// 4.10.2: el aviso de «partida de una versión más nueva» espera a que de verdad se entre al juego
+function avisarVersionMasNueva() {
+  if (!versionMasNueva(versionPendiente, versionDelJuego())) return;
+  avisosAlEntrar.push(() => { nota('Partida de una versión más nueva', `Se guardó con la ${versionPendiente}: jugala con esa versión o una más nueva, o se pueden perder cosas nuevas al guardar`); versionPendiente = ''; });
+}
 // main.cjs pide guardar ya (antes de reiniciar con otras opciones de gráficos)
 window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); } });
 
@@ -11191,6 +11205,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   $('inicio').classList.remove('oculto');
   avisarRecuperado();   // 3.5.1
   avisarCalidadInicial();   // 3.8.4
+  avisarVersionMasNueva();   // 4.10.2
   if (esDesafio) {
     $('btn-entrar').textContent = 'Empezar La noche de los duendes';
     $('btn-nuevo').textContent = 'Empezar de nuevo La noche de los duendes';
