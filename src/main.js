@@ -24,6 +24,8 @@ import { crearAves } from './aves.js';
 import { crearRenovales } from './renovales.js';
 import { crearRefugioVivo } from './refugiovivo.js';
 import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
+// 4.10.2: reglas puras de la interfaz (un panel abierto, el modo foto, la mano de la barra, las teclas propias en los textos)
+import { atajoBloqueadoPorPanel, fotoPosible, seguirElegida, seOfreceParaLaBarra, conTeclasPropias } from './atajos-paneles.js';
 // 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js; ocupacion y capacidad vienen en la línea de 4.7 carga, más abajo)
 import { CASILLAS_ALFORJAS } from './carga.js';
 import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila, avisoMochilaLlena } from './carga-pantalla.js';
@@ -1617,6 +1619,8 @@ function actualizarTinte(dt, horas, luz, lluvia, invierno) {
 
 let avisoTexto = '';
 let avisoTecla = '', avisoFrase = '';
+// 4.10.2: los textos que nombran la E o la F, con la tecla del jugador (iguales si no la cambió)
+const textoPropio = (texto) => conTeclasPropias(texto, (k) => teclaVisible(k, teclasPropias));
 function mostrarAviso(t) {
   if (t === avisoTexto) return;
   // 2.6.1: el aviso llega como objeto nuevo cada cuadro: se compara por contenido para no rehacer el DOM
@@ -1630,6 +1634,7 @@ function mostrarAviso(t) {
   // 4.0.3 (G10): con un mando enchufado, el cartel de «E · Hablar» dice el botón (X) y no una tecla que no se está tocando
   if (document.body.classList.contains('con-mando') && t.tecla === 'E' && k.textContent === 'E') k.textContent = mando.boton('interactuar') || 'E';
   a.appendChild(document.createTextNode(T_(t.texto)));
+  a.lastChild.nodeValue = textoPropio(a.lastChild.nodeValue);   // 4.10.2: «mantené E» con la tecla propia (igual si no la cambió)
   a.classList.remove('oculto');
 }
 // 2.6.1: textos del HUD que se escriben cada cuadro: sólo se toca el DOM si cambiaron
@@ -3052,7 +3057,7 @@ function mostrarVictoria(s, final = false) {
   setTimeout(() => {
     // 3.8.3: en esos segundos se pudo pausar (espera a que vuelvas) o salir a la portada (ahí no se abre: quedaba la
     // pantalla de victoria sobre la portada y «Seguir» volvía al juego detrás de ella)
-    if (modo !== 'jugando') { if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle' || modo === 'cuaderno' || modo === 'mapa') mostrarVictoria(s, final); return; }   // (4.0.1: y con el cuaderno o el mapa abiertos)
+    if (modo !== 'jugando') { if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle' || modo === 'cuaderno' || modo === 'mapa' || modo === 'trucos') mostrarVictoria(s, final); return; }   // (4.0.1: y con el cuaderno o el mapa abiertos; 4.10.2: y con la consola de códigos, que la dejaba perdida)
     // 3.0: si se ganó desde adentro de la nave (el asedio), la pantalla lo cuenta
     $('victoria-titulo').textContent = final ? 'Se derrumbó la cueva' : s?.nave ? 'El Coihue cayó desde adentro' : '¡Cayó el Coihue Viejo!';
     $('victoria-sub').textContent = final ? 'Se terminó La noche de los duendes' : 'Ganaste La noche de los duendes';
@@ -3153,7 +3158,7 @@ function terminarCorrida() {
   // 3.8.7: como la victoria (3.8.3): si en el fundido pausaste, espera a que vuelvas; si saliste a la portada, la
   // pantalla de la corrida no se abre encima (modo 'victoria' pisaba la pausa o la portada, y «Seguir» volvía al juego detrás)
   const cerrarCorrida = () => {
-    if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle') { setTimeout(cerrarCorrida, 700); return; }
+    if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle' || modo === 'cuaderno' || modo === 'mapa' || modo === 'trucos') { setTimeout(cerrarCorrida, 700); return; }   // 4.10.2: y con el cuaderno, el mapa o la consola (la pantalla de la corrida se perdía)
     desafio?.limpiar();
     $('fundido').classList.remove('activo');
     if (modo === 'jugando') mostrarCorrida();
@@ -3244,8 +3249,8 @@ document.addEventListener('keydown', (e) => {
   }
   // el teclado propio: lo que apretó el jugador se traduce a la tecla de fábrica
   const codigo = codigoCanonico(e.code);
-  if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(); return; }
-  if (modo === 'mapa' && (codigo === 'KeyM' || codigo === 'Escape')) { volverAlJuego(); return; }
+  if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(!!panelDelHudAbierto()); return; }   // 4.10.2: si quedó un panel abierto debajo, el mouse sigue suelto para usarlo
+  if (modo === 'mapa' && (codigo === 'KeyM' || codigo === 'Escape')) { volverAlJuego(!!panelDelHudAbierto()); return; }
   if (codigo === 'Escape' && !$('billetera').classList.contains('oculto')) { cerrarBilletera(); return; }   // 3.8.8
   if (codigo === 'Escape' && !$('logros').classList.contains('oculto')) { cerrarLogros(); return; }
   if (codigo === 'Escape' && modos?.panelAbierto()) { modos.cerrarPanel(); return; }   // 3.1
@@ -3260,8 +3265,9 @@ document.addEventListener('keydown', (e) => {
   // 3.8.3: sólo desde el juego (jugando, la pausa, el cuaderno o el mapa). En la portada, la pantalla de victoria o la
   // tarjeta del valle, F2 prendía el modo foto con ese panel encima y, al salir, el juego corría detrás de la portada (lo
   // mismo con los logros o el desafío del día abiertos desde la pausa: el modo foto no los cierra)
-  const fotoPosible = foto.activo || ((modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') && $('logros').classList.contains('oculto') && !modos?.panelAbierto());
-  if (e.code === 'F2' && jugador && fotoPosible && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
+  // 4.10.2: ni con el banco, el local o la carta de la cantina o la casa de té abiertos (están fuera del HUD y taparían la escena y los controles de la foto)
+  const puedeFoto = fotoPosible({ fotoActiva: foto.activo, modo, logrosOculto: $('logros').classList.contains('oculto'), modosAbierto: !!modos?.panelAbierto(), panelFueraDelHud: panelFueraDelHudAbierto() });
+  if (e.code === 'F2' && jugador && puedeFoto && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
   if (codigo === 'F1') {
     e.preventDefault();
@@ -3274,7 +3280,7 @@ document.addEventListener('keydown', (e) => {
     else if (!$('inicio').classList.contains('oculto')) abrirGuia('inicio');
     return;
   }
-  if (modo === 'pausa' && codigo === 'Escape' && performance.now() - abiertoEn > 400) { volverAlJuego(); return; }
+  if (modo === 'pausa' && codigo === 'Escape' && performance.now() - abiertoEn > 400) { volverAlJuego(!!panelDelHudAbierto()); return; }
   if (modo !== 'jugando' || !jugador) return;
   // 3.5.1: en el modo foto sólo P saca la foto (WASD, Espacio y Shift mueven la cámara): antes E,
   // F, O... seguían andando con la hora del control (se dormía a las 22 del deslizador y se sumaba un día)
@@ -3296,6 +3302,8 @@ document.addEventListener('keydown', (e) => {
     const n = /^Digit([1-9])$/.exec(codigo);
     if (n) { desafio.fabricar(Number(n[1]) - 1); return; }
   }
+  // 4.10.2: con un panel abierto, los atajos que abrirían OTRO panel encima (I, O) no valen (ver atajos-paneles.js)
+  if (atajoBloqueadoPorPanel(codigo, { mochila: mochilaAbierta, otroPanel: panelDelHudAbierto() && !mochilaAbierta, modoObra })) return;
   if (codigo === 'KeyK' && desafio) {
     if (mochilaAbierta) abrirMochila(false);
     if (enElAlmacen) cerrarAlmacen();
@@ -3715,11 +3723,12 @@ function refrescarBarra(forzar = false) {
   // con ello; si se terminó (soltaste la última ramita), su casilla queda vacía hasta que elijas otra o vuelva a haber
   // (antes la casilla pasaba a lo siguiente y la próxima V soltaba un piñón sin avisar)
   if (idElegido && ranuras[elegida]?.id !== idElegido) {
-    const j = ranuras.findIndex((r) => r?.id === idElegido);
     // 3.8.7: y la casilla guardada también (si no, al gastar el último emplasto las armas de después se corrían, la marca
     // las seguía, y al guardar y abrir quedaba elegida la de al lado: el facón en vez de la ballesta)
-    if (j >= 0) { elegida = j; progreso.ranura = j; }
-    else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);
+    // 4.10.2: sólo si sigue en una casilla que la barra dibuja (8); más allá queda el hueco, como cuando se termina
+    const sg = seguirElegida(ranuras, elegida, idElegido, 8);
+    if (sg.seguir) { elegida = sg.elegida; progreso.ranura = elegida; }
+    else if (sg.hueco) ranuras.splice(Math.min(elegida, ranuras.length), 0, null);
   }
   if (elegida >= ranuras.length) elegida = Math.max(0, ranuras.length - 1);
   if (!idElegido) idElegido = ranuras[elegida]?.id || null;
@@ -3948,13 +3957,20 @@ function abrirMochila(abrir) {
   }
   cosas.forEach((c) => {
     const d = document.createElement('div');
-    const enLaBarra = posBarra(c.id, lugares.get(c.id));
-    d.className = `cosa${enLaBarra >= 0 && enLaBarra < 8 ? ' enbarra' : ''}`;
-    d.tabIndex = 0;
-    d.title = conCasillas && c.texto ? `${c.texto}. Clic o Enter para ponerlo en la casilla elegida` : 'Clic o Enter para ponerlo en la casilla elegida';   // 4.7: la lista de la derecha no muestra la descripción (no entra); va en el título
-    const asignar = () => { asignarRanura(c.id); abrirMochila(true); };
-    alClicHud(d, asignar);   // 3.6.2: mousedown (el click tiraba la línea antes de llegar)
-    d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); asignar(); } });
+    // 4.10.2: las recetas anotadas (mate, tortilla…) se listan pero no se ponen en la barra: no tienen ranura (antes decían «Lo pusiste en la casilla N» y no pasaba nada a la vista)
+    const seElige = seOfreceParaLaBarra(c);
+    const enLaBarra = seElige ? posBarra(c.id, lugares.get(c.id)) : -1;
+    d.className = `cosa${enLaBarra >= 0 && enLaBarra < 8 ? ' enbarra' : ''}${seElige ? '' : ' anotada'}`;
+    if (seElige) {
+      d.tabIndex = 0;
+      d.title = conCasillas && c.texto ? `${c.texto}. Clic o Enter para ponerlo en la casilla elegida` : 'Clic o Enter para ponerlo en la casilla elegida';   // 4.7: la lista de la derecha no muestra la descripción (no entra); va en el título
+      const asignar = () => { asignarRanura(c.id); abrirMochila(true); };
+      alClicHud(d, asignar);   // 3.6.2: mousedown (el click tiraba la línea antes de llegar)
+      // 4.10.2: Espacio elige la cosa y no llega al juego (antes además hacía saltar al personaje)
+      d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); ev.stopPropagation(); asignar(); } });
+    } else {
+      d.title = c.texto ? `${c.texto}. Está anotada en el cuaderno: no se lleva en la barra` : 'Está anotada en el cuaderno: no se lleva en la barra';
+    }
     const img = document.createElement('img');
     img.src = icono(c.icono); img.alt = c.nombre;
     const sp = document.createElement('span');
@@ -3969,6 +3985,8 @@ function abrirMochila(abrir) {
 
 // El orden de la barra lo elegís vos: cada cosa puede ir a la casilla marcada
 function asignarRanura(id) {
+  // 4.10.2: sólo lo que de verdad es una casilla de la barra (un id de receta anotada metía un lugar muerto en progreso.barra)
+  if (!ranuras.some((r) => r?.id === id)) { nota('Eso no se lleva en la barra', 'Está anotado en el cuaderno'); return; }
   const orden = [...(progreso.barra || [])];
   const actual = orden.indexOf(id);
   // 3.8.3: lo que ya estaba en otra casilla deja un hueco ahí (lo de después no se corre) y en una casilla libre
@@ -5691,6 +5709,7 @@ function armarOficiosYAldea(esDesafio) {
       escena, T, col, hud: $('hud'), progreso: () => progreso, dia: () => progreso.dia, existe: existeCampo, tengo: tengoCampo, aplicar: aplicarCampo,
       estacion: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), sonido,
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescar: () => refrescarBarra(true), alClic: (el, fn) => alClicHud(el, fn),
+      textoPropio: (x) => textoPropio(x),   // 4.10.2
     });
   } catch (e) { fallaSistema('gente-campo-armado', e); genteCampoJuego = null; genteCampoMundo = null; tablonJuego = null; }
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
@@ -9164,6 +9183,8 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
+// 4.10.2: los paneles que cuelgan del body, fuera del HUD (el modo foto no los esconde)
+const panelFueraDelHudAbierto = () => enElBanco() || !!negocioJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();
 const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto() || !!tablonJuego?.abierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller; 4.3: y el de tu local; 4.10.1: y el tablón de encargos)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
@@ -9872,6 +9893,7 @@ const ctxInteraccion = {
   get desafio() { return desafio; },
   accion: accionInteraccion, limpiar: limpiarInteraccion, cerca: cercaInteraccion,
   charlaNpc: () => charla.npc, seguirCharla: () => seguirCharla(),
+  mochilaAbierta: () => mochilaAbierta, cerrarMochila: () => abrirMochila(false),   // 4.10.2
   enElAlmacen: () => enElAlmacen, cerrarAlmacen: () => cerrarAlmacen(),
   enLaFeria: () => enLaFeria, cerrarFeria: () => cerrarFeria(),
   enLasCargas: () => enLasCargas(), cerrarCargas: () => puestoCargas.cerrar(),   // 2.9
@@ -10899,7 +10921,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (js.enKayak) equipo += (equipo ? '\n' : '') + (js.enVela && vela ? vela.texto(U.uTiempo.value) : 'Kayak');
     if ($('equipo').textContent !== equipo) $('equipo').textContent = equipo;
     // 2.6.1: el contador de ramitas se escribía en el DOM cada cuadro aunque no cambiara
-    ponerTexto($('recursos'), progreso.ramitas ? `${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}${progreso.ramitas >= 3 ? ' (F para hacer fuego)' : ''}` : '');
+    ponerTexto($('recursos'), progreso.ramitas ? textoPropio(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}${progreso.ramitas >= 3 ? ' (F para hacer fuego)' : ''}`) : '');
     acumuladoEncargos += dt;
     if (acumuladoEncargos > 1) {
       acumuladoEncargos = 0;

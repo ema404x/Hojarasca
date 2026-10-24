@@ -272,7 +272,7 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
 }
 
 // ---------------------------------------------------------------- 14. la pantalla de victoria no se abre sobre la portada
-assert.match(extraer(leer('src/main.js'), 'mostrarVictoria'), /setTimeout\(\(\) => \{\n(\s*\/\/[^\n]*\n)*\s*if \(modo !== 'jugando'\) \{ if \(modo === 'pausa' \|\| modo === 'dialogo' \|\| modo === 'valle'(?: \|\| modo === 'cuaderno' \|\| modo === 'mapa')?\) mostrarVictoria\(s, final\); return; \}/, 'en pausa espera; en la portada no se abre');
+assert.match(extraer(leer('src/main.js'), 'mostrarVictoria'), /setTimeout\(\(\) => \{\n(\s*\/\/[^\n]*\n)*\s*if \(modo !== 'jugando'\) \{ if \(modo === 'pausa' \|\| modo === 'dialogo' \|\| modo === 'valle'(?: \|\| modo === 'cuaderno' \|\| modo === 'mapa'(?: \|\| modo === 'trucos')?)?\) mostrarVictoria\(s, final\); return; \}/, 'en pausa espera; en la portada no se abre');
 
 // ---------------------------------------------------------------- 15. rescates y trochita varada
 {

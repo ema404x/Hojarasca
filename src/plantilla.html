@@ -44,7 +44,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
     #banco-informe { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; line-height: 1.45; white-space: pre; overflow-x: auto; background: rgba(0,0,0,.24); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
     /* accesibilidad: toda la interfaz se agranda junta, sin tocar el mundo */
     :root { --escala-letra: 1; --peligro: #ff5a3d; --salud: #a6ff6e; --aviso-color: #e0b12a; }
-    #hud, #pausa > div, #guia > div, #partidas > div, #teclas > div, #controles-completos > div, #creditos > div, #logros > div, #victoria > div, #inicio > div, #personalizar > div { zoom: var(--escala-letra); }
+    #hud, #avisos-altos, #pausa > div, #guia > div, #partidas > div, #teclas > div, #controles-completos > div, #creditos > div, #logros > div, #victoria > div, #inicio > div, #personalizar > div { zoom: var(--escala-letra); }
     .sonidos-escritos { position: absolute; left: 50%; bottom: calc(max(13vh, 124px) + 56px + var(--alto-subtitulos, 0px)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
     /* 3.8.7: 17px a secas: #hud ya tiene el zoom de la letra (con calc(17px * escala) se agrandaba dos veces) */
     .sonidos-escritos p { margin: 0; padding: 1px 10px; font-family: 'Spectral', Georgia, serif; font-style: italic; font-size: 17px; color: #e8e2cf; background: rgba(8,10,8,.55); border-radius: 4px; text-shadow: 0 1px 3px #000; }
@@ -176,6 +176,9 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; pointer-events: none; }
+/* 4.10.2: las notas y el cartel «Mochila llena» salen por encima de los paneles del banco, la cantina y el local (que cuelgan del body y los tapaban); siguen la visibilidad del HUD */
+#avisos-altos { position: fixed; inset: 0; pointer-events: none; z-index: 25; }
+#hud.oculto ~ #avisos-altos { display: none; }
 .brujula { position: absolute; top: 18px; left: 50%; width: 380px; height: 30px; transform: translateX(-50%); overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
 .brujula span { position: absolute; top: 4px; font-size: 16px; transform: translateX(-50%); text-shadow: 0 1px 6px rgba(0,0,0,.7); opacity: .85; }
@@ -215,7 +218,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 @keyframes huevo-hoja-quieta { 0% { opacity: 0; } 30% { opacity: .85; transform: translate3d(0, 18vh, 0); } 100% { opacity: 0; transform: translate3d(0, 24vh, 0); } }
 .reloj-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
 /* 3.8.8: el banco del pueblo (mostrador del gerente); se maneja con el mouse, como el almacén */
-.banco-velo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.45); z-index: 30; }
+.banco-velo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.45); z-index: 20; }   /* 4.10.2: 20 (era 30): la pausa, el cuaderno, el mapa y la guía (.velo, 31) pasan por encima de estos paneles; los avisos (#avisos-altos, 25), también */
 .banco-velo.oculto { display: none; }
 .panel-banco { width: min(720px, 94vw); max-height: 88vh; overflow: auto; padding: 18px 22px; border-radius: 10px; background: rgba(28,34,28,.96); color: #efe6d2; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
 .panel-banco h2 { margin: 0 0 6px; font-weight: 600; letter-spacing: .04em; }
@@ -346,6 +349,8 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .mochila .sub { margin: 0 0 14px; font-size: 15px; color: #7a6742; }
 .mochila .cosa { cursor: pointer; transition: background .15s, transform .1s; }
 .mochila .cosa:hover { background: rgba(120,100,60,.14); transform: translateY(-1px); }
+.mochila .cosa.anotada { cursor: default; }   /* 4.10.2: la receta anotada no se pone en la barra */
+.mochila .cosa.anotada:hover { background: none; transform: none; }
 .mochila .cosa.enbarra { box-shadow: inset 0 0 0 2px rgba(120,100,60,.35); border-radius: 6px; }
 .mochila .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .mochila .cosa { display: flex; gap: 9px; align-items: center; padding: 7px 9px; border: 1px solid rgba(90,69,36,.22); border-radius: 4px; }
@@ -513,7 +518,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .pista-clic { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); font-size: 18px; background: var(--tinta-velo); padding: 8px 18px 6px; border-radius: 10px; }
 
 /* ---------- menús oscuros ---------- */
-.velo { position: fixed; inset: 0; background: rgba(12,18,14,.66); backdrop-filter: blur(3px); display: grid; place-items: center; }
+.velo { position: fixed; inset: 0; background: rgba(12,18,14,.66); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 31; }   /* 4.10.2: por encima de los paneles del banco, la cantina y el local (antes quedaban tapados) */
 /* 3.8.3: la pausa (menú y ajustes) no entra de alto en una notebook (1366×768) ni con la letra grande: se desplaza. Lo
    mismo cualquier velo: con la letra grande o enorme el panel se agranda (zoom) más allá de su alto máximo y su parte de
    abajo (en Personalizar, los últimos botones y «Volver») quedaba fuera de la pantalla */
@@ -570,7 +575,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 
 
 /* ---------- terminación de producto / release candidate ---------- */
-.build-info { position: fixed; right: 18px; bottom: 14px; z-index: 30; font: 12px/1.2 ui-monospace, monospace; letter-spacing: .04em; color: rgba(239,230,210,.38); pointer-events: none; }
+.build-info { position: fixed; right: 18px; bottom: 14px; z-index: 32; font: 12px/1.2 ui-monospace, monospace; letter-spacing: .04em; color: rgba(239,230,210,.38); pointer-events: none; }
 .estado-guardado { min-height: 1.4em; margin: 12px 0 0; font-size: 13px; color: rgba(239,230,210,.62); }
 /* 3.8.7: en la columna de las notas, siempre debajo de la última (antes, fijo a 74 px, tapaba la segunda nota) */
 .guardado-hud { order: 99; margin-right: 2px; padding: 6px 10px 5px; border-radius: 7px; background: rgba(20,28,23,.58); backdrop-filter: blur(5px); font-size: 13px; color: rgba(239,230,210,.88); opacity: 0; transform: translateY(-4px); transition: opacity .22s, transform .22s; }
@@ -782,14 +787,12 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div class="reloj-hud oculto" id="reloj-hud"></div>
   <div class="billetera-hud oculto" id="billetera-hud"></div>
   <div class="carga-hud oculto" id="carga-hud"></div>
-  <div class="aviso-llena oculto" id="aviso-llena" role="alert"></div>
   <div class="cabina oculto" id="cabina"></div>
   <div class="escucha oculto" id="escucha" aria-live="polite"></div>
   <div class="recursos" id="recursos"></div>
   <div class="encargos-hud" id="encargos-hud"></div>
   <div class="equipo" id="equipo"></div>
   <div class="tension oculto" id="tension"><i id="tension-barra"></i></div>
-  <div class="notas" id="notas"><div class="guardado-hud" id="guardado-hud">✓ Guardado</div></div>
   <div class="subtitulos oculto" id="subtitulos"></div>
   <div class="sonidos-escritos oculto" id="sonidos-escritos" aria-live="polite"></div>
   <div class="tutorial oculto" id="tutorial"></div>
@@ -893,6 +896,11 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   </div>
   <pre class="medidor oculto" id="medidor"></pre>
   <canvas class="medidor-grafico oculto" id="medidor-grafico" width="360" height="80"></canvas>
+</div>
+<!-- 4.10.2: las notas y el cartel de mochila llena, fuera del #hud para quedar por encima de los paneles del banco, la cantina y el local (sigue al HUD: se esconde con él) -->
+<div id="avisos-altos">
+  <div class="aviso-llena oculto" id="aviso-llena" role="alert"></div>
+  <div class="notas" id="notas"><div class="guardado-hud" id="guardado-hud">✓ Guardado</div></div>
 </div>
 
 <div class="fundido" id="fundido"></div>

@@ -63,7 +63,8 @@ function construir(cont, api) {
   if (hayEspejo) cont.appendChild(parrafo('Tenés un espejo armado: acercate y mirate con E.'));
   else {
     // el respaldo: sin ningún espejo armado (se desmontó, o no hubo lugar al crear), nadie se queda sin poder rehacerse
-    cont.appendChild(parrafo('No tenés ningún espejo armado. Armá uno gratis desde los planos (Mobiliario), o rehacelo desde acá.'));
+    // 4.10.2: en el Desafío no hay planos de espejo: ahí el botón de abajo es el único camino
+    cont.appendChild(parrafo(api.progreso?.modo === 'desafio' ? 'En la noche de los duendes no hay espejo: rehacelo desde acá.' : 'No tenés ningún espejo armado. Armá uno gratis desde los planos (Mobiliario), o rehacelo desde acá.'));
     if (typeof api.mundo?.bruno?.abrirCreador === 'function') fila(cont, 'Bruno', boton('Rehacer a Bruno', () => api.mundo.bruno.abrirCreador()));
   }
 }

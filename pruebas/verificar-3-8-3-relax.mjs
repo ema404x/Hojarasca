@@ -56,6 +56,7 @@ const trozo = (desde, hasta) => {
   vm.createContext(ctx);
   vm.runInContext(`${codigo}\n${asignar.replace(/function asignarRanura/, 'function asignarRanuraEn')}\nthis.ordenarBarra = ordenarBarra; this.asignarRanuraEn = asignarRanuraEn;`, ctx);
   const cosas = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => ({ id }));
+  ctx.ranuras = cosas;   // 4.10.2: asignarRanura rechaza lo que no es una casilla de la barra
   const ids = () => ctx.ordenarBarra(cosas).map((r) => r.id).join('');
   ok(ids() === 'abcdefg', 'sin nada elegido, la mochila en su orden');
   ctx.elegida = 4; ctx.asignarRanuraEn('f');

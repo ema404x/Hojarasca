@@ -146,7 +146,7 @@ export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, enBarr
       d.tabIndex = 0;
       const elegir = () => alElegir(c.id);
       (alClic || ((el, f) => el.addEventListener('click', f)))(d, elegir);
-      d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); elegir(); } });
+      d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); ev.stopPropagation?.(); elegir(); } });   // 4.10.2: y Espacio no llega al juego (hacía saltar)
     }
     cont.appendChild(d);
   });

@@ -44,8 +44,12 @@ const main = leer('src/main.js');
 // 4. F2 prende el modo foto sólo desde el juego (jugando, la pausa, el cuaderno o el mapa): en la portada, la
 //    victoria o la tarjeta del valle dejaba ese panel encima y el juego corriendo detrás.
 {
-  ok(main.includes("const fotoPosible = foto.activo || ((modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') && $('logros').classList.contains('oculto') && !modos?.panelAbierto());"), 'F2: en qué pantallas (y sin los logros ni las carreras encima)');
-  ok(main.includes("if (e.code === 'F2' && jugador && fotoPosible && "), 'F2 mira la pantalla');
+  // 4.10.2: la regla pasó a atajos-paneles.js (fotoPosible, pura; además, ni con el banco, el local o la cantina abiertos)
+  const { fotoPosible } = await import('../src/atajos-paneles.js');
+  ok(fotoPosible({ modo: 'jugando' }) && fotoPosible({ modo: 'pausa' }) && fotoPosible({ modo: 'cuaderno' }) && fotoPosible({ modo: 'mapa' }), 'F2: desde el juego, la pausa, el cuaderno y el mapa');
+  ok(!fotoPosible({ modo: 'inicio' }) && !fotoPosible({ modo: 'victoria' }) && !fotoPosible({ modo: 'valle' }) && !fotoPosible({ modo: 'jugando', logrosOculto: false }) && !fotoPosible({ modo: 'jugando', modosAbierto: true }), 'F2: en qué pantallas (y sin los logros ni las carreras encima)');
+  ok(main.includes("const puedeFoto = fotoPosible({ fotoActiva: foto.activo, modo, logrosOculto: $('logros').classList.contains('oculto'), modosAbierto: !!modos?.panelAbierto(),"), 'F2 usa la regla');
+  ok(main.includes("if (e.code === 'F2' && jugador && puedeFoto && "), 'F2 mira la pantalla');
 }
 
 // 5. F11 es la pantalla completa (main.cjs la toma antes que la página): no se le puede dar a una acción, y una

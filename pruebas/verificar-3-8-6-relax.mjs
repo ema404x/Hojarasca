@@ -269,7 +269,7 @@ this.f = lluviaPorTramos;`, ctx);
   }
   // 2a: lo elegido en la barra se sigue por lo que es; si se terminó, su casilla queda vacía
   const rb = trozoFn('function refrescarBarra(');
-  ok(rb.includes('if (idElegido && ranuras[elegida]?.id !== idElegido) {') && rb.includes('else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);') && trozoFn('function elegirRanura(').includes('idElegido = null;'), 'la casilla de lo que se terminó queda vacía');
+  ok(rb.includes('if (idElegido && ranuras[elegida]?.id !== idElegido) {') && rb.includes('else if (sg.hueco) ranuras.splice(Math.min(elegida, ranuras.length), 0, null);') && trozoFn('function elegirRanura(').includes('idElegido = null;'), 'la casilla de lo que se terminó queda vacía');
   // 3a: la cama del refugio, casa cerrada
   const r = trozoFn('function dentroDelRefugio(');
   const c2 = { T: { lugares: { refugio: { x: 100, z: 50, y: 10, rot: 0.6, dimensiones: { W: 7, D: 5, H: 3 } } } } };
