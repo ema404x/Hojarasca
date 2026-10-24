@@ -2438,7 +2438,8 @@ $('btn-nuevo').addEventListener('click', async () => {
   progreso = nueva;
   location.reload();
 });
-$('btn-seguir').addEventListener('click', volverAlJuego);
+// 4.10.4 (R2-2): el clic también respeta un panel abierto debajo (como Esc/J/M): el mouse sigue suelto para usarlo
+$('btn-seguir').addEventListener('click', () => volverAlJuego(!!panelDelHudAbierto()));
 $('btn-cuaderno').addEventListener('click', () => abrir('cuaderno'));
 $('btn-mapa').addEventListener('click', () => abrir('mapa'));
 $('btn-foto').addEventListener('click', () => {
@@ -3252,8 +3253,8 @@ $('victoria-copiar').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(textoParte(parteUltimo)); nota('Copiado', 'El parte quedó en el portapapeles'); }
   catch { nota('No se pudo copiar', 'Sacale una foto con P, entonces'); }
 });
-$('cerrar-cuaderno').addEventListener('click', volverAlJuego);
-$('cerrar-mapa').addEventListener('click', volverAlJuego);
+$('cerrar-cuaderno').addEventListener('click', () => volverAlJuego(!!panelDelHudAbierto()));   // 4.10.4 (R2-2)
+$('cerrar-mapa').addEventListener('click', () => volverAlJuego(!!panelDelHudAbierto()));   // 4.10.4 (R2-2)
 lienzo.addEventListener('click', () => { if (jugador && modo === 'jugando' && !banco.activa && !jugador.bloqueado()) jugador.pedirBloqueo(); });   // 4.0.5 (G15): durante el banco el clic no bloquea el mouse
 
 // ------------------------------------------------------------------ acciones del jugador
