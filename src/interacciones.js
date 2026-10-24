@@ -36,7 +36,15 @@ const delModulo = (nombre, cond) => ({
 const panel = (id, abierto, cerrar) => ({ id, cuando: abierto, corta: true, aviso: () => null, hacer: cerrar });
 
 // 4.10.1: lo que le gana al tablero de trofeos aunque esté más cerca (mismas condiciones que sus entradas de la tabla)
-const cedeElTablero = (c) => (aMano(c) && !c.js.sentado && !!c.puertaCerca())
+// 4.10.2: la puerta le gana al tablero sólo si está más cerca que él (los radios son casi iguales —3,4 m y 3,2 m—: con el tablero pegado a la
+// puerta, «ganaba siempre la puerta» y el tablero quedaba inalcanzable). Sin distancias a mano, gana la puerta como antes
+const puertaMasCerca = (c) => {
+  const p = c.puertaCerca();
+  if (!p) return false;
+  const dt = c.distanciaTrofeos?.(), dp = c.distanciaPuerta?.(p);
+  return Number.isFinite(dt) && Number.isFinite(dp) ? dp <= dt : true;
+};
+const cedeElTablero = (c) => (aMano(c) && !c.js.sentado && puertaMasCerca(c))
   || (c.desafio && !c.js.enTren && !c.objetivo && !!c.avisoDesafioCerca())
   || (sinObjetivo(c) && !!c.dentroDeTuObra() && !!c.puedeDormirJuntoAlFuego());
 

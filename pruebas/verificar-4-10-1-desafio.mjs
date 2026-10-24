@@ -442,7 +442,7 @@ const sinAyuda = { anselmo: 1, herminia: 0, martin: 0, chicos: 0 };
 
   // la campana de día no manda a los aliados a su puesto
   const llamadas = [];
-  const ctxCampana = evaluar('{' + linea(des, 'alarmaAliados: () =>').replace(/\s+$/, '') + '}', { deNoche: () => dia, aliados: { alarma: () => { llamadas.push('aliados'); return 2; } }, vecinos: { alarma: () => { llamadas.push('vecinos'); return 1; } } });
+  const ctxCampana = evaluar('{' + linea(des, 'alarmaAliados: () =>').replace(/\s+$/, '') + '}', { alarmaPosible: () => dia, aliados: { alarma: () => { llamadas.push('aliados'); return 2; } }, vecinos: { alarma: () => { llamadas.push('vecinos'); return 1; } } });
   var dia = false;
   eq([ctxCampana.alarmaAliados(), ctxCampana.alarmaVecinos(), llamadas], [0, 0, []], 'de día la campana suena pero no cambia las órdenes');
   dia = true;

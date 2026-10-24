@@ -104,6 +104,8 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
     return mejor;
   }
   const cerca = (pos) => !!cercano(pos);
+  // 4.10.2: a cuántos metros está el tablero más cercano (para decidir entre él y una puerta pegada); Infinity si no hay
+  const distancia = (pos) => { const o = cercano(pos); return o ? Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z) : Infinity; };
   function avisoCerca(pos) {
     const o = cercano(pos);
     if (!o) return null;
@@ -118,5 +120,5 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
   }
   const hayTablero = () => tableros().length > 0;
   function limpiar() { firma = null; }
-  return { actualizar, alCaer, cerca, avisoCerca, usarCerca, revisarGanados, aplicarBonos, colgar, tableros, hayTablero, limpiar, avisarNuevos };
+  return { actualizar, alCaer, cerca, distancia, avisoCerca, usarCerca, revisarGanados, aplicarBonos, colgar, tableros, hayTablero, limpiar, avisarNuevos };
 }

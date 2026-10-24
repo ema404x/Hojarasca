@@ -44,6 +44,9 @@ export const SALUD_MAX = 100;
 // de días ya avanzó, pero la oleada sigue siendo la misma.
 export function claveNoche(dia, horas) { return horas >= 12 ? dia : dia - 1; }
 export function esHoraDeAtaque(horas) { return horas >= HORA_ATAQUE || horas < HORA_AMANECER; }
+// 4.10.2: la ventana en que la base ya se prepara para la noche (los vecinos están desde 1 hora antes del ataque: 19:30). La campana usa ésta y no
+// la oscuridad del cielo (que recién pasa de 0,5 a las 20:25) para avisar a los aliados
+export function enVentanaDeNoche(horas) { return horas >= HORA_ATAQUE - 1 || horas < HORA_AMANECER; }
 
 // Horas de juego hasta `objetivo`, convertidas a segundos reales según cuántos
 // minutos dura un día completo (ajuste `duracion`).
@@ -444,7 +447,7 @@ export function desafioNuevo() {
     flechas: 0, cargas: 0, emplastos: 1, boleadoras: 0, pistolaEncontrada: false, mejorRacha: 0, racha: 0, caja: null,
     recetasHechas: [], planos: [], restos: null, companeros: [], ordenes: {}, puestosAliados: {}, abatidosPerro: 0, especial: null, especialAnterior: null,
     // 4.8 noches: el giro de esta noche ({ id, noche }), la noche en que ya se decidió y el último que hubo; y la cadena de noches
-    giro: null, giroNoche: -1, giroAnterior: null, cadena: cadenaNueva(),
+    giro: null, giroNoche: -1, giroAnterior: null, giroAnteriorNoche: null, cadena: cadenaNueva(),
     victoria: false, nodriza: null, tutorial: 0,
     // 3.8.3: la noche en que cayó el último mandamás (al abrir a mitad de noche, vuelve sólo si seguía vivo)
     jefeCaido: -1,
@@ -573,6 +576,8 @@ export function sanearDesafio(d) {
     giro: sanearGiro(x.giro),
     giroNoche: Number.isFinite(Number(x.giroNoche)) && x.giroNoche !== null && x.giroNoche !== '' && typeof x.giroNoche !== 'boolean' ? Math.floor(Number(x.giroNoche)) : -1,
     giroAnterior: typeof x.giroAnterior === 'string' && Object.hasOwn(GIROS, x.giroAnterior) ? x.giroAnterior : null,
+    // 4.10.2: en qué noche fue el giro anterior (sin esto, «no se repite el giro» comparaba con el último que hubo, aunque fuera de hace tres noches)
+    giroAnteriorNoche: typeof x.giroAnteriorNoche === 'number' && Number.isFinite(x.giroAnteriorNoche) ? Math.floor(x.giroAnteriorNoche) : null,
     cadena: sanearCadena(x.cadena),
     victoria: !!x.victoria,
     nodriza: x.nodriza && typeof x.nodriza === 'object' && Array.isArray(x.nodriza.nucleos)

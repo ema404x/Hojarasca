@@ -79,9 +79,12 @@ export function crearAtaques(api) {
   // cada tanto: no se queda duro toda la hora).
   function alertaDeLaTarde(horas, horaAtaque, ahoraMs) {
     if (!(horas >= horaAtaque - 0.75 && horas < horaAtaque)) return null;
+    // 4.10.2: si por la cadena la noche entra por una defensa sin arreglar (la brecha), el perro mira hacia ahí: el lado viejo ya no vale
+    const b = api.brechaProxima?.() || null;
     const l = D().ladoNoche;
-    if (!l || l.noche !== D().oleadas + 1 || l.anulado) return null;
-    return ((ahoraMs / 1000) % 45) < 14 ? { x: l.x, z: l.z } : null;
+    if (!b && (!l || l.noche !== D().oleadas + 1 || l.anulado)) return null;
+    const mira = b || l;
+    return ((ahoraMs / 1000) % 45) < 14 ? { x: mira.x, z: mira.z } : null;
   }
 
   // ------------------------------------------------------------ la cola de bajada

@@ -13,11 +13,15 @@ import { NOMBRE_LADO } from './desafio-lados.js';
 
 export const UMBRALES_ESTUDIO = [5, 15, 40];
 export const MULTIPLICADOR_UMBRAL = { enjambre: 4 };   // (viene de a docenas: 20, 60 y 160)
+// 4.10.2: el Mandamás cae una vez cada cinco noches (5, 10, 15 y 20: cuatro en toda la campaña): con 5/15/40 sus estudios no se alcanzaban nunca.
+// Con 1, 2 y 4 se llega al primero en su primera caída y al último con el de la noche 20 (en la corrida sin fin, antes)
+export const UMBRALES_PROPIOS = { jefe: [1, 2, 4] };
 export const DANO_ESTUDIADO = 0.05;
 export const TIPOS_ESTUDIO = ['rastreador', 'saltador', 'tirador', 'escupidor', 'bruto', 'excavador', 'volador', 'curandero', 'enjambre', 'jefe'];
 const LADOS = ['rio', 'monte', 'camino'];
 
 export function umbralesDe(tipo) {
+  if (Object.hasOwn(UMBRALES_PROPIOS, tipo)) return [...UMBRALES_PROPIOS[tipo]];
   const m = Object.hasOwn(MULTIPLICADOR_UMBRAL, tipo) ? MULTIPLICADOR_UMBRAL[tipo] : 1;
   return UMBRALES_ESTUDIO.map((u) => u * m);
 }

@@ -8,7 +8,7 @@ import { crearBanco } from './desafio-sonidos.js';
 import { esperaVoz } from './voz-alien.js';
 import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
-import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, enVentanaDeNoche, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
 import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX, nocheActualNueva } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
@@ -469,7 +469,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const campana = crearCampana({
     campanas: () => obras.obras.filter((o) => o.plano.defensa?.tipo === 'campana' && completa(o)),
     D: () => D(), nota: (t, s, n) => ctx.nota(t, s, n), sonido, centroBase: () => centroBase(), portones: () => api.portones(),
-    alarmaAliados: () => (deNoche() ? aliados.alarma() : 0), alarmaVecinos: () => (deNoche() ? vecinos.alarma() : 0),   // 4.10.1: probar la campana de día ya no cambia para siempre la orden de Ramón y de Josefina
+    alarmaAliados: () => (alarmaPosible() ? aliados.alarma() : 0), alarmaVecinos: () => (alarmaPosible() ? vecinos.alarma() : 0),   // 4.10.1: probar la campana de día ya no cambia para siempre la orden de Ramón y de Josefina. 4.10.2: la ventana es la de los vecinos en la base (desde las 19:30), no la oscuridad del cielo
      lado: () => D().ladoNoche?.rumbo ?? null,
     alturaEn: (x, z) => T.altura(x, z),
   });
@@ -849,6 +849,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     T, D, aliens, limite: LIMITE,
     base: () => baseMapa() || T.lugares.refugio,
     libre: (x, z) => !T.agua(x, z) && !obraEnPunto(x, T.altura(x, z) + 0.5, z),
+    brechaProxima: () => brechaProxima(),   // 4.10.2
     blancoNoche: () => { const resc = D().rescate; return (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche() || brechaDeLaNoche() || null; },   // 4.10.1: y la brecha de la cadena (antes el lado de la noche ganaba siempre y el aviso «entran por ahí» no se cumplía)
     // 4.10.1: se llama con la noche ya contada (`empezarOleada` suma antes): `esNocheFinal()` mira «la que viene» y la 19 salía sin señuelos
     esFinal: () => { const d = D(); return !d.victoria && !d.sinFin && !d.asedio && d.oleadas >= nocheFinalCoihue(); },
@@ -877,7 +878,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const est = obras.obras.some((o) => completa(o) && o.plano.id === 'estacion-meteo');
       return { estacion: est, radio: est || obras.obras.some((o) => completa(o) && o.plano.id === 'radio-refugio'), perro: !!perroAliado() };
     },
-    hayBlanco: () => !!(D().rescate && !D().rescate.caido) || !!blancoVarada() || !!asedioMundo.blancoNoche(),
+    hayBlanco: () => !!(D().rescate && !D().rescate.caido) || !!blancoVarada() || !!asedioMundo.blancoNoche() || !!brechaProxima(),   // 4.10.2: y la brecha de la cadena (el tablón decía «van a entrar por el monte» con el muro roto)
     activo: () => !D().victoria && siguenLasNoches(D()),
     abrirTablon: () => ctx.abrirTablonAldea?.(),
     redibujar: () => ctx.redibujarCuaderno?.(),
@@ -922,6 +923,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function cadenaD() { const d = D(); if (!d.cadena || typeof d.cadena !== 'object' || !d.cadena.hoy) d.cadena = cadenaNueva(); return d.cadena; }
   // la defensa que quedó sin arreglar: la nave de esta noche baja cerca de ella (después del rescate, la trochita y el asedio)
   const brechaDeLaNoche = () => { const b = cadenaD().brecha; return b && b.noche === D().oleadas ? b : null; };
+  // 4.10.2: la brecha de la noche que viene (decidida a las 19:30, antes de que arranque la oleada): la usan el perro y el pronóstico del tablón
+  const brechaProxima = () => { const b = cadenaD().brecha; return b && b.noche === D().oleadas + 1 ? b : null; };
   const nieblaAhora = () => { const d = D(); return hayNiebla(d.especial, d.giro, d.oleadas) ? 1 : 0; };
   let rescateForzado = null;   // para las pruebas: la próxima noche es de rescate en este lugar
   function puntoDeAterrizaje(js, azar = Math.random) {
@@ -959,7 +962,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     sonidosAro.preparar();   // 4.8.1: el crujido y el viento grave del aro se sintetizan antes (en la cola, sin trabar un cuadro)
     estadoNave.fase = puntoFijo ? 'bajando' : 'llegando'; estadoNave.t = 0;
     estadoNave.porBajar.push(...tipos);
-    nocheActual.invasores += tipos.length;
+    if (!retomada) nocheActual.invasores += tipos.length;   // 4.10.2: al retomar la noche (guardar y abrir) los que vuelven ya estaban contados en la partida
     d.vivos = aliens.filter((a) => a.estado !== 'morir').length + estadoNave.porBajar.length;
     anotarQuedan();
     nave.g.visible = !puntoFijo;
@@ -1241,13 +1244,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     const id = elegirGiro({
       noche: d.oleadas, especial: d.especial, jefe: esNocheDeJefe(d.oleadas), final: !d.victoria && (!!d.nodriza || (!d.sinFin && !d.asedio && d.oleadas >= nocheFinalCoihue())),
-      rescate: !!d.rescate, varada: !!d.varada, anterior: d.giro ? (d.giro.noche === d.oleadas - 1 ? d.giro.id : null) : d.giroAnterior, hayDefensas: !!clave,   // 4.10.1: el de la noche anterior de verdad (antes: el último que hubo, aunque fuera de tres noches atrás)
+      rescate: !!d.rescate, varada: !!d.varada, anterior: Number.isFinite(d.giroAnteriorNoche) && d.giroAnteriorNoche !== d.oleadas - 1 ? null : d.giroAnterior, hayDefensas: !!clave,   // 4.10.1: el de la noche anterior de verdad (antes: el último que hubo, aunque fuera de tres noches atrás). 4.10.2: `d.giro` ya es null de madrugada (se borra al amanecer): se mira la noche anotada del último (`giroAnteriorNoche`; una partida sin ella se comporta como antes)
       yaHuboRefuerzo: d.refuerzoNoche === d.oleadas, azar: azarNoche('giro', d.oleadas)(),   // (azarNoche da un generador: con código de partida siempre el mismo)
     });
     if (!id) return;
     const g = GIROS[id];
     d.giro = { id, noche: d.oleadas };
-    d.giroAnterior = id;
+    d.giroAnterior = id; d.giroAnteriorNoche = d.oleadas;   // 4.10.2
     if (id === 'niebla') {
       ctx.nota(g.aviso, g.texto, true);
     } else if (id === 'refuerzos') {
@@ -3839,6 +3842,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function hayAtaque() { return vivos() > 0 || eventos.nodrizaActiva || naveMundo.adentro; }   // 3.0: adentro de la nave tampoco se duerme
   // 2.6: para el fortín, "de noche" es de noche o con invasores a la vista
   const deNoche = () => nocheNivel > 0.5 || vivos() > 0;
+  const alarmaPosible = () => enVentanaDeNoche(progreso().horas) || vivos() > 0;   // 4.10.2: ver la campana
   function puedeDormir() {
     const p = progreso(), d = D();
     if (hayAtaque()) return { ok: false, motivo: eventos.nodrizaActiva ? 'El Coihue Viejo sigue en pie' : 'Hay duendes cerca: no es momento de dormir' };
