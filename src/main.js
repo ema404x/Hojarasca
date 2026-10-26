@@ -5155,6 +5155,7 @@ try {
     lluvia: () => clima?.estado?.lluvia || 0, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     msFigura: () => (planificadorAntitirones.permitir('empleados-negocio') ? 3 : 0), alClic: (el, fn) => alClicHud(el, fn),
     evento: (k) => destinoConFiesta(k),   // (si la aldea lo lleva a una fiesta o a una cita, no está en el local)
+    alContratar: (k) => cortarVisitaDe(k),   // 4.11.2 (R10): el compadre que está de visita en tu mesa y lo contratás: se corta la visita
   });
   fijarOcupacionExterna(empleadosNegocioJuego.ocupacion);
 } catch (e) { fallaSistema('empleados-negocio-armado', e); empleadosNegocioJuego = null; }
@@ -5455,6 +5456,16 @@ function devolverVisita() {
   if (charla.npc === npc) cerrarCharla();
   visitante = null;
 }
+// 4.11.2 (R10): corta la visita en curso si es de `k` (lo contrataste en tu local o le tocó el turno): el vecino queda en un solo lugar.
+// Vuelve a su rutina y la visita se da por terminada (un compadre no le quita el turno al de siempre: ver terminarVisita)
+function cortarVisitaDe(k) {
+  const v = visitas();
+  const deEl = visitante && (visitante.npc.claveAldea || visitante.npc.clave) === k;
+  if (!deEl && v.activa?.clave !== k) return false;
+  devolverVisita();
+  if (v.activa) { terminarVisita(v, progreso.dia); guardar(); }
+  return true;
+}
 function regaloDeVisita(npc) {
   const v = visitas();
   if (!v.activa || v.activa.charlo) return;
@@ -5487,6 +5498,8 @@ function actualizarVisitas(dt) {
   if (relojVisitas > 0) return;
   relojVisitas = 1;
   const v = visitas(), js = jugador.estado;
+  // 4.11.2 (R10): al que le toca el turno detrás de tu mostrador mientras está de visita (lo contrataste con la visita en curso) se lo corta
+  if (v.activa && visitante && empleadosNegocioJuego?.deTurno(v.activa.clave)) { cortarVisitaDe(v.activa.clave); return; }
   // 2.3: con el fogón prendido se queda hasta tarde, y lo avisa una vez
   const alFuego = v.activa && visitante && v.activa.dia === progreso.dia && seQuedaAlFuego(fogonDeVisita(), progreso.horas);
   if (alFuego && progreso.horas >= VISITA.seVa - 1) {
@@ -5580,7 +5593,8 @@ function armarOficiosYAldea(esDesafio) {
     abrirBanco: () => { bancoDelPueblo().abrir(); setTimeout(() => { if (enElBanco()) cerrarCharla(); }, 0); },   // 3.8.8: el gerente te atiende en el mostrador (3.9.2: y la charla se cierra: la rueda de temas quedaba dibujada detrás del panel)
     abrirCarta: () => !!cantinaJuego?.abrirCarta(), cantinaSentado: () => !!cantinaJuego?.estaSentado(),   // 3.9.0: la moza te trae la carta (si estás sentado a su mesa)
     abrirCartaTe: () => !!teJuego?.abrirCarta(), teSentado: () => !!teJuego?.estaSentado(),   // 3.9.2: lo mismo con Ceinwen, en la casa de té
-    temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),   // 3.8.8: la demanda del pueblo
+    deTurnoNegocio: (k) => !!empleadosNegocioJuego?.deTurno(k), salidaDeTurno: (k) => empleadosNegocioJuego?.salidaDeTurno(k) || null,   // 4.11.2 (D3): el que termina el turno sale caminando de tu local
+    temporada: () => temporadaDelDia(progreso.dia),   // 3.8.8: la demanda del pueblo. 4.11.2 (S2): por el calendario (negocios-fx.js), no por el cielo: coherente con los precios de los puestos y con «Estación fija»
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
@@ -5794,6 +5808,7 @@ function armarOficiosYAldea(esDesafio) {
       pagar: (monto, motivo, con) => pagarPesos(progreso, monto, motivo, con).ok, cobrar: (monto, motivo, con) => cobrarPesos(progreso, monto, motivo, con),
       darHerramienta: (id) => darHerramientaDeZona(id),
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+      anotarDiario: (tipo, dato) => diario.anotar(tipo, dato),   // 4.11.2 (A14): «Conocí a …»
       ...CARGA_CTX,   // 4.7 carga
     });
     genteCampoMundo = crearGenteCampoMundo({ T, col, gente });

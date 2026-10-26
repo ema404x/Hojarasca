@@ -415,7 +415,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 // ============================================================ 7. los servicios
 {
   const todos = () => {
-    const p = partida(30, { materiales: { tronco: 9, tabla: 5, lana: 5 }, cosas: { hacha: 1 }, economia: { ...economiaNueva(), pesos: 500 }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
+    const p = partida(30, { materiales: { tronco: 9, tabla: 5, lana: 5 }, cosas: { hacha: 1 }, economia: { ...economiaNueva(), pesos: 1000 }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
     p.aldea.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 }));
     p.aldea.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
     return p;
@@ -438,7 +438,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(!A.servicioBase('carpintero', q, dia).efectos, 'una vez por día');
   ok(A.servicioBase('carpintero', q, dia + 1).efectos, 'y al otro día de nuevo');
   s = A.servicioBase('panadera', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(pesosDe(q) === 500 - A.SERVICIO.pesosPorPan && q.entradas['pan-casero'].cantidad === A.SERVICIO.panes, 'la panadera vende los panes por pesos');
+  ok(pesosDe(q) === 1000 - A.SERVICIO.pesosPorPan && q.entradas['pan-casero'].cantidad === A.SERVICIO.panes, 'la panadera vende los panes por pesos');
   s = A.servicioBase('herrero', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   eq(q.aldea.afilado, A.SERVICIO.filo, 'el herrero afila');
   ok(A.golpesConFilo(3, q.aldea) === 2 && A.gastarFilo(q.aldea), 'un hachazo menos');

@@ -60,6 +60,16 @@ export function crearEmpleadosNegocioJuego(ctx) {
     const p = P();
     return ocupacion(k, Number(p?.horas) || 0, diaSemanaDe(p?.dia), Number(p?.dia) || 1) && !ocupado(k);
   }
+  // 4.11.2 (D3): por dónde sale del local el empleado cuando termina el turno ({ x, z, saliendo }) o null si no es de acá. aldea-gente.js lo usa: su figura de la
+  // aldea reaparece ahí (y no donde la rutina lo dejó, en su puerta) y camina desde el local; mientras la figura del mostrador se está yendo, espera
+  function salidaDeTurno(k) {
+    const E = estadoE(), N = negocio();
+    const emp = E ? empleadoDe(E, k) : null, o = N?.local?.();
+    if (!emp || !o) return null;
+    const s = puesto(o, emp.turno), d0 = aMundo(o, lado(emp.turno) * 5, -s.D / 2 - 12);
+    const fase = figuras.get(k)?.fase;   // (también 'entra' y 'puesto': si todavía no vio que terminó el turno, la figura sigue en el local)
+    return { x: d0.x, z: d0.z, saliendo: fase === 'sale' || fase === 'entra' || fase === 'puesto' };
+  }
   // los que se pueden contratar y están en la aldea (los pobladores, sólo con su local abierto)
   // 4.4.2: al que ya atiende el negocio que le compraste (su sueldo ya lo descuenta ese negocio) no se lo contrata además: cobraría dos veces
   const suNegocioEsTuyo = (k) => { const id = negocioDeVecino(k); return !!id && esTuyo(P(), id); };
@@ -281,6 +291,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     if (suNegocioEsTuyo(k)) { ctx.nota?.('No se pudo contratar', `${nombreDe(k)} ya trabaja en el negocio que le compraste: ese negocio le paga el sueldo`, false); return; }
     const r = contratar(E, k, { tipo: est.tipo, dia: P().dia, abs: absAhora(), puntos: puntosAmistad(k, P()) });
     if (!r.ok) { ctx.nota?.('No se pudo contratar', (MOTIVOS[r.motivo] || MOTIVOS['no-contrata'])(k), false); return; }
+    ctx.alContratar?.(k);   // 4.11.2 (R10): si estaba de visita en tu mesa, la visita se corta (queda en un solo lugar)
     ctx.sonido?.()?.juntar?.();
     ctx.nota?.(`${nombreDe(k)} trabaja para vos`, `${formatoPesos(r.emp.sueldo)} por día, turno ${textoTurno(r.emp.turno)}, de lunes a sábado. En ese horario deja lo que hacía. El primer día es de prueba, sin sueldo`, true);
     ui.contratando = false;
@@ -373,7 +384,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
   }
 
   return {
-    actualizar, dibujarPanel, ocupacion, deTurno, enLaAldea, quitarFiguras,
+    actualizar, dibujarPanel, ocupacion, deTurno, salidaDeTurno, enLaAldea, quitarFiguras,
     ui, figuras,
     // para las pruebas: empujar el paso del tiempo sin esperar
     __tick: (n = 1) => { for (let i = 0; i < n; i++) { acum = PASO; acumCuenta = CADA; actualizar(0); } },

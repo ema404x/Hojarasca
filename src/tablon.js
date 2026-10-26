@@ -104,6 +104,8 @@ export const ENCARGOS_TABLON = [
   { id: 'truchas-cantina', k: 'trucha-fresca', n: 3, origen: 'cabana', quien: ['moza', 'galesa'], para: 'para la cena del sábado en la cantina' },
   { id: 'trucha-ahumada', k: 'trucha-ahumada', n: 1, origen: 'cabana', quien: ['enfermera', 'nelida'], para: 'ahumada como la hace Nicanor' },
   { id: 'calafate-arrayanal', k: 'calafate-seco', n: 1, origen: 'arrayanes', quien: ['madre', 'galesa'], para: 'del arrayanal, para un dulce de los buenos' },
+  // 4.11.2 (A14): el Puesto Alto, el lugar más lejano (×2,5): el llao llao seco del monte de arriba, para un guiso
+  { id: 'llao-puesto-alto', k: 'hongos-secos', n: 1, origen: 'puestoAlto', quien: ['herbolaria', 'abuela'], para: 'del monte de arriba, por el Puesto Alto, para un guiso de los de antes' },
   { id: 'frutillas-arrayanal', k: 'frutilla', n: 10, origen: 'arrayanes', quien: ['maestra', 'galesa'], para: 'del lado de los arrayanes, para los chicos de la escuela' },
 ];
 const encargoTablon = (id) => ENCARGOS_TABLON.find((e) => e.id === id) || null;

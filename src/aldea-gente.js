@@ -1250,11 +1250,19 @@ export function crearAldeaGente(ctx) {
       st.destino = d || null;
       const n = st.npc;
       // (alguien que ya no está en esta partida, si la partida cambió sin recargar: no se ve)
-      if (n && !d && !n.deVisita) { n.dormido = true; continue; }
+      if (n && !d && !n.deVisita) { n.dormido = true; n.__fueraPorTurno = !!ctx.deTurnoNegocio?.(k); n.__esperaTurno = 0; continue; }   // (4.11.2 (D3): y si es porque está de turno en tu local, se anota)
       if (!n || !d) continue;
       if (n.__primera === true) n.__primera = 1; else if (n.__primera === 1) n.__primera = false;   // (3.7.1 (mundo): recién armada, sólo esta vuelta)
       n.alAmor = !!d.amor;   // 3.7.1 (mundo): yendo a lo del amor (la cita, el casamiento) no se frena al pasar al lado tuyo
       // el que llegó y aceptaste ya no saluda como recién bajado
+      // 4.11.2 (D3): el que termina el turno en tu local reaparece a la salida del local (y no donde la rutina lo dejó, en su puerta) y camina desde ahí;
+      // mientras la figura del mostrador se está yendo, la de la aldea espera (si no, quedaba en dos lugares), con un tope por las dudas
+      if (n.__fueraPorTurno) {
+        const s = ctx.salidaDeTurno?.(k);
+        if (s?.saliendo && (n.__esperaTurno += paso) < 40) { n.dormido = true; continue; }
+        n.__fueraPorTurno = false; n.__esperaTurno = 0;
+        if (s && !n.deVisita && !n.conVos && n !== hablando) { n.pos.set(s.x, ctx.alturaDePie(s.x, s.z, n.pos.y), s.z); n.camino = []; st.clave = ''; }
+      }
       if (n.llegando && a.llegando?.clave !== k) { const def = defDe(k); n.llegando = false; n.saludo = def.saludo; n.despedida = def.despedida; }
       // 3.6: de visita en tu mesa (visitas.js la trae y la devuelve), no se la toca; al volver,
       // sigue con su horario
