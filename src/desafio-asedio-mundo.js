@@ -14,7 +14,7 @@ import { registrarLuz } from './luces.js';
 import { ASEDIO, ZONAS_ASEDIO, defZona, asedioNuevo, asedioActivo, zonasLibres, capasEscudo, puedeAbordar, danarAncla, elegirContraataque, desgastarBaliza, cerrarNocheAsedio, tocaGuardia, guardianesDe, ganarAsedio, textoAsedio, marcasAsedio, ubicarZonas, ubicarNave } from './desafio-asedio.js';
 
 // 4.10 coihue: el Coihue camina hacia tu base (las reglas, en desafio-camino.js)
-import { caminoNuevo, rutaDelCoihue, rutaRecta, largoRuta, puntoEnRuta, posicionCamino, empezarNocheCamino, tickCamino, cerrarNocheCamino, herirPies, pisarTrampa, anotarRastro, horasDeNoche, avisoNocheCamino, metrosABase } from './desafio-camino.js';
+import { caminoNuevo, rutaDelCoihue, crearBusquedaRuta, rutaRecta, largoRuta, puntoEnRuta, posicionCamino, empezarNocheCamino, tickCamino, cerrarNocheCamino, herirPies, pisarTrampa, anotarRastro, horasDeNoche, avisoNocheCamino, metrosABase } from './desafio-camino.js';
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _c = new THREE.Color();
 const ARRIBA = new THREE.Vector3(0, 1, 0);
@@ -515,13 +515,57 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     return !api.obraCerca?.(x, z, hObra);
   }
   // Primero con holgura (el árbol es ancho); si el cerco no deja, cada vez menos; y si no hay camino, la recta.
+  const costoRuta = (x, z) => { const k = T.indice(x, z); return (T.bosque?.[k] ?? 0) * 1.2 + (T.pendiente?.[k] ?? 0) * 1.5; };
+  const HOLGURAS_RUTA = [[9, 8], [4, 5], [2, 2.5]];
   function rutaPara(desde, base) {
-    const costo = (x, z) => { const k = T.indice(x, z); return (T.bosque?.[k] ?? 0) * 1.2 + (T.pendiente?.[k] ?? 0) * 1.5; };
-    for (const [ha, ho] of [[9, 8], [4, 5], [2, 2.5]]) {
-      const r = rutaDelCoihue(desde, base, (x, z) => libreCoihue(x, z, ha, ho), { costo, limite: LIMITE - 30 });
+    for (const [ha, ho] of HOLGURAS_RUTA) {
+      const r = rutaDelCoihue(desde, base, (x, z) => libreCoihue(x, z, ha, ho), { costo: costoRuta, limite: LIMITE - 30 });
       if (r && r.length >= 2) return { ruta: r, recta: false };
     }
     return { ruta: rutaRecta(desde, base), recta: true };
+  }
+  // 4.11.3 (H2-3 b y c): la ruta de cada noche se calcula repartida en cuadros (el A* entero hacía un tirón de 1 a 7 ms al caer la noche, y de 30 a 60 con
+  // la base cercada). Es el mismo cálculo con los mismos tres intentos: la ruta sale igual, pero se aplica unos cuadros después. Mientras tanto el Coihue
+  // se queda donde está (no camina hasta que la ruta nueva esté puesta: ver actualizarCamino).
+  const PRESUPUESTO_RUTA = 350;   // unidades por cuadro (celdas miradas y nodos abiertos): ~1 ms en la notebook, con la base despejada la ruta sale en 2 a 5 cuadros
+  let replan = null;
+  function empezarReplan(a) {
+    const c = a.camino;
+    replan = null;
+    if (!c || c.llego) return;
+    const centro = api.centroBase();
+    c.base = { x: centro.x, z: centro.z };   // (el centro de tu base se mueve con lo que construís)
+    const desde = posicionCamino(c);
+    replan = { a, c, desde: { x: desde.x, z: desde.z }, base: c.base, intento: 0, busqueda: null };
+  }
+  function aplicarReplan(r, ruta, recta) {
+    const c = r.c;
+    c.ruta = ruta; c.recta = recta; c.largo = largoRuta(ruta); c.d = 0; vis.d = 0;
+    if (c.largo <= 0.5) c.llego = true;
+    replan = null;
+  }
+  // Trabaja hasta `unidades`; sin tope (Infinity) la termina de una vez. Devuelve si todavía quedan cuentas pendientes.
+  function avanzarReplan(unidades = PRESUPUESTO_RUTA) {
+    const r = replan;
+    if (!r) return false;
+    if (A() !== r.a || r.a.camino !== r.c) { replan = null; return false; }   // (se terminó el asedio o se cambió el camino)
+    let sobra = unidades;
+    while (replan === r) {
+      if (r.intento >= HOLGURAS_RUTA.length) { const rr = rutaRecta(r.desde, r.base); aplicarReplan(r, rr, true); break; }
+      if (!r.busqueda) {
+        const [ha, ho] = HOLGURAS_RUTA[r.intento];
+        r.busqueda = crearBusquedaRuta(r.desde, r.base, (x, z) => libreCoihue(x, z, ha, ho), { costo: costoRuta, limite: LIMITE - 30 });
+      }
+      const antes = r.busqueda.gastado;
+      const fin = r.busqueda.avanzar(sobra);
+      sobra -= r.busqueda.gastado - antes;
+      if (!fin) break;
+      const ruta = r.busqueda.resultado;
+      if (ruta && ruta.length >= 2) { aplicarReplan(r, ruta, false); break; }
+      r.busqueda = null; r.intento++;
+      if (sobra <= 0) break;
+    }
+    return replan !== null;
   }
   function crearCamino(a) {
     const base = api.centroBase();
@@ -530,15 +574,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     vis.d = 0; vis.listo = null; vis.nHuellas = -1;
     return a.camino;
   }
-  function replanear(a) {
-    const c = a.camino;
-    if (!c || c.llego) return;
-    const centro = api.centroBase();
-    c.base = { x: centro.x, z: centro.z };   // (el centro de tu base se mueve con lo que construís)
-    const p = posicionCamino(c), { ruta, recta } = rutaPara(p, c.base);
-    c.ruta = ruta; c.recta = recta; c.largo = largoRuta(ruta); c.d = 0; vis.d = 0;
-    if (c.largo <= 0.5) c.llego = true;
-  }
+  function replanear(a) { empezarReplan(a); }   // 4.11.3: ahora se reparte en cuadros (ver empezarReplan)
   // Dónde se ve el Coihue (donde va la zancada) y dónde dice la cuenta que está.
   function posVisual(a) {
     const c = a.camino;
@@ -562,6 +598,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function albaCamino(a) {
     const c = a.camino;
     if (!c) return;
+    if (replan) avanzarReplan(Infinity);   // 4.11.3: si la noche terminó (o se durmió) con la ruta a medio calcular, se termina ya: el alba camina por la ruta nueva
     cerrarNocheCamino(c, zonasLibres(a));
     // (cada noche la ruta se vuelve a calcular desde donde quedó: `d` es lo que caminó esta noche)
     if (c.d > 0.5 && !c.llego) {
@@ -718,7 +755,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const c = a.camino || crearCamino(a);
     if (vis.listo !== armado) { vis.listo = armado; vis.d = c.d; vis.nHuellas = -1; }
     let r = { camina: false, llego: false };
-    if (!dia) {
+    if (!dia && !replan) {   // (4.11.3: con la ruta nueva a medio calcular el Coihue espera: no camina por la vieja)
       if (c.noche < 0) empezarNocheCamino(c, D().oleadas + 1);   // (se cargó la partida a media noche)
       r = tickCamino(c, horasDeNoche(api.horas?.() ?? 12, HORA_ATAQUE), zonasLibres(a));
       if (r.camina && c.avisoNoche !== c.noche) {
@@ -804,7 +841,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   let tHud = 0;
   function actualizar(dt, js) {
     const a = A();
-    if (!a) { if (armado) desarmar(); activos.length = 0; return; }
+    if (!a) { replan = null; if (armado) desarmar(); activos.length = 0; return; }
+    if (replan) avanzarReplan();   // 4.11.3: un pedazo de la ruta de esta noche por cuadro
     armar();
     const t = performance.now() / 1000;
     const dia = deDia(), vivo = asedioActivo(a);
@@ -910,6 +948,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     marcas: () => marcasAsedio(A()),
     // para las pruebas
     get armado() { return armado; },
+    get rutaPendiente() { return !!replan; },   // 4.11.3
+    terminarRuta: () => avanzarReplan(Infinity),
     // 4.10 coihue: el camino (el temblor, para la cámara; lo visual, para las pruebas)
     get temblor() { return vis.temblor; },
     get camino() { return A()?.camino || null; },

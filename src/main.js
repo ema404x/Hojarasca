@@ -367,6 +367,9 @@ if (esDesafio) metaJuego.alCargar();   // 4.10.1: una campaña de la 4.9 sin `me
 // 4.10.2: el aviso ya no sale por un temporizador (con la portada abierta el HUD está oculto y la nota se perdía): sale al entrar al juego
 // (`avisosAlEntrar`, ver `avisarVersionMasNueva`) y, hasta que se muestre, el guardado no pisa la versión de la partida
 let versionPendiente = progreso?.versionJuego || '';
+// 4.11.3 (E3): y la versión con que venía la partida, que NO se borra al mostrar el aviso: una partida de una versión más nueva se abre en sólo
+// lectura (no se guarda, ni la copia de respaldo ni la de la carpeta sincronizada) hasta que se la abra con esa versión o una más nueva
+const versionDeLaPartida = progreso?.versionJuego || '';
 // 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
 const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
 // 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
@@ -2713,7 +2716,7 @@ $('btn-partidas-inicio').addEventListener('click', () => abrirPartidas('inicio')
 // La base se recuerda entre sesiones: así una copia que ya viste (o que importaste) no se
 // vuelve a ofrecer aunque los relojes de las dos computadoras no coincidan.
 const syncApi = window.hojarasca?.sync || null;
-let carpetaSync = null, ultimaCopiaSync = 0, copiadoEnSync = 0, relojSync = 0, conflictoSync = false, avisoSyncFallo = false;
+let carpetaSync = null, ultimaCopiaSync = 0, copiadoEnSync = 0, relojSync = 0, conflictoSync = false, avisoSyncFallo = false, fallosSync = 0;
 const claveBaseSync = () => `hojarasca-sync-base-${modoJuego}-p${ranuraActual()}`;
 let baseSync = (() => { try { return Number(localStorage.getItem(claveBaseSync())) || 0; } catch { return 0; } })();
 function fijarBaseSync(g) {
@@ -2729,6 +2732,7 @@ function avisarConflictoSync() {
 function copiarASync(forzar = false, ya = false) {
   if (esSinFin) return false;   // 3.0: la corrida sin fin no es una de las tres partidas: no viaja
   if (!syncApi || !carpetaSync || reiniciandoPartida || conflictoSync) return false;
+  if (partidaSoloLectura()) return false;   // 4.11.3 (E3): la copia de la carpeta tampoco se toca desde una versión más vieja que la partida
   if (!tocaCopiar({ ultimaCopia: ultimaCopiaSync, guardadoEn: guardadoEnActual(), copiadoEn: copiadoEnSync, forzar })) return false;
   const texto = textoParaExportar(ranuraActual(), true);
   if (!texto) return false;
@@ -2736,13 +2740,18 @@ function copiarASync(forzar = false, ya = false) {
   const base = baseSync;
   ultimaCopiaSync = Date.now();
   copiadoEnSync = guardadoEnActual();
-  if (ya) { const r = syncApi.escribirYa(nombre, texto, base); if (r === true) fijarBaseSync(copiadoEnSync); else if (r === 'conflicto') conflictoSync = true; return r === true; }
+  const grande = texto.length >= 60 * 1024 * 1024;   // 4.11.3 (M8): pasa del tope de la carpeta (64 MB): reintentar no sirve; un fallo del `rename` (archivo tomado) sí se reintenta
+  if (ya) { const r = syncApi.escribirYa(nombre, texto, base); if (r === true) { fallosSync = 0; fijarBaseSync(copiadoEnSync); } else if (r === 'conflicto') conflictoSync = true; else if (r === false) copiadoEnSync = 0; return r === true; }
   syncApi.escribir(nombre, texto, base).then((r) => {
-    if (r === true) fijarBaseSync(copiadoEnSync);
+    if (r === true) { fallosSync = 0; fijarBaseSync(copiadoEnSync); }
     else if (r === 'conflicto') avisarConflictoSync();
     else if (r === false) {   // 4.0.2: no se pudo (típico: la partida con muchas fotos pasa de 64 MB): se avisa una vez y se espera 10 min antes de volver a armar el paquete entero (antes se rearmaba en cada guardado, sin decir nada)
-      ultimaCopiaSync = Date.now() + 10 * 60 * 1000;
-      if (!avisoSyncFallo) { avisoSyncFallo = true; nota('No se pudo copiar la partida a la carpeta sincronizada', 'Puede ser que pese demasiado (muchas fotos). Seguís jugando igual: la partida queda guardada en esta computadora', true); }
+      // 4.11.3 (M8): si el `rename` falló (el sincronizador tenía el archivo tomado) queda la copia anterior y el próximo guardado lo reintenta: la copia no se da por hecha;
+      // el aviso discreto sale recién al tercer fallo seguido (con una partida demasiado grande, enseguida y con la espera de 10 minutos de antes)
+      fallosSync++;
+      copiadoEnSync = 0;
+      if (grande) ultimaCopiaSync = Date.now() + 10 * 60 * 1000;
+      if (!avisoSyncFallo && (grande || fallosSync >= 3)) { avisoSyncFallo = true; nota('No se pudo copiar la partida a la carpeta sincronizada', 'Puede ser que pese demasiado (muchas fotos). Seguís jugando igual: la partida queda guardada en esta computadora', true); }
     }
   }).catch(() => {});
   return true;
@@ -9480,11 +9489,21 @@ function bajarDatos(datos, nombre) {
 let obrasAjenas = [];
 // 4.10.1: la versión que dice la pantalla («Versión 4.10.1»), ya saneada
 function versionDelJuego() { return sanearVersionJuego((document.getElementById('version-completa')?.textContent || '').replace('Versión ', '')); }
+// 4.11.3 (E3): ¿la partida es de una versión más nueva que este juego? Entonces se abre en sólo lectura. Sin versión (partidas de antes) o con la
+// misma o una menor, se guarda como siempre.
+function partidaSoloLectura() {
+  return versionMasNueva(versionDeLaPartida, versionDelJuego());
+}
 function guardar() {
   if (reiniciandoPartida || !jugador) return false;
   // 3.5.1: durante el banco de pruebas el jugador va por el recorrido y la hora es la del tramo:
   // no se guarda (al cerrar la ventana a mitad quedaba la posición y la hora del banco)
   if (banco?.activa) return false;
+  // 4.11.3 (E3): sólo lectura: ni autoguardado, ni manual, ni cierre pisan la partida más nueva (el aviso queda a la vista: ver avisarVersionMasNueva)
+  if (partidaSoloLectura()) {
+    window.dispatchEvent(new CustomEvent('hojarasca:guardado', { detail: { ok: false, soloLectura: true, hora: Date.now() } }));
+    return false;
+  }
   const m = T.lugares.muelle;
   const e = T.lugares.estacion;
   progreso.pos = jugador.estado.enKayak ? { x: m.punta.x, z: m.punta.z }
@@ -11322,9 +11341,15 @@ function avisarCalidadInicial() {
   avisosAlEntrar.push(() => nota(`Calidad ${nombreCalidad(calidadElegidaAlAbrir)}, según tu placa de video`, 'La podés cambiar en Ajustes (Esc)', true));   // (4.0.2: ver avisosAlEntrar)
 }
 // 4.10.2: el aviso de «partida de una versión más nueva» espera a que de verdad se entre al juego
+// 4.11.3 (E3): ahora la partida se abre en sólo lectura: el aviso no se va (portada y una marca fija en pantalla) y la nota de entrada lo dice
 function avisarVersionMasNueva() {
-  if (!versionMasNueva(versionPendiente, versionDelJuego())) return;
-  avisosAlEntrar.push(() => { nota('Partida de una versión más nueva', `Se guardó con la ${versionPendiente}: jugala con esa versión o una más nueva, o se pueden perder cosas nuevas al guardar`); versionPendiente = ''; });
+  if (!partidaSoloLectura()) return;
+  const texto = `Esta partida es de una versión más nueva (${versionDeLaPartida}): se abre en sólo lectura y no se guarda. Podés seguir jugando; para guardar, abrila con esa versión o una más nueva.`;
+  const p = $('aviso-solo-lectura');
+  if (p) { p.textContent = T_(texto); p.classList.remove('oculto'); }
+  const marca = $('marca-solo-lectura');
+  if (marca) { marca.textContent = T_('Sólo lectura: no se guarda'); marca.title = T_(texto); marca.classList.remove('oculto'); }
+  avisosAlEntrar.push(() => { nota('Partida de una versión más nueva', `Se guardó con la ${versionDeLaPartida}: se abre en sólo lectura, podés jugar pero no se guarda`); versionPendiente = ''; });
 }
 // main.cjs pide guardar ya (antes de reiniciar con otras opciones de gráficos)
 window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); } });

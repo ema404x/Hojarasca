@@ -20,5 +20,5 @@ Pedir OK al usuario antes del push si no lo pidió. Distinguir siempre lo verifi
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\empaquetar.ps1 . <ver> herramientas\LEEME-<ver>.txt
    ```
-   Deja `Hojarasca-<ver>-completo.zip` en Descargas (instalador, portable, depot de Steam, código fuente) y verifica que el `index.html` del ejecutable es el probado. Los `.ps1` necesitan UTF-8 con BOM.
+   Deja `Hojarasca-<ver>-completo.zip` en Descargas (instalador, portable, depot de Steam, código fuente) y verifica que el `index.html` del ejecutable es el probado. Los `.ps1` necesitan UTF-8 con BOM. Si hay un `Hojarasca.exe` abierto, el script **pregunta** antes de cerrarlo; sin consola interactiva (un agente) no cierra nada y falla: avisale al usuario, o agregá `-Forzar` sólo si él lo pidió. `-EnSeco` decide eso y se detiene, sin armar nada.
 8. Avisarle al usuario: dónde está el zip, la rama y la etiqueta en GitHub, y qué tiene que mirar él.

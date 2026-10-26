@@ -609,6 +609,8 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 #dialogo .acciones-modal { justify-content: flex-end; margin-top: 22px; }
 #dialogo .dialogo-ayuda { margin: 14px 0 0; font-size: 13px; color: rgba(239,230,210,.5); }
 .graficos-recuperando { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; background: rgba(9,13,10,.9); color: var(--luz); font-size: 22px; font-style: italic; }
+/* 4.11.3 (E3): la marca fija de una partida de una versión más nueva (sólo lectura) */
+.marca-solo-lectura { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); padding: 6px 14px 5px; border-radius: 7px; background: rgba(60,38,18,.82); border: 1px solid rgba(233,217,168,.5); color: #f1dfa6; font-size: 14px; pointer-events: none; white-space: nowrap; z-index: 5; }
 .portada .aviso-recuperado { min-height: 0; margin: 0 0 12px; color: #e9d9a8; }
 
 /* ---------- 2.8: personalizar ---------- */
@@ -706,6 +708,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <p class="bajada">un bosque andino patagónico para recorrer despacio</p>
     <p class="modo-texto aviso-recuperado oculto" id="aviso-recuperado"></p>
     <p class="modo-texto aviso-recuperado oculto" id="aviso-calidad-inicial"></p>
+    <p class="modo-texto aviso-recuperado oculto" id="aviso-solo-lectura" role="status"></p>
     <p class="modo-texto" id="diario-portada"></p>
     <div class="acciones">
       <button class="accion-principal" id="btn-entrar">Entrar al bosque</button>
@@ -905,6 +908,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 </div>
 <!-- 4.10.2: las notas y el cartel de mochila llena, fuera del #hud para quedar por encima de los paneles del banco, la cantina y el local (sigue al HUD: se esconde con él) -->
 <div id="avisos-altos">
+  <div class="marca-solo-lectura oculto" id="marca-solo-lectura" role="status"></div>
   <div class="aviso-llena oculto" id="aviso-llena" role="alert"></div>
   <div class="notas" id="notas"><div class="guardado-hud" id="guardado-hud">✓ Guardado</div></div>
 </div>
@@ -1320,7 +1324,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     const ok = ev.detail?.ok !== false;
     const hora = new Date(ev.detail?.hora || Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     const estado = $('estado-guardado');
-    if (estado) estado.textContent = ok ? `Último guardado · ${hora}` : 'No se pudo guardar. Revisá el espacio disponible.';
+    if (estado) estado.textContent = ok ? `Último guardado · ${hora}` : ev.detail?.soloLectura ? 'Sólo lectura: la partida es de una versión más nueva y no se guarda.' : 'No se pudo guardar. Revisá el espacio disponible.';
     const hud = $('guardado-hud');
     if (!hud || !ok) return;
     clearTimeout(ocultarGuardado);

@@ -51,14 +51,15 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   ok(!enUnaLinea(main, ["setTimeout(() => { if (versionMasNueva("]), 'el temporizador de 6 s ya no existe');
   const notas = [];
   const avisos = [];
-  const env = { versionPendiente: '4.99.0', versionDelJuego: () => '4.10.1', versionMasNueva: G.versionMasNueva, avisosAlEntrar: avisos, nota: (t, s) => notas.push([t, s]) };
+  // 4.11.3: el aviso ahora sale si la partida es de sólo lectura (partidaSoloLectura) y se escribe también en la portada y en la marca fija
+  const env = { versionPendiente: '4.99.0', versionDeLaPartida: '4.99.0', partidaSoloLectura: () => true, $: () => null, T_: (x) => x, versionDelJuego: () => '4.10.1', versionMasNueva: G.versionMasNueva, avisosAlEntrar: avisos, nota: (t, s) => notas.push([t, s]) };
   funcion(main, 'avisarVersionMasNueva', env)();
   eq([avisos.length, notas.length], [1, 0], 'al abrir se prepara el aviso pero no se muestra todavía (el HUD de la portada está oculto)');
   ok(env.versionPendiente === '4.99.0', 'y mientras tanto el guardado sigue conservando la versión');
   avisos[0]();
   ok(notas.length === 1 && notas[0][0] === 'Partida de una versión más nueva' && notas[0][1].includes('4.99.0'), 'al entrar al juego la nota sale con la versión de la partida');
   ok(env.versionPendiente === '', 'y recién ahí el guardado vuelve a escribir la versión de esta versión');
-  const env2 = { ...env, versionPendiente: '4.10.1', avisosAlEntrar: [] };
+  const env2 = { ...env, versionPendiente: '4.10.1', versionDeLaPartida: '4.10.1', partidaSoloLectura: () => false, avisosAlEntrar: [] };
   funcion(main, 'avisarVersionMasNueva', env2)();
   ok(env2.avisosAlEntrar.length === 0, 'una partida de la misma versión (o vieja) no avisa nada');
   // el enganche: `guardar` escribe lo que decide versionAlGuardar, y `volverAlJuego` dispara los avisos pendientes

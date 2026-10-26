@@ -61,7 +61,9 @@ function registrarSincronia({ ipcMain, dialog, app, ventana = () => null, alErro
       // primero a un temporal y después se renombra: el sincronizador nunca ve medio archivo
       const tmp = `${d.ruta}.tmp`;
       fs.writeFileSync(tmp, t, 'utf8');
-      try { fs.renameSync(tmp, d.ruta); } catch { fs.writeFileSync(d.ruta, t, 'utf8'); fs.rmSync(tmp, { force: true }); }
+      // 4.11.3 (M8): si el `rename` falla (el sincronizador suele tener el archivo tomado) NO se escribe directo sobre la copia buena: una
+      // escritura a medias la dejaba rota. Se tira el temporal, queda la copia anterior y se devuelve false; el juego reintenta en el próximo guardado.
+      try { fs.renameSync(tmp, d.ruta); } catch (e) { try { fs.rmSync(tmp, { force: true }); } catch {} alError(String(e?.message || e)); return false; }
       return true;
     } catch (e) {
       // 2.6.1: si falló a mitad (disco lleno), no se deja el temporal cortado en la carpeta
