@@ -45,7 +45,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'herreria-propia', nombre: 'Herrería propia', ...lleno(3.6, 3.0, 2.4), separacion: 0.6,
     texto: 'Una fragua de piedra con campana, el yunque sobre un tocón, el fuelle y las tenazas a mano. Con E afilás el hacha y el pico cuando quieras, sin ir a la aldea; y una sola vez podés templarlos (6 piedras, 2 troncos y $2.500): con filo, dos golpes menos en vez de uno. La pared de piedra va atrás.',
     pide: { tabla: 8, tronco: 6, piedra: 30 }, pesos: 32000,
-    fisica(h) { h.plataforma(0, 0, 3.6, 3, 0.18, 0.14, 0.5); h.segmento(-1.6, 1.34, 1.6, 1.34, 0.14, 0, 2.4); h.segmento(-1.55, 0.62, -0.35, 0.62, 0.3, 0, 0.9); h.circulo(0.5, -0.1, 0.34, 0, 0.7); },
+    fisica(h) { h.plataforma(0, 0, 3.6, 3, 0.18, 0.14, 0.5); h.segmento(-1.6, 1.34, 1.6, 1.34, 0.14, 0, 2.4); h.segmento(-1.55, 0.62, -0.35, 0.62, 0.3, 0, 0.9); h.circulo(0.5, -0.1, 0.34, 0, 0.7);
+      // 4.11.2 (G-7): el barril de agua y la mesita de las tenazas también se chocan
+      h.circulo(1.35, 0.95, 0.3, 0, 0.8); h.segmento(-0.1, 1.05, 0.8, 1.05, 0.22, 0, 0.9); },
     arma(c) {
       const W = 3.6, D = 3.0, H = 2.4;
       armazon(c, W, D, H, { fondoAlto: 2.15, ladoDerecho: 1.1 });
@@ -85,7 +87,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'carpinteria', nombre: 'Carpintería', ...lleno(3.8, 3.0, 2.4), separacion: 0.6,
     texto: 'Un galpón abierto con el banco de carpintero y su prensa de tornillo, un caballete con el tronco a medio aserrar y los tablones secando contra la pared. Mientras la tengas en pie, al terminar cada etapa de obra sobra un 10 % más de tablas y troncos (15 % con oficio de hachero). Con E lo ves.',
     pide: { tabla: 30, tronco: 10, piedra: 6 }, pesos: 22000,
-    fisica(h) { h.plataforma(0, 0, 3.8, 3, 0.18, 0.14, 0.5); h.segmento(-1.7, 1.38, 1.7, 1.38, 0.1, 0, 2.4); h.segmento(-1.45, 0.2, 0.45, 0.2, 0.4, 0, 0.95); },
+    fisica(h) { h.plataforma(0, 0, 3.8, 3, 0.18, 0.14, 0.5); h.segmento(-1.7, 1.38, 1.7, 1.38, 0.1, 0, 2.4); h.segmento(-1.45, 0.2, 0.45, 0.2, 0.4, 0, 0.95);
+      // 4.11.2 (G-7): el caballete con el tronco y la pila de tablones del piso
+      h.segmento(0.45, -0.4, 1.55, -0.4, 0.2, 0, 1.1); h.segmento(0.75, 1.0, 1.75, 1.0, 0.2, 0, 0.5); },
     arma(c) {
       const W = 3.8, D = 3.0, H = 2.4;
       armazon(c, W, D, H, { platea: TABLA, techo: '#5a4638' });
@@ -121,7 +125,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'panaderia-horno', nombre: 'Panadería de horno grande', ...lleno(3.6, 3.2, 2.5), separacion: 0.6,
     texto: 'Un horno de barro grande, de cúpula, con la boca para las palas, la mesa de amasar, la leñera al lado y los cestos de pan. Con E cargás harina y leña, y el horno hace una tanda por día: 8 panes caseros (hasta tres tandas esperando). El pan se vende en la feria, en la tienda o en la estación.',
     pide: { tabla: 10, tronco: 8, piedra: 40 }, pesos: 27000,
-    fisica(h) { h.plataforma(0, 0, 3.6, 3.2, 0.18, 0.14, 0.5); h.segmento(-1.6, 1.46, 1.6, 1.46, 0.14, 0, 2.5); h.circulo(-0.5, 0.75, 1.05, 0, 1.5); },
+    fisica(h) { h.plataforma(0, 0, 3.6, 3.2, 0.18, 0.14, 0.5); h.segmento(-1.6, 1.46, 1.6, 1.46, 0.14, 0, 2.5); h.circulo(-0.5, 0.75, 1.05, 0, 1.5);
+      // 4.11.2 (G-7): la mesa de amasar, a la derecha del horno
+      h.segmento(0.5, 0.45, 1.6, 0.45, 0.35, 0, 0.96); },
     arma(c) {
       const W = 3.6, D = 3.2, H = 2.5;
       armazon(c, W, D, H, { fondoAlto: 2.2 });
@@ -153,7 +159,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'cerveceria', nombre: 'Cervecería artesanal', ...lleno(4.0, 3.2, 2.6), separacion: 0.6,
     texto: 'Una olla de cobre sobre su fogón, un fermentador de chapa, los barriles apilados y el grano en bolsas. Con E cargás harina y leña y sale un barril por día (hasta tres esperando): Lucrecia los compra para la cantina, contado. Y mientras la tengas, la cerveza de la cantina te sale un 25 % más barata.',
     pide: { tabla: 40, tronco: 12, piedra: 16 }, pesos: 42000,
-    fisica(h) { h.plataforma(0, 0, 4, 3.2, 0.18, 0.14, 0.5); h.segmento(-1.85, 1.46, 1.85, 1.46, 0.14, 0, 2.6); h.circulo(-1.1, 0.6, 0.7, 0, 1.7); h.circulo(0.35, 0.7, 0.45, 0, 1.6); h.circulo(1.45, 0.9, 0.55, 0, 1.2); },
+    fisica(h) { h.plataforma(0, 0, 4, 3.2, 0.18, 0.14, 0.5); h.segmento(-1.85, 1.46, 1.85, 1.46, 0.14, 0, 2.6); h.circulo(-1.1, 0.6, 0.7, 0, 1.7); h.circulo(0.35, 0.7, 0.45, 0, 1.6); h.circulo(1.45, 0.9, 0.55, 0, 1.2);
+      // 4.11.2 (G-7): la mesa de degustación (adelante, a la derecha) y el barril suelto
+      h.segmento(-0.05, -0.7, 0.85, -0.7, 0.25, 0, 0.9); h.circulo(1.55, 0.25, 0.3, 0, 0.75); },
     arma(c) {
       const W = 4.0, D = 3.2, H = 2.6;
       armazon(c, W, D, H, { platea: TABLA, fondoAlto: 1.3, fondoColor: TABLA });
@@ -190,7 +198,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'telar-grande', nombre: 'Telar grande', ...lleno(3.6, 3.0, 2.5), separacion: 0.6,
     texto: 'Un telar de bastidor alto, con la urdimbre tendida y el peine, la rueca al lado, las madejas teñidas secándose y dos ponchos terminados. Con E cargás vellones y el telar teje solo: dos ponchos por día con cinco vellones (a mano, tres por poncho), hasta tres tandas esperando.',
     pide: { tabla: 24, tronco: 8, lana: 6 }, pesos: 36000,
-    fisica(h) { h.plataforma(0, 0, 3.6, 3, 0.18, 0.14, 0.5); h.segmento(-1.65, 1.38, 1.65, 1.38, 0.1, 0, 2.5); h.segmento(-1.05, 0.55, 1.05, 0.55, 0.14, 0, 2.1); },
+    fisica(h) { h.plataforma(0, 0, 3.6, 3, 0.18, 0.14, 0.5); h.segmento(-1.65, 1.38, 1.65, 1.38, 0.1, 0, 2.5); h.segmento(-1.05, 0.55, 1.05, 0.55, 0.14, 0, 2.1);
+      // 4.11.2 (G-7): el cesto de lana
+      h.circulo(-1.2, -0.45, 0.3, 0, 0.55); },
     arma(c) {
       const W = 3.6, D = 3.0, H = 2.5;
       armazon(c, W, D, H, { platea: TABLA, techo: '#5a4638' });
@@ -230,7 +240,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'queseria', nombre: 'Quesería', ...lleno(3.2, 3.0, 2.4), separacion: 0.6,
     texto: 'Una quesería de piedra con la tina de cuajar, los tarros de leche, la prensa y las repisas llenas de quesos madurando. Con E ponés la leche de tu vaca a cuajar: 8 litros son 2 quesos por día (hasta tres tandas esperando). Ercilia los compra; con una tienda de campo los vendés vos y se pagan un cuarto más.',
     pide: { tabla: 14, tronco: 4, piedra: 24 }, pesos: 24000,
-    fisica(h) { h.plataforma(0, 0, 3.2, 3, 0.18, 0.14, 0.5); h.segmento(-1.45, 1.34, 1.45, 1.34, 0.14, 0, 2.4); h.circulo(-0.85, -0.1, 0.5, 0, 0.6); },
+    fisica(h) { h.plataforma(0, 0, 3.2, 3, 0.18, 0.14, 0.5); h.segmento(-1.45, 1.34, 1.45, 1.34, 0.14, 0, 2.4); h.circulo(-0.85, -0.1, 0.5, 0, 0.6);
+      // 4.11.2 (G-7): la mesa de la prensa y los tarros de leche
+      h.segmento(0.3, -0.5, 1.1, -0.5, 0.3, 0, 1.3); h.segmento(0.6, 0.5, 1.3, 0.5, 0.16, 0, 0.7); },
     arma(c) {
       const W = 3.2, D = 3.0, H = 2.4;
       armazon(c, W, D, H, { fondoAlto: 2.1, fondoColor: PIEDRA_CLARA });
@@ -265,7 +277,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'tienda-campo', nombre: 'Tienda de campo', ...lleno(3.6, 3.0, 2.5), separacion: 0.6,
     texto: 'Un mostrador con balanza, estantes con frascos y cajones, y un toldo a rayas al frente. Con E dejás a la venta lo tuyo (ponchos, pan, empanadas, miel, dulce, truchas ahumadas, hongos y calafate): vende hasta cuatro lotes por día con apenas un 4 % de comisión, y retirás la caja cuando pasás.',
     pide: { tabla: 36, tronco: 10, piedra: 8 }, pesos: 30000,
-    fisica(h) { h.plataforma(0, 0, 3.6, 3, 0.18, 0.14, 0.5); h.segmento(-1.65, 1.38, 1.65, 1.38, 0.14, 0, 2.5); h.segmento(-1.2, -0.2, 1.2, -0.2, 0.32, 0, 1.0); },
+    fisica(h) { h.plataforma(0, 0, 3.6, 3, 0.18, 0.14, 0.5); h.segmento(-1.65, 1.38, 1.65, 1.38, 0.14, 0, 2.5); h.segmento(-1.2, -0.2, 1.2, -0.2, 0.32, 0, 1.0);
+      // 4.11.2 (G-7): los dos barriles de atrás del mostrador
+      h.circulo(-1.4, 0.75, 0.28, 0, 0.65); h.circulo(-0.9, 0.75, 0.28, 0, 0.65); },
     arma(c) {
       const W = 3.6, D = 3.0, H = 2.5;
       armazon(c, W, D, H, { platea: TABLA });
@@ -303,7 +317,9 @@ export const PIEZAS_OFICIOS = [
     ...base, id: 'canteria', nombre: 'Cantería', ...lleno(3.4, 3.0, 2.3), separacion: 0.6,
     texto: 'Un taller de cantero con un bloque a medio labrar sobre el banco, cinceles y maza, bloques escuadrados apilados, lajas contra la pared, una grúa de mano con su polea y la carretilla. Con E la ponés a trabajar: la cuadrilla pica y acarrea tres piedras por día sin gastarte nada (hasta cuatro días juntando). Con oficio de picapedrero, más.',
     pide: { tabla: 12, tronco: 6, piedra: 12 }, pesos: 18000,
-    fisica(h) { h.plataforma(0, 0, 3.4, 3, 0.18, 0.14, 0.5); h.segmento(-1.55, 1.34, 1.55, 1.34, 0.14, 0, 2.3); h.segmento(-1.2, 0.3, 0.5, 0.3, 0.38, 0, 1.0); },
+    fisica(h) { h.plataforma(0, 0, 3.4, 3, 0.18, 0.14, 0.5); h.segmento(-1.55, 1.34, 1.55, 1.34, 0.14, 0, 2.3); h.segmento(-1.2, 0.3, 0.5, 0.3, 0.38, 0, 1.0);
+      // 4.11.2 (G-7): los bloques apilados, las lajas y la grúa de mano
+      h.segmento(1.15, -0.25, 1.15, 0.27, 0.3, 0, 0.8); h.segmento(0.45, 1.0, 1.45, 1.0, 0.3, 0, 0.5); h.circulo(-1.3, -0.7, 0.3, 0, 1.9); },
     arma(c) {
       const W = 3.4, D = 3.0, H = 2.3;
       armazon(c, W, D, H, { fondoAlto: 1.9, fondoColor: PIEDRA_CLARA });

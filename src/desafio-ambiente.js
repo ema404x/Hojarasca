@@ -252,6 +252,14 @@ export const LUNA_LLENA = { luz: 1.0, bajaA: 0.27, frio: 0.55, ambiente: 0.4 };
 export function lunaLlenaLuz(k) { return 1 + LUNA_LLENA.luz * limitar(k, 0, 1); }
 export function lunaLlenaAltura(y, k) { return y + (Math.min(y, LUNA_LLENA.bajaA) - y) * limitar(k, 0, 1); }
 
+// 4.11.2 (V10): cada sombra larga con su propia opacidad. El material es uno por nivel (las sombras de un mismo nivel van en una sola
+// malla instanciada), así que la opacidad se reparte en tres niveles según `alfa` (0 a 0,5): la lejana, la media y la pegada a la llama.
+// Antes todas usaban la del máximo de la tanda: una sombra lejana se veía tan negra como la de al lado de la antorcha.
+export const OPACIDAD_SOMBRA = [0.65, 0.75, 0.84];
+export function nivelDeSombra(alfa) {
+  const k = Math.floor((Number.isFinite(alfa) ? alfa : 0) / 0.5 * OPACIDAD_SOMBRA.length);
+  return k < 0 ? 0 : k >= OPACIDAD_SOMBRA.length ? OPACIDAD_SOMBRA.length - 1 : k;
+}
 // Las sombras largas de las antorchas: un cuerpo cerca de una antorcha prendida proyecta su sombra hacia el lado contrario, más larga
 // cuanto más cerca de la llama. `alto` es lo alto del cuerpo; devuelve { largo, ancho, alfa } (0 si la luz no llega).
 export const SOMBRA_ANTORCHA = { alcance: 13, maxLargo: 7.5 };

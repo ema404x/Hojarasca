@@ -4,14 +4,14 @@
 //   · los ojos que brillan entre los árboles y la brasa de la antorcha robada son puntos de un solo dibujo (13 puntos: seis pares y la
 //     brasa) de tamaño fijo en pantalla, así se leen igual a 35 que a 80 metros; el dibujo sólo existe mientras haya algo que mostrar,
 //     y se prepara en la carga junto con el resto (como las sombras) para que su programa no se compile en plena noche;
-//   · las sombras largas de las antorchas son una sola malla instanciada (como mucho 8 sombras, una llamada), preparada en la
+//   · las sombras largas de las antorchas son mallas instanciadas, una por nivel de opacidad (4.11.2: tres; como mucho 8 sombras y tres llamadas), preparadas en la
 //     carga junto con el resto para que su programa se compile ahí;
 //   · la niebla y la luna llena no son objetos: son números (`clima`) que `main.js` le pasa al cielo.
 import * as THREE from 'three';
 import { LIMITE } from './config.js';
 import { rng } from './ruido.js';
 import { estaMirando } from './desafio-sentidos.js';
-import { HORA_PREVIA, tipoDeNoche, perfilDe, crearAgenda, miedoDe, puntoA, rumboA, seguirMirada, ojosSeApagan, enElCentro, brilloOjos, acercar, objetivoNiebla, objetivoLuna, nieblaExtra, VELOCIDAD_NIEBLA, VELOCIDAD_LUNA, sombraDeAntorcha, FAUNA, avisaElPuesto, avesCallan } from './desafio-ambiente.js';
+import { HORA_PREVIA, tipoDeNoche, perfilDe, crearAgenda, miedoDe, puntoA, rumboA, seguirMirada, ojosSeApagan, enElCentro, brilloOjos, acercar, objetivoNiebla, objetivoLuna, nieblaExtra, VELOCIDAD_NIEBLA, VELOCIDAD_LUNA, sombraDeAntorcha, OPACIDAD_SOMBRA, nivelDeSombra, FAUNA, avisaElPuesto, avesCallan } from './desafio-ambiente.js';
 
 const N_OJOS = 6, N_SOMBRAS = 8, COLOR_OJO = '#ff5a1c', BRASA = '#ffcf6a', PX_OJO = 18, PX_BRASA = 24, SEP_PX = 28;
 const limitar = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -69,15 +69,33 @@ export function crearAmbienteMundo(ctx) {
   const geoSombra = new THREE.PlaneGeometry(1, 1);
   geoSombra.rotateX(-Math.PI / 2);   // acostada: ancho en x, largo en z
   geoSombra.translate(0, 0, 0.5);    // el origen en los pies, el largo hacia +z
-  const matSombra = new THREE.MeshBasicMaterial({ color: 0x020308, map: textura, transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
-  const sombras = new THREE.InstancedMesh(geoSombra, matSombra, N_SOMBRAS);
+  const matSombra = new THREE.MeshBasicMaterial({ color: 0x020308, map: textura, transparent: true, opacity: OPACIDAD_SOMBRA[0], depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+  // 4.11.2 (V10): una malla instanciada por nivel de opacidad (3), todas con el mismo programa (los materiales son clones: sólo cambia el
+  // número de la opacidad, que no se toca nunca más) y cada sombra va a la del nivel que le toca. `sombras` es el grupo que las junta
+  // (su `visible` dice si hay alguna); con una sola sombra, o con varias del mismo nivel, sigue siendo un solo dibujo.
+  const sombras = new THREE.Group();
   sombras.name = 'sombras-antorcha';
-  sombras.frustumCulled = false; sombras.renderOrder = 1;
+  const nivelesSombra = OPACIDAD_SOMBRA.map((op, i) => {
+    const mat = i === 0 ? matSombra : matSombra.clone();
+    mat.opacity = op;
+    const malla = new THREE.InstancedMesh(geoSombra, mat, N_SOMBRAS);
+    malla.name = `sombras-antorcha-${i}`;
+    malla.frustumCulled = false; malla.renderOrder = 1;
+    sombras.add(malla);
+    return malla;
+  });
+  const cuentaNivel = nivelesSombra.map(() => 0);
   escena.add(sombras);
   // durante la carga queda a la vista, bajo el suelo, para que su programa se compile ahí y no en la primera noche
   const _m = new THREE.Matrix4(), _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _p = new THREE.Vector3();
   _m.makeScale(1, 1, 1).setPosition(0, -600, 0);
-  sombras.setMatrixAt(0, _m); sombras.count = 1; sombras.instanceMatrix.needsUpdate = true;
+  nivelesSombra[0].setMatrixAt(0, _m); nivelesSombra[0].count = 1; nivelesSombra[0].instanceMatrix.needsUpdate = true;
+  for (let i = 1; i < nivelesSombra.length; i++) nivelesSombra[i].count = 0;
+  // sin sombras a la vista (los tres niveles vacíos)
+  function esconderSombras() {
+    for (let i = 0; i < nivelesSombra.length; i++) { nivelesSombra[i].count = 0; nivelesSombra[i].visible = false; cuentaNivel[i] = 0; }
+    sombras.visible = false;
+  }
   let preparada = false;
 
   // ---------------------------------------------------------------- los animales: lugares fijos del valle
@@ -378,12 +396,13 @@ export function crearAmbienteMundo(ctx) {
     _y.crossVectors(_z, _x).normalize();
     _m.makeBasis(_x, _y, _z.set(dx * s.largo, dy, dz * s.largo));
     _m.setPosition(x, y + 0.07, z);
-    sombras.setMatrixAt(nSombras++, _m);
-    matSombra.opacity = Math.max(matSombra.opacity, 0.62 + s.alfa * 0.5);
+    const nivel = nivelDeSombra(s.alfa);   // 4.11.2 (V10): cada una con la opacidad de su nivel (antes todas con la de la más oscura)
+    nivelesSombra[nivel].setMatrixAt(cuentaNivel[nivel]++, _m);
+    nSombras++;
   }
   function actualizarSombras(js, noche) {
     nSombras = 0;
-    matSombra.opacity = 0.45;
+    cuentaNivel.fill(0);
     if (noche > 0.3 && antorchas.length) {
       sombraDe(js.pos.x, js.pos.z, T.altura(js.pos.x, js.pos.z), 1.75, noche);
       for (const a of ctx.aliens()) {
@@ -394,9 +413,13 @@ export function crearAmbienteMundo(ctx) {
         sombraDe(p.x, p.z, T.altura(p.x, p.z), (a.def?.altura || 1) * (a.m.esc || 1), noche);
       }
     }
-    sombras.count = nSombras;
+    for (let i = 0; i < nivelesSombra.length; i++) {
+      const m = nivelesSombra[i];
+      m.count = cuentaNivel[i];
+      m.visible = cuentaNivel[i] > 0;
+      if (cuentaNivel[i]) m.instanceMatrix.needsUpdate = true;
+    }
     sombras.visible = nSombras > 0;
-    if (nSombras) sombras.instanceMatrix.needsUpdate = true;
   }
 
   // ---------------------------------------------------------------- los animales que avisan (dos veces por segundo)
@@ -425,7 +448,7 @@ export function crearAmbienteMundo(ctx) {
   function actualizar(dt, e) {
     if (!preparada) {
       // el primer cuadro: la sombra de la carga se va, y se encargan los sonidos nuevos a la cola del motor
-      preparada = true; sombras.count = 0; sombras.visible = false; puntos.visible = false;
+      preparada = true; esconderSombras(); puntos.visible = false;
     }
     if (!(dt > 0)) return salida;
     dt = Math.min(dt, 0.25);
@@ -484,7 +507,7 @@ export function crearAmbienteMundo(ctx) {
       actualizarSombras(js, e.noche);
     } else {
       // caído, o adentro del Coihue (el valle no se ve): nada de ojos ni sombras en el dibujo
-      puntos.visible = false; sombras.count = 0; sombras.visible = false; nSombras = 0;
+      puntos.visible = false; esconderSombras(); nSombras = 0;
     }
 
     salida.tipo = tipo;
@@ -497,7 +520,7 @@ export function crearAmbienteMundo(ctx) {
   function limpiar() {
     for (const o of ojos) apagarOjos(o, true);
     robo.activo = false; robo.pendiente = null; brasa.visible = false; brasa.brillo = 0;
-    sombras.count = 0; sombras.visible = false; puntos.visible = false;
+    esconderSombras(); puntos.visible = false;
     claveAgenda = ''; salida.silencio = false; salida.ojos = 0;
     sonido?.romperSilencio?.();
   }

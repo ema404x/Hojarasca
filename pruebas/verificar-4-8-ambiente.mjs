@@ -445,7 +445,7 @@ function sonidoFalso() {
   ok((mundo.match(/new THREE\.Points\(/g) || []).length === 1 && /sizeAttenuation: false/.test(mundo) && /N_PUNTOS = N_OJOS \* 2 \+ 1/.test(mundo), 'los ojos y la brasa son un solo dibujo de puntos de tamaño fijo en pantalla (seis pares y la brasa)');
   ok(/posPuntos\[1\] = -600/.test(mundo) && /geoPuntos\.setDrawRange\(0, 1\)/.test(mundo) && /puntos\.visible = false;/.test(mundo), 'el dibujo de los ojos queda a la vista durante la carga (para compilar su programa) y se esconde en el primer cuadro');
   ok(/puntos\.visible = n > 0;/.test(mundo), 'y sólo se dibuja si hay algo que mostrar');
-  ok(/matSombra = new THREE\.MeshBasicMaterial/.test(mundo) && /sombras\.setMatrixAt\(0, _m\); sombras\.count = 1;/.test(mundo), 'las sombras de antorcha quedan a la vista durante la carga, para que su programa se compile ahí');
+  ok(/matSombra = new THREE\.MeshBasicMaterial/.test(mundo) && /nivelesSombra\[0\]\.setMatrixAt\(0, _m\); nivelesSombra\[0\]\.count = 1;/.test(mundo), 'las sombras de antorcha quedan a la vista durante la carga, para que su programa se compile ahí');
   ok(/N_SOMBRAS = 8/.test(mundo) && /N_OJOS = 6/.test(mundo), 'tope de 8 sombras y 6 pares de ojos');
   ok(/package\.json/.test('package.json') && /verificar-4-8-ambiente\.mjs/.test(pkg), 'esta prueba está en el gate');
 }
