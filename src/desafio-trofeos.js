@@ -117,7 +117,7 @@ export function textoTablero(trofeos, colgado = true) {
 export function filasPanelTrofeos(trofeos) {
   return TROFEOS.map((t) => {
     const ganado = Object.hasOwn(trofeos || {}, t.id);
-    return { id: t.id, ganado, titulo: t.nombre, detalle: ganado ? `${textoBono(t.bono)} · de ${t.de}` : `Todavía no · se gana con ${t.de} (${t.hito})` };
+    return { id: t.id, ganado, titulo: t.nombre, detalle: ganado ? `${textoBono(t.bono)} · ${t.de.replace(/^el /, 'del ').replace(/^la /, 'de la ')}` : `Todavía no · se gana con ${t.de} (${t.hito})` };
   });
 }
 

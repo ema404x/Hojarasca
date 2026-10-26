@@ -321,10 +321,14 @@ app.whenReady().then(async () => {
       ok(c1.recorrio > 2 && /Ver los trofeos del tablero \(7 de 7\)/.test(aviso1?.texto || ''), `caminando se llega al tablero (${c1.recorrio.toFixed(1)} m) y el aviso dice: ${JSON.stringify(aviso1)}`);
       await tecla('KeyE');
       await cuadros(3, 30);
-      const notaE = await js(`(document.getElementById('notas')?.textContent || '').slice(0, 400)`);
-      console.log('nota de la E:', JSON.stringify(notaE));
-      ok(/Tablero de trofeos/.test(notaE) || /Casco de corteza/.test(notaE), 'la E muestra los trofeos');
-      await foto('trofeos-11-la-nota-de-la-E', true);
+      // 4.11.1 (U12): la E abre un panel que se queda (ya no es un aviso de 5,6 s); la segunda E lo cierra
+      const panelE = await js(`(()=>{const p=document.getElementById('trofeos-panel'); return p && !p.classList.contains('oculto') ? p.textContent : ''})()`);
+      console.log('panel de la E:', JSON.stringify(panelE.slice(0, 300)));
+      ok(/Tablero de trofeos/.test(panelE) && /Casco de corteza/.test(panelE), 'la E abre el panel con los trofeos');
+      await foto('trofeos-11-el-panel-de-la-E', true);
+      await tecla('KeyE');
+      await cuadros(2, 30);
+      ok(await js(`document.getElementById('trofeos-panel').classList.contains('oculto')`), 'la segunda E cierra el panel');
       // el tablero cae a golpes: se pierden los trofeos y sus bonos
       await js(`(()=>{const H=${H}; const o=H.obras.obras.find(q=>q.plano.id==='tablero-trofeos'); H.desafio.danarObra(o, 99999); return 1})()`);
       await avanzar(1.3, 0);
