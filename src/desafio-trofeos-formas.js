@@ -82,11 +82,25 @@ export function armarTrofeo(c, id, x, y, z, esc = 1) {
   }
 }
 
+// Cuánto falta para que el poste de (x, 0) llegue al suelo: lo más bajo que está el terreno bajo su huella (0 sin datos o si el suelo está más arriba)
+export function alturaDelPoste(suelo, x) {
+  if (!suelo) return 0;
+  let h = Infinity;
+  for (const dx of [-0.06, 0.06]) for (const dz of [-0.07, 0.07]) { const s = suelo(x + dx, dz); if (Number.isFinite(s)) h = Math.min(h, s); }
+  return Number.isFinite(h) && h < 0 ? -h : 0;
+}
+
 // El tablero entero: dos postes, la tabla de atrás, el tejadito, dos estantes y, en cada lugar, o el trofeo que se ganó o una clavija
 // vacía. `colgados` son los ids que hay que mostrar.
-export function armarTablero(c, colgados = []) {
+// 4.11.2 (V13): `suelo(lx, lz)` (opcional, ver calces.js) es la altura del terreno bajo un punto del tablero, desde su pie: en una ladera de costado
+// el poste de abajo quedaba en el aire, y ahora se alarga hasta el suelo (en llano no se agrega nada).
+export function armarTablero(c, colgados = [], suelo = null) {
   const A = TABLERO.ancho, F = TABLERO.fondo;
-  for (const x of [-A / 2 - 0.08, A / 2 + 0.08]) c.agregar(new THREE.BoxGeometry(0.12, TABLERO.patas + 0.45, 0.14), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([x, (TABLERO.patas + 0.45) / 2, 0]) });
+  for (const x of [-A / 2 - 0.08, A / 2 + 0.08]) {
+    c.agregar(new THREE.BoxGeometry(0.12, TABLERO.patas + 0.45, 0.14), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([x, (TABLERO.patas + 0.45) / 2, 0]) });
+    const hueco = alturaDelPoste(suelo, x);
+    if (hueco > 0.04) c.agregar(new THREE.BoxGeometry(0.12, hueco + 0.18, 0.14), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([x, 0.02 - (hueco + 0.18) / 2, 0]) });
+  }
   c.agregar(new THREE.BoxGeometry(A + 0.1, 1.7, 0.07), { color: TABLA, tipo: 0, variar: 0.1, matriz: matriz([0, 1.5, F / 2 - 0.035]) });
   for (const y of [0.66, 2.34]) c.agregar(new THREE.BoxGeometry(A + 0.2, 0.07, F), { color: MADERA, tipo: 0, variar: 0.1, matriz: matriz([0, y, 0]) });
   c.agregar(new THREE.BoxGeometry(A + 0.5, 0.05, 0.62), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([0, 2.56, -0.12], [0.18, 0, 0]) });

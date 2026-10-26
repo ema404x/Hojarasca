@@ -175,4 +175,30 @@ const THREE = await import('three');
   ok(!grupo.visible, 'limpiar las esconde');
 }
 
+// ---------------------------------------------------------------- V13: los postes del tablero de trofeos llegan al suelo
+{
+  const medir = (k, rot = 0) => {
+    const w = mundo({ altura: (x, z) => k * x });
+    const r = w.terminar('tablero-trofeos', 0, 0, rot);
+    assert.ok(r.ok, `se arma el tablero en una ladera de ${k}`);
+    const g = r.o.malla.geometry; g.computeBoundingBox();
+    return { minY: g.boundingBox.min.y, verts: g.attributes.position.count };
+  };
+  const llano = medir(0);
+  ok(Math.abs(llano.minY) < 0.01, `en llano los postes arrancan en el pie (${llano.minY.toFixed(3)})`);
+  for (const k of [0.15, 0.25, 0.3]) {
+    const m = medir(k), baja = k * 1.64;   // el poste de abajo está en x = -1,58 (y su huella llega a -1,64)
+    ok(m.minY <= -baja + 1e-3, `ladera lateral de ${k}: el poste de abajo llega al suelo (baja ${(-m.minY).toFixed(2)} m; el terreno está ${baja.toFixed(2)} m más abajo)`);
+    ok(m.minY >= -baja - 0.35, `y no se pasa de largo (${(-m.minY).toFixed(2)} m)`);
+    ok(m.verts > llano.verts && m.verts - llano.verts <= 48, `sólo se suma un poste (una caja: ${m.verts - llano.verts} vértices más)`);
+  }
+  // una ladera de frente (a lo largo de z) afecta a los dos postes por igual (se arman en z = 0): nada que calzar
+  { const w = mundo({ altura: (x, z) => 0.2 * z }); const r = w.terminar('tablero-trofeos', 0, 0, 0); ok(r.ok, 'se arma en una ladera de frente'); const g = r.o.malla.geometry; g.computeBoundingBox(); ok(g.boundingBox.min.y > -0.12, 'en una ladera de frente los postes (de 14 cm de fondo) no necesitan alargarse'); }
+  // la regla pura
+  const F = await import('../src/desafio-trofeos-formas.js');
+  ok(F.alturaDelPoste(null, -1.58) === 0 && F.alturaDelPoste(() => 0, 1) === 0 && F.alturaDelPoste(() => 0.5, 1) === 0, 'sin suelo, en llano o con el suelo más arriba: nada');
+  ok(Math.abs(F.alturaDelPoste((x) => 0.2 * x, -1.58) - 0.2 * 1.64) < 1e-9, 'con suelo más abajo: lo más bajo de la huella del poste');
+  ok(F.alturaDelPoste(() => NaN, 1) === 0, 'un terreno roto no rompe el tablero');
+}
+
 console.log(`verificar-4-11-2-mundo: ${pasos} pasos ok`);

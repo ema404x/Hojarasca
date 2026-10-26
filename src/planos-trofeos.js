@@ -13,9 +13,9 @@ export const PIEZAS_TROFEOS = [
     // oculta: no cuenta como defensa para los vecinos que se instalan en la base
     defensa: { tipo: 'trofeos', oculta: true },
     // `colgados` son ids de trofeos; lo que no es un trofeo se ignora (una partida rota no tira la malla)
-    arma(c, P, datos) {
+    arma(c, P, datos, suelo) {
       const lista = Array.isArray(datos?.colgados) ? datos.colgados.filter((id) => IDS_TROFEOS.includes(id)) : [];
-      armarTablero(c, lista);
+      armarTablero(c, lista, suelo);   // 4.11.2 (V13): y los postes llegan al suelo en una ladera de costado
     },
     fisica(h) { h.segmento(-1.6, 0, 1.6, 0, 0.14, -0.05, 2.5); },
   },
