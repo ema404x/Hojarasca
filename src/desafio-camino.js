@@ -62,7 +62,9 @@ export function puntoEnRuta(ruta, d) {
 // La ruta de `desde` hasta quedar a `llegada` de `base`, por la grilla (A*), esquivando lo que `libre(x, z)` marque
 // como ocupado. `costo(x, z)` (opcional) suma esfuerzo (ladera, monte cerrado): devuelve 0 o más. Devuelve
 // [[x, z], ...] o null si no hay camino.
-export function rutaDelCoihue(desde, base, libre, { llegada = CAMINO.llegada, celda = CAMINO.celda, costo = null, margen = 70, limite = 1e9 } = {}) {
+// 4.11.3 (H2-3 c): la búsqueda es un generador que cede el paso cada tanto (`medida.gastado` llegó a `medida.tope`): `rutaDelCoihue` la corre entera de una vez
+// (como siempre) y `crearBusquedaRuta` la reparte en cuadros. Es el MISMO código: la ruta sale idéntica. Una unidad es una celda mirada con `libre` o un nodo abierto.
+function* buscarRuta(desde, base, libre, { llegada = CAMINO.llegada, celda = CAMINO.celda, costo = null, margen = 70, limite = 1e9 }, medida) {
   const x0 = Math.max(-limite, Math.min(desde.x, base.x) - margen), x1 = Math.min(limite, Math.max(desde.x, base.x) + margen);
   const z0 = Math.max(-limite, Math.min(desde.z, base.z) - margen), z1 = Math.min(limite, Math.max(desde.z, base.z) + margen);
   const nx = Math.max(2, Math.ceil((x1 - x0) / celda)), nz = Math.max(2, Math.ceil((z1 - z0) / celda));
@@ -72,7 +74,7 @@ export function rutaDelCoihue(desde, base, libre, { llegada = CAMINO.llegada, ce
   const celdaDe = (x, z) => clamp(Math.floor((z - z0) / celda), 0, nz - 1) * nx + clamp(Math.floor((x - x0) / celda), 0, nx - 1);
   const estado = new Int8Array(N);   // 0 sin mirar, 1 libre, 2 ocupada
   const abierto = (i) => {
-    if (estado[i] === 0) estado[i] = libre(cx(i), cz(i)) ? 1 : 2;
+    if (estado[i] === 0) { medida.gastado++; estado[i] = libre(cx(i), cz(i)) ? 1 : 2; }
     return estado[i] === 1;
   };
   const inicio = celdaDe(desde.x, desde.z);
@@ -93,6 +95,8 @@ export function rutaDelCoihue(desde, base, libre, { llegada = CAMINO.llegada, ce
     if (hf.length) { hf[0] = ult; hi[0] = uli; bajar(0); }
     if (cerrado[i]) continue;
     cerrado[i] = 1;
+    medida.gastado++;
+    if (medida.gastado >= medida.tope) yield;
     if (esMeta(i)) { meta = i; break; }
     const ix = i % nx, iz = Math.floor(i / nx);
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
@@ -116,18 +120,39 @@ export function rutaDelCoihue(desde, base, libre, { llegada = CAMINO.llegada, ce
   // se estira: se saltea cada punto desde el que el siguiente se ve en línea recta sin tocar nada
   const recta = (a, b) => {
     const l = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(l / (celda * 0.5)));
-    for (let k = 1; k <= n; k++) { const t = k / n; if (!libre(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)) return false; }
+    for (let k = 1; k <= n; k++) { const t = k / n; medida.gastado++; if (!libre(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)) return false; }
     return true;
   };
   const lisa = [puntos[0]];
   let i = 0;
   while (i < puntos.length - 1) {
     let j = puntos.length - 1;
-    while (j > i + 1 && !recta(puntos[i], puntos[j])) j--;
+    while (j > i + 1 && !recta(puntos[i], puntos[j])) { j--; if (medida.gastado >= medida.tope) yield; }
     lisa.push(puntos[j]);
     i = j;
   }
   return lisa.slice(0, CAMINO.puntosMax).map(([x, z]) => [r1(x), r1(z)]);
+}
+export function rutaDelCoihue(desde, base, libre, opciones = {}) {
+  return buscarRuta(desde, base, libre, opciones, { gastado: 0, tope: Infinity }).next().value;
+}
+// 4.11.3 (H2-3 c): la misma búsqueda, repartida. `avanzar(unidades)` trabaja hasta gastar ese presupuesto y devuelve si terminó; el resultado queda en
+// `resultado` (la ruta o null, igual que `rutaDelCoihue`) y `gastado` cuenta lo trabajado hasta ahora.
+export function crearBusquedaRuta(desde, base, libre, opciones = {}) {
+  const medida = { gastado: 0, tope: 0 };
+  const it = buscarRuta(desde, base, libre, opciones, medida);
+  const b = {
+    listo: false, resultado: null,
+    get gastado() { return medida.gastado; },
+    avanzar(unidades) {
+      if (b.listo) return true;
+      medida.tope = medida.gastado + Math.max(1, Number(unidades) || 1);
+      const r = it.next();
+      if (r.done) { b.listo = true; b.resultado = r.value; }
+      return b.listo;
+    },
+  };
+  return b;
 }
 // Si no hay camino (una isla, un cerco cerrado del todo): la recta, y se anota como tal.
 export function rutaRecta(desde, base, llegada = CAMINO.llegada) {

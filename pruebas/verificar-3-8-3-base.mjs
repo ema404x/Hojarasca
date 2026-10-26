@@ -14,7 +14,7 @@ const main = leer('src/main.js');
 // 1. Cerrar el juego en la portada de una partida sin jugar no la da por empezada: `guardar` no anota la
 //    posición hasta entrar (si no, la portada decía «Seguir…» y el Desafío arrancaba sin código ni mapa).
 {
-  const g = main.slice(main.indexOf('function guardar() {'), main.indexOf('function guardar() {') + 4000);
+  const g = main.slice(main.indexOf('function guardar() {'), main.indexOf('function guardar() {') + 5000);   // 4.11.3: 5000 (el corte de sólo lectura sumó unas líneas)
   ok(/const empezadaAlAbrir = !!\(habiaGuardado && progreso\.pos\);/.test(main), 'se anota si la partida abierta ya estaba empezada');
   ok(/modo = 'jugando';\s*entroAlJuego = true;/.test(main), 'volver al juego marca que se entró');
   const i = g.indexOf('if (!empezadaAlAbrir && !entroAlJuego) progreso.pos = null;');
