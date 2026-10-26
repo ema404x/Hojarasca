@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.11.2 (sobre main = 4.11.1): MUNDO Y GENTE, tercera de cuatro versiones con las decisiones de diseño (`CAMBIOS_4_11_2.md`) — choques en edificios, sombras de antorchas, madrigueras y postes en ladera, diario y Puesto Alto, soltar papeles, gente que reintenta y sale del local, panadera a $600, Casa de Té por calendario
 - 4.11.1 (sobre main = 4.11.0): INTERFAZ Y SONIDO, segunda de cuatro versiones con las decisiones de diseño (`CAMBIOS_4_11_1.md`) — pies con tu tecla, panel de trofeos, semilla del cantero elegible, foco del teclado, recetas a ranura vacía, pájaros en el bus del bosque, gramola en Música y radio apagable
 - 4.11.0 (sobre main = 4.10.4): AJUSTES DEL DESAFÍO, primera de cuatro versiones con las decisiones de diseño (`CAMBIOS_4_11_0.md`) — Pesadilla con tope propio, motivos de lo bloqueado a la vista, noches largas sin reloj, Otra vuelta que se lleva todo y refuerzos de la noche silenciosa
 - 4.10.0 (sobre main = 4.9.0): VOLVER A JUGAR, tanda 3 de las mejoras del Desafío (`CAMBIOS_4_10_0.md`) — habilidades del guardián y bestiario que premia, defensas curtidas, trofeos y perro que aprende, semillas del Coihue con ventajas y reglas a elección, partida corta y pesadilla, cuatro finales, el Coihue que camina, subida con peligros y lugares del valle que toman los duendes
