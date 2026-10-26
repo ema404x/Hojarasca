@@ -534,7 +534,9 @@ function noche(base, p, n, golpear = []) {
   ok(base.cerca({ x: 10, z: 11 }) && !base.cerca({ x: 10, z: 40 }), 'la E ve el tablero de cerca y no de lejos');
   ok(/1 de 7/.test(base.avisoCerca({ x: 10, z: 11 })), 'el aviso cuenta los trofeos');
   p.notas.length = 0;
-  ok(base.usarCerca({ x: 10, z: 11 }) === true && /Tablero de trofeos · 1 de 7/.test(p.notas[0][0]) && /Casco de corteza \(\+5 de salud máxima\)/.test(p.notas[0][1]), 'la E muestra cuáles son y qué da cada uno');
+  // 4.11.1 (U12): la E ya no tira un aviso de 5,6 s: abre un panel que se queda (verificar-4-11-1-interfaz.mjs mira lo que dice)
+  ok(base.usarCerca({ x: 10, z: 11 }) === true && p.notas.length === 0 && base.trofeos.panelAbierto(), 'la E abre el panel de trofeos (sin aviso)');
+  base.trofeos.cerrarPanel();
   ok(base.usarCerca({ x: 10, z: 40 }) === false, 'lejos no hace nada');
   // el resto de los hitos
   p.d.jefeCaido = 10; base.actualizar(1);

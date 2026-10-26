@@ -500,6 +500,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.herirBlanco = (n, dano) => eventos.herirNucleo(n, dano);
   api.alturaSuelo = (x, z) => alturaSuelo(x, z);
   api.invulnerable = (s) => { invulnerable = Math.max(invulnerable, s); };   // 4.9 defensas: unos segundos sin que te peguen (al salir del pasadizo)
+  api.textoPanel = (x) => (ctx.textoPanel ? ctx.textoPanel(x) : x);   // 4.11.1 (U12): el panel de trofeos
   api.luzLinterna = () => ctx.luzLinterna?.() || null;   // 4.9 defensas: la luz pegada a la cámara, que el farol de mano toma prestada
   api.armaEnMano = () => ctx.armaEnMano?.() || null;   // 4.9 defensas: lo que hay elegido en la barra (la pala se carga con E sólo si la tenés en la mano)
   // 4.9 defensas: los fogones prendidos del valle ({ x, y, z }); 4.9 (junta): más los fuegos que prende Herminia en la base (la pala de brasas los usa)

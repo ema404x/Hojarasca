@@ -6,7 +6,7 @@
 // si no hay tablero (se desarmó) los bonos se van y los trofeos quedan guardados; si el tablero lo tiran los duendes, los trofeos
 // se pierden con él.
 import { puedeAbordar } from './desafio-asedio.js';
-import { ORIGEN_TROFEO, POR_ID, TROFEOS, ganados, ganarTrofeo, trofeosNuevos, textoGanado, textoTablero } from './desafio-trofeos.js';
+import { ORIGEN_TROFEO, POR_ID, TROFEOS, ganados, ganarTrofeo, trofeosNuevos, textoGanado, textoTablero, filasPanelTrofeos } from './desafio-trofeos.js';
 import { creceNuevo } from './desafio-crece.js';
 
 export const ID_TABLERO = 'tablero-trofeos';
@@ -111,14 +111,63 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
     if (!o) return null;
     return `Ver los trofeos del tablero (${ganados(crece().trofeos).length} de ${TROFEOS.length})`;
   }
+  // 4.11.1 (U12): el tablero es un panel que se queda hasta que lo cerrás (E o Escape), como los otros paneles del HUD. Se arma la
+  // primera vez que se abre; se cierra solo si te alejás del tablero o si el tablero desaparece (los duendes lo tiran, o lo desarmás).
+  const txt = (x) => (api.textoPanel ? api.textoPanel(x) : x);
+  let panel = null, abierto = false, tableroAbierto = null;
+  function armarPanel() {
+    if (panel) return panel;
+    const raiz = typeof document === 'undefined' ? null : (document.getElementById?.('hud') || document.body);
+    if (!raiz) return null;   // (sin DOM, como en las pruebas de Node: queda la cuenta de abierto/cerrado)
+    panel = document.createElement('div');
+    panel.className = 'trueque oculto';
+    panel.id = 'trofeos-panel';
+    panel.innerHTML = '<p class="quien"></p><p class="dicho"></p><ul></ul><p class="seguir"></p>';
+    raiz.appendChild(panel);
+    return panel;
+  }
+  function dibujarPanel() {
+    const p = armarPanel();
+    if (!p) return;
+    const t = crece().trofeos, g = ganados(t);
+    p.querySelector('.quien').textContent = txt('Tablero de trofeos');
+    p.querySelector('.dicho').textContent = txt(`Tenés ${g.length} de ${TROFEOS.length}. Dan su bono mientras el tablero esté en pie`);
+    const ul = p.querySelector('ul');
+    ul.innerHTML = '';
+    for (const f of filasPanelTrofeos(t)) {
+      const li = document.createElement('li');
+      li.className = f.ganado ? 'hecho' : 'falta';
+      const tit = document.createElement('b'); tit.textContent = txt(f.titulo);
+      const det = document.createElement('span'); det.textContent = ` — ${txt(f.detalle)}`;
+      li.append(tit, det);
+      ul.appendChild(li);
+    }
+    p.querySelector('.seguir').textContent = txt('E o Escape para cerrar el tablero');
+  }
+  function abrirPanel(o) {
+    if (abierto) return true;
+    abierto = true; tableroAbierto = o || null;
+    dibujarPanel();
+    armarPanel()?.classList.remove('oculto');
+    return true;
+  }
+  function cerrarPanel() {
+    if (!abierto) return;
+    abierto = false; tableroAbierto = null;
+    panel?.classList.add('oculto');
+  }
+  // Cada cuadro con el panel abierto: si el tablero ya no está o te alejaste, se cierra
+  function vigilarPanel(pos) {
+    if (!abierto) return;
+    const aun = tableroAbierto && tableros().includes(tableroAbierto);
+    if (!aun || !pos || Math.hypot(tableroAbierto.datos.x - pos.x, tableroAbierto.datos.z - pos.z) > RADIO_E + 1.5) cerrarPanel();
+  }
   function usarCerca(pos) {
     const o = cercano(pos);
     if (!o) return false;
-    const t = textoTablero(crece().trofeos, true);
-    api.nota(t.titulo, t.texto, true);
-    return true;
+    return abrirPanel(o);
   }
   const hayTablero = () => tableros().length > 0;
-  function limpiar() { firma = null; }
-  return { actualizar, alCaer, cerca, distancia, avisoCerca, usarCerca, revisarGanados, aplicarBonos, colgar, tableros, hayTablero, limpiar, avisarNuevos };
+  function limpiar() { firma = null; cerrarPanel(); }
+  return { actualizar, alCaer, cerca, distancia, avisoCerca, usarCerca, panelAbierto: () => abierto, cerrarPanel, vigilarPanel, dibujarPanel, revisarGanados, aplicarBonos, colgar, tableros, hayTablero, limpiar, avisarNuevos };
 }

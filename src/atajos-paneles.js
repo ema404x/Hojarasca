@@ -52,3 +52,17 @@ export function conTeclasPropias(texto, visible) {
   if (f !== 'F') t = t.replace(/\(F para /g, `(${f} para `);
   return t;
 }
+
+// 4.11.1 (U10): los pies de la carta, el banco y el local ya no están escritos fijos en la plantilla: se arman desde acá con la
+// tecla de interactuar del jugador. Con la E de fábrica el texto es IDÉNTICO al de antes (así sigue valiendo la traducción hecha).
+export const PIES_PANELES = {
+  'pie-banco': 'E o Escape para salir del mostrador',
+  'pie-carta': 'E o Escape para cerrar la carta',
+  'pie-local': 'E o Escape para cerrar el panel · los clientes se atienden con E',
+};
+// Devuelve { id: texto } con la tecla propia (`visible(t)` da la tecla escrita; ver teclaVisible en main.js).
+export function piesDePaneles(visible) {
+  const r = {};
+  for (const id of Object.keys(PIES_PANELES)) r[id] = conTeclasPropias(PIES_PANELES[id], visible);
+  return r;
+}

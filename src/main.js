@@ -25,7 +25,8 @@ import { crearRenovales } from './renovales.js';
 import { crearRefugioVivo } from './refugiovivo.js';
 import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
 // 4.10.2: reglas puras de la interfaz (un panel abierto, el modo foto, la mano de la barra, las teclas propias en los textos)
-import { atajoBloqueadoPorPanel, fotoPosible, seguirElegida, seOfreceParaLaBarra, conTeclasPropias } from './atajos-paneles.js';
+import { guardarFoco, devolverFoco } from './foco.js';
+import { atajoBloqueadoPorPanel, fotoPosible, seguirElegida, seOfreceParaLaBarra, conTeclasPropias, piesDePaneles } from './atajos-paneles.js';
 // 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js; ocupacion y capacidad vienen en la línea de 4.7 carga, más abajo)
 import { CASILLAS_ALFORJAS } from './carga.js';
 import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila, avisoMochilaLlena } from './carga-pantalla.js';
@@ -70,7 +71,7 @@ import { ENCARGOS_TEMPORADA, ENCARGO_TEMPORADA, encargoDeTemporada, anotarBase, 
 import { crearDiario, unArbol } from './diario.js';
 import { MAX_FOGATAS, BRASAS, consumirDormido, fogatasParaGuardar, sanearFogatas } from './fogatas.js';
 import { TRUEQUES, cantidadCosa, tieneYa } from './trueque.js';
-import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta, taparHuerta } from './huerta.js';
+import { CULTIVOS, claveCantero, semillaParaSembrar, semillasDisponibles, cambiarSemilla, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta, taparHuerta } from './huerta.js';
 import { crearMatasHuerta } from './huerta-malla.js';
 import { claveGallinero, gallineroNuevo, sanearGallineros, juntarHuevos, textoGallinero } from './gallinero.js';
 import { crearGallinas } from './gallinero-mundo.js';
@@ -275,7 +276,7 @@ import { sanearTalados, sanearPicados, anotarPicadoEn, avanzarRebrote, apurarReb
 import { secciones, sanearPersonal } from './personal-todo.js';
 import { templarNoche } from './personal-personaje.js';
 import { sanearInterfaz, escalaFinal, colorAcento, MIRAS } from './personal-interfaz.js';
-import { empezarConReceta, factorAnimales, vecinosActivos } from './personal-partida.js';
+import { empezarConReceta, factorAnimales, vecinosActivos, dejarPersonalPendiente, tomarPersonalPendiente } from './personal-partida.js';
 import { crearCuerpoJugador, crearManoPropia } from './personal-personaje-mundo.js';
 // 4.1: Bruno Castellanos: la pantalla de creación (antes de entrar al bosque) y el espejo
 import { abrirCreador } from './creador-pantalla.js';
@@ -342,7 +343,11 @@ try {
   else if (sessionStorage.getItem(CLAVE_RECUPERADA) === String(ranuraActual())) recuperadaPendiente = true;
 } catch { /* sin sessionStorage: queda como antes */ }
 const habiaGuardado = !!progreso;
-if (!progreso) progreso = progresoNuevo();
+if (!progreso) {
+  progreso = progresoNuevo();
+  // 4.11.1 (P4): una ranura vacía a la que se llegó desde otra («Empezar acá») arranca con tu ropa, tu bandera y tus recetas
+  try { const pendiente = tomarPersonalPendiente(sessionStorage, modoJuego, ranuraActual()); if (pendiente) progreso.personal = sanearPersonal(pendiente); } catch { /* sin sessionStorage: arranca de fábrica como antes */ }
+}
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
 if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso.personal; progreso = progresoNuevo(); progreso.personal = personal; }
 if (esSinFin && progreso.desafio && !progreso.desafio.sinFin) progreso.desafio.sinFin = corridaNueva();
@@ -506,6 +511,7 @@ window.addEventListener('wheel', (e) => {
   if (modo !== 'jugando' || mochilaAbierta || foto.activo || banco.activa) return;   // 4.0.5 (G15): en el banco de pruebas el mouse no es tuyo
   if (charla.menu) { moverMenuCharla(e.deltaY > 0 ? 1 : -1); return; }   // 3.6 (vida): el menú de la charla
   if (listaHudAbierta()) { marcarHud(e.deltaY > 0 ? 1 : -1); return; }   // 3.6.2: la marca del almacén, la feria o las cargas
+  if (cambiarSemillaCantero(e.deltaY > 0 ? 1 : -1)) return;   // 4.11.1 (S5): junto a un cantero vacío con varias semillas, la rueda elige la semilla
   if (modoObra && obras) {
     obras.girar(e.deltaY > 0 ? 1 : -1);
     dibujarPanelObra();
@@ -992,6 +998,7 @@ async function construir() {
     linterna: () => ({ encendida: !!(linterna && linterna.intensity > 0), angulo: linterna?.angle ?? 0.42, alcance: linterna?.distance ?? 42 }),
     // 4.9 defensas: la luz de la linterna (el farol de mano la toma prestada), lo elegido en la barra y los fogones prendidos (la pala se carga ahí)
     luzLinterna: () => linterna,
+    textoPanel: (x) => T_(textoPropio(x)),   // 4.11.1 (U12): los textos del panel de trofeos (con la tecla propia y traducidos)
     armaEnMano: () => ranuras[elegida]?.id || null,
     fuegos: () => (clima?.fogatas || []).filter((f) => f && f.activa && f.vida > 0 && f.pos).map((f) => ({ x: f.pos.x, y: f.pos.y, z: f.pos.z })),
     sonidoEscrito: (texto) => escribirSonido(texto),
@@ -1123,7 +1130,12 @@ const cuantoHay = (id) => progreso.entradas?.[id]?.cantidad || 0;
 const horaTexto = (h) => { const hh = Math.floor(h) % 24, mm = Math.floor((h % 1) * 60); return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; };
 
 let pestana = 'especies', desafioActual = null, paginaActual = 0, bestiaActual = null;
+// 4.11.1 (U7): el cuaderno se rehace entero con cada clic: el foco del teclado vuelve a la misma pestaña (o al mismo botón)
 function dibujarCuaderno() {
+  const marca = guardarFoco(document, ['cuaderno-lista', 'cuaderno-ficha']);
+  try { dibujarCuadernoSinFoco(); } finally { devolverFoco(document, marca); }
+}
+function dibujarCuadernoSinFoco() {
   const total = ENTRADAS.length;
   const hechas = ENTRADAS.filter((e) => progreso.entradas[e.id]).length;
   const fotosHechas = DESAFIOS.filter((d) => progreso.desafios[d.id]).length;
@@ -2587,6 +2599,10 @@ function cerrarPartidas() {
 function irAPartida(ranura) {
   if (ranura === ranuraActual()) { cerrarPartidas(); return; }
   if (modo === 'jugando' || modo === 'pausa') guardar();
+  // 4.11.1 (P4): a una ranura vacía lo personal viaja con vos (a una que tiene partida no se le toca nada)
+  if (!infoPartida(modoJuego, ranura)?.hay) {
+    try { const r = dejarPersonalPendiente(sessionStorage, modoJuego, ranura, progreso.personal, ajustes); if (r) Object.assign(ajustes, r.ajustes); } catch { /* sin sessionStorage: arranca de fábrica como antes */ }
+  }
   ajustes.ranura = ranura;
   if (esSinFin) ajustes.desafioTipo = 'campana';   // 3.0: las tres partidas son de la campaña
   guardarAjustes(ajustes);
@@ -2812,8 +2828,14 @@ function pintarTeclasPropias() {
     else if (k.dataset.puesta) { k.textContent = T_(fabrica); delete k.dataset.puesta; }
   }
 }
+// 4.11.1 (U10): los pies de la carta, el banco y el local, con la tecla de interactuar del jugador
+function ponerPiesPropios() {
+  const pies = piesDePaneles((k) => teclaVisible(k, teclasPropias));
+  for (const id of Object.keys(pies)) { const el = $(id); if (el) el.textContent = T_(pies[id]); }
+}
 function dibujarTeclas() {
   pintarTeclasPropias();   // 3.8.6
+  ponerPiesPropios();   // 4.11.1
   const cont = $('teclas-lista');
   traducirPanel($('teclas'));
   cont.innerHTML = '';
@@ -2893,6 +2915,7 @@ $('teclas-defecto').addEventListener('click', () => {
   nota('Teclas de fábrica', 'Volvió todo como venía');
 });
 pintarTeclasPropias();   // 3.8.6: las del jugador, desde que abre el juego
+ponerPiesPropios();   // 4.11.1 (U10)
 $('btn-teclas').addEventListener('click', () => abrirTeclas('pausa'));
 $('btn-teclas-inicio').addEventListener('click', () => abrirTeclas('inicio'));
 $('cerrar-teclas').addEventListener('click', cerrarTeclas);
@@ -3385,6 +3408,7 @@ document.addEventListener('keydown', (e) => {
       break;
     }
     case 'Tab':
+      if (cambiarSemillaCantero(e.shiftKey ? -1 : 1)) { e.preventDefault(); break; }   // 4.11.1 (S5)
       if (modoObra && obras) { e.preventDefault(); cambiarCategoriaObra(e.shiftKey ? -1 : 1); break; }
       if (enElAlmacen) { e.preventDefault(); pasarPaginaAlmacen(e.shiftKey ? -1 : 1); break; }
       if (enLasCargas()) { e.preventDefault(); puestoCargas.pasarModo(e.shiftKey ? -1 : 1); break; }
@@ -3530,6 +3554,7 @@ document.addEventListener('keydown', (e) => {
       else if (enLasCargas()) puestoCargas.cerrar();
       else if (enElBanco()) bancoPueblo.cerrar();   // 3.8.8
       else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();   // 4.3
+      else if (trofeosAbierto()) desafio.baseCrece.trofeos.cerrarPanel();   // 4.11.1 (U12): el tablero de trofeos
       else if (cantinaJuego?.panelAbierto()) cantinaJuego.atras();   // 3.9.0
       else if (teJuego?.panelAbierto()) teJuego.atras();   // 3.9.2
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
@@ -3956,6 +3981,7 @@ function reproducirCanto(esp) {
 }
 
 function abrirMochila(abrir) {
+  const marcaFoco = abrir && mochilaAbierta ? guardarFoco(document, ['mochila-casillas', 'mochila-rejilla']) : null;   // 4.11.1 (U7): ya abierta = redibujo: el foco vuelve a la misma cosa
   mochilaAbierta = abrir;
   if (abrir) desafio?.cambioDeArma?.();   // 2.5: la cuerda y la ráfaga no siguen con la mochila abierta
   $('mochila').classList.toggle('oculto', !abrir);
@@ -4006,6 +4032,7 @@ function abrirMochila(abrir) {
     // 4.10.2: las recetas anotadas (mate, tortilla…) se listan pero no se ponen en la barra: no tienen ranura (antes decían «Lo pusiste en la casilla N» y no pasaba nada a la vista)
     const seElige = seOfreceParaLaBarra(c);
     const enLaBarra = seElige ? posBarra(c.id, lugares.get(c.id)) : -1;
+    if (c.id != null) d.dataset.foco = String(c.id);   // 4.11.1 (U7)
     d.className = `cosa${enLaBarra >= 0 && enLaBarra < 8 ? ' enbarra' : ''}${seElige ? '' : ' anotada'}`;
     if (seElige) {
       d.tabIndex = 0;
@@ -4027,6 +4054,7 @@ function abrirMochila(abrir) {
     d.append(img, sp);
     rej.appendChild(d);
   });
+  devolverFoco(document, marcaFoco);   // 4.11.1 (U7)
 }
 
 // El orden de la barra lo elegís vos: cada cosa puede ir a la casilla marcada
@@ -5244,13 +5272,31 @@ function refrescarHuerta() {
 function textoAvisoCantero(c) {
   const p = huerta()[c.clave];
   if (p) return textoCantero(p, progreso.dia);
-  const s = semillaParaSembrar(cuantoParaSembrar);
-  return s ? `Sembrar ${CULTIVOS[s.cultivo].nombre}` : 'Cantero vacío: faltan semillas';
+  const s = semillaParaSembrar(cuantoParaSembrar, progreso.semillaElegida);
+  // 4.11.1 (S5): con más de una semilla a mano, el aviso dice cuál está elegida y cómo cambiarla
+  return s ? `Sembrar ${CULTIVOS[s.cultivo].nombre}${semillasDisponibles(cuantoParaSembrar).length > 1 ? ' (Tab o rueda: otra semilla)' : ''}` : 'Cantero vacío: faltan semillas';
+}
+// 4.11.1 (S5): junto a un cantero vacío, Tab (o la rueda) elige qué semilla se siembra (antes salía siempre la primera del orden fijo:
+// habas, papas, frutillas, calafates). Devuelve verdadero si la tecla o la rueda fue de la semilla (había un cantero vacío y más de una semilla).
+function cambiarSemillaCantero(paso) {
+  if (modo !== 'jugando' || !jugador || charla.npc || panelDelHudAbierto() || modoObra || foto.activo) return false;
+  const js = jugador.estado;
+  if (js.enTren || js.enKayak || js.enVela || js.montado || js.enCable) return false;
+  const c = canteroCerca();
+  if (!c || huerta()[c.clave]) return false;
+  if (semillasDisponibles(cuantoParaSembrar).length < 2) return false;
+  const nueva = cambiarSemilla(cuantoParaSembrar, progreso.semillaElegida, paso);
+  if (!nueva) return false;
+  progreso.semillaElegida = nueva;
+  sonido.juntar?.();
+  nota(`Sembrar ${CULTIVOS[nueva].nombre}`, 'La semilla elegida para el cantero', true);
+  guardar();
+  return true;
 }
 function usarCantero(c) {
   const h = huerta(), p = h[c.clave];
   if (!p) {
-    const s = semillaParaSembrar(cuantoParaSembrar);
+    const s = semillaParaSembrar(cuantoParaSembrar, progreso.semillaElegida);
     if (!s) { nota('No tenés qué sembrar', 'Semillas de habas o de papa en el almacén, o una frutilla o un calafate que juntaste'); return; }
     if (s.conIngrediente) progreso.entradas[s.gasta].cantidad -= 1;
     else progreso.cosas[s.gasta] -= 1;
@@ -9230,8 +9276,10 @@ function actualizarEscucha(dtReal) {
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
 // 4.10.2: los paneles que cuelgan del body, fuera del HUD (el modo foto no los esconde)
+// 4.11.1 (U12): el tablero de trofeos del Desafío es un panel que se queda abierto hasta cerrarlo
+const trofeosAbierto = () => !!desafio?.baseCrece?.trofeos?.panelAbierto?.();
 const panelFueraDelHudAbierto = () => enElBanco() || !!negocioJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto() || !!tablonJuego?.abierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller; 4.3: y el de tu local; 4.10.1: y el tablón de encargos)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto() || !!tablonJuego?.abierto() || !!desafio?.baseCrece?.trofeos?.panelAbierto?.();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller; 4.3: y el de tu local; 4.10.1: y el tablón de encargos)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -9877,6 +9925,7 @@ const panelesInteraccion = {
   negocio: () => negocioJuego?.panelAbierto(), cantina: () => cantinaJuego?.panelAbierto(), te: () => teJuego?.panelAbierto(),
   cocina: () => cocinaJuego?.panelAbierto(), taller: () => tallerTren?.panelAbierto(), fiestas: () => fiestasJuego?.panelAbierto(),
   tablon: () => tablonJuego?.abierto(),
+  trofeos: () => trofeosAbierto(),   // 4.11.1 (U12)
 };
 function cerrarPanelInteraccion(nombre) {
   if (nombre === 'negocio') negocioJuego.cerrarPanel();   // 4.3: el panel de tu local
@@ -9884,6 +9933,7 @@ function cerrarPanelInteraccion(nombre) {
   else if (nombre === 'te') teJuego.alApretarE();   // 3.9.2: y la de la casa de té
   else if (nombre === 'cocina') cocinaJuego.cerrarPanel();   // 3.7.2: las recetas de la cocina
   else if (nombre === 'taller') tallerTren.cerrarPanel();   // 3.7.3: el taller ferroviario
+  else if (nombre === 'trofeos') desafio.baseCrece.trofeos.cerrarPanel();   // 4.11.1 (U12): el tablero de trofeos
   else if (nombre === 'fiestas') fiestasJuego.alApretarE();   // 3.7.5: las fiestas (en un partido, E no lo deja: Escape)
 }
 // El aviso del vecino de adelante (la E: `hablar`, que resuelve la cita, el casamiento o lo que te quiere decir)
@@ -10663,6 +10713,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel); } catch (e) { fallaSistema('gente', e); }
     // 4.6 gente: la gente del campo (se arma de a poco al acercarte; lo que hace en cada parada) y el tablón (se cierra si te alejás)
     try { if (modo === 'jugando' && !desafio) { genteCampoMundo?.actualizar(dt, js, charla.npc); tablonJuego?.actualizar(js); } } catch (e) { fallaSistema('gente-campo', e); }
+    try { if (modo === 'jugando' && desafio) desafio.baseCrece?.trofeos?.vigilarPanel?.(js.pos); } catch (e) { fallaSistema('trofeos-panel', e); }   // 4.11.1 (U12)
     try { socialMundo?.actualizar(dt, js.pos, charla.menu ? charla.npc : null); manosSociales?.actualizar(dt); if (charla.menu) ubicarRueda(); } catch (e) { fallaSistema('social', e); }   // 3.7.4
     mundoPerro.noche = noche;
     mundoPerro.ataque = desafio && modo === 'jugando' ? desafio.objetivoPerro(js, perro.est.pos) : null;

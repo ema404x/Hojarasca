@@ -64,6 +64,7 @@ export const INTERACCIONES = [
   panel('carta-te', (c) => c.panelAbierto('te'), (c) => c.cerrarPanel('te')),
   panel('recetas-cocina', (c) => c.panelAbierto('cocina'), (c) => c.cerrarPanel('cocina')),
   panel('taller-tren-abierto', (c) => c.panelAbierto('taller'), (c) => c.cerrarPanel('taller')),
+  panel('trofeos-abierto', (c) => c.panelAbierto('trofeos'), (c) => c.cerrarPanel('trofeos')),   // 4.11.1 (U12)
   panel('fiestas-abierto', (c) => c.panelAbierto('fiestas'), (c) => c.cerrarPanel('fiestas')),
   // el tablón de encargos abierto se maneja con sus teclas antes de llegar acá (la E lo cierra): el aviso, vacío
   { id: 'tablon-abierto', cuando: (c) => c.panelAbierto('tablon'), corta: true, aviso: () => null, hacer: () => {} },

@@ -175,3 +175,25 @@ export const SECCION_PARTIDA = registrarSeccion({
   construir,
   aplicar: (datos, api) => { api?.mundo?.partida?.aplicar?.(datos); },
 });
+
+// 4.11.1 (P4): lo personal (ropa, bandera, recetas) viaja también a una ranura VACÍA («Empezar acá»), no sólo con «Empezar de nuevo» de la
+// misma ranura. Al cambiar de ranura el juego recarga el mundo; lo personal queda anotado en la sesión (`almacen` = sessionStorage) y la
+// partida nueva lo toma al arrancar. Sólo se anota si la ranura de destino está vacía: una partida que ya existe no se toca.
+export const clavePersonalPendiente = (modo, ranura) => `hojarasca-personal-pendiente-${modo}-${ranura}`;
+export function dejarPersonalPendiente(almacen, modo, ranura, personal, ajustes = {}) {
+  if (!personal || typeof personal !== 'object') return null;
+  const nuevo = empezarConReceta(personal, ajustes);   // como «Empezar de nuevo»: sin el Bruno de la partida vieja y con `actual` según la receta
+  try { almacen.setItem(clavePersonalPendiente(modo, ranura), JSON.stringify(nuevo.personal)); } catch { return null; }
+  return nuevo;
+}
+// Lo anotado para esa ranura (y lo borra); null si no hay nada o está roto.
+export function tomarPersonalPendiente(almacen, modo, ranura) {
+  try {
+    const k = clavePersonalPendiente(modo, ranura);
+    const t = almacen.getItem(k);
+    if (t == null) return null;
+    almacen.removeItem(k);
+    const v = JSON.parse(t);
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+  } catch { return null; }
+}

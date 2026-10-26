@@ -144,6 +144,7 @@ export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, enBarr
     if (c.id != null && alElegir) {
       d.classList.add('elegible');
       d.tabIndex = 0;
+      if (d.dataset) d.dataset.foco = String(c.id);   // 4.11.1 (U7): para que el foco vuelva a la misma casilla al redibujar
       const elegir = () => alElegir(c.id);
       (alClic || ((el, f) => el.addEventListener('click', f)))(d, elegir);
       d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); ev.stopPropagation?.(); elegir(); } });   // 4.10.2: y Espacio no llega al juego (hacía saltar)

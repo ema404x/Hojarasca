@@ -113,6 +113,14 @@ export function textoTablero(trofeos, colgado = true) {
   return { titulo: `Tablero de trofeos · ${g.length} de ${TROFEOS.length}${colgado ? '' : ' (guardados)'}`, texto: lista };
 }
 
+// 4.11.1 (U12): las filas del panel del tablero: los siete trofeos, en el orden del tablero, con lo que da cada uno (los ganados) o de dónde sale (los que faltan).
+export function filasPanelTrofeos(trofeos) {
+  return TROFEOS.map((t) => {
+    const ganado = Object.hasOwn(trofeos || {}, t.id);
+    return { id: t.id, ganado, titulo: t.nombre, detalle: ganado ? `${textoBono(t.bono)} · de ${t.de}` : `Todavía no · se gana con ${t.de} (${t.hito})` };
+  });
+}
+
 // El lugar de cada trofeo en el tablero (en el sistema de la obra, x a lo ancho, y arriba): dos filas, cuatro y tres.
 export const TABLERO = { ancho: 3.0, alto: 1.7, fondo: 0.16, patas: 2.1 };
 export function sitioDeTrofeo(indice) {

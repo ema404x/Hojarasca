@@ -6,7 +6,7 @@ import { sanearChinches } from './chinches.js';
 import { sanearTalados, sanearPicados } from './bosque.js';
 import { sanearBase } from './encargos-temporada.js';
 import { sanearGrabaciones } from './grabador.js';
-import { sanearHuerta, desdeCanteroViejo, claveCantero } from './huerta.js';
+import { sanearHuerta, desdeCanteroViejo, claveCantero, sanearSemillaElegida } from './huerta.js';
 import { sanearGallineros } from './gallinero.js';
 import { sanearFeria } from './feria.js';
 import { sanearVisitas, visitasNuevas } from './visitas.js';
@@ -597,6 +597,7 @@ function sanearProgreso(p) {
     // 2.1: los cantos grabados
     grabaciones: sanearGrabaciones(p.grabaciones),
     huerta: sanearHuerta(p.huerta),
+    semillaElegida: sanearSemillaElegida(p.semillaElegida),   // 4.11.1 (S5): la semilla que elegiste para el cantero (null: la de siempre)
     gallineros: sanearGallineros(p.gallineros),
     feria: sanearFeria(p.feria),
     visitas: sanearVisitas(p.visitas),

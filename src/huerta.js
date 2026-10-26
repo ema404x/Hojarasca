@@ -116,14 +116,34 @@ export function diasQueFaltan(parcela, dia) {
 
 // Qué se puede sembrar con lo que tenés encima, en orden de preferencia.
 // `tengo(cosa)` devuelve cuántas semillas o frutillas hay.
-export function semillaParaSembrar(tengo) {
+export function semillaParaSembrar(tengo, preferida = null) {
+  const lista = semillasDisponibles(tengo);
+  // 4.11.1 (S5): la que elegiste (Tab o rueda), si todavía tenés; si no, la de siempre (el orden de preferencia)
+  const elegida = esCultivo(preferida) ? lista.find((x) => x.cultivo === preferida) : null;
+  return elegida || lista[0] || null;
+}
+const esCultivo = (id) => typeof id === 'string' && Object.hasOwn(CULTIVOS, id);
+// 4.11.1 (S5): todo lo que se puede sembrar ahora, en el orden de preferencia: [{ cultivo, gasta, conIngrediente }]
+export function semillasDisponibles(tengo) {
+  const r = [];
   for (const id of ORDEN_CULTIVOS) {
     const c = CULTIVOS[id];
     const clave = c.siembraConIngrediente ? c.ingrediente : c.semilla;
-    if ((Number(tengo(clave)) || 0) >= 1) return { cultivo: id, gasta: clave, conIngrediente: !!c.siembraConIngrediente };
+    if ((Number(tengo(clave)) || 0) >= 1) r.push({ cultivo: id, gasta: clave, conIngrediente: !!c.siembraConIngrediente });
   }
-  return null;
+  return r;
 }
+// 4.11.1 (S5): la elegida pasa a la siguiente (paso 1) o a la anterior (paso -1) entre las que hay; da el id del cultivo o null.
+// Sin elegida (o si ya no la tenés) se parte de la que sembrarías por defecto.
+export function cambiarSemilla(tengo, actual, paso = 1) {
+  const lista = semillasDisponibles(tengo);
+  if (!lista.length) return null;
+  const i = lista.findIndex((x) => x.cultivo === (semillaParaSembrar(tengo, actual)?.cultivo));
+  const n = lista.length;
+  return lista[(((Math.max(0, i) + (paso < 0 ? -1 : 1)) % n) + n) % n].cultivo;
+}
+// Lo que se guarda en la partida: un id de cultivo o nada
+export const sanearSemillaElegida = (v) => (esCultivo(v) ? v : null);
 
 export function sembrar(huerta, clave, cultivo, dia) {
   if (!Object.hasOwn(CULTIVOS, String(cultivo))) return { ok: false, motivo: 'eso no se siembra' };
