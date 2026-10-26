@@ -18,9 +18,36 @@ Respuestas del usuario a las preguntas abiertas de `CAMBIOS_4_10_1_*` a `CAMBIOS
 13. **Versión de la partida (E3):** una versión vieja no guarda encima de una partida más nueva.
 14. **A* de la noche (H2-3 b y c):** repartirlo en varios cuadros (la ruta nueva se aplica 2 a 5 cuadros después).
 
+### Segunda tanda (misma fecha)
+15. **Órdenes y refuerzos del giro (C11/B11c):** persisten entre noches (no se reinician).
+16. **Diario y Puesto Alto (A14):** las tres cosas: anotación «conociste a Fermín/Belisario/Tobías», encargo del Puesto Alto en el tablón y botón para soltar un papel del tablón.
+17. **Fermín/Belisario/Tobías (D1):** reintentar armarse cada tanto si no hubo lugar.
+18. **Bordes de la gente (R10/D2):** al contratar a un compadre de visita se corta la visita; la novia empleada que aparece en dos lugares se prueba primero en una partida real (Electron) antes de tocar.
+19. **Empleado (D3):** ya en la lista de arriba.
+20. **Pies fijos (U10):** se arman desde el código con la tecla configurada (rehacer su traducción al final).
+21. **Tablero de trofeos (U12):** pasa de aviso de 5,6 s a panel que se cierra a mano.
+22. **Semilla del cantero (S5):** se elige con Tab o la rueda.
+23. **Picada de la tarde (S6):** aclarar el texto del encargo a «entre las 19 y las 22».
+24. **Recetas y ropa (P4):** viajan también a una ranura vacía («Empezar acá»).
+25. **Pájaros dentro de casa (Q5):** se atenúan con la puerta cerrada.
+26. **Radio de madrugada (Q12):** puede apagarse y descarta el audio que llega tarde.
+27. **Casa de Té (S2):** la demanda del pueblo sigue el calendario.
+28. **Guardado (M8):** si falla el `rename`, no escribir directo: devolver `false` y queda la copia anterior.
+29. **Empaquetado (M11):** `empaquetar.ps1` pregunta antes de matar un `Hojarasca.exe` abierto y el `.sh` verifica el `index.html` del asar como el `.ps1`.
+30. **Madrigueras (V7):** el suelo de las de ladera sigue el terreno (aceptado el costo de memoria).
+31. **Postes del tablero (V13):** se calzan en laderas laterales.
+32. **Foco (U7):** arreglar el foco al redibujar la lista de la mochila y las pestañas del cuaderno.
+
 ## No se hace
 - Huellas del Coihue (V8): quedan como están.
 - Novio/novia o cita invitados al té/mate (E4): siguen aceptando.
+- Piña del Coihue (D9): hay que cortar al menos una raíz; «Entre las cenizas» (D14): sólo cuenta la base, no tus caídas.
+- Cartel de sobrecarga (A10): queda mostrando el total que hay que liberar.
+- Relojes desfasados en la sincronía (E11): se deja.
+- Bloom, rayos y agua al «Bajar» (P6): sólo baja la resolución.
+- Cadena «grande» de las noches (R12): no se toca hasta jugar el equilibrio.
+- `cerrarCuenta` todo o nada (S2-9): queda como está (a favor del jugador).
+- S2-7 y el resto de la sección «Se hace» siguen siendo la lista de trabajo.
 
-## Sin responder todavía (quedan abiertas)
-Pies fijos de la interfaz (U10), P4 (recetas a ranura vacía), Q5 (pájaros dentro de casa), P6 (apagar bloom al «Bajar»), Q12 (radio de madrugada), A10/A14/E11 del mundo, D1/D2 de la gente, S5/S2/S6/R12/R10 de regresiones, M8/M11 del proceso, V7/V13, y la pregunta de la Piña del Coihue (D9) y de «Entre las cenizas» (D14).
+## Sin responder
+Nada: todas las preguntas abiertas de las 4.10.1 a 4.10.4 tienen respuesta.
