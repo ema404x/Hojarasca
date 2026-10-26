@@ -351,6 +351,7 @@ const metaJuego = crearMetaJuego({
   almacen: () => localStorage, progreso: () => progreso, desafio: () => desafio, esSinFin: () => esSinFin,
   sumarMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); }, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
   posJugador: () => jugador?.estado?.pos || null,
+  relojReal: () => ajustes.duracion === 'reloj',   // 4.11.0: con la hora de tu reloj no se pueden alargar las noches (validarEleccion)
   sumarBono,   // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
   quitarBonos: (d) => quitarBonosDeOrigen(d, 'ventaja'),   // 4.10.1: iniciar de nuevo no suma dos veces los bonos de las ventajas
   alBonos: (d) => { d.salud = saludMaximaConBonos(SALUD_MAX, d); },   // con más (o menos) salud máxima, se arranca entero
@@ -1194,7 +1195,7 @@ function dibujarCuaderno() {
       // 3.0: los adaptados dicen, además, contra qué vienen preparados ahora
       if (t === 'adaptado' && desafio.adaptaciones) ficha.appendChild(el('p', 'texto', T_(desafio.adaptaciones)));
       if (f.falta) ficha.appendChild(el('p', 'pista', f.falta));
-      // 4.10 guardian: los tres estudios (5, 15 y 40 abatidos): el dato que se desbloquea o lo que falta
+      // 4.10 guardian: los tres estudios (5, 15 y 40 abatidos; el Mandamás, 1, 2 y 4 caídas; 4.11.0: umbralesDe): el dato que se desbloquea o lo que falta
       const estudios = renglonesEstudio(best, t);
       if (estudios.length) {
         ficha.appendChild(el('h3', '', 'Estudio'));
@@ -2363,7 +2364,7 @@ if (esDesafio && !partidaEmpezada() && progreso.desafio?.semilla && $('codigo-pa
 // 4.10 partidas: la pantalla de nueva partida. «Empezar» gasta las semillas, deja la elección en la partida y entra.
 let metaElegida = false;
 const pantallaNueva = crearPantallaNuevaPartida({
-  leerMeta: () => metaJuego.leer(), esSinFin: () => esSinFin, modoInicial: () => 'normal', traducir: (el) => traducirPanel(el),
+  leerMeta: () => metaJuego.leer(), esSinFin: () => esSinFin, relojReal: () => ajustes.duracion === 'reloj', modoInicial: () => 'normal', traducir: (el) => traducirPanel(el),
   alEmpezar: (eleccion) => {
     if (!metaJuego.iniciar(eleccion)) { nota('No se pudo empezar así', 'Revisá las semillas y las ventajas elegidas'); return; }
     metaElegida = true;

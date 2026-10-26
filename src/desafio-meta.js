@@ -86,6 +86,11 @@ export const INCOMPATIBLES = [
   // 4.10.1: las dos alargan la noche un tercio, pero no se suman (sólo una vez): juntas pagaban puntos de más por nada
   ['nochesLargas', 'avaro', 'Las dos alargan la noche un tercio, pero no se suman: elegí una'],
 ];
+// 4.11.0: con «Hora de tu reloj» la hora de la partida es la del reloj de verdad y no hay cómo alargar la noche: las dos cosas que la
+// alargan (la regla y «Manos llenas») quedan apagadas en la pantalla de Nueva partida. Es sólo al empezar: una partida ya guardada con la
+// combinación se carga igual (sanearMeta y efectosDe no la miran) y, con el reloj, la noche corre como siempre a la hora del reloj.
+export const ALARGAN_LA_NOCHE = ['nochesLargas', 'avaro'];
+export const MOTIVO_RELOJ = 'Con la hora de tu reloj no se pueden alargar las noches';
 const motivoDeChoque = (a, b) => {
   for (const [x, y, m] of INCOMPATIBLES) if ((a === x && b === y) || (a === y && b === x)) return m;
   return null;
@@ -104,7 +109,7 @@ export function multiplicadorDe(ventajas, reglas) {
 
 // ¿Se puede empezar con esta elección? `meta`: lo guardado entre partidas (semillas y desbloqueos).
 // Devuelve { ok, motivo, costo, mult, ventajas, reglas, modo }.
-export function validarEleccion(meta, eleccion = {}) {
+export function validarEleccion(meta, eleccion = {}, entorno = {}) {
   const m = sanearMeta(meta);
   const modo = esModo(eleccion.modo) ? eleccion.modo : 'normal';
   const ventajas = lista(eleccion.ventajas, VENTAJAS, 99);
@@ -115,6 +120,7 @@ export function validarEleccion(meta, eleccion = {}) {
   if (ventajas.length > MAX_VENTAJAS) return { ...sal, motivo: `Sólo se pueden elegir ${MAX_VENTAJAS} ventajas` };
   if (costo > m.semillas) return { ...sal, motivo: `Te faltan ${textoSemillas(costo - m.semillas)}` };
   const todas = [...ventajas, ...reglas];
+  if (entorno?.relojReal && todas.some((k) => ALARGAN_LA_NOCHE.includes(k))) return { ...sal, motivo: MOTIVO_RELOJ };   // 4.11.0
   for (let i = 0; i < todas.length; i++) for (let j = i + 1; j < todas.length; j++) {
     const choque = motivoDeChoque(todas[i], todas[j]);
     if (choque) return { ...sal, motivo: choque };

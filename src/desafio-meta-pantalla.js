@@ -3,12 +3,12 @@
 // Sólo teclado y ratón: botones que se alcanzan con Tab o con las flechas, Enter o clic para elegir, Esc para volver.
 import {
   MODOS, VENTAJAS, REGLAS, TIPOS_VENTAJA, CLAVES_VENTAJA, CLAVES_REGLA, MAX_VENTAJAS, validarEleccion, multiplicadorDe, textoMult, textoSemillas,
-  resumenFinales, lineaRecordMeta, sanearMeta, CLAVES_MODO,
+  resumenFinales, lineaRecordMeta, sanearMeta, CLAVES_MODO, ALARGAN_LA_NOCHE,
 } from './desafio-meta.js';
 
 const nodo = (tag, clase, texto) => { const n = document.createElement(tag); if (clase) n.className = clase; if (texto !== undefined) n.textContent = texto; return n; };
 
-// `api`: { leerMeta(), esSinFin(), modoInicial(), alEmpezar(eleccion), alVolver(), traducir(el) }
+// `api`: { leerMeta(), esSinFin(), relojReal() (¿la partida va con la hora de tu reloj?), modoInicial(), alEmpezar(eleccion), alVolver(), traducir(el) }
 export function crearPantallaNuevaPartida(api) {
   const velo = document.getElementById('nueva-partida');
   const cont = document.getElementById('np-contenido');
@@ -30,13 +30,24 @@ export function crearPantallaNuevaPartida(api) {
     if (nota) b.appendChild(nodo('i', '', nota));
     return b;
   }
+  // 4.11.0: el motivo de lo bloqueado se escribe debajo del chip (antes sólo se veía al pasar el mouse, y con el teclado nunca). Va afuera
+  // del botón: el chip apagado se ve a media opacidad y el motivo tiene que leerse.
+  function celda(b, motivo) {
+    const c = nodo('div', 'np-celda');
+    c.appendChild(b);
+    if (motivo) c.appendChild(nodo('p', 'np-motivo', motivo));
+    return c;
+  }
   function dibujar(foco = null) {
     const meta = sanearMeta(api.leerMeta());
     const sinFin = api.esSinFin();
     if (sinFin) eleccion.modo = 'sinfin';
     else if (eleccion.modo === 'sinfin') eleccion.modo = 'normal';
     if (eleccion.modo === 'pesadilla' && !meta.desbloqueos.pesadilla) eleccion.modo = 'normal';
-    const v = validarEleccion(meta, eleccion);
+    // 4.11.0: con «Hora de tu reloj» no se alarga la noche: lo que la alarga se apaga (y si venía elegido de antes, se saca)
+    const entorno = { relojReal: !!api.relojReal?.() };
+    if (entorno.relojReal) { eleccion.ventajas = eleccion.ventajas.filter((k) => !ALARGAN_LA_NOCHE.includes(k)); eleccion.reglas = eleccion.reglas.filter((k) => !ALARGAN_LA_NOCHE.includes(k)); }
+    const v = validarEleccion(meta, eleccion, entorno);
     cont.innerHTML = '';
     cont.appendChild(nodo('h2', '', 'Nueva partida'));
     cont.appendChild(nodo('p', 'sub', `Tenés ${textoSemillas(meta.semillas)}. Se gana una por cada partida que termines, ganada o perdida, con al menos tres noches resistidas.`));
@@ -55,6 +66,7 @@ export function crearPantallaNuevaPartida(api) {
       seg.appendChild(b);
     }
     cont.appendChild(seg);
+    if (!sinFin && !meta.desbloqueos.pesadilla) cont.appendChild(nodo('p', 'np-motivo', 'La pesadilla se desbloquea al ganar la campaña una vez'));   // 4.11.0: el motivo a la vista
     cont.appendChild(nodo('p', 'np-modo-texto', MODOS[eleccion.modo].texto));
 
     // las ventajas
@@ -70,13 +82,13 @@ export function crearPantallaNuevaPartida(api) {
         if (!activo && eleccion.ventajas.length >= MAX_VENTAJAS) bloq = `Ya elegiste ${MAX_VENTAJAS} ventajas`;
         else if (!activo && def.costo > meta.semillas - eleccion.ventajas.reduce((n, c) => n + VENTAJAS[c].costo, 0)) bloq = 'No te alcanzan las semillas';
         else if (!activo) {
-          const t = validarEleccion({ ...meta, semillas: 99 }, { ...eleccion, ventajas: [...eleccion.ventajas, k] });
+          const t = validarEleccion({ ...meta, semillas: 99 }, { ...eleccion, ventajas: [...eleccion.ventajas, k] }, entorno);
           if (!t.ok) bloq = t.motivo;
         }
         const nota = def.costo ? textoSemillas(def.costo) : `suma ${textoMult(1 + def.mult)} a los puntos`;
         const b = chip(k, def, activo, bloq, nota);
         b.addEventListener('click', () => { alternar(eleccion.ventajas, k, MAX_VENTAJAS); dibujar(`v:${k}`); });
-        caja.appendChild(b);
+        caja.appendChild(celda(b, bloq));
       }
       grupo.appendChild(caja);
       cont.appendChild(grupo);
@@ -91,12 +103,12 @@ export function crearPantallaNuevaPartida(api) {
       const activo = eleccion.reglas.includes(k);
       let bloq = '';
       if (!activo) {
-        const t = validarEleccion({ ...meta, semillas: 99 }, { ...eleccion, reglas: [...eleccion.reglas, k] });
+        const t = validarEleccion({ ...meta, semillas: 99 }, { ...eleccion, reglas: [...eleccion.reglas, k] }, entorno);
         if (!t.ok && !/Sólo se pueden/.test(t.motivo)) bloq = t.motivo;
       }
       const b = chip(k, def, activo, bloq, `suma ${textoMult(1 + def.mult)}`);
       b.addEventListener('click', () => { alternar(eleccion.reglas, k); dibujar(`r:${k}`); });
-      cajaR.appendChild(b);
+      cajaR.appendChild(celda(b, bloq));
     }
     cont.appendChild(cajaR);
 

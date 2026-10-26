@@ -51,7 +51,7 @@ export function crearMetaJuego(ctx) {
     const d = dPartida();
     if (!d) return false;
     const modoFijo = ctx.esSinFin() ? 'sinfin' : null;
-    const v = validarEleccion(leer(), { ...eleccion, modo: modoFijo || eleccion.modo });
+    const v = validarEleccion(leer(), { ...eleccion, modo: modoFijo || eleccion.modo }, { relojReal: !!ctx.relojReal?.() });   // 4.11.0: con la hora de tu reloj no se alarga la noche
     if (!v.ok) return false;
     const gastada = gastarSemillas(leer(), v.costo);
     if (!gastada) return false;
