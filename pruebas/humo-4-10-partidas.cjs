@@ -184,7 +184,9 @@ app.whenReady().then(async () => {
     await clic('[data-clave="nochesLargas"]'); await esperar(200);
     await foto('09-pesadilla');
     const resumen2 = await js(`document.querySelector('.np-resumen').textContent`);
-    ok(/×1,55/.test(resumen2), 'filo, manos llenas y noches largas suman ×1,55: «' + resumen2 + '»');
+    // 4.11.0: desde la 4.10.1 «noches más largas» y «manos llenas» no se suman (se apaga la segunda, con el motivo escrito debajo): ×1,35
+    ok(/×1,35/.test(resumen2) && await js(`document.querySelector('[data-clave="nochesLargas"]').disabled`), 'filo y manos llenas suman ×1,35 y noches largas queda apagada: «' + resumen2 + '»');
+    ok(await js(`(document.querySelector('[data-clave="nochesLargas"]').parentNode.querySelector('.np-motivo')||{}).textContent`) === 'Las dos alargan la noche un tercio, pero no se suman: elegí una', 'y el motivo está escrito debajo del chip');
     ok(await js(`document.querySelector('[data-modo="pesadilla"]').getAttribute('aria-pressed') === 'true'`), 'la pesadilla quedó elegida');
     await tecla('Escape');
   } catch (e) {
