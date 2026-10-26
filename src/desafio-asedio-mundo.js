@@ -527,7 +527,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   // 4.11.3 (H2-3 b y c): la ruta de cada noche se calcula repartida en cuadros (el A* entero hacía un tirón de 1 a 7 ms al caer la noche, y de 30 a 60 con
   // la base cercada). Es el mismo cálculo con los mismos tres intentos: la ruta sale igual, pero se aplica unos cuadros después. Mientras tanto el Coihue
   // se queda donde está (no camina hasta que la ruta nueva esté puesta: ver actualizarCamino).
-  const PRESUPUESTO_RUTA = 1000;   // unidades por cuadro (celdas miradas y nodos abiertos): ~1 ms en la 4600G
+  const PRESUPUESTO_RUTA = 350;   // unidades por cuadro (celdas miradas y nodos abiertos): ~1 ms en la notebook, con la base despejada la ruta sale en 2 a 5 cuadros
   let replan = null;
   function empezarReplan(a) {
     const c = a.camino;
