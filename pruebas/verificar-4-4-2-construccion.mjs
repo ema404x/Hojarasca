@@ -269,7 +269,7 @@ try {
   globalThis.setInterval = (f, ms) => { const t = { f, ms }; timers.push(t); return t; };
   globalThis.clearInterval = (t) => { timers = timers.filter((x) => x !== t); };
   const G = await import('../src/gramola.js');
-  const sonido = { ctx, bus: { efectos: nodo() }, bajaMusica: nodo() };
+  const sonido = { ctx, bus: { efectos: nodo(), musica: nodo() }, bajaMusica: nodo() };
   const obraA = { id: 'A' }, obraB = { id: 'B' };
   const r = G.alternarGramola(sonido, () => true, obraA);
   ok(r.suena && !r.cambio, 'la gramola A arranca');

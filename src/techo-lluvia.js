@@ -49,21 +49,21 @@ export function techoDeObra(planoId, cubiertaId) {
   return 'tablas';
 }
 
-// Cómo suena cada espacio. `lluvia` y `viento` multiplican las camas de afuera,
+// Cómo suena cada espacio. `lluvia`, `viento` y (4.11.1) `aves` multiplican las camas de afuera,
 // `filtro` es hasta dónde llegan los agudos del ambiente, `reverb` cuál de las tres
 // salas se usa, y `cruje` cuánto trabaja la estructura con las rachas.
 export const ESPACIOS = {
-  bosque: { lluvia: 1, viento: 1, hojas: 1, filtro: 19000, reverb: 'bosque', cruje: 0 },
+  bosque: { lluvia: 1, viento: 1, aves: 1, hojas: 1, filtro: 19000, reverb: 'bosque', cruje: 0 },
   // bajo un alero, un leñero o una galería: el viento pasa, la lluvia cae al costado
-  alero: { lluvia: 0.62, viento: 0.85, hojas: 0.8, filtro: 9000, reverb: 'bosque', cruje: 0.3 },
+  alero: { lluvia: 0.62, viento: 0.85, aves: 0.85, hojas: 0.8, filtro: 9000, reverb: 'bosque', cruje: 0.3 },
   // la carpa: una tela no aísla nada, pero la lluvia de afuera queda tapada por la del techo
-  carpa: { lluvia: 0.55, viento: 0.72, hojas: 0.7, filtro: 5200, reverb: 'bosque', cruje: 1 },
+  carpa: { lluvia: 0.55, viento: 0.72, aves: 0.72, hojas: 0.7, filtro: 5200, reverb: 'bosque', cruje: 1 },
   // entre cuatro paredes: el viento es un rumor, la lluvia de afuera casi no llega
-  adentro: { lluvia: 0.22, viento: 0.3, hojas: 0.12, filtro: 1900, reverb: 'adentro', cruje: 0.7 },
-  cueva: { lluvia: 0.12, viento: 0.2, hojas: 0, filtro: 1400, reverb: 'cueva', cruje: 0 },
+  adentro: { lluvia: 0.22, viento: 0.3, aves: 0.3, hojas: 0.12, filtro: 1900, reverb: 'adentro', cruje: 0.7 },
+  cueva: { lluvia: 0.12, viento: 0.2, aves: 0.2, hojas: 0, filtro: 1400, reverb: 'cueva', cruje: 0 },
   // 3.8.7: bajo la roca de la Cueva de las Manos (3.8.8: de nuevo la cueva; en la 3.8.4 fue el alero del arriero): abierto al frente, la roca devuelve un eco corto
   // (antes sonaba a cueva honda: cola de 4 s y casi nada de afuera)
-  roca: { lluvia: 0.5, viento: 0.65, hojas: 0.45, filtro: 7000, reverb: 'adentro', cruje: 0 },
+  roca: { lluvia: 0.5, viento: 0.65, aves: 0.65, hojas: 0.45, filtro: 7000, reverb: 'adentro', cruje: 0 },
 
 };
 export function espacioDe(nombre) { return ESPACIOS[nombre] || ESPACIOS.bosque; }

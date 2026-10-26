@@ -159,7 +159,7 @@ ok(PLANO['cama-dosel'].confort <= 5, 'la cama con dosel no pasa a la cama doble 
     createOscillator() { regs.osc++; return nodo(); }, createGain: nodo, createBiquadFilter() { regs.filtro++; return nodo(); },
     createBuffer(c, l) { regs.buf++; return { getChannelData: () => new Float32Array(l), duration: l / 8000 }; }, createBufferSource: nodo,
   };
-  const sonido = { ctx, bus: { efectos: nodo() }, bajaMusica: nodo() };
+  const sonido = { ctx, bus: { efectos: nodo(), musica: nodo() }, bajaMusica: nodo() };
   eq(Gr.alternarGramola({ ctx: null }, () => true), { sinSonido: true }, 'sin audio no arranca ni se rompe');
   ok(!Gr.gramolaSuena(), 'y no queda sonando');
   let cerca = true;

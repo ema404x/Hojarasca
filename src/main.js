@@ -7958,6 +7958,7 @@ function avisoMaquina(o) {
     case 'estacion-meteo': case 'radio-refugio': {
       const p = pedidoRadio(radioPartida().pedido);
       if (p && alcanzaPedido(p, progreso.materiales, progreso.cosas)) return `Avisar por radio que mandás ${textoPideRadio(p)}`;
+      if (huevosJuego?.radioSuena?.()) return 'Apagar la radio';   // 4.11.1 (Q12): la emisora de la madrugada se apaga con la E
       return o.plano.id === 'estacion-meteo' ? 'Leer el pronóstico y prender la radio' : 'Prender la radio';
     }
     default: return null;
@@ -8024,7 +8025,9 @@ function usarRadio(o) {
     return;
   }
   // 4.2 (huevos de pascua): a la madrugada, algunas noches, una emisora que de día no está (un tango viejo o Morse)
-  if (huevosJuego?.radioMadrugada()) { guardar(); return; }
+  // 4.11.1 (Q12): con la emisora sonando, la E la apaga; y el audio que llegue tarde (síntesis en la cola) se descarta
+  if (huevosJuego?.radioSuena?.()) { huevosJuego.apagarRadio(); nota('Apagaste la radio', 'La emisora se pierde entre la estática', true); return; }
+  if (huevosJuego?.radioMadrugada({ x: o.datos.x, z: o.datos.z })) { guardar(); return; }
   const estacion = o.plano.id === 'estacion-meteo';
   const oido = escucharRadio(r, { dia: progreso.dia, horas: progreso.horas, pronostico: pronosticoActual(), noches: nochesActuales(), desafio: !!desafio });
   let enElAire = oido.de ? `${oido.de}: «${oido.texto}»` : oido.texto;

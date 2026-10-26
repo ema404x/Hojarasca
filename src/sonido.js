@@ -109,6 +109,9 @@ export class Sonido {
     // (antes los dos iban por el mismo y con Música o Efectos en 0 se seguía oyendo la cola de la sala)
     this.envioReverbMusica = ctx.createGain(); this.envioReverbMusica.gain.value = 0.5;
     for (const n of Object.keys(this.espacios)) this.envioReverbMusica.connect(this.espacios[n]);
+    // 4.11.1: y el de los pájaros va con la perilla de «El bosque» (los pájaros salen por el bus del bosque, no por Efectos)
+    this.envioReverbAmbiente = ctx.createGain(); this.envioReverbAmbiente.gain.value = 0.5;
+    for (const n of Object.keys(this.espacios)) this.envioReverbAmbiente.connect(this.espacios[n]);
 
     this.bus = {};
     this.filtroAmbiente = ctx.createBiquadFilter();
@@ -469,6 +472,8 @@ export class Sonido {
     // y la reverberación de cada uno, con la perilla de su bus (el envío vale 0,5 con todo al máximo)
     poner(this.envioReverb?.gain, 0.5 * this.mezcla.efectos * (hora.efectos ?? 1), 0.4);
     poner(this.envioReverbMusica?.gain, dMusica, 0.8);
+    // 4.11.1: la de los pájaros sigue «El bosque» (con la mezcla por hora, como el ambiente)
+    poner(this.envioReverbAmbiente?.gain, 0.5 * this.mezcla.ambiente * (hora.ambiente ?? 1), 0.6);
   }
   // 2.0: la mezcla se agacha. Cuando algo chilla al lado, el bosque y la música bajan
   // de golpe y vuelven despacio, para que el grito se escuche entero (ver
@@ -742,8 +747,11 @@ export class Sonido {
   // Una fuente en el espacio. Devuelve null si todavía no hay motor de audio: el
   // contexto recién existe después del primer clic del jugador, y hasta entonces el
   // juego puede pedir sonidos igual (un invasor que muere en el primer cuadro).
-  fuente(pos, vol = 1, reverb = 0.6) {
+  // 4.11.1: `bus` dice por dónde sale: 'efectos' (lo de siempre) o 'ambiente' (los pájaros: con la perilla de «El bosque», el filtro de
+  // las paredes y el agache del silencio raro; su reverberación también sigue esa perilla)
+  fuente(pos, vol = 1, reverb = 0.6, bus = 'efectos') {
     if (!this.ctx) return null;
+    const delBosque = bus === 'ambiente';
     const p = this.panner(pos);
     const g = this.ctx.createGain(); g.gain.value = vol;
     // el aire se come los agudos: cuanto más lejos, más apagado
@@ -752,9 +760,9 @@ export class Sonido {
     aire.type = 'lowpass';
     aire.frequency.value = Math.max(700, 18000 - d * 210);
     aire.Q.value = 0.4;
-    g.connect(aire); aire.connect(p); p.connect(this.bus.efectos);
+    g.connect(aire); aire.connect(p); p.connect(delBosque ? this.bus.ambiente : this.bus.efectos);
     const r = this.ctx.createGain(); r.gain.value = reverb;
-    g.connect(r); r.connect(this.envioReverb);
+    g.connect(r); r.connect(delBosque ? this.envioReverbAmbiente : this.envioReverb);
     setTimeout(() => { try { p.disconnect(); g.disconnect(); r.disconnect(); aire.disconnect(); } catch {} }, 8000);
     return g;
   }
@@ -1128,9 +1136,16 @@ export class Sonido {
   // Si la especie todavía no tiene frases hechas, canta apenas sale la primera de la cola.
   cantar(especie, pos, volFuente = 1, reverb = 0.6) {
     if (!this.ctx || this.avesCalladas) return null;   // 4.8 ambiente: el silencio raro y los duendes cerca
-    const sonar = (buf) => this.sonarBuffer(buf, this.fuente(pos, volFuente, reverb), (NIVEL_CANTO[especie] ?? 0.08) / 0.9, 0, azar(0.97, 1.03));
+    // 4.11.1: los pájaros (y la ranita de la noche) son del bosque: salen por su bus y adentro de una casa se atenúan como el viento
+    // y la lluvia (`aves` en ESPACIOS, con la puerta cerrada). El chillido de los murciélagos queda con los efectos.
+    const delBosque = especie !== 'chillido';
+    const sonar = (buf) => this.sonarBuffer(buf, delBosque ? this.fuenteDeAve(pos, volFuente, reverb) : this.fuente(pos, volFuente, reverb), (NIVEL_CANTO[especie] ?? 0.08) / 0.9, 0, azar(0.97, 1.03));
     const buf = this.variante(`canto-${especie}`, 3, () => canto(especie, TASA_PREVIA), 0.35, sonar);
     return buf ? sonar(buf) : null;
+  }
+  // 4.11.1: una fuente de pájaro: por el bus del bosque y atenuada según el espacio donde estás (`aves`, como `viento` y `lluvia`)
+  fuenteDeAve(pos, vol = 1, reverb = 0.6) {
+    return this.fuente(pos, vol * espacioDe(this.espacioActual).aves, reverb, 'ambiente');
   }
   zorzal(pos) { this.cantar('zorzal', pos, 0.9); }
   rayadito(pos) { this.cantar('rayadito', pos, 0.7); }
@@ -1822,7 +1837,7 @@ export class Sonido {
   bandurrias(pos) { this.cantar('bandurrias', pos, 1.6, 0.7); }
   picaflor(pos, zumbido = true) {
     if (!this.ctx) return;
-    const d = this.fuente(pos, 0.9, 0.2);
+    const d = this.fuenteDeAve(pos, 0.9, 0.2);   // 4.11.1: del bosque, como los demás pájaros
     if (zumbido) {
       const ctx = this.ctx, t = ctx.currentTime;
       const s = ctx.createBufferSource(); s.buffer = this.ruido;

@@ -247,7 +247,7 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   enOrden(['rincones', 'huevos', 'jaula'], 'la E y el aviso de los huevos, en el mismo lugar (después de los rincones)');
   revisarModulo('huevos', 'huevos');
   { const r = que({ acciones: { huevos: true } }); ok(r.hechos[0] === 'limpiar(huevos)' && r.hechos[1] === 'huevos.hacer', 'la E lo saca de lo buscado antes de hacerlo (no se repite)'); }
-  ok(m.includes('if (huevosJuego?.radioMadrugada()) { guardar(); return; }') && m.indexOf('huevosJuego?.radioMadrugada()') < m.indexOf('const oido = escucharRadio(r,') && m.indexOf('cumplirPedido(r, progreso.materiales') < m.indexOf('huevosJuego?.radioMadrugada()'), 'main.js: la radio de madrugada va después de mandar un pedido y antes de lo de siempre');
+  ok(m.includes('if (huevosJuego?.radioMadrugada({ x: o.datos.x, z: o.datos.z })) { guardar(); return; }') && m.indexOf('huevosJuego?.radioMadrugada(') < m.indexOf('const oido = escucharRadio(r,') && m.indexOf('cumplirPedido(r, progreso.materiales') < m.indexOf('huevosJuego?.radioMadrugada('), 'main.js: la radio de madrugada va después de mandar un pedido y antes de lo de siempre');
   ok(m.includes("huevosPortada = crearHuevosPortada({ enPortada: () => modo === 'inicio'") && m.includes("prefers-reduced-motion: reduce"), "main.js: el código de la portada sólo en la portada y con reducir movimiento");
   const vi = leer('src/vida.js');
   ok(vi.includes('export function mallaHuemulBlanco()') && vi.includes('function mallaHuemul(macho, blanco = false)'), 'vida.js: el huemul blanco es el mismo modelo con otro pelaje');
