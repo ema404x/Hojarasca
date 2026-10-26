@@ -259,6 +259,18 @@ const cantar = (nombre) => (s) => { s[nombre](POS); while (s.cola.length) s.trab
     drenar(s);
     assert.equal(sonando(s).length, n0 + 1, 'suena uno solo: el último');
   }
+  // y un pedido nuevo corta al que ya suena (otra noche, con el primero sonando)
+  {
+    const { s, j, progreso } = montar();
+    j.radioMadrugada(RADIO); drenar(s);
+    const primera = sonando(s).at(-1);
+    assert.ok(primera && primera.parada === undefined, 'la primera suena');
+    progreso.dia = noches[1] + 1;
+    j.radioMadrugada(RADIO);
+    assert.ok(primera.parada !== undefined, 'al pedir otra emisora, la que sonaba se corta');
+    drenar(s);
+    assert.equal(ganancia(primera, s.bus.efectos), 0, 'y se fue a cero');
+  }
   // sin posición de la radio (como la llaman las pruebas viejas), no se mide la distancia
   {
     const { s, j, jugador } = montar();
