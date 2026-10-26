@@ -14,6 +14,61 @@ import { registrarHalos, soltarHalos } from './desafio-duendes.js';
 
 const NOMBRES = { cristal: 'semillas doradas', piedra: 'piedras', tabla: 'tablas' };
 
+// 4.11.2 (V7): el suelo de la madriguera (el montículo de tierra y las raíces) es una geometría compartida por todos los puestos, armada
+// para un terreno llano: en una ladera quedaba un borde en el aire y el otro enterrado. `calzarSuelo` le da a un puesto su propia copia
+// de los vértices (posición y normal; el resto —color, índices— se sigue compartiendo) con cada vértice a la altura del terreno de su
+// lugar, y las normales inclinadas con la pendiente. Sólo si el terreno se aparta más de LADERA_PUESTO metros de lo llano en los 7 m del
+// suelo; si no, el puesto sigue usando la geometría compartida y no cuesta memoria. `altura(x, z)` es la del terreno; (x, z) el puesto
+// e `y0` la altura en su centro. Devuelve { copias, bytes }; las copias llevan `userData.propia` para soltarlas al sacar el puesto.
+export const LADERA_PUESTO = 0.12;
+export function calzarSuelo(grupo, altura, x, z, y0) {
+  let copias = 0, bytes = 0, mayor = 0;
+  const E = 0.5, trabajos = [];
+  for (const malla of grupo.children) {
+    const g = malla.geometry, P = g?.attributes?.position;
+    if (!malla.isMesh || !P) continue;
+    const dy = new Float32Array(P.count);
+    for (let i = 0; i < P.count; i++) {
+      const d = altura(x + P.getX(i), z + P.getZ(i)) - y0;
+      dy[i] = Number.isFinite(d) ? d : 0;
+      mayor = Math.max(mayor, Math.abs(dy[i]));
+    }
+    trabajos.push([malla, dy]);
+  }
+  if (mayor <= LADERA_PUESTO) return { copias, bytes };   // (se decide por el grupo entero: el montículo y las raíces se mueven juntos)
+  for (const [malla, dy] of trabajos) {
+    const g = malla.geometry, P = g.attributes.position;
+    const ng = new THREE.BufferGeometry();
+    for (const nombre of Object.keys(g.attributes)) ng.setAttribute(nombre, g.attributes[nombre]);   // compartidos...
+    if (g.index) ng.setIndex(g.index);
+    const pos = new THREE.BufferAttribute(P.array.slice(), 3);   // ...menos la posición y la normal
+    for (let i = 0; i < P.count; i++) pos.setY(i, pos.getY(i) + dy[i]);
+    ng.setAttribute('position', pos);
+    bytes += pos.array.byteLength;
+    const N = g.attributes.normal;
+    if (N) {
+      const nor = new THREE.BufferAttribute(N.array.slice(), 3);
+      for (let i = 0; i < P.count; i++) {
+        // una cizalla vertical y' = y + f(x, z) inclina la normal así: (nx - fx·ny, ny, nz - fz·ny)
+        const px = x + P.getX(i), pz = z + P.getZ(i);
+        const fx = (altura(px + E, pz) - altura(px - E, pz)) / (2 * E), fz = (altura(px, pz + E) - altura(px, pz - E)) / (2 * E);
+        const ny = nor.getY(i);
+        let nx = nor.getX(i) - (Number.isFinite(fx) ? fx : 0) * ny, nz = nor.getZ(i) - (Number.isFinite(fz) ? fz : 0) * ny;
+        const l = Math.hypot(nx, ny, nz) || 1;
+        nx /= l; nz /= l;
+        nor.setXYZ(i, nx, ny / l, nz);
+      }
+      ng.setAttribute('normal', nor);
+      bytes += nor.array.byteLength;
+    }
+    ng.computeBoundingSphere();
+    ng.userData.propia = true;
+    malla.geometry = ng;
+    copias++;
+  }
+  return { copias, bytes };
+}
+
 export function crearPuestosMundo(T, escena, efectos, sonido, api) {
   const D = () => {
     const d = api.D();
@@ -50,7 +105,8 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
       const g = new THREE.Group();
       g.name = 'puesto-invasor';
       const suelo = mallaMadriguera('suelo'); suelo.position.y = 0.02; g.add(suelo);   // 3.8.0: tierra removida y raíces
-      m = { g, partes: [] };
+      calzarSuelo(suelo, T.altura, p.x, p.z, T.altura(p.x, p.z));   // 4.11.2 (V7): y en una ladera, siguiendo el terreno
+      m = { g, partes: [], suelo };
       escena.add(g);
       mallas.set(p.id, m);
     }
@@ -85,10 +141,11 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     for (const [id, m] of mallas) if (!vivos.has(id)) m.g.visible = false;
     // 3.5.1: los puestos que ya salieron de la lista (quedan sólo los 4 rotos más nuevos y cada
     // puesto nuevo trae otro id) se sacan de la escena: antes quedaban colgados, ocultos, uno
-    // más por puesto para siempre. Geometrías y materiales son compartidos: no se tocan.
+    // más por puesto para siempre. Geometrías y materiales son compartidos: no se tocan (salvo la copia propia del suelo en una ladera, V7).
     const enLista = new Set(est.lista.map((p) => p.id));
     for (const [id, m] of mallas) if (!enLista.has(id)) {
       escena.remove(m.g); mallas.delete(id);
+      for (const hijo of m.suelo.children) if (hijo.geometry?.userData?.propia) hijo.geometry.dispose();   // 4.11.2 (V7): la copia propia del suelo se suelta
       for (const parte of m.partes) for (const hijo of parte.children) soltarHalos(hijo);   // 4.10.3 (V9): y sus halos dejan de retenerse
     }
     sucio = true;

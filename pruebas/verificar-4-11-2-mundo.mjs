@@ -175,6 +175,115 @@ const THREE = await import('three');
   ok(!grupo.visible, 'limpiar las esconde');
 }
 
+// ---------------------------------------------------------------- V7: el suelo de las madrigueras sigue el terreno
+{
+  const PM = await import('../src/desafio-puestos-mundo.js');
+  const { mallaMadriguera } = await import('../src/duendes-modelo.js');
+  const { puestoNuevo, puestosNuevos } = await import('../src/desafio-puestos.js');
+  const { generarTerreno } = await import('../src/terreno.js');
+  const MB = (g) => g.children.reduce((s, m) => s + Object.values(m.geometry.attributes).reduce((a, at) => a + at.array.byteLength, 0), 0);
+  const verts = (g) => g.children.reduce((s, m) => s + m.geometry.attributes.position.count, 0);
+
+  // la regla: en llano, nada (las geometrías siguen compartidas); en ladera, copia propia con los vértices sobre el terreno
+  {
+    const llano = mallaMadriguera('suelo'), geoLlano = llano.children.map((m) => m.geometry);
+    const r0 = PM.calzarSuelo(llano, () => 5, 10, 10, 5);
+    ok(r0.copias === 0 && r0.bytes === 0 && llano.children.every((m, i) => m.geometry === geoLlano[i]), 'en llano el suelo sigue usando la geometría compartida (no cuesta memoria)');
+    const suave = mallaMadriguera('suelo');
+    ok(PM.calzarSuelo(suave, (x, z) => 0.01 * x, 0, 0, 0).copias === 0, 'con una pendiente de 1 % (7 cm en el borde) tampoco');
+
+    const k = 0.35, alt = (x, z) => k * x + 0.1 * z;
+    const ladera = mallaMadriguera('suelo'), compartidas = ladera.children.map((m) => m.geometry);
+    const orig = compartidas.map((g) => g.attributes.position.array.slice());
+    const r = PM.calzarSuelo(ladera, alt, 0, 0, 0);
+    ok(r.copias === ladera.children.length && r.copias >= 2, `en una ladera cada malla del suelo tiene su copia (${r.copias})`);
+    ok(ladera.children.every((m, i) => m.geometry !== compartidas[i] && m.geometry.userData.propia === true), 'la copia es otra geometría, marcada como propia');
+    ok(ladera.children.every((m, i) => m.geometry.attributes.color === compartidas[i].attributes.color && m.geometry.index === compartidas[i].index), 'el color y los índices se siguen compartiendo');
+    ok(compartidas.every((g, i) => g.attributes.position.array.every((v, j) => v === orig[i][j])), 'la geometría compartida no se tocó (los otros puestos siguen igual)');
+    // cada vértice quedó a la altura del terreno de su lugar (más lo que ya tenía)
+    let peor = 0, n = 0;
+    ladera.children.forEach((m, i) => {
+      const P = m.geometry.attributes.position;
+      for (let v = 0; v < P.count; v++) { peor = Math.max(peor, Math.abs(P.getY(v) - (orig[i][v * 3 + 1] + alt(P.getX(v), P.getZ(v))))); n++; }
+    });
+    ok(peor < 1e-4, `los ${n} vértices siguen el terreno (error ${peor.toExponential(1)})`);
+    // las normales siguen siendo unitarias y se inclinan hacia abajo de la ladera (la pendiente sube con x)
+    let unit = true, sumaNx = 0, total = 0;
+    for (const m of ladera.children) {
+      const N = m.geometry.attributes.normal;
+      if (!N) continue;
+      const esMonticulo = m === ladera.children[0];   // (el primero es el montículo de tierra: casi todo mira hacia arriba)
+      for (let v = 0; v < N.count; v++) {
+        if (Math.abs(Math.hypot(N.getX(v), N.getY(v), N.getZ(v)) - 1) > 1e-3) unit = false;
+        if (esMonticulo && Math.abs(N.getY(v)) > 0.9) { total++; sumaNx += N.getX(v) * Math.sign(N.getY(v)); }   // (hacia arriba o hacia abajo según el sentido de la malla)
+      }
+    }
+    ok(unit && total > 100 && sumaNx / total < -0.25, `las normales siguen unitarias y las del montículo miran cuesta abajo (x medio ${(sumaNx / total).toFixed(2)} en ${total} vértices; en llano sería 0)`);
+    ok(r.bytes > 0 && r.bytes === ladera.children.reduce((s, m) => s + m.geometry.attributes.position.array.byteLength + (m.geometry.attributes.normal?.array.byteLength || 0), 0), 'se informa lo que pesa la copia');
+    ok(Number.isFinite(PM.calzarSuelo(mallaMadriguera('suelo'), () => NaN, 0, 0, 0).bytes), 'un terreno roto (NaN) no rompe nada');
+    console.log(`  V7: el suelo de un puesto son ${verts(ladera)} vértices; la copia propia pesa ${(r.bytes / 1024).toFixed(0)} KB (la geometría compartida completa pesa ${(MB(llano) / 1024).toFixed(0)} KB y se comparte entre todos los puestos)`);
+  }
+
+  // el enganche: un puesto creado en una ladera real usa copia propia, uno en llano comparte, y al salir de la lista se suelta la copia
+  {
+    const real = generarTerreno();
+    // el terreno real casi no tiene llanos de 14 m (el mejor se aparta 14 cm): para el puesto del llano, un pedazo plano pegado encima
+    const LL = { x: 40, z: 40 };
+    const T = { ...real, altura: (x, z) => (Math.hypot(x - LL.x, z - LL.z) < 30 ? 7 : real.altura(x, z)), agua: (x, z) => real.agua(x, z) };
+    const desnivel = (x, z) => { let m = 0; const y = T.altura(x, z); for (let a = 0; a < 8; a++) m = Math.max(m, Math.abs(T.altura(x + Math.cos(a * 0.785) * 7, z + Math.sin(a * 0.785) * 7) - y)); return m; };
+    // busca en el terreno real un sitio de ladera (a 7 m del centro se aparta entre 1,5 y 3,5 m)
+    const llano = { ...LL, d: desnivel(LL.x, LL.z) };
+    let ladera = null;
+    for (let x = -300; x <= 300 && !ladera; x += 17) for (let z = -300; z <= 300; z += 17) {
+      if (real.agua(x, z) || real.altura(x, z) < 1 || Math.hypot(x - LL.x, z - LL.z) < 60) continue;
+      const d = desnivel(x, z);
+      if (d > 1.5 && d < 3.5) { ladera = { x, z, d }; break; }
+    }
+    ok(llano.d === 0 && ladera, 'hay un sitio llano (el pedazo plano) y uno de ladera en el terreno real');
+    const escena = new THREE.Scene();
+    const est = puestosNuevos();
+    const p1 = puestoNuevo(1, llano, 3, () => 0.5, null), p2 = puestoNuevo(2, ladera, 3, () => 0.5, null);
+    est.lista.push(p1, p2);
+    const D = { puestos: est };
+    const api = { D: () => D, rumboTexto: () => 'al norte', centroBase: () => ({ x: 0, z: 0 }), nota() {}, guardar() {} };
+    const pm = crearPuestosMundoDe(PM, T, escena, api);
+    pm.sincronizar();
+    const grupos = escena.children.filter((o) => o.name === 'puesto-invasor');
+    ok(grupos.length === 2, 'se arman las dos madrigueras');
+    const geos = (g) => g.children[0].children.map((m) => m.geometry);
+    const gLlano = geos(grupos[0]), gLadera = geos(grupos[1]);
+    ok(gLlano.every((g) => !g.userData.propia) && gLadera.every((g) => g.userData.propia), `el puesto del llano (desnivel ${llano.d.toFixed(2)} m) comparte; el de la ladera (${ladera.d.toFixed(2)} m) tiene copia propia`);
+    // los vértices del puesto de la ladera quedan sobre el terreno real (a lo sumo lo que sobresalen el montículo y los lomos de las raíces); con la geometría compartida se iban a metros
+    {
+      const desvio = (grupoPuesto, geoDe) => {
+        let peor = 0;
+        const base = grupoPuesto.position.y + grupoPuesto.children[0].position.y;
+        grupoPuesto.children[0].children.forEach((m, i) => {
+          const P = geoDe(m, i).attributes.position;
+          for (let v = 0; v < P.count; v++) peor = Math.max(peor, Math.abs(base + P.getY(v) - T.altura(ladera.x + P.getX(v), ladera.z + P.getZ(v))));
+        });
+        return peor;
+      };
+      const compartida = mallaMadriguera('suelo');
+      const conCopia = desvio(grupos[1], (m) => m.geometry), sinCopia = desvio(grupos[1], (m, i) => compartida.children[i].geometry);
+      ok(conCopia < 0.6, `el suelo de la madriguera de la ladera nunca se aleja del terreno más de 0,6 m (${conCopia.toFixed(2)})`);
+      ok(sinCopia > 1.0, `(con la geometría compartida de antes se alejaba ${sinCopia.toFixed(2)} m: la prueba discrimina)`);
+    }
+    // al salir de la lista (rotos viejos) la copia se suelta
+    let soltadas = 0;
+    for (const g of gLadera) g.addEventListener('dispose', () => soltadas++);
+    est.lista.length = 0; est.lista.push(p1);
+    pm.sincronizar();
+    ok(soltadas === gLadera.length, `al salir el puesto de la lista se sueltan sus copias (${soltadas})`);
+    ok(!gLlano.some((g) => g.userData.propia) && grupos[0].visible !== undefined, 'y la compartida queda');
+    const sinPuestos = escena.children.filter((o) => o.name === 'puesto-invasor').length;
+    ok(sinPuestos === 1, 'la madriguera sale de la escena');
+  }
+}
+function crearPuestosMundoDe(PM, T, escena, api) {
+  return PM.crearPuestosMundo(T, escena, { chispas() {}, sangre() {}, explosion() {}, polvo() {} }, { golpeRuido() {}, fuente: () => null, bus: {} }, api);
+}
+
 // ---------------------------------------------------------------- V13: los postes del tablero de trofeos llegan al suelo
 {
   const medir = (k, rot = 0) => {
