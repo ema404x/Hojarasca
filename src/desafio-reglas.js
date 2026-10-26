@@ -173,6 +173,13 @@ export function fijarPartidaMeta(meta) {
   }
 }
 export function efectosPartida() { return partidaEfectos; }
+// 4.11.0: cuántos duendes (comunes, sin contar el enjambre) caben en una oleada y en la base a la vez. Siempre fueron 24, y en Implacable la
+// pesadilla (x1,3 de cantidad) perdía su +30 % desde la noche ~7: 18 x 1,4 ya pasaba de 24. Sólo en la pesadilla el tope sube a 31
+// (24 x 1,3): conserva el +30 % toda la partida, y los demás modos y dificultades quedan igual. Son 7 invasores más como mucho: el
+// dibujo ya reparte en lotes (las sombras tienen lugar para 64) y la IA es por invasor.
+export const TOPE_OLEADA = 24;
+export const TOPE_OLEADA_PESADILLA = 31;
+export function topeOleada() { return partidaEfectos?.modo === 'pesadilla' ? TOPE_OLEADA_PESADILLA : TOPE_OLEADA; }
 // la noche final del Coihue: la 20, o nunca en la partida corta (ahí el final es el mandamás)
 export function nocheFinalCoihue() { return partidaEfectos?.nocheFinal ? Infinity : NOCHE_FINAL; }
 export function dificultad(clave) {
@@ -185,7 +192,7 @@ export function dificultad(clave) {
 // El jefe va siempre último: los refuerzos que cortan la lista no se lo llevan.
 export function composicionOleada(n, claveDificultad = 'normal', vuelta = 0) {
   const noche = Math.max(1, Math.floor(n));
-  const total = Math.max(2, Math.min(24, Math.round(Math.min(18, 3 + (noche - 1) * 2) * dificultad(claveDificultad).cantidad * multiplicadorVuelta(vuelta).cantidad)));
+  const total = Math.max(2, Math.min(topeOleada(), Math.round(Math.min(18, 3 + (noche - 1) * 2) * dificultad(claveDificultad).cantidad * multiplicadorVuelta(vuelta).cantidad)));
   const jefes = esNocheDeJefe(noche) ? 1 : 0;
   const comunes = Math.max(1, total - jefes);
   const brutos = noche >= 2 ? Math.min(4, Math.floor(comunes / 5) + (noche >= 5 ? 1 : 0)) : 0;

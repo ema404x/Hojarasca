@@ -23,7 +23,7 @@ import { ESPECIAL_BASE, ESPECIAL_TOTAL, especialNueva } from './desafio-noches.j
 
 export const SIN_FIN = {
   desde: NOCHE_FINAL,          // la campaña llega hasta acá; desde acá escala sola
-  topeInvasores: 24,           // lo que entra en la nave (MAX_ALIENS de desafio.js)
+  topeInvasores: 24,           // lo que entra en la nave (el tope de la campaña, `TOPE_OLEADA` de desafio-reglas.js; la corrida sin fin no es pesadilla)
   cadaPesado: 3,               // cada tantas noches, un rastreador se vuelve de los pesados
   minimoRastreadores: 3,       // siempre quedan algunos de los rápidos
   sumaMultiplicador: 1.6,      // lo más que se suma a la dureza de la noche 20 (techo)

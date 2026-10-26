@@ -77,7 +77,7 @@ const desafio = leer('src/desafio.js');
   const ba = cuerpo(desafio, 'function bajarAlien(tipo) {');
   ok(/const ang = Math\.random\(\) \* Math\.PI \* 2, r = Math\.random\(\) \* 3\.5;/.test(ba) && /estadoNave\.x \+ Math\.cos\(ang\) \* r/.test(ba), 'cada duende sale a menos de 3,5 m del centro (adentro de la boca)');
   ok(/a\.estado = 'bajar'; a\.t = 0;/.test(ba) && /a\.brota = true;/.test(ba), 'sale en estado `bajar` y con la marca de que sube de abajo de la tierra (el campo se limpia ahí)');
-  ok(/ataques\.salida\(bajada, tipo, estadoNave\)/.test(ba) && /ataques\.lleno\(def, MAX_ALIENS\)/.test(ba), 'las rutinas de 4.8 ataques siguen (señuelo, cupo)');
+  ok(/ataques\.salida\(bajada, tipo, estadoNave\)/.test(ba) && /ataques\.lleno\(def, topeOleada\(\)\)/.test(ba), 'las rutinas de 4.8 ataques siguen (señuelo, cupo)');
   const bj = cuerpo(desafio.slice(desafio.indexOf("if (a.estado === 'bajar') {") - 5), "if (a.estado === 'bajar') {");
   ok(/if \(a\.brota && p\.y >= suelo\) a\.brota = false;/.test(bj) && /p\.y = Math\.min\(suelo, p\.y \+ dt \* SALIDA_DUENDE\.vel\)/.test(bj) && /p\.y = Math\.max\(suelo, p\.y - dt \* 8\)/.test(bj), 'los de la boca suben; los que saltan del Coihue siguen bajando a 8 m/s');
   // lo que tardan en salir es lo que tardaban en bajar (16 m a 8 m/s)

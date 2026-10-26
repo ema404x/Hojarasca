@@ -8,7 +8,7 @@ import { crearBanco } from './desafio-sonidos.js';
 import { esperaVoz } from './voz-alien.js';
 import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
-import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, enVentanaDeNoche, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, enVentanaDeNoche, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida, topeOleada } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
 import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX, nocheActualNueva } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
@@ -85,7 +85,7 @@ import { crearHabilidadesMundo } from './desafio-habilidades-mundo.js';
 import { nivelEstudio, subioEstudio, anotarLado, danoContraTipo } from './desafio-bestiario-premia.js';
 
 const VERDE_OJO = '#a6ff6e';
-const MAX_ALIENS = 24;
+// 4.11.0: el tope de duendes a la vez ya no es una constante: 24, y 31 en la pesadilla (ver topeOleada en desafio-reglas.js)
 const GRAVEDAD_ACIDO = 9;   // el escupitajo del escupidor va con arco, no en línea recta
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _dir = new THREE.Vector3();
 
@@ -983,7 +983,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const def = TIPOS_ALIEN[tipo] || TIPOS_ALIEN.rastreador;
     if (def.jefe && jefeVivo()) return null;                  // nunca dos jefes a la vez
     // con la base llena el jefe espera su turno en vez de perderse
-    if (ataques.lleno(def, MAX_ALIENS)) { if (def.jefe) estadoNave.porBajar.push(tipo); return null; }   // 4.8 ataques: el enjambre tiene su cupo
+    if (ataques.lleno(def, topeOleada())) { if (def.jefe) estadoNave.porBajar.push(tipo); return null; }   // 4.8 ataques: el enjambre tiene su cupo
     const a = tomarAlien(tipo);
     const mult = D().sinFin ? multiplicadorSinFin(D().oleadas) : multiplicadorNoche(D().oleadas);   // 3.0
     const mv = multiplicadorVuelta(D().vuelta);
@@ -1224,7 +1224,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     ataques.decidir(d.oleadas + 1);   // 4.8 ataques: por qué lado (río, monte o camino) entran esta noche
   }
   // 4.8 noches: lo que cambia esta noche por lo de anoche, en la lista de duendes (el jefe sigue uno solo y último)
-  function conLaCadena(tipos, n, final) { return final ? tipos : aplicarCadena(tipos, efectoCadena(cadenaD(), n)); }
+  function conLaCadena(tipos, n, final) { return final ? tipos : aplicarCadena(tipos, efectoCadena(cadenaD(), n), topeOleada()); }
   function avisarCadena() {
     const d = D(), ef = efectoCadena(cadenaD(), d.oleadas + 1);
     if (ef && !esNocheFinal()) setTimeout(() => ctx.nota('Lo de anoche no se olvida', ef.textos.join(' '), true), 6000);

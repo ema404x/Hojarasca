@@ -343,7 +343,7 @@ const ok = (c, m) => { assert.ok(c, m); pasos++; };
   for (const f of asignados) ok(new RegExp(`a\\.${f}\\s*=`).test(cuerpoLimpiar) || yaLimpios.has(f) || ['estado', 'obra', 'cd', 't', 'desvio', 'desvioT', 'atasco', 'vida'].includes(f), `el campo «${f}» que agrega desafio-ataques.js se limpia en bajarAlien`);
   ok(/ataques\.limpiar\(a\);/.test(bajar), 'bajarAlien llama a ataques.limpiar');
   ok(/const bajada = ataques\.consumirBajada\(\);/.test(bajar) && /ataques\.alNacer\(a, bajada\);/.test(bajar), 'bajarAlien consume la marca de la cola y avisa del nacimiento');
-  ok(/ataques\.lleno\(def, MAX_ALIENS\)/.test(bajar), 'el cupo de bajada es el de ataques (el enjambre tiene el suyo)');
+  ok(/ataques\.lleno\(def, topeOleada\(\)\)/.test(bajar), 'el cupo de bajada es el de ataques (el enjambre tiene el suyo)');
   ok(/ataques\.salida\(bajada, tipo, estadoNave\)/.test(bajar), 'y la salida (señuelo por otro lado, enjambre en montón)');
   ok(/ataques\.decidir\(d\.oleadas \+ 1\);/.test(des), 'el lado se decide al caer la tarde (con decidirNoche)');
   ok(/const e = ataques\.puntoDeEntrada\(js, D\(\)\.oleadas\); if \(e\) return e;/.test(des), 'puntoDeAterrizaje usa el lado de la noche');
