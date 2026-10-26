@@ -1,7 +1,7 @@
 // 4.10 guardian: el bestiario que premia (módulo puro: sin THREE ni DOM; se prueba en Node).
 //
 // Estudiar a un tipo de duende es abatirlo: con 5, 15 y 40 abatidos (el enjambre, que viene de a docenas, con cuatro
-// veces más) se desbloquea un dato útil que queda anotado en su ficha del bestiario:
+// veces más; el Mandamás, que cae una vez cada cinco noches, con 1, 2 y 4 caídas: ver UMBRALES_PROPIOS) se desbloquea un dato útil que queda anotado en su ficha del bestiario:
 //   · estudio 1 (5):   su punto débil, con los números: cuántos golpes de lanza o flechas lo bajan y qué hacer.
 //   · estudio 2 (15):  por dónde suele venir: el lado (el río, el monte o el camino) por el que más lo viste entrar.
 //   · estudio 3 (40):  un efecto chico: tus golpes le pegan un 5 % más fuerte.
