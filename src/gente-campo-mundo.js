@@ -12,6 +12,9 @@ import * as THREE from 'three';
 import { PERSONAS_CAMPO, GALPON_RESPALDO, PUESTO_PASO, PUESTO_CANTERA, CANTERA } from './gente-campo.js';
 
 const ARMAR_A = 220;       // a qué distancia se empieza a armar cada uno
+// 4.11.2 (D1): si al armarse no hay lugar libre (árboles o rocas con otra calidad gráfica), se reintenta cada tanto, con tope
+const REINTENTO_S = 25;      // segundos de juego entre un intento y el siguiente (sólo mientras estás a menos de ARMAR_A)
+const TOPE_INTENTOS = 8;     // después de tantos intentos fallidos se da por perdido en la sesión
 const MS_POR_CUADRO = 3;   // lo que se arma por cuadro (como los pobladores de la aldea)
 const aMundo = (b, rot, lx, lz) => ({ x: b.x + lx * Math.cos(rot) + lz * Math.sin(rot), z: b.z - lx * Math.sin(rot) + lz * Math.cos(rot) });
 
@@ -136,12 +139,16 @@ export function crearGenteCampoMundo({ T, col, gente }) {
       }
     } else {
       for (const k of Object.keys(PERSONAS_CAMPO)) {
-        if (figuras[k]) continue;
+        const previo = figuras[k];
+        if (previo && (previo.def || previo.intentos >= TOPE_INTENTOS)) continue;
         const c = dondeAprox(k);
         if (Math.hypot(c.x - js.pos.x, c.z - js.pos.z) > ARMAR_A) continue;
+        // 4.11.2 (D1): el que no encontró lugar espera su turno (sin costo: una resta por cuadro) y vuelve a buscar
+        if (previo) { previo.espera -= dt; if (previo.espera > 0) continue; }
         const def = definir(k);
-        figuras[k] = { def, tarea: null, npc: null };
-        if (!def) continue;   // (sin lugar libre: no aparece, mejor que atravesado)
+        const intentos = (previo?.intentos || 0) + (def ? 0 : 1);
+        figuras[k] = { def, tarea: null, npc: null, intentos, espera: REINTENTO_S };
+        if (!def) continue;   // (sin lugar libre: no aparece, mejor que atravesado; se reintenta en REINTENTO_S)
         figuras[k].tarea = gente.armarPobladorDeAPoco(def);
         armando = figuras[k];
         break;

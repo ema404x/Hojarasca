@@ -131,8 +131,8 @@ export const ENCARGOS = [
   {
     id: 'e-nocheagua', quien: 'nicanor', titulo: 'La picada de la tarde',
     requiere: ['e-pesca'],
-    pedido: 'Andá al lago cuando esté por caer el sol y tirá ahí donde el agua se pone oscura. Sacá dos truchas después de las siete. A esa hora comen sin mirar.',
-    resumen: 'Pescar dos truchas después de las 19:00.',
+    pedido: 'Andá al lago cuando esté por caer el sol y tirá ahí donde el agua se pone oscura. Sacá dos truchas entre las 19 y las 22. A esa hora comen sin mirar.',
+    resumen: 'Pescar dos truchas entre las 19 y las 22.',
     listo: 'Esa es la hora. El resto del día se pesca; a esa hora se saca.',
     premio: { cosa: 'mosca', texto: 'una mosca atada a mano' },
     cumplido: (p) => (p.pescaTarde || 0) >= 2,

@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { Constructor, matriz } from './geometria.js';
 import { edificioEnMundo, esVecinoAldea } from './aldea.js';
-import { filasTablon, tomar, entregar, tablonDe, cuantoDe, vistaTomado, deLugar, TABLON } from './tablon.js';
+import { filasTablon, tomar, entregar, soltar, tablonDe, cuantoDe, vistaTomado, deLugar, TABLON } from './tablon.js';
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 import { formatoPesos } from './economia.js';
 
@@ -75,7 +75,7 @@ export function crearTablonMundo(ctx) {
   panel.innerHTML = '<p class="quien">Tablón de encargos</p><p class="dicho" id="tablon-intro"></p><ul id="tablon-lista"></ul><p class="seguir" id="tablon-seguir"></p>';
   (ctx.hud || document.body).appendChild(panel);
   const intro = panel.querySelector('#tablon-intro'), ul = panel.querySelector('#tablon-lista'), pie = panel.querySelector('#tablon-seguir');
-  let abierto = false;
+  let abierto = false, soltando = false;   // 4.11.2 (A14): `soltando`: Retroceso y el número de un papel tomado lo suelta
   const estado = () => ctx.progreso().genteCampo.tablon;
   // (el que firma: un vecino de siempre o un poblador que ya llegó a la aldea; si no, el respaldo del encargo)
   const presente = ctx.presente || ((k) => esVecinoAldea(k) || !!ctx.progreso().aldea?.pobladores?.some?.((x) => x?.clave === k));
@@ -100,12 +100,20 @@ export function crearTablonMundo(ctx) {
       const det = document.createElement('span'); det.textContent = ` — ${f.detalle}`;
       const marca = document.createElement('i'); marca.textContent = f.estado;
       li.append(tit, det, marca);
+      // 4.11.2 (A14): el papel tomado se puede soltar (descartar sin castigo: hoy no vuelve a la vista; mañana hay otros)
+      if (f.tipo === 'entregar') {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'soltar'; b.textContent = 'Soltar'; b.title = 'Dejar este papel en el tablón';
+        if (ctx.alClic) ctx.alClic(b, () => soltarFila(i)); else b.addEventListener('click', () => soltarFila(i));
+        li.appendChild(b);
+      }
       ctx.alClic?.(li, () => elegir(i));
       ul.appendChild(li);
     });
     // 4.10.2: sin papeles no hay números que apretar; y la E es la del jugador
     const propio = ctx.textoPropio || ((x) => x);
-    pie.textContent = filas.length ? propio(`1 a ${Math.min(9, filas.length)} o un clic para tomar o entregar · E o Escape para salir`) : propio('E o Escape para salir');
+    const hayTomados = filas.some((x) => x.tipo === 'entregar');
+    pie.textContent = soltando ? propio('Soltar: apretá el número del papel que tenés tomado · Retroceso para dejarlo como está')
+      : filas.length ? propio(`1 a ${Math.min(9, filas.length)} o un clic para tomar o entregar${hayTomados ? ' · Retroceso y el número para soltar un papel' : ''} · E o Escape para salir`) : propio('E o Escape para salir');
   }
   function abrir() {
     if (abierto) return;
@@ -113,7 +121,22 @@ export function crearTablonMundo(ctx) {
     panel.classList.remove('oculto');
     dibujar();
   }
-  function cerrar() { if (!abierto) return; abierto = false; panel.classList.add('oculto'); }
+  function cerrar() { if (!abierto) return; abierto = false; soltando = false; panel.classList.add('oculto'); }
+  // 4.11.2 (A14): soltar un papel tomado (el botón «Soltar» de la fila o Retroceso y el número)
+  function soltarFila(i) {
+    soltando = false;
+    const f = filas[i];
+    if (!f) return;
+    if (f.tipo !== 'entregar') { ctx.nota?.('Ése no lo tenés tomado', 'Sólo se sueltan los papeles que ya tomaste'); dibujar(); return; }
+    const t = estado(), x = t.tomados.find((y) => y.id === f.id);
+    if (x && soltar(t, f.id)) {
+      const v = vistaTomado(x);
+      ctx.sonido?.anotar?.();
+      ctx.nota?.(`Soltaste el encargo: ${cuantoDe(x.n, x.k)}`, `El papel de ${v.firma} queda en el tablón. Hoy no vuelve; mañana hay papeles nuevos`, true);
+      ctx.guardar?.();
+    }
+    dibujar();
+  }
   function elegir(i) {
     const f = filas[i];
     if (!f) return;
@@ -146,7 +169,8 @@ export function crearTablonMundo(ctx) {
   function tecla(codigo) {
     if (!abierto) return false;
     const n = /^(?:Digit|Numpad)([1-9])$/.exec(codigo);
-    if (n) { elegir(Number(n[1]) - 1); return true; }
+    if (n) { if (soltando) soltarFila(Number(n[1]) - 1); else elegir(Number(n[1]) - 1); return true; }
+    if (codigo === 'Backspace' || codigo === 'Delete') { soltando = !soltando && filas.some((x) => x.tipo === 'entregar'); dibujar(); return true; }
     if (codigo === 'KeyE' || codigo === 'Escape') { cerrar(); return true; }
     return false;
   }
@@ -170,5 +194,5 @@ export function crearTablonMundo(ctx) {
       if (abierto) dibujar();
     }
   }
-  return { malla, lugar: { ...lugar, y }, abrir, cerrar, abierto: () => abierto, elegir, tecla, accion, actualizar, dibujar };
+  return { malla, lugar: { ...lugar, y }, abrir, cerrar, abierto: () => abierto, elegir, soltarFila, tecla, accion, actualizar, dibujar };
 }

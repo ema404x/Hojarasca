@@ -693,19 +693,19 @@ export function crearAmorMundo(ctx) {
   const gestoDe = (clave) => (mundo.parejas || []).find((x) => x.clave === clave)?.gesto || 'cerca';
   function empezarJuntos(clave, horasDura = JUNTOS.dura) {
     const n = ctx.aldeaGente?.()?.personas?.get(clave)?.npc;
-    if (!n || n.deVisita) return false;
+    if (!n || n.deVisita || ctx.deTurno?.(clave)) return false;   // (4.11.2 (D2): ni la que está de turno en tu local)
     if (juntos) terminarJuntos(false);
     juntos = { clave, npc: n, gesto: gestoDe(clave), hasta: dia() * 24 + horas() + horasDura, yendose: 0, t: 0, ultimo: null };
     n.conVos = true; n.enCita = true; n.pose = null; n.asiento = undefined; n.soloCerca = 0; n.dormido = false; n.charlaVecinos = false;
     return true;
   }
-  function terminarJuntos(decir = true) {
+  function terminarJuntos(decir = true, frase = FRASES_JUNTOS.chau) {
     const j = juntos;
     if (!j) return;
     const n = j.npc;
     n.gestoAmor = null;
     ctx.tomarMano?.(null);
-    if (decir) ctx.nota?.(FRASES_JUNTOS.chau, '', false);
+    if (decir) ctx.nota?.(frase, '', false);
     // en el valle, se va caminando (que no desaparezca enfrente tuyo); en la aldea, sigue con lo suyo
     const js = jugadorPos();
     if (js && !enAldea(n.pos) && distanciaAldea(n.pos.x, n.pos.z, M) > 20) {
@@ -752,6 +752,8 @@ export function crearAmorMundo(ctx) {
   function revisarJuntos() {
     const j = juntos;
     if (!j || j.yendose) return;
+    // 4.11.2 (D2): si ella es tu empleada y le empieza el turno en tu local, el paseo se termina (si no, quedaba a tu lado y detrás del mostrador a la vez)
+    if (ctx.deTurno?.(j.clave)) { terminarJuntos(true, FRASES_JUNTOS.turno); return; }
     const p = progreso();
     const c = p.amor?.cita;
     const t = dia() * 24 + horas();
@@ -768,7 +770,7 @@ export function crearAmorMundo(ctx) {
   }
   function caminarJuntos(clave) {
     repasar(true);
-    const r = puedeCaminar(progreso(), clave, { dia: dia(), hora: horas(), aldea: progreso().aldea });
+    const r = puedeCaminar(progreso(), clave, { dia: dia(), hora: horas(), aldea: progreso().aldea, turno: !!ctx.deTurno?.(clave) });
     if (!r.ok) return { ok: false, renglones: [FRASES_JUNTOS.no[r.motivo] || FRASES_JUNTOS.no.no] };
     const et = progreso().amor.personas[clave].etapa;
     if (!empezarJuntos(clave)) return { ok: false, renglones: [FRASES_JUNTOS.no.no] };

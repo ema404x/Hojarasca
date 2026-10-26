@@ -247,7 +247,7 @@ export const ENTRADAS = [
   { id: 'e-chinches', seccion: 'encargos', nombre: 'Tu propio mapa', cientifico: 'encargo del guarda', modo: 'encargo', pista: 'El guarda dice que el mapa es suyo pero las marcas son tuyas.',
     texto: 'Un mapa ajeno te dice dónde están las cosas; el propio te dice qué te importa. Las chinches se ponen con un clic y la brújula te lleva.' },
   { id: 'e-nocheagua', seccion: 'encargos', nombre: 'La picada de la tarde', cientifico: 'encargo de Nicanor', modo: 'encargo', pista: 'Nicanor sabe a qué hora comen las truchas.',
-    texto: 'Después de las siete, con el sol bajo, la trucha come sin mirar. El resto del día se pesca; a esa hora se saca.' },
+    texto: 'Entre las 19 y las 22, con el sol bajo, la trucha come sin mirar. El resto del día se pesca; a esa hora se saca.' },
   { id: 'e-valle', seccion: 'encargos', nombre: 'Lo que aprendiste', cientifico: 'encargo de Josefina', modo: 'encargo', pista: 'Josefina no lo va a pedir hasta que no quede ningún otro encargo abierto.',
     texto: 'El último no pide nada: pide volver. Sacar madera sin arruinar el monte, devolver lo que sacaste, leer el agua, caminar el valle de punta a punta. Todo junto no te hace dueño de nada, pero te deja quedarte.' },
 

@@ -475,6 +475,7 @@ export function puedeCaminar(progreso, clave, ctx = {}) {
   if (!f || !['saliendo', 'novios', 'comprometidos', 'casados'].includes(f.etapa)) return { ok: false, motivo: 'no' };
   const d = Math.max(1, Math.floor(num(ctx.dia) || 1)), h = horaNorm(ctx.hora);
   if (h >= 22 || h < 7) return { ok: false, motivo: 'noche' };
+  if (ctx.turno) return { ok: false, motivo: 'trabaja' };   // 4.11.2 (D2): de turno detrás del mostrador de tu local
   const r = rutinaPareja(progreso, clave, h, diaSemanaDe(d), d, ctx.aldea || progreso.aldea);
   if (['local', 'trabajo', 'obra'].includes(r.lugar) && r.punto !== 'cliente') return { ok: false, motivo: 'trabaja' };
   return { ok: true, motivo: null };
@@ -483,6 +484,7 @@ export const FRASES_JUNTOS = {
   si: { saliendo: 'Dale, vamos. Despacito, que quiero mirar todo.', novios: '¡Vamos! Dame la mano.', comprometidos: '¡Vamos! Dame la mano, que ya sos casi mi marido.', casados: 'Vamos. Del brazo, como los viejitos de la plaza.' },
   no: { trabaja: 'Ahora no puedo, estoy trabajando. A la tarde, si querés.', noche: '¿A esta hora? Mañana, mejor.', no: 'Mejor otro día.' },
   chau: 'Bueno, hasta acá llego. Gracias por el paseo.',
+  turno: 'Uy, ya me toca entrar al trabajo. Nos vemos después, ¿dale?',   // 4.11.2 (D2)
   opcion: 'Salir a caminar juntos', soltar: 'Hasta acá, gracias',
 };
 // El desayuno de la mañana después (una nota tierna, sin mostrar nada de la noche)

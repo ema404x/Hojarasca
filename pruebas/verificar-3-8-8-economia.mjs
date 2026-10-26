@@ -161,7 +161,7 @@ const partida = (extra = {}) => ({ modo: 'relax', dia: 4, cosas: {}, economia: E
   const efectos = [{ tipo: 'pesos', n: -200, motivo: 'Pan casero', con: 'Rosa' }, { tipo: 'pesos', n: 400, motivo: 'Mandado cumplido', con: 'Delia' }];
   A.aplicarEfectos(pa, efectos, 5);
   ok(E.pesosDe(pa) === 1200 && E.ultimosMovimientos(pa, 2).map((m) => m.monto).join() === '400,-200', 'los efectos `pesos` de la aldea mueven el saldo y el libro');
-  ok(A.SERVICIO.pesosPorPan === 200 && A.SERVICIO.pesosMandado === 400 && A.SERVICIO.pesosPorAvistaje === 100 && A.SERVICIO.pesosPorFrutos === 100 && !('yerbaMandado' in A.SERVICIO), 'los precios de la aldea, en pesos');
+  ok(A.SERVICIO.pesosPorPan === 600 && A.SERVICIO.pesosMandado === 400 && A.SERVICIO.pesosPorAvistaje === 100 && A.SERVICIO.pesosPorFrutos === 100 && !('yerbaMandado' in A.SERVICIO), 'los precios de la aldea, en pesos');
 }
 // ---------------------------------------------------------------- 9. la billetera en pantalla
 {

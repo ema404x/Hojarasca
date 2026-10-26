@@ -752,7 +752,7 @@ export const POBLADORES_ALDEA = {
       'Un pueblo sin pan no es pueblo. Si me dejás quedarme, el horno va a estar prendido todas las mañanas.',
     ],
     saludo: 'Pasá, que recién sale la tanda.', despedida: 'Y no te comas todo en el camino, eh.',
-    resumen: 'Te vende pan casero: tres panes por $200, una vez por día.',
+    resumen: 'Te vende pan casero: tres panes por $600, una vez por día.',
   },
   herrero: {
     nombre: 'Anselmo Ruiz', oficio: 'herrero', mano: null, lote: 'herreria', afuera: true, obrero: true,
@@ -1199,7 +1199,8 @@ const etapaInicial = (lote) => (Object.hasOwn(OBRA.etapaInicial, lote) ? OBRA.et
 
 // Lo que ofrece cada uno, por día (los de la 3.1, tal cual, y los nuevos).
 export const SERVICIO = {
-  troncosPorDia: 6, tablasPorTronco: 5, pesosPorPan: 200, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, pesosMandado: 400, cantosHacha: 3, cantosTijera: 2, cantosPico: 3, pesosPico: 300,   // 4.2: el pico lo forja el herrero por cantos y plata (el trueque del almacén sale en cantos y ramitas; comprado directo, $1.200)
+  troncosPorDia: 6, tablasPorTronco: 5, pesosPorPan: 600,   // 4.11.2 (S2-7): 3 panes a precio de mercado ($200 el pan, como el comercio); a $200 los tres daba arbitraje
+  panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, pesosMandado: 400, cantosHacha: 3, cantosTijera: 2, cantosPico: 3, pesosPico: 300,   // 4.2: el pico lo forja el herrero por cantos y plata (el trueque del almacén sale en cantos y ramitas; comprado directo, $1.200)
  
   descanso: 3, lanaPoncho: 2, lanaManta: 3, tablasMiel: 3, miel: 2, pesosPorAvistaje: 100, avistajesPorDia: 4, diasPartitura: 7,
   // 3.7.0: las de la calle de la Loma

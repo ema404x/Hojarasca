@@ -92,6 +92,8 @@ export function crearDiario() {
       case 'rayo': hoy.rayo = dato; break;
       case 'carta': hoy.cartas = [...(hoy.cartas || []), dato]; break;
       case 'envio': hoy.envio = [...(hoy.envio || []), dato]; break;
+      // 4.11.2 (A14): la primera charla con Fermín, Belisario o Tobías (gente-campo-juego.js)
+      case 'campo-conocido': if (dato) hoy.campoConocido = [...(hoy.campoConocido || []), String(dato)]; break;
       case 'visita': hoy.visita = [...(hoy.visita || []), dato]; break;
       // 2.3: las dos ramas usaban 'rastro' (las huellas de la 2.1 y el perro de la 1.11) y
       // 'cosecha' (la huerta de la 2.0 y el cantero de la 1.10, más huevos y lana): el
@@ -233,6 +235,7 @@ export function crearDiario() {
     if (d.crecida) lineas.push('El arroyo creció con la lluvia y bajaba marrón, arrastrando ramas.');
     if (d.cartas && d.cartas.length) lineas.push(d.cartas.length === 1 ? `En el almacén me esperaba carta de ${d.cartas[0]}.` : `Me llegaron ${d.cartas.length} cartas. Las leí en el almacén, parado.`);
     if (d.envio && d.envio.length) lineas.push(`Le di a Ercilia la foto para ${d.envio[0]}. Sale mañana con el tren.`);
+    if (d.campoConocido && d.campoConocido.length) lineas.push(d.campoConocido.length === 1 ? `Conocí a ${d.campoConocido[0]}, de los que viven lejos del pueblo. Vale la pena volver a pasar.` : `Conocí a ${unir(d.campoConocido)}. Hay más gente por el valle de la que se ve desde el pueblo.`);
     if (d.visita && d.visita.length) lineas.push(`Vino ${d.visita[0]} a la tarde. Nos sentamos a la mesa y el tiempo pasó sin que nadie lo mirara.`);
     if (d.rastro && d.rastro.length) lineas.push(d.rastro.length === 1 ? `El perro tomó un rastro y me llevó hasta ${d.rastro[0]}.` : `Seguimos ${d.rastro.length} rastros con el perro.`);
     if (d.feria && d.feria.length) lineas.push(d.feria.length === 1 ? `Fui a la feria de la estación y cambié con ${d.feria[0]}.` : `Día de feria: hice ${d.feria.length} cambios junto al andén.`);
