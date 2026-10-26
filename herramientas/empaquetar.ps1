@@ -1,8 +1,10 @@
 ﻿# 3.3: lo mismo que empaquetar.sh, para la PC que no tiene Git Bash. Arma el instalador,
 # el portable, el depot de Steam y el código fuente, y deja Hojarasca-<ver>-completo.zip
 # en Descargas. Además confirma que el index.html del ejecutable es el mismo que se probó.
-# Uso: powershell -File herramientas\empaquetar.ps1 <carpeta-del-proyecto> <versión> <LEEME.txt>
-param([string]$proyecto, [string]$ver, [string]$leeme)
+# Uso: powershell -File herramientas\empaquetar.ps1 <carpeta-del-proyecto> <versión> <LEEME.txt> [-Forzar] [-EnSeco]
+# 4.11.3 (M11): si hay un Hojarasca.exe abierto, PREGUNTA antes de cerrarlo (ver empaquetar-ayuda.ps1). -Forzar lo cierra sin preguntar; sin consola
+# interactiva no cierra nada y falla con un aviso. -EnSeco decide eso y se detiene: no cierra nada ni arma nada (para probar el script).
+param([string]$proyecto, [string]$ver, [string]$leeme, [switch]$Forzar, [switch]$EnSeco, [string]$NombreProceso = 'Hojarasca')
 $ErrorActionPreference = 'Stop'
 $proy = (Resolve-Path $proyecto).Path
 $leeme = (Resolve-Path $leeme).Path
@@ -11,7 +13,9 @@ $carpeta = Split-Path $proy -Leaf
 $tmp = Join-Path $env:TEMP 'hojarasca-paquete'
 New-Item -ItemType Directory -Force $tmp | Out-Null
 Set-Location $proy
-Get-Process Hojarasca -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+. (Join-Path $PSScriptRoot 'empaquetar-ayuda.ps1')
+$decision = Invoke-CierreHojarasca -Nombre $NombreProceso -Forzar:$Forzar -EnSeco:$EnSeco
+if ($EnSeco) { "EN SECO: decisión=$decision (no se cerró ni se armó nada)"; exit 0 }
 if (Test-Path dist) { Remove-Item -LiteralPath dist -Recurse -Force }
 $ErrorActionPreference = 'Continue'
 npm run dist:win *> (Join-Path $tmp "dist-$ver.log")

@@ -193,7 +193,84 @@ async function revisarRutas(rutaCamino, rutaAsedio, asedioTexto) {
   ok(/HOLGURAS_RUTA = \[\[9, 8\], \[4, 5\], \[2, 2\.5\]\]/.test(asedioTexto), 'H2-3: se prueban las mismas tres holguras de siempre, en el mismo orden');
 }
 
+// M11: empaquetar.ps1 / .sh no matan un Hojarasca.exe sin preguntar. Se prueba con un proceso de mentira (una copia de node.exe con otro nombre, único de esta
+// corrida): nunca se toca un Hojarasca.exe de verdad. Sólo en Windows (es PowerShell).
+const EN_WINDOWS = process.platform === 'win32';
+const NOMBRE_FALSO = `hoj-prueba-4113-${process.pid}`;
+const EXE_FALSO = path.join(tmp, NOMBRE_FALSO + '.exe');
+if (EN_WINDOWS) fs.copyFileSync(process.execPath, EXE_FALSO);
+const AYUDA_PS1 = fileURLToPath(new URL('../herramientas/empaquetar-ayuda.ps1', import.meta.url));
+const PS1 = fileURLToPath(new URL('../herramientas/empaquetar.ps1', import.meta.url));
+const SH = fileURLToPath(new URL('../herramientas/empaquetar.sh', import.meta.url));
+const RAIZ = fileURLToPath(new URL('..', import.meta.url));
+const AYUDA_TXT = leer('herramientas/empaquetar-ayuda.ps1'), PS1_TXT = leer('herramientas/empaquetar.ps1'), SH_TXT = leer('herramientas/empaquetar.sh');
+const { spawnSync, spawn } = await import('node:child_process');
+const vivo = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const SCRIPT_CASOS = `
+$ErrorActionPreference = 'Stop'
+. $env:AYUDA
+$exe = $env:DUMMY_EXE; $nombre = $env:DUMMY_NOMBRE
+function Nuevo { $p = Start-Process -FilePath $exe -ArgumentList '-e "setTimeout(function(){},120000)"' -PassThru -WindowStyle Hidden; Start-Sleep -Milliseconds 300; return $p }
+function Vivo($p) { $p.Refresh(); return -not $p.HasExited }
+function Caso($etiqueta, [scriptblock]$accion) {
+  $p = Nuevo
+  try { $d = & $accion; $r = "DEC=$d" } catch { $r = 'ERR=' + $_.Exception.Message }
+  Start-Sleep -Milliseconds 250
+  "CASO $etiqueta | $r | VIVO=$(Vivo $p)"
+  if (Vivo $p) { Stop-Process -Id $p.Id -Force }
+}
+Caso 'sin-consola' { Invoke-CierreHojarasca -Nombre $nombre -HayConsola $false }
+Caso 'responde-no' { Invoke-CierreHojarasca -Nombre $nombre -HayConsola $true -Preguntar { param($t) 'n' } }
+Caso 'responde-si' { Invoke-CierreHojarasca -Nombre $nombre -HayConsola $true -Preguntar { param($t) 's' } }
+Caso 'forzar' { Invoke-CierreHojarasca -Nombre $nombre -Forzar -HayConsola $false }
+Caso 'seco-forzar' { Invoke-CierreHojarasca -Nombre $nombre -Forzar -EnSeco -HayConsola $false }
+"CASO nadie | DEC=" + (Invoke-CierreHojarasca -Nombre 'no-existe-4113' -HayConsola $false) + " | VIVO=-"
+`;
+function revisarEmpaquetadoPS(ayuda, textoPs1) {
+  ok(/Invoke-CierreHojarasca/.test(textoPs1) && !/Stop-Process/.test(textoPs1), 'M11: empaquetar.ps1 no mata procesos por su cuenta: pasa por la pregunta');
+  ok(/\[switch\]\$Forzar/.test(textoPs1) && /\[switch\]\$EnSeco/.test(textoPs1) && /-Forzar:\$Forzar/.test(textoPs1), 'M11: empaquetar.ps1 tiene -Forzar y -EnSeco y se los pasa a la pregunta');
+  if (!EN_WINDOWS) return;
+  const r = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', SCRIPT_CASOS], { encoding: 'utf8', env: { ...process.env, AYUDA: ayuda, DUMMY_EXE: EXE_FALSO, DUMMY_NOMBRE: NOMBRE_FALSO }, timeout: 120000 });
+  const salida = String(r.stdout || '');
+  const caso = (n) => { const l = salida.split('\n').find((x) => x.startsWith(`CASO ${n} |`)); assert.ok(l, `M11: hay resultado del caso ${n}\n${salida}\n${r.stderr}`); return l; };
+  ok(/DEC=nada/.test(caso('nadie')), 'M11: sin Hojarasca abierto no hace nada');
+  ok(/ERR=.*no lo cierro/.test(caso('sin-consola')) && /VIVO=True/.test(caso('sin-consola')), 'M11: sin consola interactiva avisa, falla y NO mata el proceso');
+  ok(/ERR=Cancelado/.test(caso('responde-no')) && /VIVO=True/.test(caso('responde-no')), 'M11: si respondés que no, se cancela y el proceso sigue vivo');
+  ok(/DEC=cerrar/.test(caso('responde-si')) && /VIVO=False/.test(caso('responde-si')), 'M11: si respondés que sí, lo cierra');
+  ok(/DEC=cerrar/.test(caso('forzar')) && /VIVO=False/.test(caso('forzar')), 'M11: con -Forzar lo cierra sin preguntar (aunque no haya consola)');
+  ok(/DEC=cerrar/.test(caso('seco-forzar')) && /VIVO=True/.test(caso('seco-forzar')), 'M11: -EnSeco decide pero no cierra nada');
+}
+// el script de verdad, en seco, contra el proceso de mentira
+function revisarScriptsEnSeco() {
+  if (!EN_WINDOWS) return;
+  const falso = spawn(EXE_FALSO, ['-e', 'setTimeout(function(){},120000)'], { stdio: 'ignore' });
+  try {
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', PS1, '.', '0.0.0', path.join(RAIZ, 'package.json')];
+    const sin = spawnSync('powershell', [...args, '-EnSeco', '-NombreProceso', NOMBRE_FALSO], { cwd: RAIZ, encoding: 'utf8', timeout: 60000 });
+    ok(sin.status !== 0 && /no lo cierro/.test(String(sin.stdout) + String(sin.stderr)) && vivo(falso.pid), 'M11: empaquetar.ps1 sin consola interactiva falla con un aviso y no mata el Hojarasca.exe abierto');
+    const con = spawnSync('powershell', [...args, '-EnSeco', '-Forzar', '-NombreProceso', NOMBRE_FALSO], { cwd: RAIZ, encoding: 'utf8', timeout: 60000 });
+    ok(con.status === 0 && /EN SECO: decisi\S+n=cerrar/.test(String(con.stdout)) && vivo(falso.pid), 'M11: empaquetar.ps1 -Forzar -EnSeco dice que lo cerraría y no cierra nada');
+    const bash = spawnSync('bash', ['-c', 'echo ok'], { encoding: 'utf8' });
+    if (bash.status === 0) {
+      const sh = (...extra) => spawnSync('bash', [SH, '.', '0.0.0', path.join(RAIZ, 'package.json'), ...extra], { cwd: RAIZ, encoding: 'utf8', timeout: 60000, env: { ...process.env, NOMBRE_PROCESO: NOMBRE_FALSO } });
+      const a = sh('--en-seco');
+      ok(a.status !== 0 && /no lo cierro/.test(String(a.stderr)) && vivo(falso.pid), 'M11: empaquetar.sh sin terminal interactiva falla con un aviso y no mata nada');
+      const b = sh('--forzar', '--en-seco');
+      ok(b.status === 0 && /EN SECO: decisi\S+n=cerrar/.test(String(b.stdout)) && vivo(falso.pid), 'M11: empaquetar.sh --forzar --en-seco dice que lo cerraría y no cierra nada');
+    }
+  } finally { try { process.kill(falso.pid); } catch {} }
+}
+function revisarEmpaquetadoSh(sh) {
+  ok(/--forzar/.test(sh) && /--en-seco/.test(sh) && /read -r -p/.test(sh) && /\[ -t 0 \]/.test(sh), 'M11: empaquetar.sh pregunta si hay terminal, y tiene --forzar y --en-seco');
+  ok(!/^taskkill/m.test(sh) && /if \[ "\$DECISION" = cerrar \]; then taskkill/.test(sh), 'M11: empaquetar.sh sólo mata después de decidir');
+  ok(/ASAR OK/.test(sh) && /ASAR_OK" != "ASAR OK"/.test(sh) && /extractFile\(process\.argv\[1\],'index\.html'\)/.test(sh) && sh.indexOf('ASAR_OK') > sh.indexOf('sincronia-main.cjs'), 'M11: empaquetar.sh verifica el index.html del asar como el .ps1');
+  ok(sh.indexOf('ASAR_OK" != "ASAR OK"') < sh.indexOf('codigo-fuente.zip'), 'M11: y lo verifica antes de armar el paquete');
+}
+
 // ---------------------------------------------------------------- con el código de verdad
+revisarEmpaquetadoPS(AYUDA_PS1, PS1_TXT);
+revisarEmpaquetadoSh(SH_TXT);
+revisarScriptsEnSeco();
 revisarSoloLectura(MAIN);
 revisarPlantilla(PLANT);
 revisarEscribirSync(fileURLToPath(new URL('../sincronia-main.cjs', import.meta.url)));
@@ -235,4 +312,16 @@ await rompe('H2-3: el Coihue camina con la ruta vieja mientras espera', () => re
 await rompe('H2-3: el alba no termina la ruta pendiente', () => revisarRutas('../src/desafio-camino.js', null, cambiar(ASE, 'if (replan) avanzarReplan(Infinity);', '')));
 await rompe('H2-3: las holguras cambian de orden', () => revisarRutas('../src/desafio-camino.js', null, cambiar(ASE, '[[9, 8], [4, 5], [2, 2.5]]', '[[4, 5], [9, 8], [2, 2.5]]')));
 
-console.log(`verificar-4-11-3-proceso: ${pasos} comprobaciones (${mutaciones} mutaciones que la prueba atrapa), todo en verde`);
+// M11: el script que mata sin preguntar, o que pregunta y no hace caso, o que cierra en seco
+{
+  const copiaPs = (texto, i) => { const p = path.join(tmp, `ayuda-mutada-${i}.ps1`); fs.writeFileSync(p, '﻿' + texto); return p; };
+  await rompe('M11: sin consola mata igual', () => revisarEmpaquetadoPS(copiaPs(cambiar(AYUDA_TXT, "  return 'fallar'\n}", "  return 'cerrar'\n}"), 1), PS1_TXT));
+  await rompe('M11: la pregunta no hace caso a la respuesta', () => revisarEmpaquetadoPS(copiaPs(cambiar(AYUDA_TXT, "-notmatch '^(s|si|sí)$'", "-notmatch '^(s|si|sí|n)$'"), 2), PS1_TXT));
+  await rompe('M11: -Forzar no cierra', () => revisarEmpaquetadoPS(copiaPs(cambiar(AYUDA_TXT, "  if ($Forzar) { return 'cerrar' }", "  if ($Forzar) { return 'fallar' }"), 3), PS1_TXT));
+  await rompe('M11: -EnSeco cierra igual', () => revisarEmpaquetadoPS(copiaPs(cambiar(AYUDA_TXT, "      if (-not $EnSeco) { $abiertos | Stop-Process -Force -ErrorAction SilentlyContinue }\n    }\n    'preguntar'", "      $abiertos | Stop-Process -Force -ErrorAction SilentlyContinue\n    }\n    'preguntar'"), 4), PS1_TXT));
+  await rompe('M11: empaquetar.ps1 vuelve a matar sin preguntar', () => revisarEmpaquetadoPS(AYUDA_PS1, cambiar(PS1_TXT, '$decision = Invoke-CierreHojarasca', 'Get-Process Hojarasca | Stop-Process -Force\n$decision = Invoke-CierreHojarasca')));
+  await rompe('M11: empaquetar.sh vuelve a matar sin preguntar', () => revisarEmpaquetadoSh(cambiar(SH_TXT, 'rm -rf dist\n', 'taskkill //F //IM Hojarasca.exe > /dev/null 2>&1 || true\nrm -rf dist\n')));
+  await rompe('M11: empaquetar.sh no verifica el asar', () => revisarEmpaquetadoSh(cambiar(SH_TXT, 'if [ "$ASAR_OK" != "ASAR OK" ]; then echo "el index.html del ejecutable no es el que se probó" >&2; exit 1; fi', '')));
+}
+
+console.log(`verificar-4-11-3-proceso:${pasos} comprobaciones (${mutaciones} mutaciones que la prueba atrapa), todo en verde`);
