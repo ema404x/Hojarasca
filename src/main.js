@@ -134,7 +134,8 @@ import { sanearCorreo, repartir, porRetirar, partesDeCarta, CARTA, dePara, fotoP
 import { MARCHA_CABALLO, ALTURA_MONTADO, RADIO_MONTAR, AGUA_QUE_NO_PISA, sanearCaballo, dondeEspera, yawCaballo, mandarAlRefugio } from './caballo.js';
 import { crearCaballo } from './caballo-mundo.js';
 import { elCaballo } from './personal-caballo.js';
-import { puedeOtraVuelta, nuevaVuelta, multiplicadorVuelta } from './desafio-vuelta.js';
+import { puedeOtraVuelta, multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
+import { nuevaVuelta } from './desafio-vuelta-nueva.js';
 import { RAYO, sanearTormenta, avanzarCrecida, nivelArroyo, aguaTurbia, horasEntre, puedeCaerRayo, elegirArbolRayo, rumboTexto as rumboDesde } from './tormenta.js';
 import { crearMajada } from './majada-mundo.js';
 import { calidadParaEquipo, nombrePlaca } from './calidad-equipo.js';
@@ -2382,7 +2383,8 @@ $('btn-entrar').addEventListener('click', () => {
   }
   // 4.10 partidas: antes de empezar una partida nueva del Desafío, la pantalla de modo, ventajas y reglas (en la depuración se saltea,
   // salvo con `&meta=1`: las pruebas viejas entran con un clic)
-  if (esDesafio && !partidaEmpezada() && !metaElegida && (!HOJARASCA_DEBUG || new URLSearchParams(location.search).get('meta') === '1')) { pantallaNueva.abrir(); return; }
+  // 4.11.0: «Otra vuelta» ya trae las reglas elegidas (se las lleva de la vuelta anterior): no se vuelve a elegir
+  if (esDesafio && !partidaEmpezada() && !metaElegida && !(progreso.desafio?.vuelta > 0) && (!HOJARASCA_DEBUG || new URLSearchParams(location.search).get('meta') === '1')) { pantallaNueva.abrir(); return; }
   // 3.8.4: la corrida sin fin fija su dificultad al entrar (una corrida de antes sin dificultad, la de ahora)
   if (esSinFin && progreso.desafio?.sinFin && !progreso.desafio.sinFin.terminada && !progreso.desafio.sinFin.dificultad) {
     progreso.desafio.sinFin.dificultad = dificultadDeCorrida(null, ajustes.dificultad);
@@ -2392,6 +2394,11 @@ $('btn-entrar').addEventListener('click', () => {
     const escrito = !!normalizarCodigo($('codigo-partida')?.value || '');
     const c = aplicarCodigo(progreso);
     empezarMapaDesafio();   // 3.0
+    // 4.11.0: la vuelta nueva da el arranque de las ventajas que traía (una sola vez: `aplicado`) y avisa qué se llevó
+    if (!metaElegida && progreso.desafio?.vuelta > 0 && progreso.desafio.meta) {
+      metaJuego.aplicarInicio();
+      setTimeout(() => nota(`${textoVuelta(progreso.desafio.vuelta)}: seguís con lo tuyo`, 'Las habilidades del guardián, el bestiario, los trofeos y las reglas que elegiste vienen con vos', true), 2200);
+    }
     if (c) setTimeout(() => nota(`Código ${c}`, escrito ? 'Las mismas noches y el mismo mapa para cualquiera que lo use. Tu récord con este código se guarda aparte'
       : 'Salió al azar: pasáselo a alguien y juega tu mismo valle, con las mismas noches'), 4200);
     if (esSinFin) setTimeout(() => nota('Supervivencia sin fin', 'Una sola vida: si caés, se termina la corrida. No hay noche final', true), 2600);
@@ -3157,7 +3164,7 @@ async function otraVuelta() {
   if (!desafio || !puedeOtraVuelta(progreso.desafio)) return;
   const siguiente = (progreso.desafio.vuelta || 0) + 1;
   const m = multiplicadorVuelta(siguiente);
-  const acepta = await dialogos.confirmar(`Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras y los planos. Los duendes vienen ${Math.round((m.cantidad - 1) * 100)}% más, aguantan ${Math.round((m.vida - 1) * 100)}% más y pegan ${Math.round((m.dano - 1) * 100)}% más fuerte. ¿Vamos?`);
+  const acepta = await dialogos.confirmar(`Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras, los planos, las habilidades del guardián, el bestiario, los trofeos y las reglas que elegiste. Los duendes vienen ${Math.round((m.cantidad - 1) * 100)}% más, aguantan ${Math.round((m.vida - 1) * 100)}% más y pegan ${Math.round((m.dano - 1) * 100)}% más fuerte. ¿Vamos?`);
   if (!acepta || reiniciandoPartida || !puedeOtraVuelta(progreso.desafio)) return;
   const nueva = nuevaVuelta(progreso, progresoNuevo());
   reiniciandoPartida = true;

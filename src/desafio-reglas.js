@@ -373,6 +373,16 @@ export function aplicarEspecial(lista, especial) {
   if (conJefe) salida.push('jefe');
   return salida;
 }
+// 4.11.0 (B11c, decisión del usuario: «persisten»): lo que la noche especial hace con los tipos sigue valiendo en los refuerzos de la
+// madrugada (el giro «Llegan refuerzos» y los de la 1:30). En la noche silenciosa, que es de puros tiradores, los refuerzos también
+// son tiradores (antes bajaban de la lista común: rastreadores y brutos en una noche en la que no se oye nada). Misma cantidad que
+// traía la lista; sin el enjambre, el curandero ni el jefe, que la silenciosa no trae. Las otras noches no cambian.
+export const esSoloTiradores = (especial) => typeof especial === 'string' && Object.hasOwn(ESPECIALES, especial) && !!ESPECIALES[especial].soloTiradores;
+export function refuerzosDeLaNoche(tipos, especial) {
+  if (!Array.isArray(tipos) || !esSoloTiradores(especial)) return tipos;
+  const n = tipos.filter((t) => t !== 'enjambre' && t !== 'curandero' && t !== 'jefe').length;
+  return Array.from({ length: Math.max(1, n) }, () => 'tirador');
+}
 // Planos de las ruinas del bosque (4.8.1: antes «restos de naves»): se recupera uno por ruina explorada.
 export const PLANOS_ALIEN = [
   { id: 'escudo', nombre: 'Campana de musgo', texto: 'Una campana de musgo que absorbe la mitad del daño de las obras cercanas.' },

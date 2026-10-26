@@ -166,6 +166,7 @@ const sinEnjambre = (l) => l.filter((t) => t !== 'enjambre');
       sinJefe: (l) => l.filter((t) => t !== 'jefe'), composicionSinFin: SF.composicionSinFin, composicionOleada, TIPOS_ALIEN: sobre.tipos ?? R.TIPOS_ALIEN,
       setTimeout: (f) => f(), empezarOleada: (tipos, nueva) => lanzadas.push([tipos, nueva]), danarObra: (o, n) => { danos.push(n); o.datos.vida -= n; },
       S: { derrumbe() {} }, curanderosEnLaNoche, sacudidas: { set() {} },   // 4.10.1
+      refuerzosDeLaNoche: R.refuerzosDeLaNoche, esSoloTiradores: R.esSoloTiradores,   // 4.11.0: los refuerzos siguen la noche especial
     };
     const f = new Function('env', `with (env) { ${cuerpo}\n return revisarGiro; }`)(new Proxy(env, { has: (t, k) => typeof k === 'string' && (k in t || !(k in globalThis)) }));
     return { d, f, notas, lanzadas, danos, obras: obrasLista };

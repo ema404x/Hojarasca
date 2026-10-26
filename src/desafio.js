@@ -9,7 +9,7 @@ import { esperaVoz } from './voz-alien.js';
 import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
 import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, enVentanaDeNoche, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida } from './desafio-reglas.js';
-import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
+import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, refuerzosDeLaNoche, esSoloTiradores, nocheConRestos, efectoClima } from './desafio-reglas.js';
 import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX, nocheActualNueva } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
@@ -1259,9 +1259,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       let lista = composicionOleada(d.oleadas, dif, vuelta);
       if (d.sinFin) lista = composicionSinFin(d.oleadas, dif, vuelta);
       const base = sinJefe(lista);
-      const tipos = base.slice(0, Math.max(2, Math.ceil(base.length / 3)));
+      const tipos = refuerzosDeLaNoche(base.slice(0, Math.max(2, Math.ceil(base.length / 3))), d.especial);   // 4.11.0: en la noche silenciosa, tiradores
       // con un curandero si el juego ya lo tiene (lo trae otra rama): se queda atrás y cura
-      if (Object.hasOwn(TIPOS_ALIEN, 'curandero') && curanderosEnLaNoche(d.oleadas, esNocheDeJefe(d.oleadas)) > 0) tipos.push('curandero');   // 4.10.1: el curandero empieza en la noche 4
+      if (!esSoloTiradores(d.especial) && Object.hasOwn(TIPOS_ALIEN, 'curandero') && curanderosEnLaNoche(d.oleadas, esNocheDeJefe(d.oleadas)) > 0) tipos.push('curandero');   // 4.10.1: el curandero empieza en la noche 4
       d.refuerzoNoche = d.oleadas;   // 4.10.1: ya llegaron refuerzos esta noche: los de las 1:30 no vuelven a sumarse
       ctx.nota(g.aviso, g.texto, true);
       const noche = d.oleadas;
@@ -1367,7 +1367,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       } else if (!d.oleadaTerminada && d.refuerzoNoche !== d.oleadas && d.oleadas >= 3 && p.horas >= 1.5 && p.horas < HORA_AMANECER && vivos() < 4 && !eventos.nodrizaActiva) {
         d.refuerzoNoche = d.oleadas;
         const refuerzo = sinJefe(d.sinFin ? composicionSinFin(d.oleadas, ctx.dificultad?.(), d.vuelta) : composicionOleada(d.oleadas, ctx.dificultad?.(), d.vuelta));
-        empezarOleada(refuerzo.slice(0, Math.ceil(refuerzo.length / 2)), false);
+        empezarOleada(refuerzosDeLaNoche(refuerzo.slice(0, Math.ceil(refuerzo.length / 2)), d.especial), false);   // 4.11.0
       }
       revisarGiro(p);   // 4.8 noches: a las dos de la mañana pasa algo
     } else if (d.oleadaNoche !== null && !d.oleadaTerminada) {

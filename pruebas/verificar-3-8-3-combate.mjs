@@ -54,7 +54,8 @@ ${extraer(des, 'soltarCristales')}; this.soltarCristales = soltarCristales;`, ct
 // «con tus armas, las mejoras y los planos»: la lanza de hielo, las flechas de rayo y la honda de empuje
 // (la forja de la 2.1, que se paga con semillas doradas) quedaban afuera de SE_LLEVA y se perdían.
 {
-  const { SE_LLEVA, nuevaVuelta } = await import('../src/desafio-vuelta.js');
+  const { SE_LLEVA } = await import('../src/desafio-vuelta.js');
+  const { nuevaVuelta } = await import('../src/desafio-vuelta-nueva.js');   // 4.11.0: nuevaVuelta vive aparte
   const { FORJA } = await import('../src/desafio-valle.js');
   const { RECETAS } = await import('../src/desafio-reglas.js');
   for (const k of Object.keys(FORJA)) assert.ok(SE_LLEVA.includes(k), `la forja ${k} se lleva a la otra vuelta`);

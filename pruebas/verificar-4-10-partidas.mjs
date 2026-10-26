@@ -422,7 +422,7 @@ function almacen({ falla = false, soloPrincipal = false } = {}) {
   ok(/efectosPartida\(\)\?\.anselmoPausa/.test(vm) && /chicos\.cadencia/.test(vm) && /chicos\.dano/.test(vm), 'Anselmo ligero y los chicos con puntería');
   ok(/FACTOR_NOCHE_LARGA : 1/.test(main) && /efectosPartida\(\)\?\.nochesLargas/.test(main), 'noches más largas: la hora corre más despacio de noche');
   ok(/materialesDeMeta\(troncosTala\)/.test(main) && /materialesDeMeta\(cuanto\)/.test(main), 'manos llenas: más troncos y piedras');
-  ok(/pantallaNueva\.abrir\(\); return;/.test(main) && /esDesafio && !partidaEmpezada\(\) && !metaElegida && \(!HOJARASCA_DEBUG/.test(main), 'al entrar a una partida nueva del Desafío se abre la pantalla de ventajas y reglas');
+  ok(/pantallaNueva\.abrir\(\); return;/.test(main) && /esDesafio && !partidaEmpezada\(\) && !metaElegida && (?:!\(progreso\.desafio\?\.vuelta > 0\) && )?\(!HOJARASCA_DEBUG/.test(main), 'al entrar a una partida nueva del Desafío se abre la pantalla de ventajas y reglas');
   ok(/sumarBono,\s+\/\/ 4\.10 partidas/.test(main) && /alBonos: \(d\) => \{ d\.salud = saludMaximaConBonos/.test(main), 'main le pasa a las ventajas el contrato de bonos');
   ok(/if \(esDesafio\) metaJuego\.terminar\(\);/.test(main),'dejar una partida para empezar otra también da su semilla');
   ok(/alVencer: \(s\) => \{ s\.cierre = metaJuego\.alVencer\(\)/.test(main), 'ganar da la semilla, los puntos y el final');
