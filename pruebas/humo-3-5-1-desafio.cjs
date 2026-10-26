@@ -95,9 +95,16 @@ app.whenReady().then(async () => {
     const n20 = await js(`(()=>{window.__resembrar && window.__resembrar(); const H=${H}, D=H.progreso.desafio; return {oleadas:D.oleadas, nod:H.desafio.nodrizaActiva}})()`);
     ok(n20.oleadas === 20 && n20.nod, `baja la nodriza la noche 20 (${JSON.stringify(n20)})`);
     ok(!!tanda, `las tandas de la nodriza bajan al suelo (${JSON.stringify(tanda)})`);
-    for (let s = 0; s < 6; s++) { await simular(2); await quemar(); }
-    await simular(4);
-    const calma = await js(`(()=>{window.__resembrar && window.__resembrar(); const H=${H}, D=H.progreso.desafio; return {vivos:D.vivos, aliens:H.desafio.aliens.filter(a=>a.estado!=='morir'&&a.estado!=='irse').length, hay:H.desafio.hayAtaque(), nod:H.desafio.nodrizaActiva}})()`);
+    // 4.10.5: se espera por estado, no por tiempo fijo. El jefe de la oleada es el último que sale de la boca del aro y a veces todavía estaba brotando
+    // cuando se miraba (quedaba «vivo» recién salido: no estaba colgado, sólo no había terminado de bajar). Se quema lo que camina de a un segundo hasta que
+    // la cola queda vacía y no hay nadie; si la cola de verdad quedara colgada, nunca se llega a la calma y la comprobación falla igual.
+    const leerCalma = () => js(`(()=>{window.__resembrar && window.__resembrar(); const H=${H}, D=H.progreso.desafio; return {vivos:D.vivos, aliens:H.desafio.aliens.filter(a=>a.estado!=='morir'&&a.estado!=='irse').length, hay:H.desafio.hayAtaque(), nod:H.desafio.nodrizaActiva}})()`);
+    let calma = null;
+    for (let s = 0; s < 90; s++) {
+      await simular(1); await quemar(); await simular(1);
+      calma = await leerCalma();
+      if (calma.vivos === 0 && calma.aliens === 0) break;
+    }
     ok(calma.vivos === 0 && calma.aliens === 0, `entre tandas no queda nadie colgado en la cola (${JSON.stringify(calma)})`);
     // guardar en ese momento (sin invasores vivos) y abrir: la nodriza vuelve
     donde = 'recarga noche final';
