@@ -1,7 +1,8 @@
 // 1.10 — Nueva partida+: otra vuelta al Desafío después del nido.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import { SE_LLEVA, VUELTA_MAXIMA, multiplicadorVuelta, textoVuelta, puedeOtraVuelta, nuevaVuelta } from '../src/desafio-vuelta.js';
+import { SE_LLEVA, VUELTA_MAXIMA, multiplicadorVuelta, textoVuelta, puedeOtraVuelta } from '../src/desafio-vuelta.js';
+import { nuevaVuelta } from '../src/desafio-vuelta-nueva.js';   // 4.11.0: nuevaVuelta vive aparte
 import { composicionOleada, sanearDesafio, desafioNuevo, MEJORAS } from '../src/desafio-reglas.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');

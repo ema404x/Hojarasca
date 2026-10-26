@@ -33,19 +33,3 @@ export function textoVuelta(vuelta) {
 export function puedeOtraVuelta(d) {
   return !!d?.victoria && !!d?.nido?.caido && (Number(d.vuelta) || 0) < VUELTA_MAXIMA;
 }
-
-// Arma la partida de la vuelta siguiente sobre una partida nueva (`base`, la que da
-// progresoNuevo en modo Desafío). No toca `viejo`.
-export function nuevaVuelta(viejo, base) {
-  const d0 = viejo?.desafio || {};
-  const p = { ...base, cosas: { ...(base.cosas || {}) }, desafio: { ...(base.desafio || {}) } };
-  for (const k of SE_LLEVA) if (viejo?.cosas?.[k]) p.cosas[k] = viejo.cosas[k];
-  p.desafio.planos = [...(d0.planos || [])];
-  p.desafio.pistolaEncontrada = !!d0.pistolaEncontrada;
-  p.desafio.vuelta = Math.min(VUELTA_MAXIMA, (Number(d0.vuelta) || 0) + 1);
-  // el tutorial ya lo hiciste
-  p.desafio.tutorial = Math.max(Number(base.desafio?.tutorial) || 0, 99);
-  // 2.3: la otra vuelta sigue con el mismo código de partida, si tenía
-  if (d0.semilla) p.desafio.semilla = d0.semilla;
-  return p;
-}
