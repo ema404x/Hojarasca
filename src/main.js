@@ -5681,6 +5681,7 @@ function armarOficiosYAldea(esDesafio) {
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), raizRefugio: () => est?.conjuntos?.find((k) => k.clave === 'refugio')?.obj || null,
     msFigura: () => (planificadorAntitirones.permitir('amor-mundo') ? 3 : 0),
     tomarMano: (lado) => cuerpoJugador?.tomarMano?.(lado),
+    deTurno: (k) => !!empleadosNegocioJuego?.deTurno(k),   // 4.11.2 (D2): la novia que es tu empleada, de turno, no sale a caminar ni sigue el paseo
   });
   // 3.7.2: la cocina en pasos (las estaciones, el panel de recetas, el olor del asado, el perro, el recetario)
   cocinaJuego = crearCocinaJuego({

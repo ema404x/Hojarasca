@@ -251,6 +251,22 @@ const amigoDe = (P, k, puntos = 30) => { for (let i = 0; i < 40 && V.puntosAmist
   eq(JE.salidaDeTurno('pescador'), null, 'quien no es empleado no tiene salida');
 }
 
+// ---------------------------------------------------------------- D2 · la novia empleada de turno no sale a caminar ni sigue el paseo
+{
+  const E = await import('../src/amor-escenas.js');
+  const p = { amor: { personas: { herbolaria: { etapa: 'saliendo' } } }, aldea: A.aldeaNuevaSana ? A.aldeaNuevaSana() : A.aldeaNueva() };
+  const libre = E.puedeCaminar(p, 'herbolaria', { dia: 3, hora: 8.5, aldea: p.aldea });
+  const deTurno = E.puedeCaminar(p, 'herbolaria', { dia: 3, hora: 8.5, aldea: p.aldea, turno: true });
+  ok(libre.ok === true, 'libre del turno, a las 8:30 se puede salir a caminar');
+  eq(deTurno, { ok: false, motivo: 'trabaja' }, 'de turno detrás del mostrador de tu local, no (dice que está trabajando)');
+  ok(/Ahora no puedo, estoy trabajando/.test(E.FRASES_JUNTOS.no.trabaja), 'con su frase de siempre');
+  ok(/entrar al trabajo/.test(E.FRASES_JUNTOS.turno), 'y hay una frase para cuando le toca entrar en pleno paseo');
+  const am = leer('src/amor-mundo.js');
+  ok(enUnaLinea(am, ['ctx.deTurno?.(j.clave)', 'terminarJuntos(true, FRASES_JUNTOS.turno)']), 'el paseo se termina cuando le empieza el turno');
+  ok(enUnaLinea(am, ['ctx.deTurno?.(clave)', 'return false']), 'y no empieza uno estando de turno');
+  ok(enUnaLinea(main, ['deTurno: (k) => !!empleadosNegocioJuego?.deTurno(k)', 'D2']), 'main.js le da al mundo del amor el turno de los empleados');
+}
+
 // ---------------------------------------------------------------- S2-7 · la panadera
 {
   eq(A.SERVICIO.pesosPorPan, 600, 'tres panes por $600');
