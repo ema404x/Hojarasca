@@ -177,7 +177,7 @@ assert.match(alien, /reiniciar\(\) \{[\s\S]*?uMirada\.value = 0; u\.uSilueta\.va
 
 // El motor tiene que aguantar que le pidan sonidos antes del primer clic, que es
 // cuando todavía no hay contexto de audio: un invasor puede morirse en el primer cuadro.
-assert.match(sonido, /fuente\(pos, vol = 1, reverb = 0\.6\) \{\n    if \(!this\.ctx\) return null;/, 'fuente sin contexto tiene que devolver null');
+assert.match(sonido, /fuente\(pos, vol = 1, reverb = 0\.6, bus = 'efectos'\) \{\n    if \(!this\.ctx\) return null;/, 'fuente sin contexto tiene que devolver null');
 for (const m of ['tono', 'golpeRuido']) {
   assert.ok(new RegExp(`${m}\\(\\{[^}]*\\}\\) \\{\\n    if \\(!destino`).test(sonido), `${m} tiene que aguantar un destino nulo`);
 }

@@ -64,6 +64,7 @@ export function eventosDeTema(tema) {
 const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 const ADELANTO = 1.5;    // cuánto se programa por adelantado (s)
 const TIC = 500;         // cada cuánto mira el temporizador (ms)
+const COMPENSA_BUS_MUSICA = 2;   // 4.11.1: el bus de la música nace en 0,5 (ver `sonido.js`); la gramola sonaba por Efectos (1)
 export const DISTANCIA_GRAMOLA = 18;    // más lejos que esto, la gramola se calla (main.js lo usa en la función `cerca`)
 
 // Lo que suena ahora (uno solo a la vez en todo el juego)
@@ -126,14 +127,19 @@ export function alternarGramola(sonido, cerca, duenio = null) {
     else { const titulo = G.tema?.nombre; detenerGramola(); return { suena: false, titulo }; }
   }
   const ctx = sonido?.ctx;
-  if (!ctx || !sonido.bus?.efectos) return { sinSonido: true };
+  // 4.11.1: la gramola es música: sale por el bus de la música (la perilla «Música» y «Solo el bosque» la gobiernan), no por los efectos.
+  // Va por `bus.piano` (el hermano del bus de la música, con su misma perilla e interruptor) y no por `bus.musica`, porque ése pasa por
+  // `bajaMusica`, que la gramola misma baja mientras suena para correr la música de fondo.
+  const busMusica = sonido?.bus?.piano || sonido?.bus?.musica;
+  if (!ctx || !busMusica) return { sinSonido: true };
   try { if (ctx.state === 'suspended') ctx.resume(); } catch { /* sigue */ }
   const tema = TEMAS[G.indice % TEMAS.length];
   G.indice = (G.indice + 1) % TEMAS.length;
-  // la cadena de salida: filtro grave (caja vieja) → volumen → bus de efectos
+  // la cadena de salida: filtro grave (caja vieja) → volumen → bus de la música
+  // (el bus de la música vale 0,5 con la perilla al máximo y el de efectos 1: el volumen se duplica para que suene igual que antes)
   const entrada = ctx.createBiquadFilter(); entrada.type = 'lowpass'; entrada.frequency.value = 2600; entrada.Q.value = 0.7;
-  const volumen = ctx.createGain(); volumen.gain.value = 0.9;
-  entrada.connect(volumen); volumen.connect(sonido.bus.efectos);
+  const volumen = ctx.createGain(); volumen.gain.value = 0.9 * COMPENSA_BUS_MUSICA;
+  entrada.connect(volumen); volumen.connect(busMusica);
   const ruido = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.4), ctx.sampleRate);
   const d = ruido.getChannelData(0);
   for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;

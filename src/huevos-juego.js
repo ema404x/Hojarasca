@@ -264,13 +264,46 @@ export function crearHuevosJuego(ctx) {
   // ------------------------------------------------------------ 5) la radio de la madrugada
   // Al prender la radio entre las 2 y las 4: algunas noches, una emisora que de día no está. Devuelve true si sonó algo especial
   // (main.js entonces no cuenta lo de siempre: a esa hora sólo habría estática)
-  function radioMadrugada() {
+  // 4.11.1 (Q12): la emisora se puede apagar y el audio que llega tarde se descarta. Cada pedido de sonido lleva un número (`pedidoRadio`);
+  // `radioVoz` es el pedido vigente (esperando la síntesis o ya sonando). Apagar, pedir otro, alejarse de la radio o empezar el Desafío
+  // lo invalida: si la síntesis termina después, el audio no suena.
+  let pedidoRadio = 0, radioVoz = null;
+  const ALCANCE_RADIO = 10;   // m: más lejos que esto de la radio, la emisora se pierde
+  const radioSuena = () => !!radioVoz;
+  function apagarRadio() {
+    pedidoRadio++;
+    const v = radioVoz; radioVoz = null;
+    if (!v) return false;
+    const son = ctx.sonido, t = son?.ctx?.currentTime;
+    try {
+      if (v.salida && Number.isFinite(t)) { v.salida.gain.cancelScheduledValues(t); v.salida.gain.setTargetAtTime(0, t, 0.05); }
+      v.fuente?.stop?.(Number.isFinite(t) ? t + 0.4 : 0);
+    } catch { /* ya terminó */ }
+    return true;
+  }
+  function radioMadrugada(posRadio = null) {
     if (!activo()) return false;
     const noche = diaDeNoche(dia(), horas());
     const r = escucharMadrugada(h(), noche, horas());
     if (!r) return false;
     const son = ctx.sonido;
-    const poner = (nombre, crear) => { if (son?.ctx && son.preparar) son.preparar(nombre, crear, (buf) => son.sonarBuffer?.(buf, son.bus?.efectos, 0.55), TASA_RADIO); };
+    const poner = (nombre, crear) => {
+      if (!son?.ctx || !son.preparar) return;
+      apagarRadio();
+      const id = pedidoRadio;
+      const voz = { id, fuente: null, salida: null, pos: posRadio ? { x: posRadio.x, z: posRadio.z } : null };
+      radioVoz = voz;
+      son.preparar(nombre, crear, (buf) => {
+        // llegó la síntesis: si mientras tanto se apagó la radio, se pidió otra cosa o te fuiste, no suena
+        if (id !== pedidoRadio || radioVoz !== voz || (voz.pos && !cerca(ctx.jugador?.()?.estado?.pos, voz.pos, ALCANCE_RADIO))) return;
+        if (!son.bus?.efectos) { radioVoz = null; return; }
+        const salida = son.ctx.createGain(); salida.connect(son.bus.efectos);
+        const fuente = son.sonarBuffer?.(buf, salida, 0.55);
+        if (!fuente) { radioVoz = null; return; }
+        voz.salida = salida; voz.fuente = fuente;
+        fuente.addEventListener('ended', () => { if (radioVoz === voz) radioVoz = null; });
+      }, TASA_RADIO);
+    };
     if (r.tipo === 'tango') {
       poner('radio-mad-tango', () => sintetizarTango(TASA_RADIO, 7));
       ctx.nota('Una emisora que de día no está', 'Entre la estática, una orquesta lejana toca un tango viejo. Se pierde antes del final', true);
@@ -292,6 +325,8 @@ export function crearHuevosJuego(ctx) {
     acum += dt;
     if (acum < 2) return;
     acum = 0;
+    // 4.11.1 (Q12): la emisora se pierde si empieza el Desafío o te alejás de la radio
+    if (radioVoz && (!activo() || (radioVoz.pos && !cerca(ctx.jugador?.()?.estado?.pos, radioVoz.pos, ALCANCE_RADIO)))) apagarRadio();
     if (!activo()) return;
     if (!buscado) buscarCoihue();
     const x = h();
@@ -301,5 +336,5 @@ export function crearHuevosJuego(ctx) {
     revisarHueso(ctx.jugador?.()?.estado?.pos);
   }
 
-  return { fugazVista, actualizar, accion, radioMadrugada, lugarHuemul: () => lugarHuemul, lugarHueso: () => lugarHueso, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
+  return { fugazVista, actualizar, accion, radioMadrugada, radioSuena, apagarRadio, lugarHuemul: () => lugarHuemul, lugarHueso: () => lugarHueso, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
 }
