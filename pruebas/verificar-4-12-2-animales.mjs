@@ -28,7 +28,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 function posiciones(piel) {
   const sk = piel.malla.skeleton; sk.update();
   const geo = piel.malla.geometry, Pp = geo.attributes.position, sw = geo.attributes.skinWeight, si = geo.attributes.skinIndex;
-  const out = new Float32Array(Pp.count * 3), M = sk.boneMatrices, b0 = sk.base;
+  const out = new Float32Array(Pp.count * 3), M = sk.boneMatrices, b0 = 0;   // (los índices de hueso ya traen el tramo de la textura, como lee el shader)
   for (let i = 0; i < Pp.count; i++) {
     const x = Pp.getX(i), y = Pp.getY(i), z = Pp.getZ(i);
     let ox = 0, oy = 0, oz = 0;
@@ -109,7 +109,7 @@ for (const [nombre, m] of bichos) {
   let mal = 0, fuera = 0; const usados = new Set();
   for (let i = 0; i < N; i++) {
     let s = 0;
-    for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); s += w; if (w > 0) { usados.add(si.getComponent(i, k)); if (si.getComponent(i, k) >= P.NUM_HUESOS) fuera++; } }
+    for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); s += w; if (w > 0) { const h = si.getComponent(i, k) - m.piel.malla.skeleton.base; usados.add(h); if (h < 0 || h >= P.NUM_HUESOS) fuera++; } }
     if (Math.abs(s - 1) > 1e-3) mal++;
   }
   ok(mal === 0 && fuera === 0, `${nombre}: los pesos suman 1 con a lo sumo cuatro huesos del esqueleto`);

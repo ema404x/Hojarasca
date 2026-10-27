@@ -23,7 +23,7 @@ El caballo, el ciervo, el huemul y el perro se animaban por grupos rígidos (una
 
 ## Verificación
 - **`pruebas/verificar-4-12-2-animales.mjs`** (en el gate): **138 comprobaciones** (misma forma y color vértice por vértice y mismos triángulos, pesos, reposo identidad, Baja y Mínima sin piel, LOD con histéresis, marchas sin saltos, nada se estira ni se hunde, cuello en tres huesos siguiendo al pivote rígido, tramos de la textura, precompilado, lo que no se toca). **`herramientas/mutar-4-12-2-animales.cjs`: 62 mutaciones, las 62 hacen fallar la prueba** (la primera tanda dejó pasar 5 y se reforzaron las comprobaciones).
-- **Partida real** `pruebas/humo-4-12-2-animales.cjs` (Electron en el monitor externo, perfil propio, ventana visible): ver el informe final para el resultado.
+- **Partida real** `pruebas/humo-4-12-2-animales.cjs` (Electron en el monitor externo, perfil propio, ventana visible): Baja sin piel y sin programas nuevos; Media con 10 animales con piel (una malla, rígidas escondidas), de lejos rígidos; dibujos por cuadro con animales a la vista 199 contra 258 rígidos (triángulos iguales); sin vértices rotos ni patas hundidas (1,5× de estiramiento máximo). **Quedó rojo un paso: un programa de shader nuevo (102 → 103) en la vuelta de día, noche, giro y caballo montado, sin identificar si es de la piel (con piel quieta no aparece: 102 → 102 al terminar la carga); y el humo se cortó en la sección del perro por un error de la propia prueba (corregido, sin volver a correr).**
 - Capturas de ciervo, perro y caballo (quieto, pastando, paso, trote, galope, montado y cuadros seguidos) en la carpeta de la prueba; vistas con ojo crítico.
 
 ## Un error que atrapó la partida real y la prueba de Node no

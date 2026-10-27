@@ -210,7 +210,7 @@ app.whenReady().then(async () => {
         for (let i = 0; i < 80; i++) {
           e.estado = est; e.t = 5; if (est === 'olfatear') e.olfateo = 1;
           if (est === 'adelante') e.objetivo.set(e.pos.x + Math.sin(e.rumbo) * 20, 0, e.pos.z + Math.cos(e.rumbo) * 20);
-          if (Math.hypot(e.pos.x - B.x, e.pos.z - B.z) > 20) { e.pos.set(B.x + 3, T.altura(B.x + 3, B.z - 5), B.z - 5); e.rumbo += 2; }
+          if (Math.hypot(e.pos.x - B.x, e.pos.z - B.z) > 20) { e.pos.set(B.x + 3, H.T.altura(B.x + 3, B.z - 5), B.z - 5); e.rumbo += 2; }
           A.jugadorEn(B.x, B.z, 0); H.__bucle(); await A.dormir(4);
           if (q.piel.activa) peor.activa++;
           if (i % 10 === 0 && q.piel.activa) { const m = A.revisarMalla(q); peor.estira = Math.max(peor.estira, m.estira); peor.bajo = Math.min(peor.bajo, m.bajo); peor.nan += m.nan; peor.cuadros++; }
