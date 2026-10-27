@@ -186,7 +186,31 @@ export function dejarPersonalPendiente(almacen, modo, ranura, personal, ajustes 
   if (!personal || typeof personal !== 'object') return null;
   const nuevo = empezarConReceta(personal, ajustes);   // como «Empezar de nuevo»: sin el Bruno de la partida vieja y con `actual` según la receta
   try { almacen.setItem(clavePersonalPendiente(modo, ranura), JSON.stringify(nuevo.personal)); } catch { return null; }
+  // 4.12.2: la estación, el clima y la dificultad de la receta NO se escriben en los ajustes (que son de todas las partidas) al entrar a la
+  // ranura vacía: quedan anotados acá y se aplican al arrancar esa ranura (`tomarAjustesPendientes`) y se guardan recién cuando empezás de verdad
+  try {
+    const dif = {};
+    for (const k of AJUSTES_DE_RECETA) if (nuevo.ajustes[k] !== (ajustes || {})[k]) dif[k] = nuevo.ajustes[k];
+    if (Object.keys(dif).length) almacen.setItem(claveAjustesPendientes(modo, ranura), JSON.stringify(dif));
+    else almacen.removeItem?.(claveAjustesPendientes(modo, ranura));
+  } catch { /* sin eso, la partida nueva arranca con los ajustes de siempre */ }
   return nuevo;
+}
+const AJUSTES_DE_RECETA = ['estacion', 'clima', 'dificultad'];
+export const claveAjustesPendientes = (modo, ranura) => `hojarasca-ajustes-pendientes-${modo}-${ranura}`;
+// Lo que la receta deja puesto para esa ranura (y lo borra): sólo la estación, el clima y la dificultad, con texto; null si no hay nada
+export function tomarAjustesPendientes(almacen, modo, ranura) {
+  try {
+    const k = claveAjustesPendientes(modo, ranura);
+    const t = almacen.getItem(k);
+    if (t == null) return null;
+    almacen.removeItem(k);
+    const v = JSON.parse(t);
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+    const r = {};
+    for (const c of AJUSTES_DE_RECETA) if (Object.hasOwn(v, c) && typeof v[c] === 'string' && v[c] && v[c].length < 24) r[c] = v[c];
+    return Object.keys(r).length ? r : null;
+  } catch { return null; }
 }
 // Lo anotado para esa ranura (y lo borra); null si no hay nada o está roto.
 export function tomarPersonalPendiente(almacen, modo, ranura) {

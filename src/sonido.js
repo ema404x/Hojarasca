@@ -46,7 +46,7 @@ export class Sonido {
   // motor entero se arma adentro, así lo que se renderiza a un archivo es exactamente
   // lo mismo que suena en el juego y no una maqueta aparte.
   iniciar(ctxExterno) {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx) { if (this.ctx.state === 'suspended') { this.dormidoPorFoco = false; this.ctx.resume(); } return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC && !ctxExterno) return;
     const ctx = this.ctx = ctxExterno || new AC();
@@ -494,6 +494,24 @@ export class Sonido {
     }
   }
   pausar(p) { if (!this.ctx) return; if (p) this.ctx.suspend(); else this.ctx.resume(); }
+  // 4.12.2: al minimizar o hacer Alt+Tab el mundo se pausa pero los bucles de viento, agua y lluvia (y la gramola) seguían sonando por
+  // debajo del otro juego. `dormir(true)` suspende el contexto sólo si estaba andando y se acuerda de que lo suspendió ella; `dormir(false)`
+  // lo reanuda sólo en ese caso (no despierta lo que suspendió otra cosa, ni un contexto que el navegador todavía no dejó arrancar).
+  // Es idempotente, así que se la puede llamar de más desde varios eventos (foco, visibilidad, tecla, clic) sin riesgo de dejarlo mudo.
+  dormir(si) {
+    const ctx = this.ctx;
+    if (!ctx || this.offline) return false;
+    if (si) {
+      if (ctx.state !== 'running') return false;
+      this.dormidoPorFoco = true;
+      try { Promise.resolve(ctx.suspend()).catch(() => {}); } catch { /* sigue */ }
+      return true;
+    }
+    if (!this.dormidoPorFoco) return false;
+    this.dormidoPorFoco = false;
+    try { Promise.resolve(ctx.resume()).catch(() => {}); } catch { /* sigue */ }
+    return true;
+  }
   // 4.8 ambiente: el silencio raro. El bosque se calla de golpe (el viento, los grillos, la música, los pájaros) hasta que se
   // rompe con `romperSilencio` (o pasan `seg` segundos). `callarAves` sólo calla a los pájaros (y, si `grillos`, a los grillos): los
   // pájaros de alrededor tuyo se callan cuando pasan duendes cerca, y los grillos cuando están encima (ver desafio-ambiente.js).

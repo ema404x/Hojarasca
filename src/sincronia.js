@@ -48,18 +48,20 @@ export function cuandoTexto(ms) {
   if (!Number(ms)) return 'hace un tiempo';
   return `${dosDigitos(f.getDate())}/${dosDigitos(f.getMonth() + 1)} a las ${dosDigitos(f.getHours())}:${dosDigitos(f.getMinutes())}`;
 }
-export function textoOferta(local, remota) {
+// 4.12.2: si la partida de la carpeta es de una versión más nueva que este juego, lo dice (y que se abrirá en sólo lectura)
+export const avisoVersionNueva = (v) => (v ? `\n\nOJO: esa partida es de la versión ${v}, más nueva que este juego: se abre en sólo lectura (podés jugar, pero no se guarda). Para seguirla y guardar, abrila con esa versión o una más nueva.` : '');
+export function textoOferta(local, remota, versionNueva = '') {
   const dia = Math.max(1, Math.floor(Number(remota?.progreso?.dia) || 1));
   const cabeza = `En tu carpeta sincronizada hay una partida más nueva: día ${dia}, guardada el ${cuandoTexto(remota?.progreso?.guardadoEn)}.`;
   const aca = local?.hay ? `\n\nLa de esta computadora es del día ${local.dia}, guardada el ${cuandoTexto(local.guardadoEn)}, y se reemplaza.` : '';
-  return `${cabeza}${aca}\n\n¿Seguimos con la de la carpeta?`;
+  return `${cabeza}${aca}${avisoVersionNueva(versionNueva)}\n\n¿Seguimos con la de la carpeta?`;
 }
 // 3.5.1: las dos siguieron. La otra computadora escribió en la carpeta después de la última copia
 // que vio esta, pero la de acá es igual de nueva o más (se siguió jugando acá, o los relojes de
 // las dos no coinciden). Antes no se preguntaba y la próxima copia de acá pisaba lo de la otra.
-export function textoDosCambiaron(local, remota) {
+export function textoDosCambiaron(local, remota, versionNueva = '') {
   const dia = Math.max(1, Math.floor(Number(remota?.progreso?.dia) || 1));
   const cabeza = `Tu otra computadora dejó en la carpeta sincronizada una partida que esta no vio: día ${dia}, guardada el ${cuandoTexto(remota?.progreso?.guardadoEn)}.`;
   const aca = local?.hay ? `\n\nAcá también se siguió jugando: día ${local.dia}, guardada el ${cuandoTexto(local.guardadoEn)}.` : '';
-  return `${cabeza}${aca}\n\n¿Seguimos con la de la carpeta? (Si no, la de acá la reemplaza en la carpeta.)`;
+  return `${cabeza}${aca}${avisoVersionNueva(versionNueva)}\n\n¿Seguimos con la de la carpeta? (Si no, la de acá la reemplaza en la carpeta.)`;
 }

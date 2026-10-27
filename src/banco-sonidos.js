@@ -620,11 +620,13 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
     }
   }
 
+  let gramolaDeLaCasa = false;   // 4.12.2
   function abrir() {
     if (abierto) return true;
     sonido.iniciar?.();
     if (!sonido.ctx) return false;
     abierto = true;
+    gramolaDeLaCasa = !!R.gramola.suena?.();   // 4.12.2: si ya sonaba la gramola de tu casa, no es del banco: abrir y cerrar (o Detener todo) no la corta
     // en el Relax los duendes son leyenda y los sonidos del Desafío no suenan: mientras el banco está abierto sí (se restaura al cerrar)
     relaxAntes = !!sonido.relax; sonido.relax = false;
     restaurar = instalar();
@@ -646,7 +648,7 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
     for (const t of timers) clearTimeout(t);
     timers.clear();
     forzados.clear();
-    try { R.gramola.detener(); } catch { /* ya */ }
+    if (!gramolaDeLaCasa) { try { R.gramola.detener(); } catch { /* ya */ } }   // 4.12.2: la de la casa que ya sonaba antes de abrir el banco queda como estaba
     const ctx = sonido.ctx;
     if (!ctx) return 0;
     const t = ctx.currentTime;
@@ -678,6 +680,7 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
     if (!abierto) return;
     detenerTodo();
     abierto = false;
+    gramolaDeLaCasa = false;
     if (restaurar) { try { restaurar(); } catch { /* ya */ } restaurar = null; }
     if (actualizarOriginal) sonido.actualizar = actualizarOriginal; else delete sonido.actualizar;
     sonido.relax = relaxAntes;
@@ -687,6 +690,7 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
   async function tocar(id, o = {}) {
     const e = porId.get(id);
     if (!e) return { ok: false, motivo: 'Ese sonido no existe' };
+    if (id === 'gramola') gramolaDeLaCasa = false;   // 4.12.2: desde acá la gramola es del banco (la prende o la apaga él)
     if (!abierto && !abrir()) return { ok: false, motivo: 'El sonido todavía no arrancó' };
     const ctx = sonido.ctx;
     try { if (ctx.state === 'suspended') await ctx.resume(); } catch { /* sigue */ }
