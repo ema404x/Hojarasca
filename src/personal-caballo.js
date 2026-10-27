@@ -5,8 +5,8 @@
 // confianza ni de cariño, y esta versión no lo inventa.
 import { registrarSeccion, elegir, color, texto } from './personalizacion.js';
 // 4.7 pantalla: cuántas casillas suman las alforjas (carga.js)
-import { CASILLAS_ALFORJAS } from './carga.js';
-import { campoColores, campoElegir, campoTexto, campoSi, marcarSi, refDelMundo, CUEROS, TINTAS } from './personal-campos.js';
+import { CASILLAS_ALFORJAS, CASILLAS_CARRO } from './carga.js';
+import { campoColores, campoElegir, campoTexto, campoSi, marcarSi, nota, refDelMundo, CUEROS, TINTAS } from './personal-campos.js';
 
 // pelo: el cuerpo; oscuro: crin, cola, hocico y medias; manchas: las del overo
 export const PELAJES_CABALLO = [
@@ -25,6 +25,7 @@ export function caballoPorDefecto() {
     nombre: '', pelaje: 'zaino',
     montura: '#5a3b24', manta: '#b9ad93', riendas: '#3a2616',
     conAlforjas: false, alforjas: '#8a5a32',
+    carro: false, enganchado: false,   // 4.11.5: ¿hiciste el carro? ¿va enganchado? (carro.js)
   };
 }
 
@@ -39,6 +40,9 @@ export function sanearCaballoPersonal(d) {
     riendas: color(v.riendas, b.riendas),
     conAlforjas: v.conAlforjas === true,
     alforjas: color(v.alforjas, b.alforjas),
+    // 4.11.5: una partida vieja no tiene estos campos y queda sin carro; no se engancha un carro que no hiciste
+    carro: v.carro === true,
+    enganchado: v.carro === true && v.enganchado === true,
   };
 }
 
@@ -64,6 +68,9 @@ export const SECCION_CABALLO = registrarSeccion({
     // 4.7: las alforjas ya no son adorno: suman lugar en la mochila mientras vas montado
     const siAlforjas = campoSi(cont, `Con alforjas (+${CASILLAS_ALFORJAS} casillas montado)`, d.conAlforjas, (v) => api.cambiar({ conAlforjas: v }));
     campoColores(cont, 'Alforjas', CUEROS, d.alforjas, (v) => { api.cambiar({ alforjas: v, conAlforjas: true }); marcarSi(siAlforjas, true); });
+    // 4.11.5: el carro se hace en tu carpintería; hecho, se engancha o se desengancha acá
+    if (d.carro) campoSi(cont, `Carro enganchado (+${CASILLAS_CARRO} casillas montado)`, d.enganchado, (v) => api.cambiar({ enganchado: v }));
+    else nota(cont, `Carro: se hace en tu carpintería, con tablas, troncos y hierro. Enganchado, suma ${CASILLAS_CARRO} casillas mientras vas montado.`);
   },
   aplicar(datos, api) {
     const caballo = refDelMundo(api, 'caballo', 'caballoMundo');

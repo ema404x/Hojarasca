@@ -94,6 +94,8 @@ export function empezarConReceta(personal, ajustes) {
   for (const k of ['estacion', 'clima', 'dificultad']) if (r[k] !== 'igual') nuevosAjustes[k] = r[k];
   // 4.1: cada partida tiene su propio Bruno: el de la vieja no pasa (la nueva pide crearlo de nuevo)
   const { bruno: _brunoViejo, ...resto } = p;
+  // 4.11.5: el carro se hizo con los materiales y la plata de la partida vieja: la nueva empieza sin carro (el caballo, sus colores y su nombre pasan)
+  if (resto.caballo && typeof resto.caballo === 'object' && !Array.isArray(resto.caballo)) resto.caballo = { ...resto.caballo, carro: false, enganchado: false };
   return {
     ajustes: nuevosAjustes,
     personal: { ...resto, partida: { ...d, actual: { animales: r.animales, vecinos: r.vecinos } } },

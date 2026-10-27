@@ -1,6 +1,6 @@
 // 4.7 pantalla: lo que se ve y se maneja del límite de carga con casillas (el Relax).
 // Las cuentas las hace `carga.js` (`capacidad`, `ocupacion`); acá sólo se las pone cara:
-//   · vistaCasillas: de `ocupacion` a la lista de casillas del panel de la mochila (24 + 12 con alforjas),
+//   · vistaCasillas: de `ocupacion` a la lista de casillas del panel de la mochila (24 + 12 con alforjas + 16 con el carro),
 //   · textos del contador y del HUD («Mochila 17/24»), con su estado (normal / llena / sobrecarga),
 //   · dibujarCasillas: arma las casillas en el panel (sólo cuando se abre o cambia la mochila),
 //   · avisoMochilaLlena(texto): el cartel «Mochila llena» del HUD (lo llama el núcleo de la carga).
@@ -30,11 +30,15 @@ export function textoContador(ocup) {
 }
 
 // Qué suma cada cosa al total, para el renglón de abajo del contador
-// extraAlforjas: cuántas casillas sumaría el caballo con alforjas si estuvieras montado (0 si no tenés ese recado)
-export function textoDetalleCapacidad(cap, extraAlforjas = 0) {
+// extraAlforjas / extraCarro: cuántas casillas sumarían las alforjas y el carro si estuvieras montado (0 si no tenés ese recado o ese carro)
+// 4.11.5: el desglose dice cada parte: «24 de la mochila + 12 de las alforjas + 16 del carro»
+export function textoDetalleCapacidad(cap, extraAlforjas = 0, extraCarro = 0) {
   if (!cap) return '';
-  if (cap.alforjas > 0) return `${cap.base} de la mochila + ${cap.alforjas} de las alforjas${cap.carro > 0 ? ` + ${cap.carro} del carro` : ''}`;
-  if (extraAlforjas > 0) return `${cap.base} de la mochila. Montado con las alforjas suman ${extraAlforjas} más`;
+  if (cap.alforjas > 0 || cap.carro > 0) return [`${cap.base} de la mochila`, cap.alforjas > 0 ? `${cap.alforjas} de las alforjas` : '', cap.carro > 0 ? `${cap.carro} del carro` : ''].filter(Boolean).join(' + ');
+  if (extraAlforjas > 0 || extraCarro > 0) {
+    const quien = extraAlforjas > 0 && extraCarro > 0 ? 'las alforjas y el carro' : extraAlforjas > 0 ? 'las alforjas' : 'el carro';
+    return `${cap.base} de la mochila. Montado con ${quien} suman ${extraAlforjas + extraCarro} más`;
+  }
   return `${cap.base} casillas en la mochila`;
 }
 
@@ -59,6 +63,8 @@ export function lineaMochila(ocup) {
 export function vistaCasillas(ocup, cap, buscar) {
   const total = Math.max(0, ocup?.total | 0);
   const base = cap && Number.isFinite(cap.base) ? Math.min(cap.base, total) : total;
+  const hastaAlforjas = Math.min(total, base + (cap && cap.alforjas > 0 ? cap.alforjas : 0));
+  const zonaDe = (i) => (i < base ? 'mochila' : i < hastaAlforjas ? 'alforjas' : 'carro');   // 4.11.5: la mochila, las alforjas y el carro, en ese orden
   const celdas = [];
   const datos = (k) => {
     const d = buscar ? buscar(k) : null;
@@ -74,10 +80,10 @@ export function vistaCasillas(ocup, cap, buscar) {
     for (let i = 0; i < pilas && resta > 0 && celdas.length < total; i++) {
       const n = Math.min(max, resta);
       resta -= n;
-      celdas.push({ vacia: false, zona: celdas.length < base ? 'mochila' : 'alforjas', k: c.k, nombre: d.nombre, icono: d.icono, id: d.id, texto: d.texto, n, max, llena: n >= max });
+      celdas.push({ vacia: false, zona: zonaDe(celdas.length), k: c.k, nombre: d.nombre, icono: d.icono, id: d.id, texto: d.texto, n, max, llena: n >= max });
     }
   }
-  while (celdas.length < total) celdas.push({ vacia: true, zona: celdas.length < base ? 'mochila' : 'alforjas', k: null, nombre: '', icono: null, id: null, texto: '', n: 0, max: 0, llena: false });
+  while (celdas.length < total) celdas.push({ vacia: true, zona: zonaDe(celdas.length), k: null, nombre: '', icono: null, id: null, texto: '', n: 0, max: 0, llena: false });
   const sobre = [];
   const s = ocup?.sobrecarga || {};
   for (const k in s) {
@@ -113,16 +119,16 @@ export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, enBarr
   const marcadas = new Set();
   vista.celdas.forEach((c, i) => {
     if (c.zona !== zonaAnterior) {
-      if (c.zona === 'alforjas') {
+      if (c.zona === 'alforjas' || c.zona === 'carro') {
         const t = doc.createElement('p');
         t.className = 'casillas-zona';
-        t.textContent = 'Alforjas del caballo';
+        t.textContent = c.zona === 'carro' ? 'Carro del caballo' : 'Alforjas del caballo';
         cont.appendChild(t);
       }
       zonaAnterior = c.zona;
     }
     const d = doc.createElement('div');
-    d.className = `casilla${c.vacia ? ' vacia' : ''}${c.llena ? ' llena' : ''}${c.zona === 'alforjas' ? ' alforja' : ''}`;
+    d.className = `casilla${c.vacia ? ' vacia' : ''}${c.llena ? ' llena' : ''}${c.zona === 'alforjas' ? ' alforja' : c.zona === 'carro' ? ' carro' : ''}`;
     if (c.vacia) {
       d.setAttribute('aria-label', 'Casilla vacía');
       cont.appendChild(d);

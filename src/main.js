@@ -28,7 +28,9 @@ import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from 
 import { guardarFoco, devolverFoco } from './foco.js';
 import { atajoBloqueadoPorPanel, fotoPosible, seguirElegida, seOfreceParaLaBarra, conTeclasPropias, piesDePaneles } from './atajos-paneles.js';
 // 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js; ocupacion y capacidad vienen en la línea de 4.7 carga, más abajo)
-import { CASILLAS_ALFORJAS } from './carga.js';
+import { CASILLAS_ALFORJAS, CASILLAS_CARRO } from './carga.js';
+// 4.11.5: el carro del caballo
+import { CARRO, faltaParaElCarro, conCarroHecho, tieneCarro, avisoCarro, casillasDelCarro, textoCasillasCarro, textoPedido } from './carro.js';
 import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila, avisoMochilaLlena } from './carga-pantalla.js';
 import { crearEnMano, cristalComoSemillaEnMano } from './enmano.js';
 import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan, cantidadMaterial, textoFaltan } from './construccion.js';
@@ -3812,10 +3814,11 @@ function anotarBarraDibujada() {
 
 // 4.7 pantalla: cuánta carga llevás (sólo en el Relax). `cargaVista` es la ocupación vigente: se rehace cuando la barra se redibuja
 // (cambió una cuenta) o cuando subís o bajás del caballo (las alforjas), nunca por cuadro.
-let cargaVista = null, cargaMontadoVisto = false;
+let cargaVista = null, cargaMontadoVisto = false, cargaCarroVisto = false;
 const ctxCargaVista = () => ({ montado: !!jugador?.estado?.montado });
 function refrescarCargaHud() {
   cargaMontadoVisto = !!jugador?.estado?.montado;
+  cargaCarroVisto = casillasDelCarro(progreso.personal?.caballo) > 0;   // 4.11.5
   cargaVista = progreso.modo === 'desafio' ? null : ocupacion(progreso, ctxCargaVista());
   ponerCargaHud($('carga-hud'), cargaVista);
 }
@@ -4056,7 +4059,7 @@ function abrirMochila(abrir) {
     dibujarSobrecarga($('mochila-sobrecarga'), vista);
     const estado = estadoCarga(ocup);
     $('mochila-contador').textContent = textoContador(ocup);
-    $('mochila-detalle').textContent = textoDetalleCapacidad(cap, progreso.personal?.caballo?.conAlforjas === true ? CASILLAS_ALFORJAS : 0);
+    $('mochila-detalle').textContent = textoDetalleCapacidad(cap, progreso.personal?.caballo?.conAlforjas === true ? CASILLAS_ALFORJAS : 0, casillasDelCarro(progreso.personal?.caballo));
     $('mochila-cabeza').classList.toggle('llena', estado === 'llena');
     $('mochila-cabeza').classList.toggle('sobrecarga', estado === 'sobrecarga');
     $('mochila-sub').textContent = `Tocá una cosa para ponerla en la casilla ${elegida + 1} de la barra. Las herramientas no ocupan lugar.`;
@@ -6628,7 +6631,7 @@ function actualizarCaballo(dt) {
   // montado, el caballo va donde vas: se anota para que al recargar esté donde lo dejaste
   if (js.montado) { const c = caballo(); c.x = d.x; c.z = d.z; c.yaw = d.yaw; }
   const cerca = js.montado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) < 170;
-  caballoMundo.actualizar(dt, d, js.velocidadActual, !!js.montado || !!js.enSulky, cerca || !!js.enSulky);   // (3.7.5 (rincones): tirando del sulky, trota)
+  caballoMundo.actualizar(dt, d, js.velocidadActual, !!js.montado || !!js.enSulky, cerca || !!js.enSulky, !!js.enSulky || (!js.montado && !!rinconesJuego?.caballoAtado?.()));   // 4.11.5: atado al sulky no lleva el carro   // (3.7.5 (rincones): tirando del sulky, trota)
   if (js.montado?.plantado) { js.montado.plantado = 0; nota(`${caballoDicho('', true)} no entra al agua honda`, 'Buscá un vado o bajate y seguí nadando'); }
 }
 
@@ -7857,9 +7860,33 @@ function avisoOficioPropio(o) {
   const id = o.plano.id;
   if (Object.hasOwn(TALLERES, id)) return avisoTaller(tallerDe(o), TALLERES[id], horaDeJuego(), envOficios());
   if (id === 'herreria-propia') return avisoHerreria(datosDe(o, 'taller', sanearHerreria), progreso.aldea, envHerreria());
-  if (id === 'carpinteria') return `Tu banco: en cada obra sobra ${Math.round(extraMadera(nivelDe('hachero')) * 100)} % más de madera`;
+  if (id === 'carpinteria') {
+    // 4.11.5: y el carro del caballo, si hay caballo: hacerlo, o qué falta, o cómo va
+    const cab = progreso.personal?.caballo;
+    if (!desafio && tieneCaballo()) return avisoCarro(cab, (k) => materialesVisibles()[k] || 0, pesosDe(progreso));
+    return `Tu banco: en cada obra sobra ${Math.round(extraMadera(nivelDe('hachero')) * 100)} % más de madera`;
+  }
   if (id === 'tienda-campo') return avisoTienda(datosDe(o, 'taller', (d) => sanearTienda(d, progreso.dia)), progreso);
   return null;
+}
+// 4.11.5: el carro del caballo se hace en tu carpintería: tablas, troncos y el hierro (en pesos). Vuelve true si dijo algo del carro
+function usarCarpinteriaCarro() {
+  const cab = progreso.personal?.caballo;
+  if (tieneCarro(cab)) {
+    nota('Tu carro', `${cab.enganchado === true ? 'Va enganchado al caballo' : 'Está guardado: enganchalo en Personalizar, «Tu caballo»'}. ${textoCasillasCarro()}`);
+    return true;
+  }
+  const f = faltaParaElCarro((k) => materialesVisibles()[k] || 0, pesosDe(progreso));
+  if (!f.ok) { nota('El carro del caballo', `Para hacerlo falta ${f.falta.join(', ')}. Pide ${textoPedido()}. Enganchado, suma ${CASILLAS_CARRO} casillas mientras vas montado`); return true; }
+  if (!pagarPesos(progreso, CARRO.pesos, 'Hierro para el carro del caballo', 'Tu carpintería').ok) { nota('El carro del caballo', `No alcanza la plata para el hierro: ${formatoPesos(CARRO.pesos)}`); return true; }
+  conMateriales((m) => { for (const k of Object.keys(CARRO.pide)) m[k] -= CARRO.pide[k]; });
+  progreso.personal = { ...progreso.personal, caballo: conCarroHecho(progreso.personal?.caballo) };
+  aplicarPersonal();
+  refrescarCargaHud();
+  sonido.juntar();
+  nota('Hiciste el carro', `Va enganchado ${caballoDicho('a')}. Montado, suma ${CASILLAS_CARRO} casillas a la mochila. Se engancha o se desengancha en Personalizar, «Tu caballo»`, true);
+  guardar();
+  return true;
 }
 function usarOficioPropio(o) {
   const id = o.plano.id;
@@ -7884,7 +7911,11 @@ function usarOficioPropio(o) {
     else nota('Todavía no hay aldea', 'El filo se anota en la libreta de la aldea');
     return true;
   }
-  if (id === 'carpinteria') { nota('Tu carpintería', textoCarpinteria(nivelDe('hachero'))); return true; }
+  if (id === 'carpinteria') {
+    if (!desafio && tieneCaballo() && usarCarpinteriaCarro()) return true;   // 4.11.5
+    nota('Tu carpintería', textoCarpinteria(nivelDe('hachero')));
+    return true;
+  }
   if (id === 'tienda-campo') {
     const t = datosDe(o, 'taller', (d) => sanearTienda(d, progreso.dia));
     venderDias(t, progreso.dia);
@@ -11100,6 +11131,7 @@ function cuadroDelJuego(tRaf, manual) {
     }
     if (mostrarNombre > 0) { mostrarNombre -= dt; if (mostrarNombre <= 0) barraVigente = false; }
     if (cargaMontadoVisto !== !!js.montado) refrescarCargaHud();   // 4.7 pantalla: montar o bajar cambia las casillas (alforjas)
+    if (cargaCarroVisto !== (casillasDelCarro(progreso.personal?.caballo) > 0)) refrescarCargaHud();   // 4.11.5: enganchar o desenganchar el carro también
     refrescarBarra();
     barraEl.classList.toggle('oculto', mochilaAbierta || js.zoom);
     $('carga-hud').classList.toggle('tapada', mochilaAbierta || js.zoom);   // 4.7 pantalla: con la mochila abierta o los prismáticos, no

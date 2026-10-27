@@ -258,6 +258,7 @@
   color: var(--p-color); background: var(--fila-fondo); border: 1px solid var(--p-linea-suave); border-radius: var(--b-radio); }
 :root[data-menu] .mochila .casilla.vacia { background: transparent; border: 1px dashed var(--p-linea-suave); }
 :root[data-menu] .mochila .casilla.alforja:not(.vacia) { background: rgba(138,90,50,.13); }
+:root[data-menu] .mochila .casilla.carro:not(.vacia) { background: rgba(90,110,70,.14); }   /* 4.11.5: las casillas del carro, un verde apagado */
 :root[data-menu] .mochila .casilla img { width: 30px; height: 30px; flex: none; }
 :root[data-menu] .mochila .casilla .nom { max-width: 100%; font-size: 13px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root[data-menu] .mochila .casilla .cta { font-size: var(--t-chico); font-weight: 700; line-height: 1.15; color: var(--p-titulo); }

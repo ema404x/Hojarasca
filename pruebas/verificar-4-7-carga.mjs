@@ -19,7 +19,7 @@ const ent = (c) => ({ dia: 1, hora: 9, cantidad: c });
 
 // ---------------------------------------------------------------- 1. capacidad y pilas
 {
-  eq([C.CASILLAS_BASE, C.CASILLAS_ALFORJAS, C.CASILLAS_CARRO], [24, 12, 0], 'la mochila tiene 24 casillas, las alforjas suman 12 y el carro (que no existe) 0');
+  eq([C.CASILLAS_BASE, C.CASILLAS_ALFORJAS, C.CASILLAS_CARRO], [24, 12, 16], 'la mochila tiene 24 casillas, las alforjas suman 12 y el carro enganchado 16 (4.11.5)');
   eq(C.capacidad(relax()), { base: 24, alforjas: 0, carro: 0, total: 24 }, 'capacidad base');
   eq(C.capacidad(relax({ personal: { caballo: { conAlforjas: true } } }), { montado: true }).total, 36, 'a caballo y con alforjas: 36');
   eq(C.capacidad(relax({ personal: { caballo: { conAlforjas: true } } }), { montado: false }).total, 24, 'a pie, las alforjas no suman');

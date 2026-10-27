@@ -6,6 +6,7 @@ import { lerp } from './ruido.js';
 import { marcha } from './caballo.js';
 import { sanearCaballoPersonal, firmaCaballo, PELAJE_CABALLO } from './personal-caballo.js';
 import { desechar } from './personal-mallas.js';
+import { ENGANCHE } from './carro.js';
 
 // 2.8: un palo de `a` a `b` (para las riendas)
 const _eje = new THREE.Vector3(), _arriba = new THREE.Vector3(0, 1, 0);
@@ -155,19 +156,65 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
   return { g, cuello, cabeza, patas };
 }
 
+// ---------------------------------------------------------------- 4.11.5: el carro
+// Un carro de campo de dos ruedas: tablón con barandas bajas, eje, ruedas de rayos con llanta de hierro y dos varas que terminan
+// en el balancín, que se engancha detrás del caballo. El origen es el suelo bajo el eje; +z mira al caballo. Las piezas que no se
+// mueven se funden en una sola malla (compactar); cada rueda es un grupo propio que gira con lo que anda.
+export const RUEDA_CARRO = 0.46;
+export function mallaCarro() {
+  const R = RUEDA_CARRO;
+  const madera = color('#7a5638'), oscura = color('#5a3e28'), tabla = color('#8a6b4a'), hierro = color('#2e2c2a');
+  const g = new THREE.Group();
+  g.rotation.order = 'YXZ';
+  // el piso de tablas (cinco, con una luz fina entre cada una), las baranda bajas y los postes de las esquinas
+  for (let i = 0; i < 5; i++) g.add(caja(tabla, [0.2, 0.045, 1.6], [-0.44 + i * 0.22, 0.68, -0.05]));
+  for (const l of [-1, 1]) g.add(caja(madera, [0.04, 0.2, 1.6], [l * 0.56, 0.82, -0.05]));
+  g.add(caja(madera, [1.16, 0.2, 0.04], [0, 0.82, -0.85]));
+  g.add(caja(madera, [1.16, 0.3, 0.04], [0, 0.87, 0.75]));
+  for (const x of [-1, 1]) for (const z of [-0.85, 0.75]) g.add(caja(oscura, [0.06, 0.5, 0.06], [x * 0.56, 0.84, z]));
+  // las dos vigas del chasis (de punta a punta), el eje y el cubo de cada rueda
+  for (const l of [-1, 1]) g.add(caja(oscura, [0.07, 0.07, 1.7], [l * 0.3, 0.62, -0.02]));
+  g.add(tubo(oscura, 0.04, 0.04, 1.5, [0, R, 0], [0, 0, Math.PI / 2], 8, true));
+  // las varas suben del chasis al balancín, que queda a la altura del lomo del caballo
+  for (const l of [-1, 1]) g.add(paloEntre(madera, 0.035, [l * 0.3, 0.62, 0.55], [l * 0.3, ENGANCHE.alto, ENGANCHE.largo]));
+  g.add(tubo(hierro, 0.025, 0.025, 0.72, [0, ENGANCHE.alto, ENGANCHE.largo], [0, 0, Math.PI / 2], 8, true));
+  // la carga: dos bolsas, un cajón y un rollo de lona
+  g.add(bola('#c9b890', [0.26, 0.17, 0.2], [-0.25, 0.84, -0.45], [0, 0.4, 0.1]));
+  g.add(bola('#bba57a', [0.24, 0.16, 0.2], [0.27, 0.83, -0.5], [0, -0.3, -0.1]));
+  g.add(caja(oscura, [0.5, 0.26, 0.4], [0.02, 0.83, 0.2]));
+  g.add(caja(color('#7a6b3a'), [0.52, 0.04, 0.42], [0.02, 0.97, 0.2]));
+  // las ruedas: la llanta de madera, la banda de hierro, el cubo y ocho rayos (cuatro pasantes)
+  const ruedas = [];
+  for (const l of [-1, 1]) {
+    const w = new THREE.Group(); w.position.set(l * 0.66, R, 0);
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R - 0.035, 0.032, 6, 22), madera));
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.013, 5, 22), hierro));
+    w.add(tubo(oscura, 0.065, 0.065, 0.16, [0, 0, 0], [0, 0, Math.PI / 2], 8, true));
+    for (let k = 0; k < 4; k++) w.add(caja(madera, [0.04, 2 * (R - 0.04), 0.035], [0, 0, 0], [(k * Math.PI) / 4, 0, 0]));
+    w.children.forEach((c) => { if (c.isMesh && c.geometry.type === 'TorusGeometry') c.rotation.y = Math.PI / 2; });
+    g.add(w); ruedas.push(w);
+  }
+  compactar(g);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return { g, ruedas };
+}
+
 export function crearCaballo(T, escena) {
   let apariencia = sanearCaballoPersonal(null);
   const m = mallaCaballo(apariencia);
   m.g.visible = false;
   escena.add(m.g);
-  const est = { x: 0, z: 0, yaw: 0, fase: 0, vel: 0, montado: false, visible: false };
+  const est = { x: 0, z: 0, yaw: 0, fase: 0, vel: 0, montado: false, visible: false, conCarro: false };
+  // 4.11.5: el carro, si lo enganchaste: sigue al balancín como un remolque (el eje queda a ENGANCHE.largo del enganche)
+  let carro = null;
+  const cs = { x: 0, z: 0, yaw: 0, listo: false, giro: 0 };
 
-  // `donde`: {x, z, yaw}. `vel`: la velocidad del jugador si va montado.
-  function actualizar(dt, donde, vel, montado, visible) {
+  // `donde`: {x, z, yaw}. `vel`: la velocidad del jugador si va montado. `sinCarro`: atado a las varas del sulky no lleva el carro.
+  function actualizar(dt, donde, vel, montado, visible, sinCarro = false) {
     est.montado = montado;
     est.visible = visible;
     m.g.visible = visible;
-    if (!visible) return;
+    if (!visible) { seguirCarro(dt, false); return; }
     est.x = donde.x; est.z = donde.z;
     est.yaw = donde.yaw;
     est.vel = lerp(est.vel, montado ? vel : 0, 1 - Math.exp(-dt * 6));
@@ -188,7 +235,42 @@ export function crearCaballo(T, escena) {
     });
     // quieto y sin jinete, cabecea y pasta un poco
     const pastando = !montado && mc.modo === 'quieto';
+    seguirCarro(dt, visible && est.conCarro && !sinCarro);
     m.cuello.rotation.x = lerp(m.cuello.rotation.x, pastando ? 0.55 + Math.sin(performance.now() / 2400) * 0.12 : (galope ? 0.18 : 0), 1 - Math.exp(-dt * 2));
+  }
+
+  // 4.11.5: el eje del carro queda siempre a ENGANCHE.largo del enganche, en la línea que lo une con él (así gira como un remolque de
+  // verdad); el piso se apoya en cuatro puntos del terreno (dos por eje) para que no lo atraviese en una ladera
+  function seguirCarro(dt, con) {
+    if (!con) { if (carro) carro.g.visible = false; cs.listo = false; return; }
+    if (!carro) { carro = mallaCarro(); escena.add(carro.g); }
+    const sy = Math.sin(est.yaw), cy = Math.cos(est.yaw);
+    const hx = est.x - sy * ENGANCHE.atras, hz = est.z - cy * ENGANCHE.atras;
+    let giro = 0;
+    let dx = hx - cs.x, dz = hz - cs.z;
+    if (!cs.listo || Math.hypot(dx, dz) > 8) { cs.yaw = est.yaw; cs.x = hx - sy * ENGANCHE.largo; cs.z = hz - cy * ENGANCHE.largo; cs.listo = true; }
+    else {
+      const d = Math.hypot(dx, dz) || 1e-6;
+      dx /= d; dz /= d;
+      const antes = { x: cs.x, z: cs.z };
+      cs.x = hx - dx * ENGANCHE.largo; cs.z = hz - dz * ENGANCHE.largo;
+      cs.yaw = Math.atan2(dx, dz);
+      giro = (Math.hypot(cs.x - antes.x, cs.z - antes.z) * (((cs.x - antes.x) * dx + (cs.z - antes.z) * dz) >= 0 ? 1 : -1)) / RUEDA_CARRO;
+    }
+    const fx = Math.sin(cs.yaw), fz = Math.cos(cs.yaw), lx = Math.cos(cs.yaw), lz = -Math.sin(cs.yaw);
+    const yA = T.altura(cs.x + fx, cs.z + fz), yR = T.altura(cs.x - fx, cs.z - fz);
+    const yD = T.altura(cs.x + lx * 0.66, cs.z + lz * 0.66), yI = T.altura(cs.x - lx * 0.66, cs.z - lz * 0.66);
+    const g = carro.g;
+    g.visible = true;
+    g.rotation.y = cs.yaw;
+    g.rotation.x = lerp(g.rotation.x, -Math.atan2(yA - yR, 2) , 1 - Math.exp(-dt * 12));
+    g.rotation.z = lerp(g.rotation.z, Math.atan2(yD - yI, 1.32), 1 - Math.exp(-dt * 12));
+    // en una ladera el carro se inclina y el balancín se corre: se acomoda el carro para que el balancín caiga justo en el enganche
+    const rx = g.rotation.x, rz = g.rotation.z, y1 = ENGANCHE.alto * Math.cos(rz), x1 = -ENGANCHE.alto * Math.sin(rz);
+    const z2 = y1 * Math.sin(rx) + ENGANCHE.largo * Math.cos(rx);
+    const gx = hx - (x1 * Math.cos(cs.yaw) + z2 * Math.sin(cs.yaw)), gz = hz - (-x1 * Math.sin(cs.yaw) + z2 * Math.cos(cs.yaw));
+    g.position.set(gx, (T.altura(gx + lx * 0.66, gz + lz * 0.66) + T.altura(gx - lx * 0.66, gz - lz * 0.66)) / 2, gz);
+    for (const w of carro.ruedas) w.rotation.x += giro;
   }
 
   const distancia = (pos) => Math.hypot(pos.x - est.x, pos.z - est.z);
@@ -197,6 +279,7 @@ export function crearCaballo(T, escena) {
   // moverlo: el grupo es el mismo, cambian las piezas de adentro.
   function personalizar(datos) {
     const nuevo = sanearCaballoPersonal(datos);
+    est.conCarro = nuevo.carro === true && nuevo.enganchado === true;   // 4.11.5
     const rearmar = firmaCaballo(nuevo) !== firmaCaballo(apariencia);
     apariencia = nuevo;
     if (!rearmar) return false;
@@ -210,5 +293,5 @@ export function crearCaballo(T, escena) {
     m.cuello.rotation.x = cuelloX;
     return true;
   }
-  return { actualizar, distancia, est, malla: m.g, personalizar, apariencia: () => apariencia, nombre: () => apariencia.nombre };
+  return { actualizar, distancia, est, malla: m.g, carro: () => carro, conCarro: () => est.conCarro, personalizar, apariencia: () => apariencia, nombre: () => apariencia.nombre };
 }

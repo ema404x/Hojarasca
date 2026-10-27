@@ -2,7 +2,8 @@
 //
 // La mochila tiene 24 casillas. Los materiales y la comida ocupan casillas (cada una guarda una pila de un
 // solo tipo, con un máximo por pila); las herramientas NO (siguen en la barra de 1 a 8). El caballo con
-// alforjas suma 12 casillas mientras vas montado. El carro no existe todavía: su bono queda en 0 de gancho.
+// alforjas suma 12 casillas mientras vas montado. 4.11.5: el carro (se hace en tu carpintería: carro.js) suma 16 más, sólo montado y
+// con el carro enganchado.
 // Sólo rige en el Relax: el Desafío («La noche de los duendes») no tiene límite.
 //
 // Las partidas viejas no pierden nada: lo que pase del límite queda en la mochila como SOBRECARGA (no se junta
@@ -14,7 +15,7 @@
 //   · progreso.cosas[k]                 (sólo los contadores de COSAS_CONTABLES: yerba, harina, ponchos…)
 import { INGREDIENTES } from './cocina-pasos.js';
 
-export const CASILLAS_BASE = 24, CASILLAS_ALFORJAS = 12, CASILLAS_CARRO = 0;
+export const CASILLAS_BASE = 24, CASILLAS_ALFORJAS = 12, CASILLAS_CARRO = 16;
 
 // ---------------------------------------------------------------- el tamaño de pila de cada cosa
 export const PILA_DEFECTO = 30;
@@ -60,12 +61,13 @@ export function pilaMax(k) {
 
 const sinLimite = (progreso) => progreso?.modo === 'desafio';
 
-// Las casillas que tenés. ctx.montado: ¿vas a caballo? (las alforjas sólo sirven montado, y sólo si las elegiste)
+// Las casillas que tenés. ctx.montado: ¿vas a caballo? (las alforjas sólo sirven montado, y sólo si las elegiste; el carro, montado, fabricado y enganchado)
 export function capacidad(progreso, ctx = {}) {
   if (sinLimite(progreso)) return { base: Infinity, alforjas: 0, carro: 0, total: Infinity };
   const base = CASILLAS_BASE;
   const alforjas = ctx && ctx.montado && progreso?.personal?.caballo?.conAlforjas === true ? CASILLAS_ALFORJAS : 0;
-  const carro = CASILLAS_CARRO;   // 4.7: el carro no existe en el juego; queda en 0 hasta que haya uno
+  const cab = progreso?.personal?.caballo;
+  const carro = ctx && ctx.montado && cab?.carro === true && cab?.enganchado === true ? CASILLAS_CARRO : 0;   // 4.11.5: el carro enganchado al caballo
   return { base, alforjas, carro, total: base + alforjas + carro };
 }
 
