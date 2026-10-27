@@ -58,7 +58,7 @@ assert.ok(main.includes("variantesLuces.actualizar(performance.now(), modo === '
 // ============================================================ 4. postproceso
 assert.ok(post.includes('renderer.autoClear = false;') && post.includes('renderer.autoClear = borrar;'), 'las pasadas no borran lo que van a tapar');
 assert.ok(post.includes('if (!renderer.autoClear) renderer.clear();'), 'la escena se borra una vez');
-assert.ok(post.includes('return { render, redimensionar, uniforms: matComponer.uniforms, destino };'));
+assert.ok(post.includes('return { render, redimensionar, uniforms: matComponer.uniforms, destino'));   // 4.12.0: la devolución suma materialComponer (para las pruebas)
 // la composición sigue siendo una sola pasada: curva, paleta, viñeta y grano en ese orden
 const iComp = post.indexOf('const COMPONER');
 for (const [a, b] of [['c = filmico(c);', '// viñeta'], ['// viñeta', '// grano fino'], ['// grano fino', 'gl_FragColor = vec4(c, 1.0);']]) {
