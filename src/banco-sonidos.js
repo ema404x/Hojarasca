@@ -24,13 +24,13 @@ import { SUELOS, TASA_PREVIA, canto } from './sonido-sintesis.js';
 // ---------------------------------------------------------------- lo que se muestra
 export const NOMBRE_BUS = { ambiente: 'El bosque', efectos: 'Efectos', musica: 'Música' };
 export const GRUPOS = [
-  { id: 'coihue', nombre: 'Desafío · El Coihue Viejo y su subida' },
-  { id: 'duendes', nombre: 'Desafío · Voces y risas de los duendes' },
-  { id: 'avisos', nombre: 'Desafío · Avisos de la noche y el miedo' },
-  { id: 'asedio', nombre: 'Desafío · Asedio: tablas, puertas y tierra' },
-  { id: 'aliados', nombre: 'Desafío · Aliados, vecinos y la campana' },
-  { id: 'defensas', nombre: 'Desafío · Defensas, trampas, fuego y brasas' },
-  { id: 'armas', nombre: 'Desafío · Armas y golpes' },
+  { id: 'coihue', nombre: 'Noche de los duendes · El Coihue Viejo y su subida' },
+  { id: 'duendes', nombre: 'Noche de los duendes · Voces y risas de los duendes' },
+  { id: 'avisos', nombre: 'Noche de los duendes · Avisos de la noche y el miedo' },
+  { id: 'asedio', nombre: 'Noche de los duendes · Asedio: tablas, puertas y tierra' },
+  { id: 'aliados', nombre: 'Noche de los duendes · Aliados, vecinos y la campana' },
+  { id: 'defensas', nombre: 'Noche de los duendes · Defensas, trampas, fuego y brasas' },
+  { id: 'armas', nombre: 'Noche de los duendes · Armas y golpes' },
   { id: 'pajaros', nombre: 'Bosque · Pájaros y animales' },
   { id: 'viento', nombre: 'Bosque · Viento y hojas' },
   { id: 'agua', nombre: 'Bosque · Agua' },
@@ -148,7 +148,7 @@ export function crearCatalogo() {
   agregar(
     entrada('coihue-camina', 'El Coihue Viejo caminando', 'coihue', 'efectos', {
       pos: true, nuevo: '4.10.0', prioridad: 1, llama: ['banco.zumbido'], como: 'banco.zumbido(pos)',
-      nota: 'Madera que cruje con voz de tronco hueco; la mitad de las veces, una raíz que se clava en la tierra. Antes era la nave.',
+      nota: 'Madera que cruje con voz de tronco hueco; la mitad de las veces, una raíz que se clava en la tierra. Es el sonido de su paso.',
       tocar: (c) => c.R.banco.zumbido(c.pos()),
     }),
     entrada('aro-brota', 'Las raíces brotan (la subida al Coihue)', 'coihue', 'efectos', {
@@ -188,7 +188,7 @@ export function crearCatalogo() {
   });
   agregar(
     entrada('duende-risa', 'La risa del duende', 'duendes', 'efectos', {
-      pos: true, fuerza: true, nuevo: '3.8.5', prioridad: 2, llama: ['sonido.risaDuende'], como: 'sonido.risaDuende(clase, { pos, intensidad })',
+      pos: true, fuerza: true, llama: ['sonido.risaDuende'], como: 'sonido.risaDuende(clase, { pos, intensidad })',
       preparar: (R) => R.sonido.prepararDuendes(), variantes: vs('Clase', CLASES_DUENDE),
       nota: 'Carcajadas sintetizadas muestra por muestra (seis por garganta). Cada vez suena una distinta.',
       tocar: (c) => c.R.sonido.risaDuende(c.v, { pos: c.pos(), intensidad: c.fuerzaValor }),
@@ -294,7 +294,7 @@ export function crearCatalogo() {
     enLinea('piedra-chicos', 'La piedra que tiran los chicos', 'aliados', { nuevo: '4.9.0', prioridad: 1, nota: 'Un «tuc» corto que baja de 620 a 300 Hz.' }),
     enLinea('reparacion-aliado', 'Un aliado repara una defensa', 'aliados', { nota: 'Un golpecito de 80 ms cada 0,55 s.' }),
     enLinea('flecha-aliada', 'La flecha de la aliada tiradora', 'aliados', { nota: 'Un tono que baja de 240 a 110 Hz.' }),
-    enLinea('fuego-herminia', 'Herminia prende un fuego', 'aliados', { nuevo: '4.9.0', prioridad: 2, nota: 'Un soplido de 350 ms.' }),
+    enLinea('fuego-herminia', 'Herminia prende un fuego', 'aliados', { nota: 'Un soplido de 350 ms.' }),
     entrada('campana-tanido', 'El tañido de la campana de alarma', 'aliados', 'efectos', {
       pos: true, nuevo: '4.9.0', prioridad: 1, llama: ['campana.sonar'], como: 'campana.sonar(pos)', preparar: (R) => R.campana.preparar(),
       nota: 'Golpe del badajo y ocho parciales de campana, seis golpes seguidos y la cola larga. 5 s.', tocar: (c) => c.R.campana.sonar(c.pos(2.2)),
@@ -302,7 +302,7 @@ export function crearCatalogo() {
     entrada('campana-vieja', 'La campana de siempre (la de antes del tañido)', 'aliados', 'efectos', {
       pos: true, llama: ['sonido.campana'], como: 'sonido.campana(pos)', nota: 'Seis golpes de seis parciales. Es la que sonaba antes; queda de reserva.', tocar: (c) => c.R.sonido.campana(c.pos(2)),
     }),
-    simple('perro-grune', 'El perro gruñe', 'aliados', 'grunirPerro', 'Garganta grave que rueda.', { nuevo: '4.8.0', prioridad: 2 }),
+    simple('perro-grune', 'El perro gruñe', 'aliados', 'grunirPerro', 'Garganta grave que rueda.'),
     simple('perro-ladra', 'El perro ladra', 'aliados', 'ladrarPerro'),
     entrada('martin-silbato', 'Martín silba al pasar la trochita', 'aliados', 'efectos', {
       pos: true, llama: ['sonido.silbato'], como: 'sonido.silbato(pos)', nota: 'El silbato de vapor con el eco del valle, en el lugar elegido.', tocar: (c) => c.R.sonido.silbato(c.pos(3)),
@@ -596,7 +596,7 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
   function registrar(nodo) {
     if (drenando || (!enCurso && tiempo() > ventanaHasta)) return;   // (lo que nace al terminar la cola —los bucles del ambiente— no es del banco)
     fuentes.add(nodo);
-    if (ultimo) ultimo.creadas++;
+    if (ultimo) { ultimo.creadas++; if (ultimo.fuentes.length < 400) ultimo.fuentes.push(nodo); }   // (las fuentes quedan para que una partida de prueba lea el grafo)
     nodo.addEventListener?.('ended', () => { fuentes.delete(nodo); });
   }
   function instalar() {
@@ -642,6 +642,7 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
   // forzados y los silencios raros. No toca el ambiente ni la música propios del juego.
   function detenerTodo() {
     generacion++;
+    ventanaHasta = 0;   // lo que nazca después ya no es de lo que se cortó
     for (const t of timers) clearTimeout(t);
     timers.clear();
     forzados.clear();
@@ -691,7 +692,7 @@ export function crearBancoSonidos(R, { catalogo = CATALOGO, tiempo = ahoraMs } =
     try { if (ctx.state === 'suspended') await ctx.resume(); } catch { /* sigue */ }
     const c = contexto(e, o);
     const gen = generacion;
-    ultimo = { id: e.id, nombre: e.nombre, bus: e.bus, busNombre: NOMBRE_BUS[e.bus], creadas: 0, desde: tiempo(), cortado: false, continuo: !!e.continuo, bucle: !!e.bucle };
+    ultimo = { id: e.id, nombre: e.nombre, bus: e.bus, busNombre: NOMBRE_BUS[e.bus], creadas: 0, fuentes: [], desde: tiempo(), cortado: false, continuo: !!e.continuo, bucle: !!e.bucle };
     const mio = ultimo;
     // lo que se sintetiza de antemano (risas, raíces, rama que cruje…) tiene que estar hecho: si no, el motor toca la versión de antes
     try { e.preparar?.(R, c.v); } catch { /* el sonido avisará */ }

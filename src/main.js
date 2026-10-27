@@ -2011,12 +2011,14 @@ function abrirBancoSonidos() {
     const motor = armarMotor(sonido, { adelante: () => ctxSonido.adelante });
     bancoSonidos = crearPanelBancoSonidos({ raiz: $('banco-sonidos'), banco: crearBancoSonidos(motor) });
   }
+  sincronizarAjustes();   // los volúmenes del panel arrancan en lo que dice Ajustes
   $('pausa').classList.add('oculto');
   bancoSonidos.abrir({ alVolverA: cerrarBancoSonidos });
 }
 function cerrarBancoSonidos() {
   if (!bancoSonidosAbierto()) return;
   bancoSonidos.cerrar();
+  sincronizarAjustes();   // y los de la pausa, en lo que se movió acá
   if (modo === 'pausa') $('pausa').classList.remove('oculto');
 }
 $('btn-banco-sonidos').addEventListener('click', abrirBancoSonidos);
@@ -2202,7 +2204,7 @@ function volverAlJuego(sinMouse = false) {
   reiniciarMedicion(autoCalidad);
   if (avisosAlEntrar.length) for (const f of avisosAlEntrar.splice(0)) setTimeout(f, 1200);
   cerrarBancoSonidos();   // 4.11.4: el banco de sonidos corta lo que suena y devuelve el motor como estaba
-  for (const id of ['pausa', 'cuaderno', 'mapa', 'banco', 'banco-sonidos']) $(id).classList.add('oculto');   // (4.0.1: y el informe del banco, que con el segundo Esc quedaba tapando el juego)
+  for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');   // (4.0.1: y el informe del banco, que con el segundo Esc quedaba tapando el juego)
   modo = 'jugando';
   entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');

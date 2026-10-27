@@ -80,7 +80,7 @@ export function crearPanelBancoSonidos({ raiz, banco }) {
     const t = document.createElement('h3'); t.textContent = e.nombre; detalle.appendChild(t);
     fila('Sale por:', NOMBRE_BUS[e.bus] + (e.bus === 'ambiente' ? ' (la perilla «El bosque»)' : e.bus === 'musica' ? ' (la perilla «Música»)' : ' (la perilla «Efectos»)'));
     if (e.nota) fila('Escuchá:', e.nota);
-    fila('Cómo se dispara:', e.como);
+    fila('Cómo se dispara:', e.como, 'bs-como');
     if (e.bucle) fila('Ojo:', 'es un sonido continuo: Enter lo prende y otro Enter lo apaga.', 'bs-ojo');
     if (e.continuo) fila('Ojo:', 'dura un buen rato: Espacio lo corta.', 'bs-ojo');
     if (e.variantes) {

@@ -79,6 +79,7 @@ const CAT = ban.catalogo;
   ok(CAT.filter((e) => e.grupo === 'pajaros' && e.id.startsWith('ave-') && e.id !== 'ave-murcielago').every((e) => e.bus === 'ambiente'), 'los pájaros salen por El bosque');
   ok(CAT.find((e) => e.id === 'gramola').bus === 'musica', 'la gramola sale por Música');
   ok(B.DISTANCIAS.length === 3 && B.LADOS.length === 4 && B.FUERZAS.length === 3, 'hay distancias, lados y fuerzas para elegir');
+  ok(B.DISTANCIAS.map((d) => d.metros).join() === '6,25,60' && B.LADOS.map((l) => l.grados).join() === '0,90,180,270', 'las distancias son 6, 25 y 60 m y los lados giran de a 90 grados');
 }
 
 // ---------------------------------------------------------------- las funciones reales
@@ -100,7 +101,7 @@ const TODOS = ['ambiente', 'efectos', 'musica'];
 const mundo = () => ({ cam: { x: 0, y: 1.7, z: 0 }, adelante: { x: 0, y: 0, z: -1 }, viento: 0.1, bosque: 0.5, arroyo: 0, orilla: 0, lluvia: 0, noche: 0, invierno: 0, otono: 0, fuego: null, bajoTecho: false, espacio: 'bosque', techo: null, panal: null, cascada: null, cercaMallin: false, puntoCercano: () => ({ x: 20, y: 1, z: 20 }) });
 s.oyente = { x: 0, y: 1.7, z: 0 };
 const final = (p) => { const e = p.eventos.filter((x) => x[0] === 'set' || x[0] === 'tgt' || x[0] === 'lin').at(-1); return e ? e[1] : p.value; };
-const BUCLES = { viento: ['gViento'], lluvia: ['gLluvia', 'gLluviaGrave'], arroyo: ['gArroyo', 'gArroyoMedio'], orilla: ['gOrilla'], cascada: ['gCascada'], fuego: ['gFuego', 'gFuegoMedio'], panal: ['gPanal', 'gPanalTono'], grillos: ['gGrillos'], 'techo-lluvia': ['gTechoCama'] };
+const BUCLES = { viento: ['gViento', 'gHojas'], lluvia: ['gLluvia', 'gLluviaGrave'], arroyo: ['gArroyo', 'gArroyoMedio'], orilla: ['gOrilla'], cascada: ['gCascada'], fuego: ['gFuego', 'gFuegoMedio'], panal: ['gPanal', 'gPanalTono'], grillos: ['gGrillos'], 'techo-lluvia': ['gTechoCama'] };
 
 ban.abrir();
 await ban.drenar(60000);   // lo que nace al terminar la cola de arranque (los bucles del ambiente) no es del banco
@@ -114,6 +115,11 @@ for (const e of CAT) {
   ok(r.bus === e.bus && r.busNombre === B.NOMBRE_BUS[e.bus], `${e.id}: el resultado no dice por qué bus sale`);
   const u = ban.estado().ultimo;
   ok(u && u.id === e.id && u.busNombre === B.NOMBRE_BUS[e.bus], `${e.id}: el estado no dice qué suena ni por qué bus`);
+  // las fuentes que el banco anotó como suyas son justo las que nacieron de este sonido (para poder cortarlas)
+  if (!e.bucle && !e.sinFuentes) {
+    const creadas = nodos.slice(n0).filter(esFuente).length;
+    ok(u.creadas === creadas && u.fuentes.length === creadas && u.fuentes.every((f) => nodos.indexOf(f) >= n0), `${e.id}: el banco anotó ${u.creadas} fuentes y nacieron ${creadas}`);
+  }
   const llamadasPropias = e.bucle ? [] : e.llama;
   for (const ruta of llamadasPropias) if (!llamadas.includes(ruta)) SIN_LLAMAR.push(`${e.id} no llamó a ${ruta} (llamó a: ${[...new Set(llamadas)].join(', ')})`);
   if (e.bucle) {
@@ -222,6 +228,21 @@ ok(!MAL_BUS.length, 'buses: ' + MAL_BUS.slice(0, 8).join(' | '));
   ok(s.avesCalladas, 'los pájaros se callan');
   ban.detenerTodo();
   ok(!s.avesCalladas, '«Detener todo» devuelve a los pájaros');
+  // lo que nace después de cortar (o al terminar la cola, como los bucles del ambiente) no es del banco: «Detener todo» no lo toca
+  {
+    ban.detenerTodo(); ctx.avanzar(1);
+    await ban.tocar('ui-juntar', {});
+    let ajena = null;
+    s.preparar('prueba-cola-4114', function* () { return new Float32Array(100); }, (buf) => { ajena = ctx.createBufferSource(); ajena.buffer = buf; ajena.loop = true; ajena.start(0); }, 16000);
+    await ban.tocar('ui-juntar', {});   // drena la cola con una ventana abierta: la fuente de la cola nace ahí
+    ok(ajena && !ban.estado().ultimo.fuentes.includes(ajena), 'las fuentes que nacen al terminar la cola no se anotan como del banco');
+    ban.detenerTodo();
+    const despuesDeCortar = ctx.createBufferSource(); despuesDeCortar.start(0);
+    ok(ban.estado().fuentesVivas === 0, 'lo que nace después de «Detener todo» no se anota como del banco');
+    ok(ajena && !ajena.parada, 'y «Detener todo» no corta lo que no es del banco (el bucle de la cola sigue)');
+    ajena?.stop(ctx.currentTime); despuesDeCortar.stop(ctx.currentTime);
+    ctx.avanzar(1);
+  }
   // la salida general vuelve a su volumen (fundido corto para no hacer clic)
   await ban.tocar('arbol-cae', {});
   const e0 = s.master.gain.eventos.length;
@@ -297,7 +318,8 @@ ok(!MAL_BUS.length, 'buses: ' + MAL_BUS.slice(0, 8).join(' | '));
   for (const k of ['volumen', 'volumenAmbiente', 'volumenEfectos', 'volumenMusica']) ok(panel.includes(`data-ajuste-rango="${k}"`), `el panel tiene el volumen ${k}`);
   // Escape lo cierra y vuelve a la pausa; y mientras está abierto las otras teclas no llegan al juego
   ok(/if \(bancoSonidosAbierto\(\)\) \{\s*if \(e\.code === 'Escape'\) \{ e\.preventDefault\(\); cerrarBancoSonidos\(\); \}/.test(main), 'Escape cierra el banco de sonidos');
-  ok(/function cerrarBancoSonidos\(\) \{[^}]*bancoSonidos\.cerrar\(\);\s*if \(modo === 'pausa'\) \$\('pausa'\)\.classList\.remove\('oculto'\);/.test(main), 'al cerrarlo vuelve la pausa');
+  ok(/function cerrarBancoSonidos\(\) \{[^}]*bancoSonidos\.cerrar\(\);[^}]*if \(modo === 'pausa'\) \$\('pausa'\)\.classList\.remove\('oculto'\);/.test(main), 'al cerrarlo vuelve la pausa');
+  ok(/function cerrarBancoSonidos\(\) \{[^}]*sincronizarAjustes\(\);/.test(main) && /function abrirBancoSonidos\(\) \{[\s\S]{0,400}sincronizarAjustes\(\);/.test(main), 'abrir y cerrar sincronizan los volúmenes del panel con los de la pausa');
   ok(/function abrir\(cual\) \{\s*if \(cual === 'pausa' && bancoSonidosAbierto\(\)\) return;/.test(main), 'perder el foco no pone la pausa encima del banco');
   ok(/function volverAlJuego\([^)]*\) \{[\s\S]{0,400}cerrarBancoSonidos\(\);/.test(main), 'volver al juego cierra el banco (y corta lo que suena)');
 }

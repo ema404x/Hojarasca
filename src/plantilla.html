@@ -43,40 +43,44 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
     .banco-corriendo small { display: block; margin-top: 7px; font-size: 12px; opacity: .55; }
     #banco .panel-modal { max-width: 700px; width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow: auto; }
     /* 4.11.4: el banco de sonidos: la lista a la izquierda, lo que suena, las opciones y los volúmenes a la derecha */
-    #banco-sonidos .panel-modal { max-width: 1120px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow: auto; padding: 22px 28px 18px; }
-    #banco-sonidos .panel-modal .sub { margin: 0 0 12px; }
-    #banco-sonidos h2 { margin: 0 0 4px; }
-    .bs-cuerpo { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
-    .bs-lista { max-height: calc(100vh - 210px); overflow-y: auto; border: 1px solid rgba(239,230,210,.25); border-radius: 8px; background: rgba(0,0,0,.2); outline: none; }
+    #banco-sonidos .panel-modal { max-width: 1120px; width: calc(100vw - 32px); max-height: calc(100vh - 24px); overflow: auto; padding: 18px 26px 12px; }
+    #banco-sonidos h2 { margin: 0; font-size: clamp(28px, 3.4vw, 40px); }
+    .bs-cabecera { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px 16px; flex-wrap: wrap; margin-bottom: 2px; }
+    #banco-sonidos .panel-modal .sub { margin: 0 0 10px; max-width: none; font-size: 14px; }
+    .bs-cuerpo { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    .bs-lista { max-height: calc(100vh - 322px); min-height: 160px; overflow-y: auto; border: 1px solid rgba(239,230,210,.25); border-radius: 8px; background: rgba(0,0,0,.2); outline: none; }
     .bs-lista:focus-visible { border-color: var(--luz); box-shadow: 0 0 0 2px rgba(239,230,210,.35); }
-    .bs-grupo { position: sticky; top: 0; z-index: 1; padding: 6px 12px 5px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: rgba(239,230,210,.7); background: rgba(24,32,26,.97); border-bottom: 1px solid rgba(239,230,210,.14); }
-    .bs-item { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 5px 12px 4px; font-size: 15px; cursor: pointer; border-left: 3px solid transparent; }
+    .bs-grupo { position: sticky; top: 0; z-index: 1; padding: 5px 12px 4px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: rgba(239,230,210,.8); background: rgba(24,32,26,.97); border-bottom: 1px solid rgba(239,230,210,.14); }
+    .bs-item { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 4px 12px 3px; font-size: 15px; cursor: pointer; border-left: 3px solid transparent; }
     .bs-item:hover { background: rgba(239,230,210,.08); }
     .bs-item.elegido { background: rgba(166,255,110,.16); border-left-color: #a6ff6e; }
     .bs-marcas { display: inline-flex; gap: 6px; align-items: baseline; flex: none; font-size: 12px; }
     .bs-marcas b { font-weight: 600; padding: 0 6px; border-radius: 99px; background: #a6ff6e; color: #16210f; }
     .bs-marcas b.bs-cambio { background: #e8c872; color: #2a2210; }
     .bs-bus { font-style: normal; opacity: .6; }
-    .bs-der { display: grid; gap: 10px; min-width: 0; }
-    .bs-sonando { padding: 8px 12px; border-radius: 8px; font-size: 15px; background: rgba(239,230,210,.08); border: 1px solid rgba(239,230,210,.2); min-height: 2.6em; }
+    .bs-der { display: grid; gap: 8px; min-width: 0; max-height: calc(100vh - 322px); overflow-y: auto; align-content: start; }
+    .bs-sonando { padding: 7px 12px; border-radius: 8px; font-size: 15px; line-height: 1.3; background: rgba(239,230,210,.08); border: 1px solid rgba(239,230,210,.2); min-height: 2.7em; }
     .bs-sonando[data-estado="suena"] { background: rgba(166,255,110,.16); border-color: #a6ff6e; }
     .bs-sonando[data-estado="nada"] { background: rgba(232,160,138,.16); border-color: #e8a08a; }
-    .bs-detalle h3 { margin: 0 0 4px; font-size: 18px; }
-    .bs-detalle p { margin: 0 0 3px; font-size: 14px; line-height: 1.35; color: rgba(239,230,210,.85); }
-    .bs-detalle .bs-ojo { color: #e8c872; }
-    .bs-opciones { display: grid; gap: 6px; }
-    .bs-fila { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: center; font-size: 14px; }
+    .bs-detalle h3 { margin: 0 0 3px; font-size: 18px; }
+    .bs-detalle p { margin: 0 0 2px; font-size: 14px; line-height: 1.3; }
+    .bs-detalle .bs-ojo { font-weight: 600; }
+    .bs-opciones { display: grid; gap: 5px; }
+    .bs-fila { display: grid; grid-template-columns: 7em 1fr; gap: 8px; align-items: center; font-size: 14px; }
     .bs-fila[hidden] { display: none; }
-    .bs-fila.bs-sin-efecto { opacity: .38; }
+    .bs-fila.bs-sin-efecto { opacity: .4; }
     .bs-fila .segmentos { flex-wrap: wrap; }
     .bs-fila .segmentos button { font-size: 13px; padding: 3px 9px 2px; }
-    .bs-fila select { font: inherit; font-size: 14px; padding: 3px 6px; border-radius: 6px; color: inherit; background: rgba(0,0,0,.3); border: 1px solid rgba(239,230,210,.35); max-width: 100%; }
-    .bs-volumenes { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid rgba(239,230,210,.18); }
-    .bs-volumenes h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: rgba(239,230,210,.75); }
-    .bs-vol { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: center; font-size: 14px; }
-    #banco-sonidos .acciones-modal { margin-top: 4px; flex-wrap: wrap; }
-    #banco-sonidos .seguir { margin: 10px 0 0; font-size: 12.5px; color: rgba(239,230,210,.6); line-height: 1.9; }
-    @media (max-width: 860px) { .bs-cuerpo { grid-template-columns: 1fr; } .bs-lista { max-height: 36vh; } }
+    .bs-fila select { font: inherit; font-size: 14px; padding: 3px 6px; border-radius: 6px; max-width: 100%; }
+    .bs-volumenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 4px 18px; align-items: end; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(239,230,210,.25); }
+    .bs-volumenes h3 { grid-column: 1 / -1; margin: 0; font-size: 14px; font-weight: 600; }
+    .bs-vol { display: grid; gap: 1px; font-size: 14px; }
+    #banco-sonidos .acciones-modal { margin: 0; padding: 0; border: 0; flex-wrap: wrap; gap: 8px; }
+    #banco-sonidos .acciones-modal button { font-size: 15px; padding: 5px 12px 4px; }
+    #banco-sonidos .seguir { margin: 4px 0 0; max-width: none; font-size: 12.5px; line-height: 1.9; }
+    #banco-sonidos .seguir kbd { font-size: 11px; min-width: 1.4em; padding: 0 .3em; margin-right: .15em; border-bottom-width: 1px; }
+    @media (max-height: 780px) { #banco-sonidos .panel-modal .sub, .bs-como { display: none; } .bs-lista, .bs-der { max-height: calc(100vh - 290px); } }
+    @media (max-width: 860px) { .bs-cuerpo { grid-template-columns: 1fr; } .bs-lista { max-height: 36vh; } .bs-volumenes { grid-template-columns: 1fr 1fr; } }
     #banco-informe { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; line-height: 1.45; white-space: pre; overflow-x: auto; background: rgba(0,0,0,.24); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
     /* accesibilidad: toda la interfaz se agranda junta, sin tocar el mundo */
     :root { --escala-letra: 1; --peligro: #ff5a3d; --salud: #a6ff6e; --aviso-color: #e0b12a; }
@@ -1171,7 +1175,10 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 
 <section id="banco-sonidos" class="velo oculto" role="dialog" aria-modal="true" aria-labelledby="bs-titulo">
   <div class="panel-modal">
-    <h2 id="bs-titulo">Banco de sonidos</h2>
+    <div class="bs-cabecera">
+      <h2 id="bs-titulo">Banco de sonidos</h2>
+      <div class="acciones-modal"><button id="bs-oir">Oírlo (Enter)</button><button id="bs-parar">Detener todo (Espacio)</button><button id="bs-volver">Volver a la pausa (Esc)</button></div>
+    </div>
     <p class="sub">Para oír cada sonido del juego sin jugar hasta provocarlo. No toca tu partida: no guarda nada ni gasta nada.</p>
     <div class="bs-cuerpo">
       <div id="bs-lista" class="bs-lista" role="listbox" tabindex="0" aria-label="Sonidos del juego"></div>
@@ -1184,18 +1191,17 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
           <div class="bs-fila" id="bs-fila-lado"><span>Desde dónde</span><div class="segmentos" id="bs-lado"></div></div>
           <div class="bs-fila" id="bs-fila-fuerza"><span>Fuerza</span><div class="segmentos" id="bs-fuerza"></div></div>
         </div>
-        <div class="bs-volumenes">
-          <h3>Volúmenes (los de verdad, los mismos de Ajustes)</h3>
-          <label class="bs-vol"><span>Volumen general</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumen"></label>
-          <label class="bs-vol"><span>El bosque</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenAmbiente"></label>
-          <label class="bs-vol"><span>Efectos</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenEfectos"></label>
-          <label class="bs-vol"><span>Música</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenMusica"></label>
-          <div class="bs-vol"><span>La música</span><div class="segmentos" data-ajuste="musica"><button data-valor="true">Con piano</button><button data-valor="false">Solo el bosque</button></div></div>
-        </div>
-        <div class="acciones-modal"><button id="bs-oir">Oírlo (Enter)</button><button id="bs-parar">Detener todo (Espacio)</button><button id="bs-volver">Volver a la pausa (Esc)</button></div>
       </div>
     </div>
-    <p class="seguir"><kbd>↑</kbd><kbd>↓</kbd> elegir · <kbd>Enter</kbd> oírlo · <kbd>←</kbd><kbd>→</kbd> variante · <kbd>Espacio</kbd> detener todo · <kbd>D</kbd> distancia · <kbd>L</kbd> lado · <kbd>F</kbd> fuerza · <kbd>Re Pág</kbd><kbd>Av Pág</kbd> otro grupo · <kbd>Tab</kbd> volúmenes · <kbd>Esc</kbd> volver</p>
+    <div class="bs-volumenes">
+      <h3>Volúmenes: los de verdad, los mismos de Ajustes</h3>
+      <label class="bs-vol"><span>Volumen general</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumen"></label>
+      <label class="bs-vol"><span>El bosque</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenAmbiente"></label>
+      <label class="bs-vol"><span>Efectos</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenEfectos"></label>
+      <label class="bs-vol"><span>Música</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenMusica"></label>
+      <div class="bs-vol"><span>La música</span><div class="segmentos" data-ajuste="musica"><button data-valor="true">Con piano</button><button data-valor="false">Solo el bosque</button></div></div>
+    </div>
+    <p class="seguir"><kbd>↑</kbd><kbd>↓</kbd> elegir · <kbd>Enter</kbd> oírlo · <kbd>←</kbd><kbd>→</kbd> variante · <kbd>Espacio</kbd> detener todo · <kbd>D</kbd> distancia · <kbd>L</kbd> lado · <kbd>F</kbd> fuerza · <kbd>Re Pág</kbd><kbd>Av Pág</kbd> grupo · <kbd>Tab</kbd> volúmenes · <kbd>Esc</kbd> volver</p>
   </div>
 </section>
 
