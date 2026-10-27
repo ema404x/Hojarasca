@@ -42,6 +42,41 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
     .banco-corriendo .barra i { display: block; height: 100%; width: var(--avance, 0%); background: var(--musgo); transition: width .2s linear; }
     .banco-corriendo small { display: block; margin-top: 7px; font-size: 12px; opacity: .55; }
     #banco .panel-modal { max-width: 700px; width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow: auto; }
+    /* 4.11.4: el banco de sonidos: la lista a la izquierda, lo que suena, las opciones y los volúmenes a la derecha */
+    #banco-sonidos .panel-modal { max-width: 1120px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow: auto; padding: 22px 28px 18px; }
+    #banco-sonidos .panel-modal .sub { margin: 0 0 12px; }
+    #banco-sonidos h2 { margin: 0 0 4px; }
+    .bs-cuerpo { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+    .bs-lista { max-height: calc(100vh - 210px); overflow-y: auto; border: 1px solid rgba(239,230,210,.25); border-radius: 8px; background: rgba(0,0,0,.2); outline: none; }
+    .bs-lista:focus-visible { border-color: var(--luz); box-shadow: 0 0 0 2px rgba(239,230,210,.35); }
+    .bs-grupo { position: sticky; top: 0; z-index: 1; padding: 6px 12px 5px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: rgba(239,230,210,.7); background: rgba(24,32,26,.97); border-bottom: 1px solid rgba(239,230,210,.14); }
+    .bs-item { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 5px 12px 4px; font-size: 15px; cursor: pointer; border-left: 3px solid transparent; }
+    .bs-item:hover { background: rgba(239,230,210,.08); }
+    .bs-item.elegido { background: rgba(166,255,110,.16); border-left-color: #a6ff6e; }
+    .bs-marcas { display: inline-flex; gap: 6px; align-items: baseline; flex: none; font-size: 12px; }
+    .bs-marcas b { font-weight: 600; padding: 0 6px; border-radius: 99px; background: #a6ff6e; color: #16210f; }
+    .bs-marcas b.bs-cambio { background: #e8c872; color: #2a2210; }
+    .bs-bus { font-style: normal; opacity: .6; }
+    .bs-der { display: grid; gap: 10px; min-width: 0; }
+    .bs-sonando { padding: 8px 12px; border-radius: 8px; font-size: 15px; background: rgba(239,230,210,.08); border: 1px solid rgba(239,230,210,.2); min-height: 2.6em; }
+    .bs-sonando[data-estado="suena"] { background: rgba(166,255,110,.16); border-color: #a6ff6e; }
+    .bs-sonando[data-estado="nada"] { background: rgba(232,160,138,.16); border-color: #e8a08a; }
+    .bs-detalle h3 { margin: 0 0 4px; font-size: 18px; }
+    .bs-detalle p { margin: 0 0 3px; font-size: 14px; line-height: 1.35; color: rgba(239,230,210,.85); }
+    .bs-detalle .bs-ojo { color: #e8c872; }
+    .bs-opciones { display: grid; gap: 6px; }
+    .bs-fila { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: center; font-size: 14px; }
+    .bs-fila[hidden] { display: none; }
+    .bs-fila.bs-sin-efecto { opacity: .38; }
+    .bs-fila .segmentos { flex-wrap: wrap; }
+    .bs-fila .segmentos button { font-size: 13px; padding: 3px 9px 2px; }
+    .bs-fila select { font: inherit; font-size: 14px; padding: 3px 6px; border-radius: 6px; color: inherit; background: rgba(0,0,0,.3); border: 1px solid rgba(239,230,210,.35); max-width: 100%; }
+    .bs-volumenes { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid rgba(239,230,210,.18); }
+    .bs-volumenes h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: rgba(239,230,210,.75); }
+    .bs-vol { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: center; font-size: 14px; }
+    #banco-sonidos .acciones-modal { margin-top: 4px; flex-wrap: wrap; }
+    #banco-sonidos .seguir { margin: 10px 0 0; font-size: 12.5px; color: rgba(239,230,210,.6); line-height: 1.9; }
+    @media (max-width: 860px) { .bs-cuerpo { grid-template-columns: 1fr; } .bs-lista { max-height: 36vh; } }
     #banco-informe { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; line-height: 1.45; white-space: pre; overflow-x: auto; background: rgba(0,0,0,.24); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
     /* accesibilidad: toda la interfaz se agranda junta, sin tocar el mundo */
     :root { --escala-letra: 1; --peligro: #ff5a3d; --salud: #a6ff6e; --aviso-color: #e0b12a; }
@@ -950,6 +985,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <button id="btn-foto-modo">Modo foto<kbd>F2</kbd></button>
         <button id="btn-album">Llevarte el cuaderno</button>
         <button id="btn-banco">Banco de pruebas</button>
+        <button id="btn-banco-sonidos">Banco de sonidos</button>
         <button id="btn-base" class="oculto">Estado de la base<kbd>N</kbd></button>
         <button id="btn-vuelta" class="oculto">Otra vuelta a La noche de los duendes</button>
         <button id="btn-teclas">Teclas y mando</button>
@@ -1130,6 +1166,36 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <p class="sub">Cuánto rinde tu equipo en el mismo recorrido de siempre.</p>
     <div id="banco-informe"></div>
     <div class="acciones-modal"><button id="banco-copiar">Copiar</button><button id="banco-guardar">Guardar archivo</button><button id="cerrar-banco">Volver</button></div>
+  </div>
+</section>
+
+<section id="banco-sonidos" class="velo oculto" role="dialog" aria-modal="true" aria-labelledby="bs-titulo">
+  <div class="panel-modal">
+    <h2 id="bs-titulo">Banco de sonidos</h2>
+    <p class="sub">Para oír cada sonido del juego sin jugar hasta provocarlo. No toca tu partida: no guarda nada ni gasta nada.</p>
+    <div class="bs-cuerpo">
+      <div id="bs-lista" class="bs-lista" role="listbox" tabindex="0" aria-label="Sonidos del juego"></div>
+      <div class="bs-der">
+        <div id="bs-sonando" class="bs-sonando" role="status" aria-live="polite" data-estado="quieto">Todavía no sonó nada.</div>
+        <div id="bs-detalle" class="bs-detalle"></div>
+        <div class="bs-opciones">
+          <div class="bs-fila" id="bs-fila-variante" hidden><span id="bs-rotulo-variante">Variante</span><select id="bs-variante" aria-labelledby="bs-rotulo-variante"></select></div>
+          <div class="bs-fila" id="bs-fila-distancia"><span>Distancia</span><div class="segmentos" id="bs-distancia"></div></div>
+          <div class="bs-fila" id="bs-fila-lado"><span>Desde dónde</span><div class="segmentos" id="bs-lado"></div></div>
+          <div class="bs-fila" id="bs-fila-fuerza"><span>Fuerza</span><div class="segmentos" id="bs-fuerza"></div></div>
+        </div>
+        <div class="bs-volumenes">
+          <h3>Volúmenes (los de verdad, los mismos de Ajustes)</h3>
+          <label class="bs-vol"><span>Volumen general</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumen"></label>
+          <label class="bs-vol"><span>El bosque</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenAmbiente"></label>
+          <label class="bs-vol"><span>Efectos</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenEfectos"></label>
+          <label class="bs-vol"><span>Música</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenMusica"></label>
+          <div class="bs-vol"><span>La música</span><div class="segmentos" data-ajuste="musica"><button data-valor="true">Con piano</button><button data-valor="false">Solo el bosque</button></div></div>
+        </div>
+        <div class="acciones-modal"><button id="bs-oir">Oírlo (Enter)</button><button id="bs-parar">Detener todo (Espacio)</button><button id="bs-volver">Volver a la pausa (Esc)</button></div>
+      </div>
+    </div>
+    <p class="seguir"><kbd>↑</kbd><kbd>↓</kbd> elegir · <kbd>Enter</kbd> oírlo · <kbd>←</kbd><kbd>→</kbd> variante · <kbd>Espacio</kbd> detener todo · <kbd>D</kbd> distancia · <kbd>L</kbd> lado · <kbd>F</kbd> fuerza · <kbd>Re Pág</kbd><kbd>Av Pág</kbd> otro grupo · <kbd>Tab</kbd> volúmenes · <kbd>Esc</kbd> volver</p>
   </div>
 </section>
 

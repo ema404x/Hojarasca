@@ -265,6 +265,9 @@ import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMap
 import { crearDesafio } from './desafio.js';
 import { contenidoFortin } from './desafio-fortin.js';
 import { crearBanco } from './desafio-sonidos.js';
+// 4.11.4: el banco de sonidos (se abre desde la pausa)
+import { armarMotor, crearBancoSonidos } from './banco-sonidos.js';
+import { crearPanelBancoSonidos } from './banco-sonidos-panel.js';
 import { fusionarPorMaterial } from './fusion.js';
 import { dibujarLogros, CSS_LOGROS } from './desafio-logros.js';
 import { crearLogrosRelax } from './logros-relax.js';
@@ -1738,6 +1741,7 @@ $('cerrar-billetera').addEventListener('click', cerrarBilletera);
 // ------------------------------------------------------------------ menús
 let abiertoEn = 0;
 function abrir(cual) {
+  if (cual === 'pausa' && bancoSonidosAbierto()) return;   // 4.11.4: el banco de sonidos ya es una pausa (perder el foco no la pisa)
   abiertoEn = performance.now();
   if (cual !== 'jugando') {
     // 3.6.1: la pausa (o el cuaderno, o el mapa) cierra el modo foto: perder el foco (Alt+Tab, otra
@@ -1839,7 +1843,8 @@ function abrirModoFoto(encender) {
     libre.activa = true;
     modo = 'jugando';
     // 4.0.3 (G7): también la billetera, el estado de la base y los demás paneles de la pausa (con F2 desde ahí quedaban encima del modo foto y, al salir, la pausa se dibujaba sobre el juego)
-    for (const id of ['pausa', 'cuaderno', 'mapa', 'banco', 'partidas', 'guia', 'teclas', 'personalizar', 'billetera', 'base', 'logros', 'modos31', 'controles-completos', 'creditos']) $(id).classList.add('oculto');
+    cerrarBancoSonidos();   // 4.11.4
+    for (const id of ['pausa', 'cuaderno', 'mapa', 'banco', 'banco-sonidos', 'partidas', 'guia', 'teclas', 'personalizar', 'billetera', 'base', 'logros', 'modos31', 'controles-completos', 'creditos']) $(id).classList.add('oculto');
     origenPersonal = null; origenBase = null;
     $('hud').classList.add('oculto');
     $('foto-panel').classList.remove('oculto');
@@ -1998,6 +2003,23 @@ function actualizarBanco(dtReal) {
   $('banco-barra').style.setProperty('--avance', `${Math.round((hecho / banco.corrida.recorrido.length) * 100)}%`);
 }
 $('btn-banco').addEventListener('click', () => empezarBanco());
+// 4.11.4: el banco de sonidos. Se arma la primera vez que se abre; no toca la partida (sólo hace sonar el motor de audio). Escape lo cierra y vuelve a la pausa.
+let bancoSonidos = null;
+const bancoSonidosAbierto = () => !!bancoSonidos?.abierto();
+function abrirBancoSonidos() {
+  if (!bancoSonidos) {
+    const motor = armarMotor(sonido, { adelante: () => ctxSonido.adelante });
+    bancoSonidos = crearPanelBancoSonidos({ raiz: $('banco-sonidos'), banco: crearBancoSonidos(motor) });
+  }
+  $('pausa').classList.add('oculto');
+  bancoSonidos.abrir({ alVolverA: cerrarBancoSonidos });
+}
+function cerrarBancoSonidos() {
+  if (!bancoSonidosAbierto()) return;
+  bancoSonidos.cerrar();
+  if (modo === 'pausa') $('pausa').classList.remove('oculto');
+}
+$('btn-banco-sonidos').addEventListener('click', abrirBancoSonidos);
 $('btn-banco-inicio').addEventListener('click', () => empezarBanco());
 $('cerrar-banco').addEventListener('click', () => { $('banco').classList.add('oculto'); if (modo !== 'inicio') abrir('pausa'); });   // (4.0.1: desde la portada no se abre la pausa)
 $('banco-copiar').addEventListener('click', async () => {
@@ -2179,7 +2201,8 @@ const avisosAlEntrar = [];
 function volverAlJuego(sinMouse = false) {
   reiniciarMedicion(autoCalidad);
   if (avisosAlEntrar.length) for (const f of avisosAlEntrar.splice(0)) setTimeout(f, 1200);
-  for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');   // (4.0.1: y el informe del banco, que con el segundo Esc quedaba tapando el juego)
+  cerrarBancoSonidos();   // 4.11.4: el banco de sonidos corta lo que suena y devuelve el motor como estaba
+  for (const id of ['pausa', 'cuaderno', 'mapa', 'banco', 'banco-sonidos']) $(id).classList.add('oculto');   // (4.0.1: y el informe del banco, que con el segundo Esc quedaba tapando el juego)
   modo = 'jugando';
   entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');
@@ -3318,6 +3341,12 @@ let objetivo = null;
 document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (capturandoTecla) { e.preventDefault(); tomarTeclaNueva(e.code); return; }
+  // 4.11.4: con el banco de sonidos abierto las teclas son suyas (lo lee banco-sonidos-panel.js); acá sólo Escape, que vuelve a la pausa
+  if (bancoSonidosAbierto()) {
+    if (e.code === 'Escape') { e.preventDefault(); cerrarBancoSonidos(); }
+    else if (/^F([1-9]|10|12)$/.test(e.code)) e.preventDefault();
+    return;
+  }
   // 3.8.6: con Teclas, Controles o Créditos abiertos sólo Esc hace algo (cierra ése): antes F1, F5 o F2 abrían otro panel o
   // el modo foto por encima y Esc cerraba el de abajo
   if (teclasAbiertas() || infoAbierta()) {
@@ -11449,6 +11478,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // el banco de sonidos del Desafío armado contra el motor que se le pase: así el
     // renderizador de sonidos puede sacar a un archivo lo mismo que suena jugando
     __bancoSonidos: (motor) => crearBanco(motor || sonido),
+    __bancoSonidosUI: () => bancoSonidos,   // 4.11.4: el panel del banco de sonidos (para las partidas de prueba)
     // 3.8.4: las voces de los vecinos y el silbato del taller, para el banco de sonidos (pruebas/render-sonidos.cjs)
     __vozDe: vozDe, __planBalbuceo: planBalbuceo, __silbatoDelTren: silbatoDelTren,
     __fusionar: fusionarPorMaterial,

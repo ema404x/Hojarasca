@@ -11,6 +11,15 @@ import { sanearHuevos, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cump
 import { sintetizarTango, sintetizarMorse, TASA_RADIO } from './radio-madrugada.js';
 import { sumarAmistadDe, nombreCorto } from './vecindad.js';
 
+// 4.11.4: la salida de la emisora de la madrugada (un canal propio que se puede fundir a cero, por el bus de los efectos). La usan la radio
+// del juego y el banco de sonidos: devuelve { salida, fuente } o null si el motor no la pudo sonar.
+export function emitirEmisora(son, buf) {
+  if (!son?.ctx || !son.bus?.efectos) return null;
+  const salida = son.ctx.createGain(); salida.connect(son.bus.efectos);
+  const fuente = son.sonarBuffer?.(buf, salida, 0.55);
+  return fuente ? { salida, fuente } : null;
+}
+
 export function crearHuevosJuego(ctx) {
   const progreso = () => ctx.progreso();
   const activo = () => !ctx.desafio?.();
@@ -297,9 +306,9 @@ export function crearHuevosJuego(ctx) {
         // llegó la síntesis: si mientras tanto se apagó la radio, se pidió otra cosa o te fuiste, no suena
         if (id !== pedidoRadio || radioVoz !== voz || (voz.pos && !cerca(ctx.jugador?.()?.estado?.pos, voz.pos, ALCANCE_RADIO))) return;
         if (!son.bus?.efectos) { radioVoz = null; return; }
-        const salida = son.ctx.createGain(); salida.connect(son.bus.efectos);
-        const fuente = son.sonarBuffer?.(buf, salida, 0.55);
-        if (!fuente) { radioVoz = null; return; }
+        const e = emitirEmisora(son, buf);   // 4.11.4: la misma salida que usa el banco de sonidos
+        if (!e) { radioVoz = null; return; }
+        const { salida, fuente } = e;
         voz.salida = salida; voz.fuente = fuente;
         fuente.addEventListener('ended', () => { if (radioVoz === voz) radioVoz = null; });
       }, TASA_RADIO);

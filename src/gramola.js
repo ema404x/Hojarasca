@@ -120,7 +120,8 @@ function programar() {
 // E sobre la gramola: si suena, la para; si no, le da cuerda con el tema que sigue. Devuelve { suena, titulo } o { sinSonido: true }.
 // `cerca` es una función que dice si el jugador sigue cerca (y si la gramola sigue en pie): si da falso, se calla sola.
 // 4.4.2 (C5): `duenio` es la obra: hay una sola gramola sonando en todo el juego; E en otra mientras suena una, la pasa a esa (y lo avisa: `cambio`)
-export function alternarGramola(sonido, cerca, duenio = null) {
+// 4.11.4: `temaId` (sólo el banco de sonidos) elige el tema en vez de seguir el turno, y no mueve el turno de la gramola del juego
+export function alternarGramola(sonido, cerca, duenio = null, temaId = null) {
   let cambio = false;
   if (G.suena) {
     if (duenio && G.duenio && G.duenio !== duenio) { cambio = true; detenerGramola(); }
@@ -133,8 +134,9 @@ export function alternarGramola(sonido, cerca, duenio = null) {
   const busMusica = sonido?.bus?.piano || sonido?.bus?.musica;
   if (!ctx || !busMusica) return { sinSonido: true };
   try { if (ctx.state === 'suspended') ctx.resume(); } catch { /* sigue */ }
-  const tema = TEMAS[G.indice % TEMAS.length];
-  G.indice = (G.indice + 1) % TEMAS.length;
+  const elegido = temaId ? TEMAS.find((t) => t.id === temaId) : null;
+  const tema = elegido || TEMAS[G.indice % TEMAS.length];
+  if (!elegido) G.indice = (G.indice + 1) % TEMAS.length;
   // la cadena de salida: filtro grave (caja vieja) → volumen → bus de la música
   // (el bus de la música vale 0,5 con la perilla al máximo y el de efectos 1: el volumen se duplica para que suene igual que antes)
   const entrada = ctx.createBiquadFilter(); entrada.type = 'lowpass'; entrada.frequency.value = 2600; entrada.Q.value = 0.7;
