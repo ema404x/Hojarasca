@@ -62,6 +62,8 @@ app.whenReady().then(async () => {
       const d = x.getImageData(0, Math.floor(o.height * 0.7), o.width, Math.floor(o.height * 0.25)).data; let suma = 0; const distintos = new Set();
       for (let i = 0; i < d.length; i += 4 * 53) { suma += d[i] + d[i + 1] + d[i + 2]; distintos.add((d[i] >> 3) * 1024 + (d[i + 1] >> 3) * 32 + (d[i + 2] >> 3)); }
       return { luz: +(suma / (d.length / (4 * 53)) / 3).toFixed(1), colores: distintos.size } })()`);
+    // (primero una vuelta por todos los lugares: lo que se ve por primera vez en cada zona —un material básico de otra cosa— no es del agua)
+    for (const [id, h] of [['10', 12.5], ['12', 19.2], ['08', 12.5], ['03', 20.2], ['04', 21.2], ['05', 23]]) { await parar(id, h); await correr(40); }
     await parar('01', 12.5); await correr(120);
     const progs = () => js(`${H}.renderer.info.programs.length`);
     const nombres = () => js(`${H}.renderer.info.programs.map((p) => p.name + ':' + (p.cacheKey || '').length + ':' + (p.cacheKey || '').slice(0, 60))`);
