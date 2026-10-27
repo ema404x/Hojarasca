@@ -2,8 +2,10 @@
 import * as THREE from 'three';
 import { rng, lerp, clamp } from './ruido.js';
 import { LAGO, LIMITE } from './config.js';
-import { lam, esfera, cono, palo, patas, alas, actualizarCiervo, compactar, inclinacionTerrenoMamifero, marchaMamifero } from './vida.js';
-import { bola, torno, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, color as matDe } from './formas.js';
+import { lam, esfera, cono, palo, patas, alas, actualizarCiervo, posarPielMamifero, compactar, inclinacionTerrenoMamifero, marchaMamifero } from './vida.js';
+import { bola, torno, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, etiquetar, color as matDe } from './formas.js';
+// 4.12.2: la piel por huesos de los animales (cerca, Media y Alta)
+import { armarPielCiervo, observar } from './animales-piel.js';
 import { perfilHabitatPatagonico } from './patagonia.js';
 import { percepcionMamifero, firmaSonoraJugador } from './percepcion.js';
 import { crearSombraContacto, actualizarSombraContacto } from './naturaleza-reactiva.js';
@@ -16,7 +18,7 @@ import { crearPoolPosicional, limitarSombrasPorDistancia, consumirPresupuestoIA 
 // la gorguera oscura del macho), cabeza larga, orejas anchas, patas largas con rodilla y
 // garrón, el escudo claro del anca y, en el macho, la cornamenta ramificada (ahora toda en la
 // malla de la cabeza: antes cada vara era una llamada de dibujo). Mismos pivotes.
-function mallaCiervo(macho) {
+export function mallaCiervo(macho) {
   const g = new THREE.Group();
   const pelo = '#8a5a34', oscuro = '#4a3524', asta = '#6b5a42';
   const claro = new THREE.Color('#d6c29a'), cOsc = new THREE.Color(oscuro);
@@ -30,8 +32,8 @@ function mallaCiervo(macho) {
   };
   const conPelaje = (m) => pintar(m, pelaje);
   g.add(conPelaje(lomo(pelo, { y: 1.18, atras: -0.88, adelante: 0.72, ancho: 0.3, alto: 0.34, pecho: 0.2, panza: 0.12 }, 18)));
-  g.add(conPelaje(miembro(pelo, [[0, 1.2, 0.42], [0, 1.45, 0.6], [0, 1.72, 0.8]], [macho ? 0.23 : 0.2, macho ? 0.17 : 0.14, 0.11], 8, 12)));   // el cuello
-  g.add(pintar(miembro('#d8c8a6', [[0, 1.22, -0.84], [0, 1.18, -0.92], [0, 1.08, -0.95]], [0.05, 0.06, 0.03], 5, 8), null));   // la colita
+  g.add(etiquetar(conPelaje(miembro(pelo, [[0, 1.2, 0.42], [0, 1.45, 0.6], [0, 1.72, 0.8]], [macho ? 0.23 : 0.2, macho ? 0.17 : 0.14, 0.11], 8, 12)), 'cuello'));   // el cuello (4.12.2: etiquetado para la piel por huesos)
+  g.add(etiquetar(pintar(miembro('#d8c8a6', [[0, 1.22, -0.84], [0, 1.18, -0.92], [0, 1.08, -0.95]], [0.05, 0.06, 0.03], 5, 8), null), 'cola'));   // la colita
   const cabeza = new THREE.Group(); cabeza.position.set(0, 1.82, 0.86);
   const testa = miembro(pelo, [[0, 0.05, -0.1], [0, 0.03, 0.06], [0, -0.02, 0.24], [0, -0.05, 0.4]], [0.11, 0.12, 0.085, 0.055], 8, 12);
   testa.scale.set(0.8, 1, 1);
@@ -39,7 +41,7 @@ function mallaCiervo(macho) {
   cabeza.add(bola(oscuro, [0.05, 0.04, 0.045], [0, -0.045, 0.41]));
   for (const l of [-1, 1]) {
     cabeza.add(bola('#100c09', [0.016, 0.018, 0.014], [l * 0.085, 0.045, 0.1]));
-    cabeza.add(conPelaje(bola(pelo, [0.04, 0.12, 0.065], [l * 0.12, 0.13, -0.04], [-0.2, 0, -l * 0.8])));   // las orejas
+    cabeza.add(etiquetar(conPelaje(bola(pelo, [0.04, 0.12, 0.065], [l * 0.12, 0.13, -0.04], [-0.2, 0, -l * 0.8])), 'oreja'));   // las orejas
     if (macho) {
       // la cornamenta: la vara sube, se abre y se va para atrás, con sus puntas hacia adelante
       const ex = l, puntos = [[ex * 0.07, 0.12, 0.0], [ex * 0.2, 0.36, -0.06], [ex * 0.3, 0.6, -0.14], [ex * 0.32, 0.82, -0.2]];
@@ -61,7 +63,11 @@ function mallaCiervo(macho) {
   }
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   compactar(g, { alto: 1.9, pie: 0.86, todo: true });
-  return { g, cabeza, patas: p };
+  const m = { g, cabeza, patas: p };
+  // 4.12.2: con huesos cuando está cerca (Media y Alta); null en Baja y Mínima
+  const co = [0, 1.22, -0.84], cd = [0, -0.78, -0.62];
+  m.piel = armarPielCiervo(m, { nombre: 'ciervo', centroY: 1.18, cuello: { base: [0, 1.3, 0.5] }, orejas: [[-0.12, 1.88, 0.82], [0.12, 1.88, 0.82]], cola: { huesos: [co, [co[0], co[1] + cd[1] * 0.06, co[2] + cd[2] * 0.06], [co[0], co[1] + cd[1] * 0.12, co[2] + cd[2] * 0.12]], dir: cd } });
+  return m;
 }
 
 // 3.5.2: el jabalí como es: alto en la cruz y bajo en el anca, con la crin de cerdas que corre
@@ -674,6 +680,7 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
     // a cada animal le toca un número fijo; si cae bajo el umbral, hoy no sale
     const sale = (o) => { if (o.suerte === undefined) o.suerte = Math.random(); return o.suerte >= escondidos; };
     cam = camara; zoom = jugador.estado.zoom;
+    observar(camara.position);   // 4.12.2: de acá sale el LOD de la piel por huesos (ciervos, huemules, perro y caballo)
     camara.getWorldDirection(adelante);
     const js = jugador.estado;
     poolSujetos.reiniciar();
@@ -693,6 +700,7 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
       limitarSombrasPorDistancia(c.g, dCiervo, 58);
       if (!c.g.visible) continue;
       actualizarCiervo(c, dt, js, PRM_CIERVO, T, col);
+      posarPielMamifero(c, dt, PRM_CIERVO);
       tmp.set(c.pos.x, c.pos.y + 1.5, c.pos.z);
       if (c.estado !== 'huir') ver('ciervo', tmp, 'ciervo', 45, 150);
       else ver('ciervo', tmp);

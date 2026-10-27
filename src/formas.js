@@ -270,5 +270,9 @@ export function ruido3(x, y, z) {
   return Math.sin(x * 12.9 + y * 7.3) * Math.sin(y * 9.7 - z * 11.1) * 0.6 + Math.sin(z * 15.3 + x * 5.1) * 0.4;
 }
 export function pintar(m, fn) { m.userData.pintar = fn; return m; }
+// 4.12.2: marca una pieza para la piel por huesos de los animales (animales-piel.js): al fundirse, sus vértices llevan este número en el
+// atributo `etiqueta` y la piel les da los huesos de la cola, las orejas o el cuello. Sin marca, nada cambia.
+export const ETIQUETA = { cola: 1, oreja: 2, cuello: 3 };
+export function etiquetar(m, nombre) { m.userData.etiqueta = ETIQUETA[nombre] || 0; return m; }
 // mezcla `hacia` en el color con peso t (0..1)
 export function entintar(c, hacia, t) { if (t > 0) c.lerp(_a.set(hacia), Math.min(1, t)); }

@@ -1,7 +1,9 @@
 // El zaino en el mundo: la malla y cómo anda. Las reglas están en caballo.js.
 import * as THREE from 'three';
 import { compactar, inclinacionTerrenoMamifero, MAT_FAUNA } from './vida.js';
-import { bola, tubo, torno, miembro, huso, deformar, pintar, color, ruido3 } from './formas.js';
+import { bola, tubo, torno, miembro, huso, deformar, pintar, color, ruido3, etiquetar } from './formas.js';
+// 4.12.2: la piel por huesos de los animales (cerca, Media y Alta)
+import { armarPielCaballo } from './animales-piel.js';
 import { lerp } from './ruido.js';
 import { marcha } from './caballo.js';
 import { sanearCaballoPersonal, firmaCaballo, PELAJE_CABALLO } from './personal-caballo.js';
@@ -87,12 +89,12 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
   // 3.5: la cola en mechones (antes era un solo tubo liso): el maslo corto y, de ahí, siete
   // mechones que caen abiertos, de largos distintos, con la punta afinada
   const cerda = (c, p) => { c.multiplyScalar(0.9 + 0.2 * (0.5 + 0.5 * Math.sin(p.x * 140 + p.z * 60))); };
-  g.add(huso(oscuro, [[0, 1.52, -0.84], [0, 1.47, -0.95], [0, 1.36, -1.03]], [0.06, 0.075, 0.07], 6, 10));
+  g.add(etiquetar(huso(oscuro, [[0, 1.52, -0.84], [0, 1.47, -0.95], [0, 1.36, -1.03]], [0.06, 0.075, 0.07], 6, 10), 'cola'));   // (4.12.2: lo etiquetado con `cola` y `oreja` lleva sus huesos en la piel)
   for (let i = 0; i < 7; i++) {
     const a = (i / 6 - 0.5), x = a * 0.11, largo = 0.72 + 0.1 * Math.sin(i * 2.3) + (Math.abs(a) < 0.2 ? 0.08 : 0);
     const z0 = -1.02 - Math.abs(a) * 0.02, abre = 1 + Math.abs(a) * 0.6;
-    g.add(pintar(huso(oscuro, [[x * 0.5, 1.42, -0.99], [x * abre, 1.2, z0 - 0.08], [x * abre * 1.3, 1.42 - largo * 0.62, z0 - 0.07], [x * abre * 1.4, 1.42 - largo, z0 - 0.02 + 0.03 * Math.cos(i * 1.7)]],
-      [0.05, 0.05, 0.035, 0.008], 8, 6), cerda));
+    g.add(etiquetar(pintar(huso(oscuro, [[x * 0.5, 1.42, -0.99], [x * abre, 1.2, z0 - 0.08], [x * abre * 1.3, 1.42 - largo * 0.62, z0 - 0.07], [x * abre * 1.4, 1.42 - largo, z0 - 0.02 + 0.03 * Math.cos(i * 1.7)]],
+      [0.05, 0.05, 0.035, 0.008], 8, 6), cerda), 'cola'));
   }
   // ---- el cuello y la cabeza, con la crin (se mueven juntos al pastar)
   const cuello = new THREE.Group(); cuello.position.set(0, 1.55, 0.8);
@@ -126,7 +128,7 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
     cabeza.add(bola('#120d0a', [0.018, 0.012, 0.012], [l * 0.036, -0.075, 0.545]));             // los ollares
     const oreja = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 8, 2), color(pelo)), (v) => { v.z *= 0.55; });
     oreja.position.set(l * 0.06, 0.17, -0.04); oreja.rotation.set(-0.2, 0, -l * 0.22);
-    cabeza.add(conPelaje(oreja));
+    cabeza.add(etiquetar(conPelaje(oreja), 'oreja'));
   }
   cabeza.add(miembro(oscuro, [[0, 0.15, -0.03], [0, 0.13, 0.07], [0, 0.085, 0.13]], [0.04, 0.032, 0.01], 4, 6));   // el copete
   // la cabezada de cuero: la muserola
@@ -153,7 +155,10 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
   }
   compactar(g, { alto: 1.65, pie: 0.86, panza: 0.08, todo: true });
   g.traverse((o) => { if (o.isMesh) o.castShadow = o.parent === g; });   // sombra del cuerpo, no de cada hueso
-  return { g, cuello, cabeza, patas };
+  // 4.12.2: la misma figura con huesos, para cuando está cerca (null en Baja y Mínima)
+  const m = { g, cuello, cabeza, patas };
+  m.piel = armarPielCaballo(m);
+  return m;
 }
 
 // ---------------------------------------------------------------- 4.11.5: el carro
@@ -237,6 +242,8 @@ export function crearCaballo(T, escena) {
     const pastando = !montado && mc.modo === 'quieto';
     seguirCarro(dt, visible && est.conCarro && !sinCarro);
     m.cuello.rotation.x = lerp(m.cuello.rotation.x, pastando ? 0.55 + Math.sin(performance.now() / 2400) * 0.12 : (galope ? 0.18 : 0), 1 - Math.exp(-dt * 2));
+    // 4.12.2: cerca y en Media o Alta se dibuja con huesos: marchas continuas, columna, cuello, cola y orejas (la rígida sigue siendo la fuente de la pose)
+    if (m.piel?.lod(m.g)) m.piel.posar(dt, m, { fase: est.fase, modo: mc.modo, amplitud: mc.amplitud, galope, montado });
   }
 
   // 4.11.5: el eje del carro queda siempre a ENGANCHE.largo del enganche, en la línea que lo une con él (así gira como un remolque de
@@ -285,11 +292,12 @@ export function crearCaballo(T, escena) {
     if (!rearmar) return false;
     const n = mallaCaballo(nuevo);
     const cuelloX = m.cuello.rotation.x;
+    m.piel?.liberar();
     const viejas = [...m.g.children];
     for (const c of viejas) m.g.remove(c);
     for (const c of [...n.g.children]) m.g.add(c);
     for (const c of viejas) desechar(c, [MAT_FAUNA]);
-    m.cuello = n.cuello; m.cabeza = n.cabeza; m.patas = n.patas;
+    m.cuello = n.cuello; m.cabeza = n.cabeza; m.patas = n.patas; m.piel = n.piel;
     m.cuello.rotation.x = cuelloX;
     return true;
   }
