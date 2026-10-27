@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.12.0 (sobre main = 4.11.5): MEJORA VISUAL 1 (`CAMBIOS_4_12_0.md`) — bordes suaves FXAA en Media y Alta, cinco modelos de roca y terreno con más variedad de color; sólo Media y Alta gastan rendimiento
 - 4.11.5 (sobre main = 4.11.4): CARRO (`CAMBIOS_4_11_5.md`) — se fabrica en la carpintería (14 tablas, 4 troncos, $6.000), se engancha al caballo en Personalizar y suma 16 casillas montado (52 con alforjas); se ve detrás del caballo; arregla el «+undefined casillas» del panel de carga
 - 4.11.4 (sobre main = 4.11.3): BANCO DE SONIDOS (`CAMBIOS_4_11_4.md`, `herramientas/LEEME-SONIDOS.txt`) — pantalla en la pausa con 146 sonidos del juego, cada uno disparado por la función real del motor, con volúmenes reales y «Detener todo»; nada se escuchó, sólo se verificó por buses
 - 4.11.3 (sobre main = 4.11.2): PROCESO Y GUARDADO, última de las cuatro versiones con las decisiones de diseño (`CAMBIOS_4_11_3.md`) — partida más nueva en sólo lectura, guardado seguro si falla el rename, ruta del Coihue repartida en cuadros y empaquetado que pregunta antes de cerrar el juego
