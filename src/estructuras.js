@@ -9,6 +9,7 @@ import { fusionarPorMaterial } from './fusion.js';
 import { registrarLuz } from './luces.js';
 import { marcarConstructor } from './estilo-casa.js';
 import { crearDecoRefugio } from './personal-casa-mundo.js';
+import { asentadoActivo, asentarGeometria, teselarGeometria, remarcarRangos, huellaDe, semillaDe } from './asentado.js';
 import { crearPanoBandera, registrarBandera } from './bandera-viento.js';
 import { cubierta } from './techo-lluvia.js';
 // 4.0 (prototipo): faroles encendidos, halos, fuego y ventanales de la casa de té
@@ -502,6 +503,26 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     m.castShadow = true; m.receiveShadow = true;
     grupo.add(m);
     return m;
+  };
+  // 4.12.1 · EDIFICIOS ASENTADOS (Media y Alta, ver asentado.js): esquinas y aleros oscurecidos, humedad al pie y musgo propio de cada edificio,
+  // sacado de su posición y su id (nunca del azar del juego), más su sombra de contacto en el suelo. Sólo cambia el color de los vértices:
+  // los tamaños, las colisiones y la cuenta de dibujos quedan igual. `marcas` (estilo-casa.js) se corren a los vértices nuevos.
+  const asiento = opciones.asiento || null;
+  const asentarEst = (c, id, x, z, rot, marcas = null, nivel = 0.5) => {
+    const g = c.geometria();
+    const A = asentadoActivo();
+    if (A.ocluir) {
+      remarcarRangos(marcas, teselarGeometria(g, { maxVerts: 30000, tope: 60000 }));
+      asentarGeometria(g, { semilla: semillaDe(x, z, id), rot, nivel, base: 0, maxVerts: 60000 });
+    }
+    if (asiento && A.contacto) {
+      const h = huellaDe(g, { base: 0, banda: 0.5, minimo: 0.7 });
+      if (h) {
+        const cr = Math.cos(rot), sr = Math.sin(rot);
+        asiento.poner('est:' + id, { x: x + h.cx * cr + h.cz * sr, z: z - h.cx * sr + h.cz * cr, rot, w: h.w, d: h.d, radio: Math.min(1.7, 0.6 + 0.05 * Math.max(h.w, h.d)), fuerza: 0.46 });
+      }
+    }
+    return g;
   };
   const aMundo = (base, rotY, lx, lz) => ({
     x: base.x + lx * Math.cos(rotY) + lz * Math.sin(rotY),
@@ -1081,7 +1102,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
 
     const grupoCasa = new THREE.Group();
     grupoCasa.position.set(ref.x, ref.y, ref.z); grupoCasa.rotation.y = rot;
-    const mCasa = new THREE.Mesh(c.geometria(), mat);
+    const mCasa = new THREE.Mesh(asentarEst(c, 'refugio', ref.x, ref.z, rot, marcasRef, 0.55), mat);
     mCasa.castShadow = true; mCasa.receiveShadow = true;
     grupoCasa.add(mCasa);
     pinturaRefugio = { malla: mCasa, marcas: marcasRef };
@@ -1755,7 +1776,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     }
     const grupoCab = new THREE.Group();
     grupoCab.position.set(x, y, z); grupoCab.rotation.y = rot;
-    const malla = new THREE.Mesh(c.geometria(), mat);
+    const malla = new THREE.Mesh(asentarEst(c, 'cabana-' + clave, x, z, rot, null, 0.6), mat);
     malla.castShadow = true; malla.receiveShadow = true;
     grupoCab.add(malla);
     if (puertas) puertas.agregar({ sitio: { x, z, y, piso: 0.35 }, rot, lx: (PUERTA.x0 + PUERTA.x1) / 2, lz: D / 2 + 0.03, ancho: PUERTA.x1 - PUERTA.x0 - 0.05, alto: 1.84, lado: -1, nombre: `la puerta de ${nombre.toLowerCase()}`, adentro: true });
@@ -2096,7 +2117,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
           color: i % 2 ? '#7d766c' : '#6f6a62',
         });
       }
-      const m = new THREE.Mesh(c.geometria(), mat);
+      const m = new THREE.Mesh(asentarEst(c, 'faro', mejor.x, mejor.z, rot, null, 0.5), mat);
       m.position.set(mejor.x, y0, mejor.z);
       m.rotation.y = rot;
       m.castShadow = true; m.receiveShadow = true;
@@ -2395,7 +2416,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         alto: altoPasoMol, espesor: Math.max(0.12, altoPasoMol - sueloPasoMol + 0.05),
         color: '#74695c', giro: 0 });
 
-      const m = new THREE.Mesh(c.geometria(), mat);
+      const m = new THREE.Mesh(asentarEst(c, 'molino', sitio.x, sitio.z, rot, null, 0.5), mat);
       m.position.set(sitio.x, sitio.y, sitio.z);
       m.rotation.y = rot;
       m.castShadow = true; m.receiveShadow = true;
@@ -2750,7 +2771,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       // techo a cuatro aguas
       caja(c, [0, H + 3.2, 0], [R * 2 + 1.3, 0.14, R * 2 + 1.3], '#4e4038', 0, 4);
       c.agregar(new THREE.ConeGeometry(R + 0.9, 1.0, 4), { color: '#463f38', tipo: 4, matriz: matriz([0, H + 3.75, 0], [0, Math.PI / 4, 0]) });
-      const m = new THREE.Mesh(c.geometria(), mat);
+      const m = new THREE.Mesh(asentarEst(c, 'torre', sitio.x, sitio.z, rot, null, 0.5), mat);
       m.position.set(sitio.x, sitio.y, sitio.z);
       m.rotation.y = rot;
       m.castShadow = true; m.receiveShadow = true;
@@ -3286,7 +3307,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const g = new THREE.Group();
       g.position.set(sitio.x, sitio.y, sitio.z);
       g.rotation.y = rot;
-      const malla = new THREE.Mesh(c.geometria(), mat);
+      const malla = new THREE.Mesh(asentarEst(c, 'almacen', sitio.x, sitio.z, rot, null, 0.45), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       g.add(malla);
       // V7 TERMINACIÓN — rótulo grande integrado a la fachada. Es deliberadamente
@@ -3536,7 +3557,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const g = new THREE.Group();
       g.position.set(sitio.x, sitio.y, sitio.z);
       g.rotation.y = rot;
-      const malla = new THREE.Mesh(c.geometria(), mat);
+      const malla = new THREE.Mesh(asentarEst(c, 'galpon', sitio.x, sitio.z, rot, null, 0.55), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       g.add(malla);
       const farol = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.32, 0.26), vidrio);

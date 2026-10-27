@@ -36,7 +36,8 @@ const inicioFaro = src.indexOf('// ---------------------------------------------
 const finFaro = src.indexOf('// ---------------------------------------------------------------- lugar llano y despejado', inicioFaro);
 assert.ok(inicioFaro >= 0 && finFaro > inicioFaro, 'No se pudo aislar Faro');
 const faro = src.slice(inicioFaro, finFaro);
-const geoFaro = faro.indexOf('new THREE.Mesh(c.geometria(), mat)');
+// 4.12.1: la malla del faro sale de `asentarEst(c, 'faro', …)` (que llama a c.geometria()): vale cualquiera de las dos formas
+const geoFaro = Math.max(faro.indexOf('new THREE.Mesh(c.geometria(), mat)'), faro.indexOf("new THREE.Mesh(asentarEst(c, 'faro'"));
 assert.ok(faro.indexOf("P.pisoRedondo({ radio: R_BASE - 0.15") < geoFaro, 'El piso inferior del faro no puede agregarse después de materializar la malla');
 assert.ok(faro.indexOf('P.escalon({') < geoFaro, 'Los escalones del faro deben existir visual y físicamente antes de materializar');
 assert.ok(/alturaMax:\s*1\.3[0-9]?/.test(faro), 'El zócalo del faro debe tener colisión acotada en altura');

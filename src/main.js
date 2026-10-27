@@ -207,6 +207,8 @@ import { MAQUINAS_QUE_TRABAJAN } from './planos-maquinas.js';
 import { comoDormiste, horasDescansado, gastarDescanso, casaCerrada } from './abrigo.js';
 import { chimeneaDe, ventanasEncendidas, brilloVentanas, VENTANAS } from './casa-viva.js';
 import { crearVentanas } from './ventanas-mundo.js';
+import { fijarAsentado } from './asentado.js';
+import { crearAsiento, crearHalosValle, ventanasDeVidrio } from './asentado-mundo.js';
 import { buscarCorral, corralNuevo, mudarCorral, CORRAL as CORRAL_PROPIO } from './corral.js';
 import { crearGranjaMundo } from './granja-mundo.js';
 import { crearGranjaJuego } from './granja-juego.js';
@@ -410,6 +412,8 @@ recordarHuerfanas();
 const mando = crearMando({ sensibilidad: ajustes.sensibilidad, invertirY: ajustes.invertirY });
 const calidadInicial = ajustes.calidad;
 const calidad = { ...(CALIDADES[ajustes.calidad] || CALIDADES.media) };
+// 4.12.1: edificios asentados (esquinas oscurecidas, desgaste, sombra de contacto, halos de noche): sólo Media y Alta; Baja y Mínima no pagan nada
+fijarAsentado({ ocluir: !!calidad.post, contacto: !!calidad.post, halos: !!calidad.post });
 // 3.5: la calidad que está andando y las distancias que rigen (ver aplicarDistancias)
 let calidadActiva = CALIDADES[calidadInicial] ? calidadInicial : 'media';
 let distActual = distanciasDe(calidadActiva, ajustes.distancia, ajustes.distanciaPlantas);
@@ -694,8 +698,9 @@ async function construir() {
   // estructuras; la malla del suelo y las alturas del pasto se rehacen ahí. El sorteo de sitios de
   // estructuras.js mira el terreno de antes (`sorteoAldea`): nada más del valle se mueve.
   let sorteoAldea = null;
+  asiento = calidad.post ? crearAsiento(escena, { altura: (x, z) => T.altura(x, z), lejos: () => Math.min(260, calidad.lejos + 20) }) : null;   // 4.12.1
   if (!esDesafio) {
-    aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
+    aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, asiento, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
     // 3.7.0: los animales de la aldea (y tu cachorro, en el refugio)
     animalesAldea = crearAnimalesAldea({ T, escena, progreso: () => progreso, jugador: () => jugador?.estado || null, refugio: () => T.lugares.refugio || null, distanciaAldea: (x, z) => distanciaAldea(x, z),
       col: () => col, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y) });   // 3.7.0 (integración): chocan y pisan los pisos
@@ -709,7 +714,7 @@ async function construir() {
   est = await paso('Clavando los tablones del muelle', 68, () => {
     puertas = crearPuertas(T, escena, col, sonido);
     // 3.6: en el Relax el almacén y la casa de té se arman en la aldea (el sorteo corre igual)
-    const e = crearEstructuras(T, escena, col, veg, puertas, aldeaMundo ? { aldea: aldeaMundo.sitiosValle(), sorteo: sorteoAldea } : undefined);
+    const e = crearEstructuras(T, escena, col, veg, puertas, { ...(aldeaMundo ? { aldea: aldeaMundo.sitiosValle(), sorteo: sorteoAldea } : {}), asiento });
     // el pasto no crece adentro de las casas ni al pie del faro
     const masc = U.uMascara.value.image.data;
     const pelar = (x, z, radio) => {
@@ -919,7 +924,7 @@ async function construir() {
   manosSociales = crearManosSociales(camara, () => manoPropia?.grupo?.children?.[0] || null);
   // 3.8.6: adentro de un edificio fijo del valle no se arman piezas en el suelo (ver construccion.js)
   { const interiores = techosFijos(); T.interiorFijo = (x, z) => interiores.some((c) => Math.hypot(x - c.x, z - c.z) < c.r); }
-  obras = crearConstruccion(T, escena, col, veg, puertas);
+  obras = crearConstruccion(T, escena, col, veg, puertas, asiento);
   // 2.4.1: las obras de un plano que esta versión no conoce (una partida de la otra PC,
   // con una versión más nueva) no se arman, pero tampoco se pierden: vuelven al guardar.
   obrasAjenas = (progreso.obras || []).filter((d) => d && !PLANO[d.plano]);
@@ -940,6 +945,7 @@ async function construir() {
   refrescarGallineros();
   // 2.4: las ventanas de tu casa, el corral propio y el kayak amarrado en tu embarcadero
   ventanasMundo = crearVentanas(escena);
+  halosValle = calidad.post ? crearHalosValle(escena) : null;   // 4.12.1: los halos de noche de ventanas y fogatas del valle (un dibujo)
   refrescarCorral();
   // 3.8.4: el kayak amanece donde quedó amarrado; suelto en una orilla, vuelve al muelle (ver kayak-amarre.js)
   { const a = dondeAmanece(progreso.kayakAmarre, obrasTerminadas('embarcadero')); if (a.donde === 'embarcadero') amarrarKayak(a.obra); else if (a.donde === 'cercano') amarrarKayak(); }
@@ -8375,6 +8381,7 @@ function tenirPieza() {
 // La casa viva (ver casa-viva.js): el humo de tu chimenea y las ventanas encendidas.
 // Cada dos segundos alcanza: ni el fuego ni la noche cambian más rápido.
 let ventanasMundo = null, chimeneasTodas = null, acumuladoCasa = 99, embarcaderosVistos = -1;
+let asiento = null, halosValle = null, halosEstructuras = false;   // 4.12.1: ver asentado-mundo.js
 const lugarObra = (o) => ({ plano: o.plano.id, x: o.datos.x, y: o.datos.y, z: o.datos.z, rot: o.datos.rot || 0 });
 // 3.8.7: las estufas y los hogares prendidos (cada uno con su humo y su luz en la ventana)
 function fuegosDeObra() {
@@ -8402,6 +8409,11 @@ function actualizarCasaViva(dt) {
     if (luces.length) lista = ventanasEncendidas(obras.obras.filter((o) => VENTANAS[o.plano.id] && obraTerminada(o)).map(lugarObra), luces);
   }
   ventanasMundo?.actualizar(lista, brillo);
+  if (halosValle) {
+    // 4.12.1: un halo por ventana encendida de tus casas y por fogata a cielo abierto (las estufas ya brillan en su ventana)
+    halosValle.fijar('casas', lista.map((v) => ({ pos: [v.x, v.y, v.z], radio: Math.min(1.9, Math.max(1.15, Math.max(v.ancho, v.alto) * 0.85 + 0.5)), fluctua: 0.04 })));
+    halosValle.fijar('fogatas', clima.fogatas.filter((f) => f.activa && f.vida > 0 && !f.contenida).map((f) => ({ pos: [f.pos.x, f.pos.y + 0.55, f.pos.z], radio: 1.7, fluctua: 0.3 })));
+  }
   refrescarCorral();
   // 3.8.7: contando el que se mueve (si no, al dejarlo con Shift+Y «aparecía» uno nuevo y se llevaba el kayak, que ya se
   // muda con su embarcadero en mudarDatosDeObra)
@@ -10948,6 +10960,15 @@ function cuadroDelJuego(tRaf, manual) {
   }
   // 3.6: la aldea: ventanas, faroles y la luz de adentro (el presupuesto de luces elige las cercanas)
   aldeaMundo?.luces(cam, encendido, diaInterior, rellenoInterior, colorInterior);
+  // 4.12.1: la sombra de contacto de los edificios y los halos de noche de las ventanas de las estructuras, tus casas y las fogatas
+  if (asiento) asiento.actualizar(dt, cam, { dia: diaInterior, nublado: clima.estado.nublado, pleno: !!calidad.post });
+  if (halosValle) {
+    if (!halosEstructuras && encendido > 0.05) {
+      halosEstructuras = true;
+      halosValle.fijar('estructuras', ventanasDeVidrio(escena, [ref.vidrio, ...tren.paradas.map((p) => p.vidrio), ...est.cabañas.filter((c) => !c.efectos).map((c) => c.vidrio), est.galpon?.vidrio, aldeaMundo ? null : est.almacen?.vidrio]));
+    }
+    halosValle.actualizar({ enc: encendido, pleno: !!calidad.post, tiempo: U.uTiempo.value, cam });
+  }
   if (est.galpon) {
     est.galpon.molino.children[0].rotation.z += dt * (0.8 + clima.estado.viento * 4.5);
     brilloVentana(est.galpon.vidrio, encendido, diaInterior);

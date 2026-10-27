@@ -41,6 +41,7 @@ import { calce, zocalo, sueloMin } from './calces.js';
 import { PIEZAS_DEFENSAS_49 } from './planos-defensas-49.js';
 // 4.10 base: el tablero de trofeos (ver planos-trofeos.js)
 import { PIEZAS_TROFEOS } from './planos-trofeos.js';
+import { asentadoActivo, asentarGeometria, teselarGeometria, remarcarRangos, huellaDe, semillaDe, azarDe } from './asentado.js';
 
 const MADERA = '#6b5238';
 const MADERA_OSCURA = '#4a3b2c';
@@ -2339,7 +2340,7 @@ export function faltan(pide, materiales) {
 }
 
 // ---------------------------------------------------------------- el sistema
-export function crearConstruccion(T, escena, col, veg, interacciones = null) {
+export function crearConstruccion(T, escena, col, veg, interacciones = null, asiento = null) {
   const mat = materialVegetal({ flex: 0 });
   const matFantasma = new THREE.MeshLambertMaterial({ color: 0x8ad48a, transparent: true, opacity: 0.35, depthWrite: false });
   const grupo = new THREE.Group();
@@ -2366,7 +2367,38 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (etapasHechas >= plano.etapas.length) adornarFortin(c, plano, marcas);
     const g = c.geometria();
     estilizar(g, plano, datos, marcas);
+    asentarObra(g, plano, datos, marcas);   // 4.12.1: esquinas y aleros oscurecidos, humedad al pie y musgo propio de cada obra (Media y Alta)
     return g;
+  }
+
+  // 4.12.1 · EDIFICIOS ASENTADOS: el color de los vértices de la obra ya armada (ver asentado.js). Sólo Media y Alta (`asentadoActivo().ocluir`):
+  // en Baja y Mínima esto no hace nada. El desgaste sale de la posición y el id de la obra (nunca del azar del juego) y es leve: cuánto depende del
+  // tipo de obra, y las casas a medio hacer no se manchan. Las colisiones, los tamaños y las etapas no se tocan: sólo cambia el color.
+  const DESGASTE_OBRA = { refugios: 0.38, trabajo: 0.34, exterior: 0.29, mobiliario: 0.13, defensa: 0.26, amistosa: 0.1 };
+  function asentarObra(g, plano, datos, marcas) {
+    if (!asentadoActivo().ocluir || !datos || !(datos.etapas > 0) || plano.jardin) return;
+    const terminada = datos.etapas >= plano.etapas.length;
+    const sem = semillaDe(datos.x, datos.z, plano.id);
+    const nivel = terminada ? (DESGASTE_OBRA[plano.categoria] ?? 0.12) * (0.6 + 0.8 * azarDe(sem, 9)) : 0;
+    const tesela = teselarGeometria(g);
+    remarcarRangos(marcas, tesela);
+    asentarGeometria(g, { semilla: sem, rot: datos.rot || 0, nivel, base: 0 });
+  }
+
+  // 4.12.1: la sombra de contacto al pie de la obra (una malla para todo el valle, ver asentado-mundo.js). Sólo en el terreno: sobre un piso propio
+  // la sombra quedaría debajo de las tablas.
+  function ponerContacto(obra, g) {
+    if (!asiento) return;
+    asiento.quitar(obra);
+    const d = obra.datos, p = obra.plano;
+    if (!asentadoActivo().contacto || !(d.etapas > 0) || p.jardin || obra.grupo.visible === false) return;
+    if (Number.isFinite(d.y) && d.y > T.altura(d.x, d.z) + 0.25) return;
+    const h = huellaDe(g, { base: 0, banda: 0.5, minimo: 0.35 });
+    if (!h || h.w * h.d < 0.6) return;
+    const rot = d.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
+    const grande = h.w * h.d;
+    asiento.poner(obra, { x: d.x + h.cx * c + h.cz * s, z: d.z - h.cx * s + h.cz * c, rot, w: h.w, d: h.d,
+      radio: Math.min(1.4, Math.max(0.5, 0.36 + 0.07 * Math.max(h.w, h.d))), fuerza: grande > 10 ? 0.5 : 0.4 });
   }
 
   // 3.0.1: la altura del terreno bajo un punto de la obra, desde su pie (ver calces.js). Sólo
@@ -3335,6 +3367,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     m.matrixAutoUpdate = false;
     obra.grupo.add(m);
     obra.malla = m;
+    ponerContacto(obra, g);
     // las paredes chocan desde que se levantan
     if (obra.plano.id === 'mirador' && obra.datos.etapas >= 2 && !obra.datos.pisable) {
       obra.datos.pisable = true;
@@ -3466,6 +3499,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (interacciones?.eliminarPorDuenio) interacciones.eliminarPorDuenio(obra);
     if (col.eliminarPorDuenio) col.eliminarPorDuenio(obra);
     if (obra.malla) { obra.grupo.remove(obra.malla); obra.malla.geometry.dispose(); obra.malla = null; }
+    asiento?.quitar(obra);
     if (obra.luzInterior) { obra.grupo.remove(obra.luzInterior); olvidarLuz(obra.luzInterior); obra.luzInterior = null; }
     grupo.remove(obra.grupo);
     const i = obras.indexOf(obra);
@@ -3837,6 +3871,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (col.eliminarPorDuenio) col.eliminarPorDuenio(mejor);
     mejor.fisica.clear();
     mejor.grupo.visible = false;
+    asiento?.quitar(mejor);
     ultimoEstado = null;
     version++;
     return { ok: true, obra: mejor, plano: mejor.plano };

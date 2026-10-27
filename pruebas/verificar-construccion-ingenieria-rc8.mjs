@@ -178,5 +178,5 @@ const puertas=fs.readFileSync(path.join(src,'puertas.js'),'utf8');
 const main=fs.readFileSync(path.join(src,'main.js'),'utf8');
 assert.match(puertas,/function eliminarPorDuenio\(duenio\)/,'puertas no implementa ciclo de vida por dueño');
 assert.match(puertas,/dinamico: true, duenio/,'la colisión de puerta no conserva dueño');
-assert.match(main,/crearConstruccion\(T, escena, col, veg, puertas\)/,'construcción no recibe el registro real de puertas');
+assert.match(main,/crearConstruccion\(T, escena, col, veg, puertas(, asiento)?\)/,'construcción no recibe el registro real de puertas');
 console.log(`OK Ingeniería RC8 · ${r.total} planos · techo/escalera/baranda · puerta y postigos funcionales · lifecycle sin duplicados`);
