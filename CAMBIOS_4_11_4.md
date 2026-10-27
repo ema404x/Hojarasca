@@ -1,6 +1,6 @@
 # 4.11.4 · banco de sonidos (rama `v4114-sonidos`, sale de `main` = 4.11.3)
 
-Sin subir la versión y sin merge. El usuario nunca escuchó los sonidos nuevos de las últimas versiones y no quiere jugar hasta provocar cada uno:
+Versión 4.11.4 (junta directa: la rama salió de main y main no avanzó). El usuario nunca escuchó los sonidos nuevos de las últimas versiones y no quiere jugar hasta provocar cada uno:
 esta versión le deja **un banco de sonidos** en la pausa (y el documento `herramientas/LEEME-SONIDOS.txt` para usarlo). **Nada se escuchó**: quien
 programó no puede oír; todo se verificó leyendo el grafo de audio (por qué bus sale cada fuente), no el sonido.
 
