@@ -1,0 +1,11 @@
+[
+  { "id": "orilla", "x": 236, "z": 214, "mira": { "x": 220, "z": 198 }, "horas": 11.5 },
+  { "id": "bosque-refugio", "x": -144, "z": 214, "mira": { "x": -168, "z": 196 }, "horas": 11.5 },
+  { "id": "orilla-alto", "x": 238, "z": 216, "mira": { "x": 220, "z": 198 }, "alto": 5, "horas": 11.5 },
+  { "id": "bosque-alto", "x": -404, "z": 30, "mira": { "x": -416, "z": 22 }, "alto": 6, "horas": 11.5 },
+  { "id": "mirador-rocas-alto", "x": -314, "z": 44, "mira": { "x": -329, "z": 57 }, "alto": 5, "horas": 11.5 },
+  { "id": "claro-alto", "x": 318, "z": 296, "mira": { "x": 330, "z": 288 }, "alto": 6, "horas": 11.5 },
+  { "id": "sendero-alto", "x": -26, "z": -152, "mira": { "x": -50, "z": -150 }, "alto": 5, "horas": 11.5 },
+  { "id": "sendero-largo", "x": -10, "z": -150, "mira": { "x": -120, "z": -196 }, "alto": 3, "horas": 15.5 },
+  { "id": "valle-alto", "x": -144, "z": 214, "mira": { "x": -168, "z": 150 }, "alto": 25, "horas": 11.5 }
+]
