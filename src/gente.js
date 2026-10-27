@@ -1,6 +1,7 @@
 // Gente del bosque: personajes que cuentan historias de la Patagonia
 import * as THREE from 'three';
 import { limitarSombrasPorDistancia } from './rendimiento.js';
+import { precalentarPiel } from './animales-piel.js';
 import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
 import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar, fundirNormales, puntasBufanda } from './formas.js';
@@ -1426,6 +1427,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
   // cuadro con alguien adelante de la cámara (con su cara de cerca y su sombra) compila la sombra de
   // la piel por huesos, que `compile` no hace. `dibujar` es el dibujo de siempre del juego.
   function precalentar(camara, dibujar) {
+    // 4.12.2: los animales con huesos comparten esta pasada de la carga (su programa con huesos y el de su sombra también se compilan acá)
+    try { precalentarPiel(escena, camara, dibujar); } catch (err) { console.warn('piel de los animales:', err); }
     const n = guarda || gente[0];
     if (!n || ESTILO_VIEJO || !camara) return false;
     const antes = { visible: n.g.visible, x: n.pos.x, y: n.pos.y, z: n.pos.z, ry: n.g.rotation.y };

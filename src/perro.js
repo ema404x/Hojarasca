@@ -2,7 +2,9 @@
 import * as THREE from 'three';
 import { rng, lerp, clamp } from './ruido.js';
 import { lam, palo, compactar, MAT_FAUNA } from './vida.js';
-import { bola, torno, miembro, deformar, pintar, color, matiz, ruido3 } from './formas.js';
+import { bola, torno, miembro, deformar, pintar, color, matiz, ruido3, etiquetar } from './formas.js';
+// 4.12.2: la piel por huesos de los animales (cerca, Media y Alta)
+import { armarPielPerro, observar } from './animales-piel.js';
 import { OLFATO, MARCAR_DESDE, presaParaGuiar, puntoDeGuia, pasoDeGuia } from './perro-guia.js';
 import { sanearPerro, firmaPerro } from './personal-perro.js';
 import { tono, desechar } from './personal-mallas.js';
@@ -85,7 +87,7 @@ export function mallaPerro(ap = sanearPerro(null)) {
     // 3.5: más anchas y chatas, con la punta que se dobla hacia adelante (antes parecían cuernos)
     const oreja = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.048, 0.088, 9, 3), color(pelo)), (v) => { v.z *= 0.3; if (v.y > 0.0) v.z += v.y * v.y * 9; });
     oreja.position.set(l * 0.056, 0.088, -0.035); oreja.rotation.set(-0.12, l * 0.25, -l * 0.55);
-    cabeza.add(conPelaje(oreja));
+    cabeza.add(etiquetar(conPelaje(oreja), 'oreja'));   // (4.12.2: etiquetada para la piel por huesos)
   }
   // 2.8: el collar con su chapita, justo abajo de la cabeza; y el pañuelo atado al cuello
   if (ap.conCollar) {
@@ -133,7 +135,9 @@ export function mallaPerro(ap = sanearPerro(null)) {
   palito.name = 'palito';
   palito.visible = false;
   cabeza.add(palito);
-  return { g, cabeza, patas, cola, palito };
+  const m = { g, cabeza, patas, cola, palito };
+  m.piel = armarPielPerro(m);   // 4.12.2: null en Baja y Mínima
+  return m;
 }
 
 export function crearPerro(T, escena, col, sonido, registrar, progreso) {
@@ -181,6 +185,7 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
     const js = jugador.estado;
     const d = Math.hypot(est.pos.x - js.pos.x, est.pos.z - js.pos.z);
     m.g.visible = true;
+    observar(camara?.position);   // 4.12.2: de acá sale el LOD de la piel por huesos
 
     // si te fuiste muy lejos (o te subiste a algo), te alcanza
     // 3.8.6: corriendo (ver la velocidad, más abajo); aparece detrás tuyo sólo si quedó lejísimos o fuera de la vista
@@ -396,6 +401,8 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
       m.patas[2].rotation.x -= 0.52 * s; m.patas[3].rotation.x -= 0.52 * s;
       m.cabeza.rotation.x += 0.4 * s;
     } else m.g.rotation.x = 0;
+    // 4.12.2: cerca y en Media o Alta se dibuja con huesos (el andar suave, la columna, el cuello, la cola y las orejas); la rígida sigue marcando la pose
+    if (m.piel?.lod(m.g)) m.piel.posar(dt, m, { paso: est.paso, anda, vel: est.vel, sentado: est.sentado || 0, marcando: est.estado === 'marcar' });
 
     if (!progreso.entradas.perro && d < 6) registrar('perro');
     const marca = est.estado === 'marcar' && est.marcando ? est.marcando : null;
@@ -411,11 +418,12 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
     apariencia = nuevo;
     if (!rearmar) return false;
     const n = mallaPerro(nuevo);
+    m.piel?.liberar();
     const viejas = [...m.g.children];
     for (const c of viejas) m.g.remove(c);
     for (const c of [...n.g.children]) m.g.add(c);
     for (const c of viejas) desechar(c, [MAT_FAUNA]);
-    m.cabeza = n.cabeza; m.patas = n.patas; m.cola = n.cola; m.palito = n.palito;
+    m.cabeza = n.cabeza; m.patas = n.patas; m.cola = n.cola; m.palito = n.palito; m.piel = n.piel;
     return true;
   }
 

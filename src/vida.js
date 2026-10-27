@@ -9,7 +9,9 @@ import { publicarAnimal, animalMasCercano, destinoEscapeConCobertura, actividadF
 import { crearSombraContacto, actualizarSombraContacto } from './naturaleza-reactiva.js';
 import { actualizarMicroconducta, gestoMicroconducta } from './microconductas.js';
 import { crearPoolPosicional, limitarSombrasPorDistancia, consumirPresupuestoIA } from './rendimiento.js';
-import { bola, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, matiz, color as matDe } from './formas.js';
+// 4.12.2: la piel por huesos del huemul (cerca, Media y Alta)
+import { armarPielCiervo, fijarMaterialPiel } from './animales-piel.js';
+import { bola, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, matiz, etiquetar, color as matDe } from './formas.js';
 
 // Los materiales de los animales llevan una luz de borde: el contorno se
 // enciende apenas cuando el sol viene de atrás, y así se recortan del fondo.
@@ -58,6 +60,7 @@ export const lam = (color, extra = {}) => {
 // Un solo material para toda la fauna: el color va en los vértices
 export const MAT_FAUNA = new THREE.MeshLambertMaterial({ vertexColors: true });
 MAT_FAUNA.onBeforeCompile = bordeLuz;
+fijarMaterialPiel(MAT_FAUNA);   // 4.12.2: la piel por huesos de los animales usa este mismo material
 
 // Junta en una sola malla las partes que no se mueven, para dibujar mucho menos
 // 3.4: con `opciones` (gente y animales) la malla fundida queda suave y pintada: ver fundirSuave.
@@ -132,6 +135,9 @@ function fundirSuave(raiz, op) {
     for (const m of mallas) { const q = m.geometry; nv += q.attributes.position.count; ni += q.index ? q.index.count : q.attributes.position.count; }
     const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3);
     const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    // 4.12.2: si alguna pieza trae `userData.etiqueta` (formas.js), los vértices la llevan en el atributo `etiqueta` para la piel por huesos
+    const conEtiqueta = mallas.some((m) => m.userData.etiqueta);
+    const eti = conEtiqueta ? new Uint8Array(nv) : null;
     let ov = 0, oi = 0;
     for (const m of mallas) {
       m.updateMatrix();
@@ -152,6 +158,7 @@ function fundirSuave(raiz, op) {
         if (op.alto) sombraPintada(_cv, _pv, _nv, op);
         col[k] = _cv.r; col[k + 1] = _cv.g; col[k + 2] = _cv.b;
       }
+      if (eti && m.userData.etiqueta) eti.fill(m.userData.etiqueta, ov, ov + P.count);
       if (geo.index) for (let i = 0; i < geo.index.count; i++) idx[oi++] = geo.index.getX(i) + ov;
       else for (let i = 0; i < P.count; i++) idx[oi++] = i + ov;
       ov += P.count;
@@ -162,6 +169,7 @@ function fundirSuave(raiz, op) {
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    if (eti) geo.setAttribute('etiqueta', new THREE.BufferAttribute(eti, 1));
     geo.setIndex(new THREE.BufferAttribute(idx, 1));
     geo.computeBoundingSphere();
     const unida = new THREE.Mesh(geo, MAT_FAUNA);
@@ -187,7 +195,7 @@ export function patas(g, mat, largo, x, z, r) {
 // patas cortas y fuertes, cuello grueso, cabeza corta con la "Y" oscura de la frente, orejas
 // grandes y, el macho, cuernos cortos en horqueta. Pelaje pardo grisáceo pintado en los
 // vértices (más oscuro en la cara y las cañas, más claro en la garganta). Mismos pivotes.
-function mallaHuemul(macho, blanco = false) {
+export function mallaHuemul(macho, blanco = false) {
   const g = new THREE.Group();
   // 4.2 (huevos de pascua): el huemul blanco (pelaje claro, la «Y» de la frente apenas más oscura); el de siempre, pardo
   const pelo = blanco ? '#ebe6da' : '#776957', oscuro = blanco ? '#8f897c' : '#3d342b', asta = blanco ? '#d4cbb8' : '#584938';
@@ -201,7 +209,7 @@ function mallaHuemul(macho, blanco = false) {
   };
   const conPelaje = (m) => pintar(m, pelaje);
   g.add(conPelaje(lomo(pelo, { y: 0.94, atras: -0.64, adelante: 0.56, ancho: 0.27, alto: 0.3, pecho: 0.12, panza: 0.08 }, 16)));
-  g.add(miembro(oscuro, [[0, 1.02, -0.6], [0, 0.98, -0.66], [0, 0.9, -0.68]], [0.04, 0.05, 0.02], 5, 8));         // la cola
+  g.add(etiquetar(miembro(oscuro, [[0, 1.02, -0.6], [0, 0.98, -0.66], [0, 0.9, -0.68]], [0.04, 0.05, 0.02], 5, 8), 'cola'));         // la cola (4.12.2: etiquetada para la piel por huesos)
   const cabeza = new THREE.Group(); cabeza.position.set(0, 1.4, 0.65);
   const testa = miembro(pelo, [[0, 0.04, -0.08], [0, 0.02, 0.06], [0, -0.03, 0.2], [0, -0.045, 0.3]], [0.1, 0.11, 0.075, 0.05], 8, 12);
   testa.scale.set(0.85, 1, 1);
@@ -218,7 +226,7 @@ function mallaHuemul(macho, blanco = false) {
   for (const l of [-1, 1]) {
     cabeza.add(bola('#11100e', [0.015, 0.016, 0.013], [l * 0.078, 0.04, 0.11]));
     const pivOreja = new THREE.Group(); pivOreja.position.set(l * 0.095, 0.13, -0.03); pivOreja.rotation.z = -l * 0.68; pivOreja.rotation.x = -0.12;
-    pivOreja.add(pintar(bola(pelo, [0.034, 0.12, 0.062], [0, 0, 0]), (c, p, n) => { if (n.z > 0.4) c.lerp(claro, 0.35); }));
+    pivOreja.add(etiquetar(pintar(bola(pelo, [0.034, 0.12, 0.062], [0, 0, 0]), (c, p, n) => { if (n.z > 0.4) c.lerp(claro, 0.35); }), 'oreja'));
     cabeza.add(pivOreja); orejas.push(pivOreja);
     if (macho) {
       const base = [l * 0.05, 0.13, 0.03], medio = [l * 0.09, 0.27, 0.0];
@@ -247,6 +255,9 @@ function mallaHuemul(macho, blanco = false) {
 }
 
 // 4.2 (huevos de pascua): el huemul blanco, macho (lo arma huevos-mundo.js; no es de la fauna: no se caza ni se cuenta)
+export function pielDeHuemul(m) {
+  return armarPielCiervo(m, { nombre: 'huemul', centroY: 0.94, cuerpoZ: -0.04, cuello: { base: [0, 1.0, 0.36] }, cabezaPos: [0, 1.4, 0.65], cuelloEnCabeza: true, orejas: [[-0.095, 1.45, 0.62], [0.095, 1.45, 0.62]], cola: { huesos: [[0, 1.02, -0.6], [0, 0.94, -0.65], [0, 0.86, -0.7]], dir: [0, -0.83, -0.55] } });
+}
 export function mallaHuemulBlanco() { return mallaHuemul(true, true); }
 
 // 3.4: el zorro colorado (culpeo): cuerpo esbelto rojizo con el lomo canoso, garganta y
@@ -558,6 +569,13 @@ export function marchaMamifero(vel, estado, paseo = 1, carrera = 4) {
   return { modo: 'paso', cadencia: 3.0 + v * 2.8, amplitud: 0.46, rebote: 0.016, posterior: Math.PI / 2 };
 }
 
+// 4.12.2: cerca y en Media o Alta, el ciervo y el huemul se dibujan con huesos (animales-piel.js): se les da la marcha que `actualizarCiervo` eligió
+export function posarPielMamifero(a, dt, prm) {
+  if (!a.piel?.lod(a.g)) return;
+  const mc = marchaMamifero(a.vel, a.estado, prm.paseo, prm.carrera);
+  a.piel.posar(dt, a, { fase: a.fase, amplitud: mc.amplitud * Math.min(1, a.vel * 0.9), posterior: mc.posterior, estado: a.estado, galope: mc.modo === 'galope' });
+}
+
 export function actualizarCiervo(a, dt, js, prm, T, col, ambiente = {}) {
   const dx = a.pos.x - js.pos.x, dz = a.pos.z - js.pos.z;
   const d = Math.hypot(dx, dz);
@@ -682,6 +700,8 @@ export function crearVida(T, veg, col, escena, sonido, registrar, progreso) {
   }
   zonasHuemul.forEach((casa, i) => {
     const m = mallaHuemul(i % 2 === 0);
+    // 4.12.2: con huesos cuando está cerca (Media y Alta); el huemul blanco de los huevos de pascua no los lleva
+    m.piel = pielDeHuemul(m);
     m.g.scale.setScalar(1.15);
     m.g.position.set(casa.x, T.altura(casa.x, casa.z), casa.z);
     escena.add(m.g);
@@ -827,6 +847,7 @@ export function crearVida(T, veg, col, escena, sonido, registrar, progreso) {
       limitarSombrasPorDistancia(a.g, dHuemul, 58);
       if (!a.g.visible) { if (a.sombra) a.sombra.visible = false; continue; }
       actualizarCiervo(a, dt, js, PRM_HUEMUL, T, col, m);
+      posarPielMamifero(a, dt, PRM_HUEMUL);
       actualizarSombraContacto(a.sombra, T, a.pos, a.g.visible, a.estado === 'huir' ? 0.78 : 1);
       tmp.set(a.pos.x, a.pos.y + 1, a.pos.z);
       if (a.estado !== 'huir') anotar('huemul', tmp, 35, 120);
