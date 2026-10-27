@@ -1,6 +1,6 @@
 // Cielo, ciclo del día, luces, niebla y la cordillera en el horizonte
 import * as THREE from 'three';
-import { U, GLSL_COMUN, GLSL_ESTILO } from './materiales.js';
+import { U, UAGUA, GLSL_COMUN, GLSL_ESTILO } from './materiales.js';
 import { crearRuido, smoothstep, clamp } from './ruido.js';
 import { factorLuzRasante } from './profundidad.js';
 
@@ -600,6 +600,11 @@ export function crearCielo(escena, calidad) {
     // tarde: lo que pasa de 1 en uGradoMat es la tarde (la misma cuenta que le llega a la
     // composición del postproceso). El postproceso lo pone en 0 mientras dibuja.
     U.uGradoMat.value = 1 + Math.max(tarde, dorada * 0.75);
+
+    // 4.12.1: el agua espeja este cielo (ver agua.js)
+    UAGUA.uSolA.value.copy(solDir); UAGUA.uLunaA.value.copy(lunaDir);
+    UAGUA.uDiaA.value = dia; UAGUA.uTardeA.value = tarde; UAGUA.uDoradaA.value = dorada; UAGUA.uNubA.value = nub;
+    UAGUA.uLunaLuzA.value = uniforms.uIluminada.value;
 
     cielo.position.copy(cam);
     return { dia, tarde, dorada, solDir, lunaDir, rasante, humedadAire };

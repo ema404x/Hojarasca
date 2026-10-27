@@ -114,6 +114,13 @@ export const U = {
   uGradoMat: { value: 1 },
 };
 
+// 4.12.1 (agua y reflejos): lo que el agua necesita saber del cielo para espejarlo (lo pone cielo.js en cada `actualizar`): el sol de
+// verdad (uSolDir cambia a la luna de noche), la luna, y las cantidades con las que el cielo pinta su ocaso, su día y sus nubes.
+export const UAGUA = {
+  uSolA: { value: new THREE.Vector3(0, 1, 0) }, uLunaA: { value: new THREE.Vector3(0, -1, 0) },
+  uDiaA: { value: 1 }, uTardeA: { value: 0 }, uDoradaA: { value: 0 }, uNubA: { value: 0 }, uLunaLuzA: { value: 1 },
+};
+
 export const GLSL_COMUN = /* glsl */`
 float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float vnoise(vec2 p) {

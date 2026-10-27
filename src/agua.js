@@ -1,6 +1,6 @@
 // Lago y arroyo: color por profundidad, reflejo del cielo, brillo del sol y corriente
 import * as THREE from 'three';
-import { U, GLSL_COMUN, cuentaNiebla } from './materiales.js';
+import { U, UAGUA, GLSL_COMUN, cuentaNiebla } from './materiales.js';
 import { LAGO } from './config.js';
 import { construirCintaArroyo } from './cinta-arroyo.js';
 
@@ -13,6 +13,7 @@ function materialAgua(nuevo = false) {
     uTiempo: U.uTiempo, uAlturas: U.uAlturas, uSolDir: U.uSolDir, uSolColor: U.uSolColor,
     uCenit: U.uCenit, uHorizonte: U.uHorizonte, uAmbiente: U.uAmbiente, uLluvia: U.uLluvia, uViento: U.uViento, uInvierno: U.uInvierno, uJugador: U.uJugador,
   });
+  Object.assign(uniforms, UAGUA);   // 4.12.1: el cielo que se espeja
   return new THREE.ShaderMaterial({
     uniforms, fog: true, transparent: true, depthWrite: false,
     vertexShader: /* glsl */`
@@ -34,7 +35,10 @@ function materialAgua(nuevo = false) {
       ${GLSL_COMUN}
       uniform float uTiempo; uniform sampler2D uAlturas; uniform vec3 uSolDir; uniform vec3 uSolColor;
       uniform vec3 uCenit; uniform vec3 uHorizonte; uniform vec3 uAmbiente; uniform float uLluvia; uniform float uViento; uniform float uInvierno; uniform vec3 uJugador;
+      uniform vec3 uSolA; uniform vec3 uLunaA; uniform float uDiaA; uniform float uTardeA; uniform float uDoradaA; uniform float uNubA; uniform float uLunaLuzA;
       varying vec3 vPos; varying vec2 vFlujo; varying vec2 vCauce;
+      // 4.12.1: el mismo fbm de nubes del cielo (cielo.js): el lago espeja las nubes de verdad, no un degradado
+      float fbmNubes(vec2 p) { float s = 0.0, a = 0.54; for (int i = 0; i < 3; i++) { s += a * vnoise(p); p = p * 2.02 + 3.1; a *= 0.5; } return s * 1.08; }
       float ondas(vec2 p, float detalle) {
         vec2 f = vFlujo * uTiempo;
         float a = vnoise(p * 0.35 - f * 0.35 + uTiempo * 0.05);
@@ -88,16 +92,67 @@ function materialAgua(nuevo = false) {
         }
         float fres = 0.03 + 0.97 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
         vec3 R = reflect(-V, N);
-        vec3 cielo = mix(uHorizonte, uCenit, smoothstep(0.0, 0.6, R.y));
+        float ry = max(R.y, 0.0);
+        // 4.12.1: el cielo espejado, armado con las mismas cuentas del cielo (cielo.js) sobre la dirección del reflejo: el mismo degradado
+        // y bruma del horizonte, la franja rosa del ocaso (más ancha del lado del sol), las nubes (el mismo ruido, así se espeja la nube
+        // que se ve arriba), la luna con su halo y los cerros teñidos por el sol bajo. Sin ningún dibujo extra: es la cuenta del reflejo.
+        vec2 rumboR = normalize(R.xz + vec2(1e-4, 0.0));
+        float hs = max(dot(rumboR, normalize(uSolA.xz + vec2(1e-4, 0.0))), 0.0);
+        float bajoSol = max(uTardeA, uDoradaA * 0.6) * (1.0 - uNubA * 0.8);
+        vec3 cielo = mix(uHorizonte, uCenit, pow(smoothstep(0.0, 0.7, ry), 0.9));
+        vec3 aireC = mix(uHorizonte * 1.04, vec3(1.0), uDiaA * 0.15 + uTardeA * 0.08);
+        cielo = mix(cielo, aireC, smoothstep(-0.04, 0.22, R.y) * (1.0 - smoothstep(0.22, 0.72, R.y)) * (0.05 + uNubA * 0.1));
+        float franjaRosa = smoothstep(0.015, 0.13, R.y) * (1.0 - smoothstep(0.16 + 0.12 * hs, 0.5, R.y));
+        vec3 rosa = mix(vec3(0.86, 0.36, 0.40), vec3(0.98, 0.50, 0.30), hs) * (0.55 + 0.45 * uDiaA);
+        cielo = mix(cielo, rosa, franjaRosa * max(uTardeA, uDoradaA * 0.4) * (0.22 + 0.2 * hs) * (1.0 - uNubA * 0.85));
+        ${nuevo ? `
+        // la banda de luz dorada baja del alba y del ocaso (la misma del cielo en media y alta)
+        cielo += vec3(1.0, 0.60, 0.22) * exp(-ry / 0.085) * smoothstep(-0.06, 0.0, R.y) * bajoSol * (0.26 + 0.8 * pow(hs, 3.0));
+        ` : ''}
+        if (corre352 < 0.7) {
+          vec2 uvN = R.xz / (ry + 0.18);
+          vec2 vientoN = vec2(uTiempo * 0.006, uTiempo * 0.002);
+          ${nuevo ? `
+          float nN = fbmNubes(uvN * 1.05 + vientoN);
+          float coposN = vnoise(uvN * 5.5 + vientoN * 2.0) - 0.5;
+          float grupoN = smoothstep(0.25, 0.75, vnoise(uvN * 0.32 - vientoN * 0.5 + 4.0));
+          ` : `
+          vec2 pN = uvN * 1.05 + vientoN;
+          float nN = (0.54 * vnoise(pN) + 0.27 * vnoise(pN * 2.02 + 3.1) + 0.0675) * 1.08;
+          float coposN = 0.0, grupoN = 0.55;
+          `}
+          float umbralN = 0.63 + (1.0 - grupoN) * 0.14 * (1.0 - uNubA) - uNubA * 0.42;
+          float cobN = smoothstep(umbralN, umbralN + 0.045 + uNubA * 0.2, nN + coposN * 0.13) * smoothstep(-0.02, 0.2, R.y) * 0.55;
+          if (cobN > 0.01) {
+            vec3 luzN = mix(uHorizonte * 1.12, vec3(1.0, 0.98, 0.94), uDiaA * 0.62) * (0.55 + 0.45 * uDiaA);
+            luzN = mix(luzN, uSolColor * 0.85 + uHorizonte * 0.45, uTardeA * 0.55);
+            vec3 sombraN = mix(uHorizonte, uCenit, 0.45) * vec3(0.74, 0.72, 0.84) * (0.6 + 0.4 * uDiaA);
+            vec3 nube = mix(sombraN, luzN, 0.35 + 0.5 * hs);
+            // al ocaso la panza de la nube toma el rosa anaranjado del sol que la ilumina de abajo
+            nube = mix(nube, uSolColor * vec3(1.6, 0.9, 0.75) + sombraN * 0.4, uTardeA * 0.2 * (1.0 - uNubA * 0.6) * smoothstep(-0.05, 0.03, uSolA.y));
+            nube = mix(nube, sombraN * 0.85, smoothstep(0.75, 1.0, nN) * 0.4 + uNubA * 0.35);
+            // el borde que da al sol se enciende, y la luna platea las nubes que tiene cerca
+            float bordeN = 1.0 - smoothstep(umbralN + 0.05, umbralN + 0.3, nN);
+            nube += uSolColor * bordeN * (0.35 + uTardeA) * hs * 0.6 * (1.0 - uNubA * 0.4) * smoothstep(0.0, 0.25, uDiaA);
+            nube += vec3(0.30, 0.36, 0.52) * pow(max(dot(R, uLunaA), 0.0), 10.0) * 0.32 * (1.0 - uDiaA) * uLunaLuzA * (1.0 - uNubA * 0.5);
+            cielo = mix(cielo, nube, cobN);
+          }
+        }
+        // la luna: el disco roto en las ondas (se ensancha para que se vea en el agua) y su halo frío
+        float dlN = max(dot(R, uLunaA), 0.0);
+        float nocheA = 1.0 - uDiaA;
+        cielo = mix(cielo, vec3(0.92, 0.9, 0.82) * (0.3 + 0.7 * uLunaLuzA), smoothstep(0.9988, 0.9996, dlN) * nocheA * (1.0 - uNubA * 0.8));
+        cielo += vec3(0.35, 0.4, 0.55) * pow(dlN, 180.0) * 0.5 * nocheA * uLunaLuzA;
         // 3.4: el reflejo pintado. Lo que se refleja rasante no es el cielo: abajo la costa con
         // su bosque (verde azulado oscuro), arriba los cordones de la cordillera (azules, con el
         // aire de la lejanía) y recién después el cielo. La silueta de los cerros cambia con el
         // rumbo (ruido sobre el círculo, sin costura).
-        vec2 rumboR = normalize(R.xz + vec2(1e-4, 0.0));
         float alturaCerros = 0.09 + 0.15 * vnoise(rumboR * 4.0 + 3.0);
         vec3 aireLejos = mix(uHorizonte, uCenit, 0.45);
         vec3 luzLejos = uAmbiente * 3.0 + uSolColor * 0.6;
         vec3 cerros = mix(srgb(vec3(0.22, 0.30, 0.34)) * luzLejos, aireLejos, 0.58);
+        // 4.12.1: con el sol bajo, los cerros del lado del sol se encienden (el resplandor del ocaso en la cordillera)
+        cerros = mix(cerros, cerros * vec3(1.5, 1.0, 0.82) + vec3(0.07, 0.03, 0.015), hs * hs * bajoSol);
         vec3 costa = mix(srgb(vec3(0.08, 0.15, 0.12)) * luzLejos, aireLejos, 0.22);
         cielo = mix(cerros, cielo, smoothstep(alturaCerros - 0.03, alturaCerros + 0.05, R.y));
         cielo = mix(costa, cielo, smoothstep(0.012, 0.075, R.y));
@@ -112,10 +167,15 @@ function materialAgua(nuevo = false) {
         vec3 aguaProfunda = srgb(vec3(0.02, 0.085, 0.09));
         vec3 absorcion = exp(-vec3(0.36, 0.16, 0.08) * max(prof, 0.0));
         vec3 agua = mix(aguaProfunda, aguaSomera, absorcion);
+        // 4.12.1: la orilla, de verdad turquesa sobre la arena clara (cuanto más sol, más), con el verde azulado hondo recién al ganar fondo
+        agua = mix(agua, srgb(vec3(0.14, 0.52, 0.50)), (1.0 - smoothstep(0.12, 1.7, prof)) * (0.3 + 0.4 * uDiaA) * 0.62 * (1.0 - corre352));
         // En la orilla aparece una turbidez terrosa muy suave: sedimento en suspensión,
         // no una franja pintada. Desaparece enseguida al ganar profundidad.
-        float sedimento = (1.0 - smoothstep(0.10, 1.05, prof)) * (0.55 + 0.45 * vnoise(vPos.xz * 0.17));
+        float sedimento = (1.0 - smoothstep(0.10, 1.05, prof));
+        if (sedimento > 0.0) sedimento *= (0.55 + 0.45 * vnoise(vPos.xz * 0.17));   // 4.12.1: el ruido sólo donde hay orilla
         agua = mix(agua, srgb(vec3(0.30, 0.31, 0.23)), sedimento * 0.22);
+        // 4.12.1: la película del borde, sobre la arena mojada: un poco más oscura y tibia
+        agua = mix(agua, srgb(vec3(0.20, 0.19, 0.14)), (1.0 - smoothstep(0.0, 0.16, prof)) * 0.55);
         // cáusticas: la luz que atraviesa las ondas y dibuja la red sobre el fondo
         if (detalle > 0.2 && prof < 3.2) {
           vec2 q = vPos.xz * 1.35 - vFlujo * uTiempo * 0.5;
@@ -132,17 +192,18 @@ function materialAgua(nuevo = false) {
         // 4.0 (prototipo de agua y cielo, sólo media y alta): reflejo de la orilla por color. Cerca de la costa lo que se ve
         // en el agua es la costa misma, boca abajo: una franja verde oscura (el bosque) estirada en el rumbo de la vista y rota por las
         // ondas. Y el espejo toma un poco más del cielo del momento (dorado al ocaso, rosado al alba).
-        ${nuevo ? `
-        vec2 vistaXZ = normalize(vPos.xz - cameraPosition.xz + vec2(1e-4, 0.0));
-        float aLo = dot(vPos.xz, vistaXZ), aAn = dot(vPos.xz, vec2(-vistaXZ.y, vistaXZ.x));
-        float tira = vnoise(vec2(aAn * 0.9, aLo * 0.06 + uTiempo * 0.05)) * 0.6 + vnoise(vec2(aAn * 2.7 + 5.0, aLo * 0.15 - uTiempo * 0.04)) * 0.4;
         float cercaOrilla = smoothstep(3.4, 0.2, prof) * (1.0 - corre352);
-        float rasante4 = pow(1.0 - clamp(V.y, 0.0, 1.0), 1.5);
-        vec3 verdeOrilla = mix(srgb(vec3(0.07, 0.17, 0.13)) * luzLejos * 1.7, cielo, 0.18);
-        float refOrilla = cercaOrilla * (0.28 + 0.6 * rasante4) * (0.4 + 0.8 * smoothstep(0.22, 0.8, tira)) * (1.0 - uInvierno * 0.4);
-        col = mix(col, verdeOrilla, clamp(refOrilla, 0.0, 0.66));
+        if (cercaOrilla > 0.01) {
+          vec2 vistaXZ = normalize(vPos.xz - cameraPosition.xz + vec2(1e-4, 0.0));
+          float aLo = dot(vPos.xz, vistaXZ), aAn = dot(vPos.xz, vec2(-vistaXZ.y, vistaXZ.x));
+          ${nuevo ? 'float tira = vnoise(vec2(aAn * 0.9, aLo * 0.06 + uTiempo * 0.05)) * 0.6 + vnoise(vec2(aAn * 2.7 + 5.0, aLo * 0.15 - uTiempo * 0.04)) * 0.4;' : 'float tira = vnoise(vec2(aAn * 1.2, aLo * 0.08 + uTiempo * 0.05));   // 4.12.1: en baja, una sola muestra'}
+          float rasante4 = pow(1.0 - clamp(V.y, 0.0, 1.0), 1.5);
+          vec3 verdeOrilla = mix(srgb(vec3(0.07, 0.17, 0.13)) * luzLejos * 1.7, cielo, 0.18);
+          float refOrilla = cercaOrilla * (0.28 + 0.6 * rasante4) * (0.4 + 0.8 * smoothstep(0.22, 0.8, tira)) * (1.0 - uInvierno * 0.4);
+          col = mix(col, verdeOrilla, clamp(refOrilla, 0.0, 0.66));
+        }
+        // el espejo toma un poco más del cielo del momento (dorado al ocaso, rosado al alba)
         col = mix(col, cielo * 0.97, 0.13 * (1.0 - corre352 * 0.6) * (1.0 - cercaOrilla) * (1.0 - uLluvia * 0.4));
-        ` : ''}
         // 3.5.2: el arroyo que baja por la cuesta se leía como una losa inclinada (el mismo espejo
         // liso que el agua quieta). Donde corre rápido el agua está batida: refleja menos, se
         // aclara a un turquesa lechoso y se abre en vetas blancas que bajan con la corriente y en
@@ -162,30 +223,60 @@ function materialAgua(nuevo = false) {
         // para que el lago gane escala sin llenar el horizonte de ruido especular.
         float chispa = pow(alineadoSol, 70.0) * smoothstep(0.42, 0.88, vnoise(vPos.xz * 5.2 + vec2(uTiempo * 0.18, -uTiempo * 0.11))) * detalle;
         col += uSolColor * (brillo + chispa * 1.4) * (1.0 - uLluvia * 0.8);
-        float espuma = smoothstep(0.26, 0.0, prof) * (0.38 + 0.62 * vnoise(vPos.xz * 1.3 + vec2(uTiempo * 0.08, 0.0)));
+        // 4.12.1: destellos pintados: motas redondas de luz que se encienden y apagan sobre el camino del sol (hash por celda, sólo cerca del camino)
+        if (alineadoSol > 0.9 && detalle > 0.05) {
+          vec2 pD = vPos.xz * 3.2, celdaD = floor(pD);
+          float fD = hash12(celdaD);
+          float cicloD = fract(uTiempo * 0.4 + fD * 7.0);
+          vec2 centroD = vec2(0.25 + 0.5 * hash12(celdaD + 7.3), 0.25 + 0.5 * hash12(celdaD + 19.1));
+          float flash = step(0.8, fD) * smoothstep(0.0, 0.08, cicloD) * smoothstep(0.3, 0.08, cicloD) * smoothstep(0.17, 0.02, length(fract(pD) - centroD));
+          col += uSolColor * flash * pow(alineadoSol, 14.0) * 1.3 * detalle * (1.0 - uLluvia * 0.8) * (1.0 - corre352);
+        }
+        float espuma = smoothstep(0.26, 0.0, prof);
+        if (espuma > 0.0) espuma *= (0.38 + 0.62 * vnoise(vPos.xz * 1.3 + vec2(uTiempo * 0.08, 0.0)));
         espuma += length(vFlujo) * smoothstep(0.55, 0.85, n0) * 0.35;
         float dj2 = length(vPos.xz - uJugador.xz);
         espuma += smoothstep(1.4, 0.25, dj2) * (0.35 + 0.35 * sin(dj2 * 9.0 - uTiempo * 6.0)) * 0.5;
         // 3.5: la orilla con su espuma: una línea que va y viene con las olitas (más marcada con
         // viento), blanca con la luz del momento. Sólo cerca: de lejos no se vería.
-        float ola = sin(prof * 16.0 - uTiempo * 1.7 + vnoise(vPos.xz * 0.35) * 7.0) * 0.5 + 0.5;
-        float lineaOrilla = smoothstep(0.42, 0.04, prof) * smoothstep(0.62, 0.95, ola) * (0.5 + 0.5 * vnoise(vPos.xz * 2.1 - uTiempo * 0.1));
+        float lineaOrilla = 0.0;
+        if (prof < 0.42) {
+          float ola = sin(prof * 16.0 - uTiempo * 1.7 + vnoise(vPos.xz * 0.35) * 7.0) * 0.5 + 0.5;
+          lineaOrilla = smoothstep(0.42, 0.04, prof) * smoothstep(0.62, 0.95, ola) * (0.5 + 0.5 * vnoise(vPos.xz * 2.1 - uTiempo * 0.1));
+        }
         espuma += lineaOrilla * (0.6 + uViento * 0.6) * detalle * (1.0 - length(vFlujo) * 0.5);
         vec3 blancoEspuma = uAmbiente * 2.4 + uSolColor * max(uSolDir.y, 0.0) * 0.95 + uHorizonte * 0.12;
         col = mix(col, uHorizonte * 0.9 + uAmbiente, espuma * 0.35 * (1.0 - lineaOrilla));
         col = mix(col, blancoEspuma, clamp(lineaOrilla * detalle * 0.55, 0.0, 0.6));
         ${nuevo ? `
         // 4.0: puntillas de espuma: un encaje ancho que sube y baja por la orilla (además de la línea fina de siempre)
-        float ola4 = sin(prof * 9.0 - uTiempo * 1.1 + vnoise(vPos.xz * 0.9) * 6.0) * 0.5 + 0.5;
-        float puntillas = smoothstep(1.0, 0.3, prof) * smoothstep(0.66, 0.94, ola4) * (0.45 + 0.55 * vnoise(vPos.xz * 3.4 + uTiempo * 0.12)) * (0.55 + 0.45 * detalle) * (1.0 - corre352 * 0.6);
+        float puntillas = 0.0;
+        if (prof < 1.0) {
+          float ola4 = sin(prof * 9.0 - uTiempo * 1.1 + vnoise(vPos.xz * 0.9) * 6.0) * 0.5 + 0.5;
+          puntillas = smoothstep(1.0, 0.3, prof) * smoothstep(0.66, 0.94, ola4) * (0.45 + 0.55 * vnoise(vPos.xz * 3.4 + uTiempo * 0.12)) * (0.55 + 0.45 * detalle) * (1.0 - corre352 * 0.6);
+        }
         col = mix(col, blancoEspuma, clamp(puntillas * 0.7, 0.0, 0.7));
         ` : ''}
         col = mix(col, vec3(0.75, 0.8, 0.85) * (uAmbiente * 2.5 + 0.2), uInvierno * smoothstep(0.35, 0.0, prof) * 0.5);
         float transparenciaSomera = smoothstep(0.0, 1.3, prof);
         col = mix(col, col + uHorizonte * 0.035, (1.0 - transparenciaSomera) * (1.0 - uLluvia * 0.55));
-        float alfa = smoothstep(0.0, 0.3, prof) * mix(0.58, 0.95, smoothstep(0.0, 2.5, prof));
+        // 4.12.1: la transparencia de la orilla: casi vidrio en lo somero (se ve la arena a través, con su turquesa) y cada vez más cerrada al ganar fondo
+        float alfa = smoothstep(0.0, 0.22, prof) * mix(0.40, 0.95, pow(smoothstep(0.0, 3.0, prof), 0.75));
+        alfa = max(alfa, 0.3 * (1.0 - smoothstep(0.0, 0.2, prof)) * smoothstep(0.0, 0.012, prof));   // la película mojada del borde
+        // 4.12.1: la lengua de la ola: avanza y se retira por la playa con un encaje de espuma, y el frente brilla
+        float lengua = 0.0;
+        if (prof < 0.7) {
+          float vaiven = 0.5 + 0.5 * sin(uTiempo * 0.85 + dot(vPos.xz, vec2(0.31, 0.23)) + sin(dot(vPos.xz, vec2(-0.17, 0.29)) * 1.7) * 1.3);
+          float lim = 0.05 + 0.3 * vaiven;
+          float encajeS = ${nuevo ? 'vnoise(vPos.xz * 2.6 + vec2(uTiempo * 0.15, -uTiempo * 0.1))' : '0.5 + 0.5 * sin(vPos.x * 5.3 + vPos.z * 3.1 + uTiempo * 0.7)'};
+          float cuerpoS = smoothstep(lim, lim - 0.06, prof) * smoothstep(0.0, 0.02, prof) * (0.3 + 0.7 * smoothstep(0.25, 0.7, encajeS));
+          float frenteS = smoothstep(0.045, 0.0, abs(prof - lim)) * (0.55 + 0.45 * encajeS);
+          lengua = clamp(cuerpoS * 0.5 + frenteS * 0.8, 0.0, 0.85) * (0.4 + 0.6 * detalle) * (1.0 - corre352 * 0.7);
+          col = mix(col, blancoEspuma, lengua * 0.8);
+        }
         alfa = max(alfa, fres * smoothstep(0.0, 0.08, prof));
         alfa = max(alfa, lineaOrilla * detalle * 0.75 * smoothstep(0.0, 0.035, prof));
+        alfa = max(alfa, lengua * 0.7 * smoothstep(0.0, 0.03, prof));
         ${nuevo ? `alfa = max(alfa, puntillas * 0.78 * smoothstep(0.0, 0.03, prof));` : ''}   // 3.5: la espuma se ve
         alfa = max(alfa, (0.72 + 0.25 * rapido352) * corre352 * smoothstep(0.0, 0.06, prof));   // 3.5.2: el agua batida no se transparenta
         gl_FragColor = vec4(col, alfa);

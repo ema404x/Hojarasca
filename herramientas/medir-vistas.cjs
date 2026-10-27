@@ -95,6 +95,15 @@ const VISTAS = [
       return { x: p.x, z: p.z, y: (b && b.sitio ? b.sitio.y : H.T.altura(p.x, p.z)) + 1.6, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22.5, dia: 13 } })()` },
 ];
 
+// 4.12.1 (agua y reflejos): AGUA=1 suma los encuadres del agua (herramientas/vistas-agua-4-12-1.cjs, con prefijo «agua-»); RAPIDO=1 salta la carga de
+// calentar y la de la partida guardada (una sola carga, la de partida nueva): para medir sólo cuadros, no cargas.
+let PRELUDIO = '';
+if (process.env.AGUA === '1') {
+  const A = require('./vistas-agua-4-12-1.cjs'); PRELUDIO = A.preludio;
+  for (const v of A.vistas) VISTAS.push({ id: 'agua-' + v.id, modos: ['relax', 'desafio'], donde: v.donde, pitch: v.pitch });
+}
+const RAPIDO = process.env.RAPIDO === '1';
+
 app.whenReady().then(async () => {
   const r = { html: HTML, calidad: CALIDAD, modo: MODO, cuadros: CUADROS, cargas: {}, vistas: {}, errores: [] };
   const w = new BrowserWindow({ show: false, width: 1280, height: 720, useContentSize: true, webPreferences: { backgroundThrottling: false } });
@@ -128,12 +137,12 @@ app.whenReady().then(async () => {
   try {
     await w.loadFile(HTML, { search: '?debug=1' });
     await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', ${JSON.stringify(ajustes)}); 1`);
-    r.cargas.calentar = await cargar();
+    if (!RAPIDO) r.cargas.calentar = await cargar();
     // partida nueva (la caché de la carga ya caliente, como en la segunda vez que se abre el juego)
     await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', ${JSON.stringify(ajustes)}); 1`);
     r.cargas.nueva = await cargar();
     await entrar();
-    if (MODO === 'relax') {
+    if (MODO === 'relax' && !RAPIDO) {
       await esperar(3000);
       await js(`(()=>{ const H = window.__hojarasca; H.progreso.dia = 5; H.guardar(); return 1 })()`);
       r.cargas.guardada = await cargar();
@@ -147,7 +156,7 @@ app.whenReady().then(async () => {
       A.actualizar(4, H.camara.position); return ks.length })()`);
     // (3.6: con la aldea, lo que arma el Worker se monta de a uno por cuadro después de la carga; la
     // ventana oculta no corre requestAnimationFrame: se cuentan los cuadros a mano hasta que esté)
-    r.cargas.aldea = await js(`(async()=>{ const H = window.__hojarasca, A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null;
+    r.cargas.aldea = RAPIDO ? null : await js(`(async()=>{ const H = window.__hojarasca, A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null;
       const t0 = performance.now(); let cuadros = 0;
       for (let i = 0; i < 100 && A.medir().fabrica.pendientes > 0; i++) await new Promise((ok) => setTimeout(ok, 100));
       const t1 = performance.now();
@@ -161,21 +170,22 @@ app.whenReady().then(async () => {
       return { refugio: pt(H.T.lugares.refugio), almacen: pt(e.almacen), casaTe: pt(e.casaTe), sorteo: e.lugaresSorteo ? { almacen: pt(e.lugaresSorteo.almacen), casaTe: pt(e.lugaresSorteo['casa-te']) } : null,
         paradas: (H.tren.paradas || []).map((p) => ({ nombre: p.nombre, ...pt(p.anden) })) } })()`);
     r.heapAlEntrarMB = await js('+(performance.memory.usedJSHeapSize / 1048576).toFixed(1)');
+    if (PRELUDIO) await js(PRELUDIO);
     for (const v of VISTAS) {
       if (!v.modos.includes(MODO) || (SOLO && !SOLO.includes(v.id))) continue;
-      const puesto = await js(`(()=>{ const H = window.__hojarasca, js = H.jugador.estado; const p = ${v.donde}; if (!p) return null;
+      const puesto = await js(`(()=>{ const H = window.__hojarasca, js = H.jugador.estado; const p = ${v.donde}; if (!p) return null; p.pitch = ${v.pitch ?? -0.05};
         H.volverAlJuego && H.volverAlJuego();
-        js.pos.set(p.x, p.y ?? H.T.altura(p.x, p.z) + 1.65, p.z); js.yaw = p.yaw; js.pitch = -0.05; js.vel && js.vel.set && js.vel.set(0, 0, 0);
+        js.pos.set(p.x, p.y ?? H.T.altura(p.x, p.z) + 1.65, p.z); js.yaw = p.yaw; js.pitch = p.pitch; js.vel && js.vel.set && js.vel.set(0, 0, 0);
         H.progreso.horas = p.horas; if (p.dia !== undefined) H.progreso.dia = p.dia; window.__vista = p; return { x: +p.x.toFixed(1), z: +p.z.toFixed(1), yaw: +p.yaw.toFixed(3), horas: p.horas } })()`);
       if (!puesto) { r.vistas[v.id] = null; continue; }
       // que se acomode: cuadros sin medir (con la hora fija) y un respiro para lo que va por tiempo
       await js(`(()=>{ const H = window.__hojarasca, js = H.jugador.estado, p = window.__vista;
-        for (let i = 0; i < ${ASIENTO}; i++) { H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; if (p.y !== undefined) js.pos.y = p.y; if (p.dia !== undefined) H.progreso.dia = p.dia; js.yaw = p.yaw; js.pitch = -0.05; H.__bucle(); } return 1 })()`);
+        for (let i = 0; i < ${ASIENTO}; i++) { H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; if (p.y !== undefined) js.pos.y = p.y; if (p.dia !== undefined) H.progreso.dia = p.dia; js.yaw = p.yaw; js.pitch = p.pitch; H.__bucle(); } return 1 })()`);
       await esperar(1500);
       const m = await js(`(()=>{ const H = window.__hojarasca, R = H.renderer, gl = R.getContext(), js = H.jugador.estado, p = window.__vista;
         const ms = []; let llamadas = 0, triangulos = 0;
         for (let i = 0; i < ${CUADROS}; i++) {
-          H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; if (p.y !== undefined) js.pos.y = p.y; if (p.dia !== undefined) H.progreso.dia = p.dia; js.yaw = p.yaw; js.pitch = -0.05;
+          H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; if (p.y !== undefined) js.pos.y = p.y; if (p.dia !== undefined) H.progreso.dia = p.dia; js.yaw = p.yaw; js.pitch = p.pitch;
           const medirDibujo = i === ${CUADROS} - 1;
           let reset = null;
           if (medirDibujo) { R.info.autoReset = false; R.info.reset(); reset = R.info.reset; R.info.reset = () => {}; }
