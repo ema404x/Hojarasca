@@ -34,7 +34,7 @@ const PAGINA2 = String.raw`(() => {
   const A = window.__A, H = window.__hojarasca, T = H.T;
   A.tecla = (code, tipo) => { document.dispatchEvent(new KeyboardEvent(tipo, { code, key: code, bubbles: true })); return 1; };
   A.programas = () => H.renderer.info.programs.length;
-  A.nombresProgramas = () => H.renderer.info.programs.map((p) => p.name + ':' + (p.cacheKey || '').length);
+  A.nombresProgramas = () => H.renderer.info.programs.map((p) => p.name + '|' + (p.cacheKey || ''));
   A.piezas = (g) => { const r = { piel: 0, rigidas: 0 }; g.traverse((o) => { if (!o.isMesh || !o.visible) return; if (o.isSkinnedMesh) r.piel++; else if (o.material && o.material.isMeshLambertMaterial && o.material.vertexColors) r.rigidas++; }); return r; };
   // todos los animales con piel que hay en el mundo (los ciervos, los huemules, el perro y el caballo)
   A.conPiel = () => {
@@ -161,7 +161,8 @@ app.whenReady().then(async () => {
       return 1; })()`);
     const progs1 = await A('A.programas()');
     const nuevos = (await A('A.nombresProgramas()')).filter((x) => !nombres0.has(x));
-    ok(progs1 === progs0, `ningún programa de shader nuevo de día, de noche, girando, a caballo y de pie (${progs0} → ${progs1}${nuevos.length ? ': ' + JSON.stringify(nuevos) : ''})`);
+    if (nuevos.length) { const antes = [...nombres0].filter((x) => x.startsWith('|depth')); for (const nv of nuevos) { const tn = nv.split(','); let mejor = null; for (const o of antes) { const to = o.split(','); if (to.length !== tn.length) continue; const d = []; for (let i = 0; i < tn.length; i++) if (to[i] !== tn[i]) d.push([i, to[i].slice(0, 30), tn[i].slice(0, 30)]); if (!mejor || d.length < mejor.length) mejor = d; } console.log('  DIFERENCIA del programa nuevo con el depth más parecido: ' + JSON.stringify(mejor) + ' (depths previos ' + antes.length + ')'); } }
+    ok(progs1 === progs0, `ningún programa de shader nuevo de día, de noche, girando, a caballo y de pie (${progs0} → ${progs1}${nuevos.length ? ': ' + JSON.stringify(nuevos.map((x) => x.slice(0, 700))) : ''})`);
     // ---- 4. dibujos
     donde = 'dibujos';
     const dib = await A(`(async () => {
@@ -254,6 +255,7 @@ app.whenReady().then(async () => {
     ok(pers.caballo === true && !pers.caballoError, 'personalizar el caballo no rompe nada');
     // ---- 8. capturas
     donde = 'capturas';
+    await A('(() => { A.extra = 1.3; A.base = A.llano(); H.progreso.horas = 11; H.progreso.cosas = Object.assign(H.progreso.cosas || {}, { caballo: 1 }); return 1 })()');
     for (const nombre of Object.keys(escenarios)) {
       try {
         const r = await js(`(async () => { const A = window.__A, H = window.__hojarasca; ${escenarios[nombre]} })()`);
