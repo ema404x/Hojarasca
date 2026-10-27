@@ -27,6 +27,8 @@ exports.PAGINA = String.raw`(() => {
   A.camara = (px, py, pz, mx, my, mz) => {
     const dx = mx - px, dy = my - py, dz = mz - pz;
     H.__camaraFija = { x: px, y: py, z: pz, yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) };
+    // (el LOD de la piel sale de la cámara del juego, que sigue al jugador: para las capturas el jugador se queda bajo la cámara fija)
+    if (!A.jugadorAparte) { const j = J.estado; j.pos.set(px, py, pz); j.vel.set(0, 0, 0); }
   };
   A.sinCamara = () => { H.__camaraFija = null; };
   // el jugador quieto y lejos de los animales (para que no los espante), mirando para otro lado
@@ -54,7 +56,9 @@ exports.PAGINA = String.raw`(() => {
     return out;
   };
   // la cámara fija mirando a un animal desde el costado (ang = 0: de frente al norte), a dist metros y alto sobre el piso
-  A.vista = (pos, dist, ang, alto = 1.2, mira = 0.9) => { A.camara(pos.x + Math.sin(ang) * dist, pos.y + alto, pos.z + Math.cos(ang) * dist, pos.x, pos.y + mira, pos.z); };
+  A.vista = (pos, dist, ang, alto = 1.2, mira = 0.9) => { A.camara(pos.x + Math.sin(ang) * dist, pos.y + alto + (A.extra || 0), pos.z + Math.cos(ang) * dist, pos.x, pos.y + mira, pos.z); H.camara.fov = A.fov || 32; H.camara.updateProjectionMatrix(); };
+  // para las capturas: sin pasto ni matas (tapan las patas) y sin el objeto de la mano
+  A.sinPasto = () => { H.escena.traverse((o) => { if (!o.isMesh) return; const n = o.isInstancedMesh ? o.count : (o.geometry && o.geometry.attributes.position ? o.geometry.attributes.position.count : 0); if ((o.isInstancedMesh && n > 3000) || /pasto|soto|hierba/i.test(o.name || '')) o.visible = false; }); const g = H.escena.getObjectByName('sotobosque'); if (g) g.visible = false; };
   // varios cuadros en una sola hoja (cols columnas), para verlos juntos
   A.hoja = async (urls, cols = 3, ancho = 683) => {
     const imgs = await Promise.all(urls.map((u) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = u; })));

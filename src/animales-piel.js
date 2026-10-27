@@ -160,6 +160,9 @@ export function armarPiel(m, esp) {
   const ind = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
 
   const H = armarHuesos(esp);
+  // el tramo de la textura que le toca: los índices de hueso de los vértices ya van corridos (`base`), como en la gente (el shader lee la textura
+  // compartida con el índice tal cual)
+  const lugar = lugarHuesos(), baseH = lugar.base;
   const ejeC = new THREE.Vector3(...esp.cuello.cabeza).sub(new THREE.Vector3(...esp.cuello.base));
   const baseC = new THREE.Vector3(...esp.cuello.base);
   const largoC2 = ejeC.lengthSq();
@@ -231,7 +234,7 @@ export function armarPiel(m, esp) {
       for (let r = 0; r < nh && usados < 4; r++) if (ws[r] > 1e-3) { tot += ws[r]; usados++; }
       tot = tot || 1;
       if (!usados) { hs[0] = HUESO.PELVIS; ws[0] = 1; usados = 1; tot = 1; }
-      for (let r = 0; r < 4; r++) { const vale = r < usados; si[j * 4 + r] = vale ? hs[r] : 0; sw[j * 4 + r] = vale ? ws[r] / tot : 0; }
+      for (let r = 0; r < 4; r++) { const vale = r < usados; si[j * 4 + r] = (vale ? hs[r] : 0) + baseH; sw[j * 4 + r] = vale ? ws[r] / tot : 0; }
     }
     if (geo.index) for (let i = 0; i < geo.index.count; i++) ind[oi++] = geo.index.getX(i) + ov;
     else for (let i = 0; i < P.count; i++) ind[oi++] = i + ov;
@@ -247,7 +250,6 @@ export function armarPiel(m, esp) {
   geo.computeBoundingSphere();
   // (la esfera de la malla cubre al animal en cualquier pose: un poco más grande que la de reposo)
   const esfera = new THREE.Sphere(geo.boundingSphere.center.clone(), geo.boundingSphere.radius * 1.3 + 0.3);
-  const lugar = lugarHuesos();
   const malla = new MallaConPiel(geo, MAT_FAUNA, esfera);
   malla.castShadow = true;
   malla.frustumCulled = true;

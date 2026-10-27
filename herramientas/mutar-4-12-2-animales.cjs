@@ -40,6 +40,7 @@ const MUTACIONES = [
   ['la bounding sphere se queda corta', PI, 'geo.boundingSphere.radius * 1.3 + 0.3', 'geo.boundingSphere.radius * 0.5'],
   ['el esqueleto no libera su tramo', PI, '  lugar.pagina.libres.push(lugar.base / HUESOS_ANIMAL);\n', ''],
   ['la textura de huesos es enorme', PI, 'export const LADO_PAGINA = 64;', 'export const LADO_PAGINA = 512;'],
+  ['los índices de hueso no llevan el tramo de la textura', PI, 'si[j * 4 + r] = (vale ? hs[r] : 0) + baseH;', 'si[j * 4 + r] = (vale ? hs[r] : 0);'],
   // ---- las marchas
   ['la amplitud del caballo salta entre marchas', PI, 'S.amp = mezcla(S.amp, objAmp, suavizado(dt, 9));', 'S.amp = objAmp;'],
   ['el galope del caballo cambia la fase de golpe', PI, 'S.gal = mezcla(S.gal, c.galope ? 1 : 0, suavizado(dt, 4.5));\n  const intens = Math.min(1, S.amp / 0.7);', 'S.gal = c.galope ? 1 : 0;\n  const intens = Math.min(1, S.amp / 0.7);'],
