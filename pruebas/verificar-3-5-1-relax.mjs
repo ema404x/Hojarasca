@@ -42,7 +42,8 @@ assert.match(textoDosCambiaron(local, remota), /no vio: día 10/);
 assert.match(textoDosCambiaron(local, remota), /Acá también se siguió jugando: día 12/);
 assert.match(textoOferta(local, remota), /más nueva/, 'la oferta de siempre sigue igual');
 assert.ok(main.includes("if (enCarpeta <= baseSync || (local?.hay && Number(local.guardadoEn) === enCarpeta)) { fijarBaseSync(enCarpeta); return; }"), 'sólo no se pregunta lo que ya se vio');
-assert.ok(main.includes("dialogos.confirmar(masNueva ? textoOfertaSync(local, r.paquete) : textoDosCambiaron(local, r.paquete))"), 'si la otra escribió después, se pregunta');
+// 4.12.2: las dos funciones reciben además la versión más nueva (`versionNuevaDe`) para avisar el sólo lectura
+assert.ok(main.includes("dialogos.confirmar(masNueva ? textoOfertaSync(local, r.paquete, versionNuevaDe(r.paquete)) : textoDosCambiaron(local, r.paquete, versionNuevaDe(r.paquete)))"), 'si la otra escribió después, se pregunta');
 
 // ---- lo talado y lo cosechado no bajan (los tocones rebrotan, lo cosechado se gasta)
 assert.equal(contadores({ talados: [], taladosTotal: 9 }).talados, 9, 'los tocones que rebrotaron siguen contando');
