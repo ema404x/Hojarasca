@@ -44,8 +44,8 @@ export const RIEL_CONTROL = [
 export const CALIDADES = {
   muybaja: { pasto: 9000, radioPasto: 15, sombras: 0, lejos: 160, niebla: 1.6, pixelRatio: 1, densidad: 0.45, lod: 26, sotobosque: 38, antialias: false, terrenoDetalle: 90, post: false, flotantes: 0, aves: 0, detalleSuelo: 0, texturas: 0 },
   baja: { pasto: 18000, radioPasto: 20, sombras: 0, lejos: 185, niebla: 1.35, pixelRatio: 1, densidad: 0.58, lod: 34, sotobosque: 48, antialias: false, terrenoDetalle: 120, post: false, flotantes: 90, aves: 8, detalleSuelo: 0, texturas: 1, anisotropia: 2 },
-  media: { pasto: 40000, radioPasto: 29, sombras: 1024, lejos: 230, niebla: 1.08, pixelRatio: 1, densidad: 0.82, lod: 44, sotobosque: 64, antialias: true, terrenoDetalle: 170, post: true, bloom: 0.3, postEscala: 0.4, brilloPasadas: 1, rayos: 0.6, flotantes: 200, aves: 14, detalleSuelo: 1, texturas: 1, anisotropia: 4, sombraSuave: 2.2 },
-  alta: { pasto: 82000, radioPasto: 42, sombras: 2048, lejos: 310, niebla: 0.9, pixelRatio: 1.5, densidad: 1, lod: 66, sotobosque: 96, antialias: true, terrenoDetalle: 240, post: true, bloom: 0.3, postEscala: 0.5, brilloPasadas: 2, rayos: 0.75, flotantes: 320, aves: 20, detalleSuelo: 1, texturas: 1, anisotropia: 8, sombraSuave: 2.6 },
+  media: { pasto: 40000, radioPasto: 29, sombras: 1024, lejos: 230, niebla: 1.08, pixelRatio: 1, densidad: 0.82, lod: 44, sotobosque: 64, antialias: true, fxaa: true, terrenoDetalle: 170, post: true, bloom: 0.3, postEscala: 0.4, brilloPasadas: 1, rayos: 0.6, flotantes: 200, aves: 14, detalleSuelo: 1, texturas: 1, anisotropia: 4, sombraSuave: 2.2 },
+  alta: { pasto: 82000, radioPasto: 42, sombras: 2048, lejos: 310, niebla: 0.9, pixelRatio: 1.5, densidad: 1, lod: 66, sotobosque: 96, antialias: true, fxaa: true, terrenoDetalle: 240, post: true, bloom: 0.3, postEscala: 0.5, brilloPasadas: 2, rayos: 0.75, flotantes: 320, aves: 20, detalleSuelo: 1, texturas: 1, anisotropia: 8, sombraSuave: 2.6 },
 };
 
 // 3.5: distancia de dibujo, como los chunks de Minecraft. El jugador la elige en bloques de

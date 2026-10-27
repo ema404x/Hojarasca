@@ -11478,7 +11478,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     avisoMochilaLlena,   // 4.7 pantalla (QA): el cartel «Mochila llena»
     traductor, T_, traducirPanel, __icono: icono,   // 3.8.2: el ícono tal como se dibuja en este modo (QA)
     abrirModoFoto, __foto: () => foto, guardarFotoArchivo,
-    __sonido: () => sonido, __post: () => post?.uniforms, __peligros: () => ctxMundoVivo.peligros,
+    __sonido: () => sonido, __post: () => post?.uniforms, __postproceso: () => post, __peligros: () => ctxMundoVivo.peligros,
     __riesgoPeligros: (pos) => riesgoDePeligros(pos, ctxMundoVivo.peligros),
     empezarBanco, banco, textoParaExportar, importarTexto, leerPartida,
     __mostrarVictoria: (s, final) => mostrarVictoria(s, final),

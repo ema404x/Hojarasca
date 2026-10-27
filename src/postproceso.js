@@ -109,7 +109,32 @@ const COMPONER = `
   uniform float uNublado;
   uniform float uHumedad;
   uniform float uInterior;
+  uniform vec2 uTexel;
   varying vec2 vUv;
+
+  // 4.12.0: suavizado de bordes (FXAA) sobre la escena antes de componer. Sólo existe si la calidad lo pide (define
+  // HOJ_FXAA, fijo al crear el material: ningún shader nuevo a mitad de juego).
+  #ifdef HOJ_FXAA
+  float lumaFx(vec3 c) { return sqrt(max(dot(c, vec3(0.299, 0.587, 0.114)), 0.0)); }
+  vec3 escenaFx(vec2 uv) {
+    vec3 m = texture2D(uColor, uv).rgb;
+    vec3 nw = texture2D(uColor, uv + vec2(-1.0, -1.0) * uTexel).rgb;
+    vec3 ne = texture2D(uColor, uv + vec2(1.0, -1.0) * uTexel).rgb;
+    vec3 sw = texture2D(uColor, uv + vec2(-1.0, 1.0) * uTexel).rgb;
+    vec3 se = texture2D(uColor, uv + vec2(1.0, 1.0) * uTexel).rgb;
+    float lM = lumaFx(m), lNW = lumaFx(nw), lNE = lumaFx(ne), lSW = lumaFx(sw), lSE = lumaFx(se);
+    float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE)));
+    float lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
+    if (lMax - lMin < max(0.04, lMax * 0.14)) return m;   // sin borde: no se toca
+    vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
+    float reduc = max((lNW + lNE + lSW + lSE) * 0.0625, 0.0078);
+    dir = clamp(dir / (min(abs(dir.x), abs(dir.y)) + reduc), vec2(-6.0), vec2(6.0)) * uTexel;
+    vec3 a = 0.5 * (texture2D(uColor, uv + dir * -0.1667).rgb + texture2D(uColor, uv + dir * 0.1667).rgb);
+    vec3 b = a * 0.5 + 0.25 * (texture2D(uColor, uv + dir * -0.5).rgb + texture2D(uColor, uv + dir * 0.5).rgb);
+    float lB = lumaFx(b);
+    return (lB < lMin || lB > lMax) ? a : b;
+  }
+  #endif
 
   // curva filmica: conserva detalle en las luces sin lavar los colores
   vec3 filmico(vec3 x) {
@@ -118,7 +143,11 @@ const COMPONER = `
   }
 
   void main() {
+    #ifdef HOJ_FXAA
+    vec3 c = escenaFx(vUv);
+    #else
     vec3 c = texture2D(uColor, vUv).rgb;
+    #endif
     c += texture2D(uBrillo, vUv).rgb * uBloom;
     // 3.3: los haces que salen de huecos chicos del dosel son débiles: se levantan con una
     // raíz (sqrt(r * k)) sin tocar los fuertes del cielo abierto (r > k queda igual).
@@ -192,7 +221,10 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
   const escala = calidad.postEscala ?? 0.5;
   const pasadasBrillo = calidad.brilloPasadas ?? 2;
 
-  const destino = new THREE.WebGLRenderTarget(tam.x * pr, tam.y * pr, opciones);
+  // 4.12.0: bordes suaves. `calidad.msaa` = muestras del destino de la escena (MSAA, sólo con WebGL2); `calidad.fxaa` = pasada de suavizado
+  // dentro de la composición final. La escena no iba nunca con suavizado: el `antialias` del contexto sólo vale para la pantalla.
+  const muestras = renderer.capabilities.isWebGL2 ? Math.max(0, Math.min(renderer.capabilities.maxSamples || 0, calidad.msaa ?? 0)) : 0;
+  const destino = new THREE.WebGLRenderTarget(tam.x * pr, tam.y * pr, { ...opciones, samples: muestras });
   const medio = () => new THREE.WebGLRenderTarget(Math.max(2, Math.floor(tam.x * pr * escala)), Math.max(2, Math.floor(tam.y * pr * escala)), { ...opciones, depthBuffer: false });
   const rtBrillo = medio(), rtBorron = medio(), rtRayos = medio(), rtRayos2 = medio();
 
@@ -206,13 +238,14 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
   const matBrillo = material(BRILLO, { uColor: { value: null }, uUmbral: { value: 1.0 }, uSuavidad: { value: 0.4 }, uSol: { value: new THREE.Vector2(0.5, 2.0) }, uAspecto: { value: 16 / 9 }, uDia: { value: 1 }, uArriba: { value: 0 } });
   const matBorron = material(BORRON, { uColor: { value: null }, uPaso: { value: new THREE.Vector2() } });
   const matRayos = material(RAYOS, { uColor: { value: null }, uSol: { value: new THREE.Vector2(0.5, 0.5) }, uFuerza: { value: 1 }, uCanal: { value: CANAL_ALFA } });
-  const matComponer = material(COMPONER, {
+  const matComponer = material((calidad.fxaa ? '#define HOJ_FXAA 1' + String.fromCharCode(10) : '') + COMPONER, {
     uColor: { value: null }, uBrillo: { value: null }, uRayos: { value: null },
     uBloom: { value: calidad.bloom ?? 0.55 }, uRayosFuerza: { value: 0 },
     uColorRayos: { value: new THREE.Color('#ffd28a') },
     uVineta: { value: 0.34 }, uGrano: { value: 0.012 }, uTiempo: { value: 1 },
     uNoche: { value: 0 }, uExposicion: { value: 1 },
     uTarde: { value: 0 }, uNublado: { value: 0 }, uHumedad: { value: 0 }, uInterior: { value: 0 },
+    uTexel: { value: new THREE.Vector2(1 / Math.max(1, tam.x * pr), 1 / Math.max(1, tam.y * pr)) },
   });
 
   // 2.7.4: cada pasada es un cuadro opaco (sin mezcla ni profundidad) que cubre toda la
@@ -227,6 +260,10 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
     renderer.autoClear = borrar;
   };
 
+  // 4.12.0: la pasada de los rayos de sol se compilaba la primera vez que el sol entraba en el cuadro (un programa nuevo a mitad de juego,
+  // medido: uno de más al girar hacia el sol). Se compila acá, contra la misma salida (un destino lineal), como el resto de la escena.
+  try { quad.material = matRayos; renderer.setRenderTarget(rtRayos); renderer.compile(escenaPlana, camaraPlana); } catch { /* sin compile: queda para el primer cuadro, como antes */ } finally { renderer.setRenderTarget(null); }
+
   const solPantalla = new THREE.Vector3();
   let exposicionSuave = 1;
   let interiorSuave = 0;
@@ -238,6 +275,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
       rt.setSize(Math.max(2, Math.floor(ancho * p * escala)), Math.max(2, Math.floor(alto * p * escala)));
     }
     tam.set(ancho, alto);
+    matComponer.uniforms.uTexel.value.set(1 / Math.max(1, ancho * p), 1 / Math.max(1, alto * p));
   }
 
   function render(estado) {
@@ -334,5 +372,5 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
   }
 
   // 2.7.4: `destino` para compilar los programas de la escena contra el mismo tipo de salida
-  return { render, redimensionar, uniforms: matComponer.uniforms, destino };
+  return { render, redimensionar, uniforms: matComponer.uniforms, destino, materialComponer: matComponer };
 }
