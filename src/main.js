@@ -238,7 +238,7 @@ import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo,
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
 // 3.0: la supervivencia sin fin y el mapa del Desafío que cambia con la semilla
 import { codigoAlAzar } from './semilla.js';
-import { RANURA_SIN_FIN, sanearVersionJuego, versionMasNueva, versionAlGuardar } from './guardado.js';
+import { RANURA_SIN_FIN, sanearVersionJuego, versionMasNueva, versionAlGuardar, fijarVersionDelJuego } from './guardado.js';
 import { corridaNueva, registrarCorrida, sanearRecordsSinFin, listaDeCodigo, lineaRecord, resumenCorrida, dificultadDeCorrida, deDificultad, DIFICULTADES_SIN_FIN, NOMBRE_DIFICULTAD } from './desafio-supervivencia.js';
 import { mapaDesafio, mapaGuardadoNuevo, codigoAlAzarEnElRefugio } from './desafio-mapa.js';
 import { dibujarLamina, cargarImagen } from './lamina-dibujo.js';
@@ -284,7 +284,7 @@ import { sanearTalados, sanearPicados, anotarPicadoEn, avanzarRebrote, apurarReb
 import { secciones, sanearPersonal } from './personal-todo.js';
 import { templarNoche } from './personal-personaje.js';
 import { sanearInterfaz, escalaFinal, colorAcento, MIRAS } from './personal-interfaz.js';
-import { empezarConReceta, factorAnimales, vecinosActivos, dejarPersonalPendiente, tomarPersonalPendiente } from './personal-partida.js';
+import { empezarConReceta, factorAnimales, vecinosActivos, dejarPersonalPendiente, tomarPersonalPendiente, tomarAjustesPendientes } from './personal-partida.js';
 import { crearCuerpoJugador, crearManoPropia } from './personal-personaje-mundo.js';
 // 4.1: Bruno Castellanos: la pantalla de creación (antes de entrar al bosque) y el espejo
 import { abrirCreador } from './creador-pantalla.js';
@@ -351,10 +351,13 @@ try {
   else if (sessionStorage.getItem(CLAVE_RECUPERADA) === String(ranuraActual())) recuperadaPendiente = true;
 } catch { /* sin sessionStorage: queda como antes */ }
 const habiaGuardado = !!progreso;
+let ajustesSinReceta = null;   // 4.12.2: lo que valían la estación, el clima y la dificultad antes de que la receta de una ranura nueva los pusiera
 if (!progreso) {
   progreso = progresoNuevo();
   // 4.11.1 (P4): una ranura vacía a la que se llegó desde otra («Empezar acá») arranca con tu ropa, tu bandera y tus recetas
   try { const pendiente = tomarPersonalPendiente(sessionStorage, modoJuego, ranuraActual()); if (pendiente) progreso.personal = sanearPersonal(pendiente); } catch { /* sin sessionStorage: arranca de fábrica como antes */ }
+  // 4.12.2: la estación, el clima y la dificultad de la receta rigen en esta ranura nueva (en memoria); se guardan en los ajustes al empezar de verdad
+  try { const deReceta = tomarAjustesPendientes(sessionStorage, modoJuego, ranuraActual()); if (deReceta) { ajustesSinReceta = {}; for (const k of Object.keys(deReceta)) ajustesSinReceta[k] = ajustes[k]; Object.assign(ajustes, deReceta); } } catch { /* sin sessionStorage: como antes */ }
 }
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
 if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso.personal; progreso = progresoNuevo(); progreso.personal = personal; }
@@ -378,6 +381,7 @@ let versionPendiente = progreso?.versionJuego || '';
 // 4.11.3 (E3): y la versión con que venía la partida, que NO se borra al mostrar el aviso: una partida de una versión más nueva se abre en sólo
 // lectura (no se guarda, ni la copia de respaldo ni la de la carpeta sincronizada) hasta que se la abra con esa versión o una más nueva
 const versionDeLaPartida = progreso?.versionJuego || '';
+fijarVersionDelJuego(versionDelJuego());   // 4.12.2: guardado.js la usa para no recortar los campos de una partida importada de una versión más nueva
 // 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
 const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
 // 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
@@ -899,7 +903,7 @@ async function construir() {
   marcarPisos();   // 3.5
   renovales = crearRenovales(T, escena, col);
   majadaMundo = crearMajada(T, escena);
-  caballoMundo = esDesafio ? null : crearCaballo(T, escena);
+  caballoMundo = esDesafio ? null : crearCaballo(T, escena, (x, z, y) => alturaDePie(T, col, x, z, y), (p, r, h) => col.resolver(p, r, h));   // 4.12.2: sobre el puente/los pisos como el jugador
   majadaMundo?.refrescarLana(majada(), progreso.dia);
   desalojo = { obras: { mudadas: 0, desarmadas: 0 }, renovales: { mudados: 0, devueltos: 0 }, carpa: null, materiales: {} };   // 3.6.2
   progreso.renovales = desalojarRenovales(progreso.renovales);   // 3.6.2: (antes, renovales.sincronizar)
@@ -1785,7 +1789,8 @@ function abrir(cual) {
     guardar();
     sincronizarAjustes();
     // una foto chica de dónde quedaste, para reconocer la partida en el menú
-    try { dibujar(luzUltimaFoto, 1 - (luzUltimaFoto?.dia ?? 1)); guardarVista(fotos.hacerMiniatura(lienzo)); } catch {}
+    // 4.12.2: en sólo lectura (partida de una versión más nueva) tampoco se pisa la miniatura de la ranura
+    if (!partidaSoloLectura()) { try { dibujar(luzUltimaFoto, 1 - (luzUltimaFoto?.dia ?? 1)); guardarVista(fotos.hacerMiniatura(lienzo)); } catch {} }
   }
   if (cual === 'cuaderno') { dibujarCuaderno(); traducirPanel($('cuaderno')); }
   if (cual === 'mapa') dibujarMapa();
@@ -2457,6 +2462,7 @@ $('btn-entrar').addEventListener('click', () => {
     if (esSinFin) setTimeout(() => nota('Supervivencia sin fin', 'Una sola vida: si caés, se termina la corrida. No hay noche final', true), 2600);
   }
   $('inicio').classList.add('oculto');
+  if (ajustesSinReceta) { ajustesSinReceta = null; guardarAjustes(ajustes); }   // 4.12.2: empezaste la partida nueva: ahora sí quedan los ajustes de la receta
   // (3.8.3: sólo la primera vez: volviendo de la portada se repetía cada vez que se entraba)
   if (recuperadaPendiente && !entroAlJuego) { setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900); try { sessionStorage.removeItem(CLAVE_RECUPERADA); } catch { /* ya */ } recuperadaPendiente = false; }
   // (3.8.7: las del primer día, también sólo la primera vez que se entra)
@@ -2641,8 +2647,12 @@ function irAPartida(ranura) {
   if (modo === 'jugando' || modo === 'pausa') guardar();
   // 4.11.1 (P4): a una ranura vacía lo personal viaja con vos (a una que tiene partida no se le toca nada)
   if (!infoPartida(modoJuego, ranura)?.hay) {
-    try { const r = dejarPersonalPendiente(sessionStorage, modoJuego, ranura, progreso.personal, ajustes); if (r) Object.assign(ajustes, r.ajustes); } catch { /* sin sessionStorage: arranca de fábrica como antes */ }
+    // 4.12.2: la estación, el clima y la dificultad de la receta quedan anotados con lo personal y se aplican al arrancar esa ranura (antes se escribían
+    // acá en los ajustes de todas las partidas aunque nunca empezaras la nueva)
+    try { dejarPersonalPendiente(sessionStorage, modoJuego, ranura, progreso.personal, ajustes); } catch { /* sin sessionStorage: arranca de fábrica como antes */ }
   }
+  // 4.12.2: si venías de una ranura vacía a la que la receta le había puesto sus ajustes y no llegaste a empezarla, los ajustes vuelven a lo que eran
+  if (ajustesSinReceta && !infoPartida(modoJuego, ranuraActual())?.hay) Object.assign(ajustes, ajustesSinReceta);
   ajustes.ranura = ranura;
   if (esSinFin) ajustes.desafioTipo = 'campana';   // 3.0: las tres partidas son de la campaña
   guardarAjustes(ajustes);
@@ -2695,6 +2705,8 @@ function exportarPartida(ranura) {
 }
 // Devuelve si se pudo, y por qué no. La separo del cuadro de diálogo para poder
 // probar la importación de verdad, sin depender de que se abra un selector de archivos.
+// 4.12.2: la versión de la partida del paquete si es más nueva que este juego (se abrirá en sólo lectura); si no, ''
+function versionNuevaDe(paquete) { const v = sanearVersionJuego(paquete?.progreso?.versionJuego); return v && versionMasNueva(v, versionDelJuego()) ? v : ''; }
 function importarTexto(ranura, texto, preguntar = true) {
   const r = leerPaquete(texto);
   if (!r.ok) { nota('No se pudo importar', r.motivo); return { ok: false, motivo: r.motivo }; }
@@ -2704,7 +2716,7 @@ function importarTexto(ranura, texto, preguntar = true) {
     return { ok: false, motivo };
   }
   // 3.5.1: preguntando, la respuesta llega después (cuadro del juego): devuelve una promesa
-  if (preguntar) return dialogos.confirmar(avisoImportar(r.paquete, infoPartida(modoJuego, ranura)))
+  if (preguntar) return dialogos.confirmar(avisoImportar(r.paquete, infoPartida(modoJuego, ranura), versionNuevaDe(r.paquete)))
     .then((si) => (si ? importarTexto(ranura, texto, false) : { ok: false, motivo: 'cancelado' }));
   if (!escribirPartida(modoJuego, ranura, r.paquete.progreso, r.paquete.fotos)) {
     nota('No se pudo guardar la partida importada', 'Puede que no haya espacio libre');
@@ -2829,7 +2841,7 @@ async function mirarCarpetaSync() {
   // igual de nueva (las dos siguieron, o relojes distintos), también se pregunta: antes se fijaba
   // la base en silencio y la próxima copia de acá pisaba lo de la otra.
   const masNueva = compararCopia(local, r.paquete) === 'ofrecer';
-  const si = await dialogos.confirmar(masNueva ? textoOfertaSync(local, r.paquete) : textoDosCambiaron(local, r.paquete));   // 3.5.1
+  const si = await dialogos.confirmar(masNueva ? textoOfertaSync(local, r.paquete, versionNuevaDe(r.paquete)) : textoDosCambiaron(local, r.paquete, versionNuevaDe(r.paquete)));   // 3.5.1
   // 4.0.1: la base se fija DESPUÉS de importar: si la importación falla (sin espacio), la copia de acá, más vieja, no puede pisar la de la otra computadora
   if (si) { const r2 = importarTexto(ranuraActual(), texto, false); if (r2?.ok === false) return; }
   fijarBaseSync(enCarpeta);   // con un sí se importó; con un no, la próxima copia la reemplaza
@@ -6564,7 +6576,7 @@ function dondeEstaElCaballo() {
   // 3.7.5 (rincones): atado a las varas del sulky, está donde está el sulky (andando o estacionado)
   const atado = !js.montado ? rinconesJuego?.caballoAtado?.() : null;
   if (atado) return atado;
-  if (js.montado) return { x: js.pos.x, z: js.pos.z, yaw: yawCaballo(js.yaw) };
+  if (js.montado) return { x: js.pos.x, z: js.pos.z, yaw: yawCaballo(js.yaw), y: js.pos.y };   // 4.12.2: y, para que se dibuje sobre el puente
   if (caballoVuelve) return caballoVuelve;   // 3.8.4: lo mandaste al refugio desde un puente y todavía lo ves
   return dondeEspera(caballo(), T.lugares.refugio);
 }
@@ -7873,7 +7885,8 @@ function avisoOficioPropio(o) {
   if (id === 'carpinteria') {
     // 4.11.5: y el carro del caballo, si hay caballo: hacerlo, o qué falta, o cómo va
     const cab = progreso.personal?.caballo;
-    if (!desafio && tieneCaballo()) return avisoCarro(cab, (k) => materialesVisibles()[k] || 0, pesosDe(progreso));
+    // 4.12.2: con caballo el aviso hablaba sólo del carro y el banco de madera (el % de más) quedaba inalcanzable: ahora va al lado
+    if (!desafio && tieneCaballo()) return `${avisoCarro(cab, (k) => materialesVisibles()[k] || 0, pesosDe(progreso))} · en cada obra sobra ${Math.round(extraMadera(nivelDe('hachero')) * 100)} % más de madera`;
     return `Tu banco: en cada obra sobra ${Math.round(extraMadera(nivelDe('hachero')) * 100)} % más de madera`;
   }
   if (id === 'tienda-campo') return avisoTienda(datosDe(o, 'taller', (d) => sanearTienda(d, progreso.dia)), progreso);
@@ -7883,7 +7896,7 @@ function avisoOficioPropio(o) {
 function usarCarpinteriaCarro() {
   const cab = progreso.personal?.caballo;
   if (tieneCarro(cab)) {
-    nota('Tu carro', `${cab.enganchado === true ? 'Va enganchado al caballo' : 'Está guardado: enganchalo en Personalizar, «Tu caballo»'}. ${textoCasillasCarro()}`);
+    nota('Tu carro', `${cab.enganchado === true ? 'Va enganchado al caballo' : 'Está guardado: enganchalo en Personalizar, «Tu caballo»'}. ${textoCasillasCarro()}. ${textoCarpinteria(nivelDe('hachero'))}`);   // 4.12.2: y el bono de madera de tu banco
     return true;
   }
   const f = faltaParaElCarro((k) => materialesVisibles()[k] || 0, pesosDe(progreso));
@@ -10552,6 +10565,8 @@ function bucle(tRaf, manual = false) {
   }
 }
 function cuadroDelJuego(tRaf, manual) {
+  // 4.12.2: red de seguridad del sonido dormido por perder el foco: si el evento de vuelta se perdió y la ventana ya tiene el foco, despierta
+  if (sonido.dormidoPorFoco && !manual && document.hasFocus?.() && document.visibilityState === 'visible') { try { sonido.dormir(false); } catch { /* sigue */ } }
   // 3.2: el reloj del cuadro es el sello de requestAnimationFrame: cae en el vsync y no tiembla
   // con lo que tardó en arrancar el callback. A mano (pruebas) sigue el reloj de siempre.
   const ahora = !manual && tRaf > 0 ? tRaf : performance.now();
@@ -11300,7 +11315,7 @@ try {
   trucosJuego = crearTrucosJuego({
     esDesafio, progreso: () => progreso, ajustes: () => ajustes, jugador: () => jugador, T: { get lugares() { return T?.lugares; } }, limite: LIMITE,
     obras: () => obras, modo: () => modo, ponerModo: (m) => { modo = m; }, volverAlJuego: (sinMouse) => volverAlJuego(sinMouse), panelHudAbierto: () => panelDelHudAbierto(),
-    ocupado: () => !jugador || foto.activo || durmiendo || banco.activa || creadorAbierto || personalAbierto() || teclasAbiertas() || infoAbierta() || !!desafio?.caido,
+    ocupado: () => !jugador || foto.activo || durmiendo || banco.activa || creadorAbierto || personalAbierto() || teclasAbiertas() || infoAbierta() || bancoSonidosAbierto() || !!desafio?.caido,   // 4.12.2: ni encima del banco de sonidos
     alSaltarElTiempo: (d, h) => { try { empleoJuego?.alSaltarElTiempo(d, h); } catch (e) { fallaSistema('empleo-salto', e); } },   // 4.10.1: el turno de empleo se cierra sin multa si el código lo deja fuera de hora
     alCambiarClima: () => { if (clima?.estado) { clima.estado.t = 0; clima.estado.tramo = undefined; } },
     alCambiarEstacion: () => { const e = estacionObjetivo(); U.uOtono.value = e.oto; U.uInvierno.value = e.inv; },
@@ -11477,7 +11492,16 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   window.addEventListener('beforeunload', guardar);
   window.addEventListener('beforeunload', () => copiarASync(true, true));
   revisarCarpetaSync();
+  // 4.12.2: perder el foco o minimizar pausa el mundo, y ahora también el sonido (antes el viento, el agua, la lluvia y la gramola seguían
+  // sonando por debajo del otro juego). Se despierta con el foco, al volver a verse la ventana, con el primer clic o tecla y, por si
+  // se perdió el evento, desde el cuadro (`bucle`) si la ventana ya tiene el foco. La música de la pausa normal (Esc) no se toca.
+  const dormirSonido = (si) => { try { sonido.dormir(si); } catch { /* el sonido nunca frena el juego */ } };
+  const despertarSonido = () => { if (sonido.dormidoPorFoco) dormirSonido(false); };
+  window.addEventListener('focus', despertarSonido);
+  window.addEventListener('pointerdown', despertarSonido, true);
+  window.addEventListener('keydown', despertarSonido, true);
   window.addEventListener('blur', () => {
+    dormirSonido(true);
     // Si el mouse se suelta fuera de la ventana no llega mouseup: cortamos
     // explícitamente el recogido para que la caña no quede enganchada.
     if (pesca?.est?.recogiendo) pesca.clic(false, mundoPesca());
@@ -11489,7 +11513,9 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.5.4: la compu se suspende o se bloquea la pantalla (lo avisa main.cjs): pausa
   window.hojarasca?.alPedirPausa?.(() => { if (modo === 'jugando' && jugador && !banco.activa) abrir('pausa'); });
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { despertarSonido(); return; }   // 4.12.2
     if (document.visibilityState !== 'hidden') return;
+    dormirSonido(true);   // 4.12.2
     if (pesca?.est?.recogiendo) pesca.clic(false, mundoPesca());
     if (!reiniciandoPartida) flushGuardadoSuave();
   });

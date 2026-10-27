@@ -69,7 +69,7 @@ assert.equal(que({ js: { montado: true }, hachaCerca: {}, fuegoPropio: { plano: 
 { const r = que({ js: { montado: true }, vecino: { nombre: 'Ercilia' } }); assert.equal(r.e, 'vecino'); assert.equal(r.texto, '<textoVecino>', 'montado, con alguien adelante: hablar'); }
 assert.match(main, /js\.montado \|\| vecino\) objetivo = null;/, 'desde la montura no se junta nada');
 assert.match(main, /if \(js\.montado\) sonido\.casco\?\.\(js\.superficie, f\);/, 'arriba del caballo suenan cascos, no pasos');
-assert.match(main, /caballoMundo = esDesafio \? null : crearCaballo\(T, escena\);/, 'sólo en el Relax');
+assert.match(main, /caballoMundo = esDesafio \? null : crearCaballo\(T, escena(, .*)?\);/, 'sólo en el Relax');   // 4.12.2: ahora también recibe cómo se apoya y cómo choca
 assert.match(leer('src/sonido.js'), /casco\(superficie, fuerza = 0\.8\) \{/);
 assert.match(leer('src/guardado.js'), /caballo: sanearCaballo\(p\.caballo, LIMITE\)/);
 

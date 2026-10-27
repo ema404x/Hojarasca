@@ -330,16 +330,17 @@ const con = (doc, tag, id, padre) => { const e = doc.createElement(tag); e.id = 
   const a = almacen();
   const r = PP.dejarPersonalPendiente(a, 'relax', 2, personal, { estacion: 'verano', clima: 'variable' });
   ok(r && a.m.has(PP.clavePersonalPendiente('relax', 2)), 'se anota para esa ranura');
-  eq(a.m.size, 1, 'sólo para esa ranura (y ese modo)');
+  eq(a.m.size, 2, 'sólo para esa ranura (y ese modo): lo personal y, aparte, la estación y el clima de la receta');   // 4.12.2: dos claves
   const t = PP.tomarPersonalPendiente(a, 'relax', 2);
   eq(t.ropa, personal.ropa, 'la ropa viaja'); eq(t.bandera, personal.bandera, 'la bandera viaja'); ok(t.partida.recetas.length === 1 && t.partida.recetas[0].nombre === 'mi receta', 'y las recetas');
   ok(!('bruno' in t), 'cada partida tiene su Bruno: el de la vieja no viaja (igual que con «Empezar de nuevo»)');
   eq(t.partida.actual, { animales: 'muchos', vecinos: false }, 'y la partida nueva arranca con la receta «Tu partida» (como «Empezar de nuevo»)');
   eq(r.ajustes.estacion, 'invierno', 'la receta también deja puesta la estación');
+  eq(PP.tomarAjustesPendientes(a, 'relax', 2), { estacion: 'invierno' }, 'los ajustes de la receta se toman aparte (sólo lo que cambia)');   // 4.12.2
   ok(PP.tomarPersonalPendiente(a, 'relax', 2) === null && a.m.size === 0, 'se toma una sola vez (y se borra)');
   PP.dejarPersonalPendiente(a, 'relax', 2, personal);
-  ok(PP.tomarPersonalPendiente(a, 'relax', 3) === null && PP.tomarPersonalPendiente(a, 'desafio', 2) === null && a.m.size === 1, 'otra ranura u otro modo no lo ven (y no lo borran)');
-  PP.tomarPersonalPendiente(a, 'relax', 2);
+  ok(PP.tomarPersonalPendiente(a, 'relax', 3) === null && PP.tomarPersonalPendiente(a, 'desafio', 2) === null && a.m.size === 2, 'otra ranura u otro modo no lo ven (y no lo borran)');
+  PP.tomarPersonalPendiente(a, 'relax', 2); PP.tomarAjustesPendientes(a, 'relax', 2);   // 4.12.2
   a.setItem(PP.clavePersonalPendiente('relax', 1), '{roto');
   ok(PP.tomarPersonalPendiente(a, 'relax', 1) === null, 'un anotado roto se descarta sin romper');
   ok(PP.dejarPersonalPendiente(a, 'relax', 1, null) === null && a.m.size === 0, 'sin personal no se anota nada');
@@ -358,7 +359,8 @@ const con = (doc, tag, id, padre) => { const e = doc.createElement(tag); e.id = 
   };
   { const v = correr(false);
     ok(v.almac.m.has(PP.clavePersonalPendiente('relax', 2)) && v.ajustes.ranura === 2 && v.hechos.includes('recarga'), 'a una ranura vacía: se anota lo personal, se cambia de ranura y se recarga');
-    eq(v.ajustes.estacion, 'invierno', 'y queda puesta la receta (estación) como en una partida nueva'); }
+    // 4.12.2: los ajustes globales NO se tocan al entrar a la ranura vacía (la receta se aplica al arrancarla de verdad)
+    eq(v.ajustes.estacion, 'verano', 'y los ajustes de todas las partidas no se tocan todavía'); ok(v.almac.m.has(PP.claveAjustesPendientes('relax', 2)), 'la receta queda anotada para esa ranura'); }
   { const v = correr(true);
     ok(v.almac.m.size === 0 && v.ajustes.ranura === 2 && v.ajustes.estacion === 'verano', 'a una ranura con partida: no se anota nada y no se tocan los ajustes (no pisa)'); }
   { const v = correr(false, 1);
