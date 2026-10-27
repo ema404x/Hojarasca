@@ -11,6 +11,13 @@ import { crearMaterialHalo, geoHalos } from './casa-te-luz.js';
 
 const POS_VACIA = new Float32Array(9);
 const BLEND_RESTA = 3;   // el valor de SubtractiveBlending
+// 4.12.2 (bugs, W3): el anillo no lleva niebla (fog: false: con la mezcla que resta, el color de la niebla restaría de más), así que de lejos se apaga
+// a mano: pleno hasta la mitad del corte y cero en el corte. Los edificios lejanos con neblina ya no quedan con un halo oscuro.
+export const FADE_LEJOS = 0.5;
+export function fuerzaPorDistancia(d, corte) {
+  const a = corte * FADE_LEJOS, t = Math.min(1, Math.max(0, (d - a) / Math.max(1e-6, corte - a)));
+  return 1 - t * t * (3 - 2 * t);
+}
 
 // ---------------------------------------------------------------- la sombra de contacto
 // Un anillo de rectángulo redondeado: el borde de adentro (a `margen` del pie) con la fuerza plena, el de afuera (a `margen + radio`) en cero.
@@ -71,7 +78,7 @@ export function crearAsiento(escena, { altura, lejos = () => 230 }) {
     return g;
   };
   const malla = new THREE.Mesh(geoVacia(), mat);
-  malla.name = 'sombras-de-contacto'; malla.frustumCulled = false; malla.renderOrder = 1; malla.visible = false;
+  malla.name = 'sombras-de-contacto'; malla.frustumCulled = false; malla.renderOrder = -1; malla.visible = false;   // 4.12.2 (W3): la primera de las transparentes (antes 1: restaba también sobre lo transparente de orden 0, como el humo y la lluvia)
   escena.add(malla);
   const huellas = new Map();     // clave → { x, z, rot, w, d, radio, fuerza }
   let sucio = false, ultimo = { x: 1e9, z: 1e9 }, reloj = 0, activos = 0, rebuilds = 0;
@@ -90,8 +97,11 @@ export function crearAsiento(escena, { altura, lejos = () => 230 }) {
     const pos = [], col = [], ind = [];
     activos = 0;
     for (const h of huellas.values()) {
-      if (cam && (h.x - cam.x) * (h.x - cam.x) + (h.z - cam.z) * (h.z - cam.z) > c2) continue;
-      const a = anilloDeContacto(h, altura), base = pos.length / 3;
+      const d2 = cam ? (h.x - cam.x) * (h.x - cam.x) + (h.z - cam.z) * (h.z - cam.z) : 0;
+      if (cam && d2 > c2) continue;
+      const f = cam ? fuerzaPorDistancia(Math.sqrt(d2), corte) : 1;   // 4.12.2 (W3)
+      if (f < 0.02) continue;
+      const a = anilloDeContacto(f < 1 ? { ...h, fuerza: (h.fuerza ?? 0.3) * f } : h, altura), base = pos.length / 3;
       for (const v of a.pos) pos.push(v);
       for (const v of a.col) col.push(v);
       for (const i of a.ind) ind.push(base + i);

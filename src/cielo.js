@@ -449,6 +449,8 @@ export function crearCielo(escena, calidad) {
     // normal crece con el radio para que no aparezca acné en troncos y laderas a luz rasante.
     sol.shadow.radius = radio;
     sol.shadow.normalBias = sesgoNormal(radio, n, s);
+    // 4.12.2 (bugs, W2): `calidad.sombraSesgo` (sólo para probar, con ?debug=1&sombrasx={"sombraSesgo":0.7}) multiplica el corrimiento por normal; sin ella vale 1 y no cambia nada
+    if (Number.isFinite(calidad.sombraSesgo) && calidad.sombraSesgo > 0) sol.shadow.normalBias *= calidad.sombraSesgo;
     distLuz = distanciaLuz(s);
     const far = lejosDeLuz(s);
     Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far });
