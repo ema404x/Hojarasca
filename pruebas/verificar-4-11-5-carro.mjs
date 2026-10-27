@@ -361,7 +361,7 @@ async function revisar(raiz) {
         aplicarPersonal: () => { llamadas.aplicar++; }, refrescarCargaHud: () => { llamadas.refrescar++; }, guardar: () => { llamadas.guardar++; },
         sonido: { juntar: () => { llamadas.juntar++; } }, caballoDicho: () => 'al zaino', tieneCaballo: () => true, desafio: false,
         nota: (t, s, b) => llamadas.notas.push([t, s, b]),
-        TALLERES: {}, nivelDe: () => 0, extraMadera: () => 0.1,
+        TALLERES: {}, nivelDe: () => 0, extraMadera: () => 0.1, textoCarpinteria: () => 'Al terminar una etapa, sobra más madera.',   // 4.12.2
         ...over.env,
       };
       return env;
@@ -506,7 +506,7 @@ const MUTACIONES = [
   ['carro.js', 'el carro va pegado al caballo', 'largo: 2.05', 'largo: 1.2'],
   ['carro.js', 'el enganche queda sobre la cola', 'atras: 1.25', 'atras: 0.6'],
   ['caballo-mundo.js', 'el balancín no se acomoda al enganche', 'const gx = hx - (x1 * Math.cos(cs.yaw) + z2 * Math.sin(cs.yaw)), gz = hz - (-x1 * Math.sin(cs.yaw) + z2 * Math.cos(cs.yaw));', 'const gx = cs.x, gz = cs.z;'],
-  ['caballo-mundo.js', 'el carro se hunde en el suelo', 'T.altura(gx - lx * 0.66, gz - lz * 0.66)) / 2, gz);', 'T.altura(gx - lx * 0.66, gz - lz * 0.66)) / 2 - 1.5, gz);'],
+  ['caballo-mundo.js', 'el carro se hunde en el suelo', 'alto(gx - lx * 0.66, gz - lz * 0.66, yRef)) / 2, gz);', 'alto(gx - lx * 0.66, gz - lz * 0.66, yRef)) / 2 - 1.5, gz);'],   // 4.12.2: ahora se apoya con alto(), que sin piso es T.altura
   ['caballo-mundo.js', 'el carro no se inclina con la pendiente', 'g.rotation.x = lerp(g.rotation.x, -Math.atan2(yA - yR, 2) ,', 'g.rotation.x = lerp(g.rotation.x, 0 ,'],
   ['caballo-mundo.js', 'las ruedas no giran', 'for (const w of carro.ruedas) w.rotation.x += giro;', 'for (const w of carro.ruedas) w.rotation.x += 0;'],
   ['caballo-mundo.js', 'atado al sulky sigue el carro', 'seguirCarro(dt, visible && est.conCarro && !sinCarro);', 'seguirCarro(dt, visible && est.conCarro);'],
@@ -525,8 +525,8 @@ const MUTACIONES = [
   ['main.js', 'el HUD no se entera de engancharlo', 'cargaCarroVisto = casillasDelCarro(progreso.personal?.caballo) > 0;', 'cargaCarroVisto = false;'],
   ['main.js', 'la mochila no suma el carro en el desglose', 'CASILLAS_ALFORJAS : 0, casillasDelCarro(progreso.personal?.caballo));', 'CASILLAS_ALFORJAS : 0, 0);'],
   ['main.js', 'el sulky lleva el carro', '!!js.enSulky || (!js.montado && !!rinconesJuego?.caballoAtado?.()));', 'false);'],
-  ['main.js', 'el banco no ofrece el carro', 'if (!desafio && tieneCaballo()) return avisoCarro(', 'if (false) return avisoCarro('],
-  ['main.js', 'el banco ofrece el carro en el Desafío', 'if (!desafio && tieneCaballo()) return avisoCarro(', 'if (tieneCaballo()) return avisoCarro('],
+  ['main.js', 'el banco no ofrece el carro', 'if (!desafio && tieneCaballo()) return `${avisoCarro(', 'if (false) return `${avisoCarro('],   // 4.12.2: el aviso ahora suma el bono de madera
+  ['main.js', 'el banco ofrece el carro en el Desafío', 'if (!desafio && tieneCaballo()) return `${avisoCarro(', 'if (tieneCaballo()) return `${avisoCarro('],
   ['main.js', 'la E del banco no fabrica', 'if (!desafio && tieneCaballo() && usarCarpinteriaCarro()) return true;', 'if (false) return true;'],
 ];
 let atrapadas = 0;

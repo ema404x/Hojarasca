@@ -217,6 +217,19 @@ export function versionMasNueva(a, b) {
 // 4.10.2: la versión que se escribe al guardar. Si la partida vino de una versión más nueva y el aviso todavía no se mostró, se conserva la
 // de la partida (el primer autoguardado la pisaba con la vieja y el aviso ya no tenía ni una segunda oportunidad).
 export function versionAlGuardar(pendiente, actual) { return versionMasNueva(pendiente, actual) ? sanearVersionJuego(pendiente) : sanearVersionJuego(actual); }
+// 4.12.2: la versión de este juego (la fija main.js). Una partida de una versión MÁS NUEVA que ésta que se importa o se baja de la carpeta
+// sincronizada se saneaba rehaciendo cada sub-objeto sólo con las claves que esta versión conoce: los campos nuevos de adentro se perdían y la copia
+// quedaba escrita (con la versión nueva puesta) recortada. Ahora, en ese caso, las claves desconocidas de los sub-objetos se conservan tal cual.
+let versionDeEsteJuego = '';
+export function fijarVersionDelJuego(v) { versionDeEsteJuego = sanearVersionJuego(v); }
+function conservarDesconocidas(original, limpio, prof = 0) {
+  if (prof > 3 || !objeto(original) || !objeto(limpio)) return;
+  for (const k of Object.keys(original)) {
+    if (k === '__proto__') continue;
+    if (!Object.hasOwn(limpio, k)) { limpio[k] = original[k]; continue; }
+    if (original[k] && limpio[k] && typeof original[k] === 'object' && typeof limpio[k] === 'object') conservarDesconocidas(original[k], limpio[k], prof + 1);
+  }
+}
 let ultimoOrigenCarga = 'ninguno';
 // RC24: cache de la última copia principal ya validada. Evita releer y
 // parsear localStorage en cada guardado manteniendo el backup transaccional.
@@ -710,6 +723,10 @@ function sanearProgreso(p) {
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)
   unificarNombreLoco(limpio);
+  // 4.12.2: de una versión más nueva que ésta, los campos que no conocemos de adentro de cada sub-objeto no se pierden
+  if (versionDeEsteJuego && versionMasNueva(p.versionJuego, versionDeEsteJuego)) {
+    for (const k of Object.keys(limpio)) if (Object.hasOwn(p, k) && k !== 'desafios') conservarDesconocidas(p[k], limpio[k], 0);
+  }
   return limpio;
 }
 

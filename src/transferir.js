@@ -70,11 +70,12 @@ export function leerPaquete(texto) {
 }
 
 // Qué le vamos a decir al jugador antes de pisar una partida.
-export function avisoImportar(paquete, destino) {
+// 4.12.2: `versionNueva`: la versión de la partida si es más nueva que este juego (se abre en sólo lectura); vacío si no
+export function avisoImportar(paquete, destino, versionNueva = '') {
   const nombreModo = paquete.modo === 'desafio' ? 'La noche de los duendes' : 'Relax';
   const partes = [`Partida de ${nombreModo}, día ${paquete.dia}`];
   if (paquete.version) partes.push(`hecha con la versión ${paquete.version}`);
-  const cabeza = partes.join(', ') + '.';
+  const cabeza = partes.join(', ') + '.' + (versionNueva ? `\n\nOJO: es de la versión ${versionNueva}, más nueva que este juego: se abre en sólo lectura (podés jugar, pero no se guarda). Para seguirla y guardar, abrila con esa versión o una más nueva.` : '');
   if (destino?.hay) return `${cabeza}\n\nEsto pisa la partida ${destino.ranura} (día ${destino.dia}), que no se puede recuperar. ¿Seguimos?`;
   return `${cabeza}\n\nSe va a guardar en la partida ${destino?.ranura ?? 1}, que está vacía. ¿Seguimos?`;
 }

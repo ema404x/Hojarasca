@@ -71,7 +71,13 @@ function cuidarErroresMain(op) {
   const marcas = [];
   let cerrando = false;
   const detalle = (e) => { try { return String((e && e.stack) || e).slice(0, 4000); } catch { return 'error ilegible'; } };
-  const pedirGuardar = () => { try { const v = ventanaActual && ventanaActual(); if (v && !v.isDestroyed()) v.webContents.send('guardar-ya'); } catch { /* ya no está */ } };
+  // 4.12.2: igual que ventana-main.cjs: lo que la página escribe en localStorage llega a disco recién cuando Chromium lo confirma, y `app.exit()` mata el proceso
+  // sin pasar por before-quit: se baja a disco un momento después de pedir guardar y otra vez justo antes de salir
+  const bajarADisco = () => { try { const v = ventanaActual && ventanaActual(); if (v && !v.isDestroyed() && !v.webContents.isDestroyed()) v.webContents.session.flushStorageData(); } catch { /* ya no está */ } };
+  const pedirGuardar = () => {
+    try { const v = ventanaActual && ventanaActual(); if (v && !v.isDestroyed()) v.webContents.send('guardar-ya'); } catch { /* ya no está */ }
+    try { const t = setTimeout(bajarADisco, 400); if (t && t.unref) t.unref(); } catch { /* sin temporizador */ }
+  };
   const anotar = (tipo, e) => {
     try { escribirCrash(tipo, detalle(e)); } catch { /* el registro es lo último que puede fallar */ }
     const t = ahora();
@@ -81,7 +87,7 @@ function cuidarErroresMain(op) {
     if (marcas.length >= max && !cerrando) {
       cerrando = true;
       try { escribirCrash('main', `${marcas.length} errores sin atrapar en ${ventanaMs / 1000} s: se cierra el juego (la partida se pidió guardar)`); } catch { /* idem */ }
-      setTimeout(() => { try { app.exit(1); } catch { /* ya salió */ } }, op.retrasoCierreMs ?? 1500);
+      setTimeout(() => { bajarADisco(); try { app.exit(1); } catch { /* ya salió */ } }, op.retrasoCierreMs ?? 1500);
     }
   };
   proceso.on('uncaughtException', (e) => anotar('main-excepcion', e));

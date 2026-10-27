@@ -168,6 +168,8 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null), { piel = true } =
 // en el balancín, que se engancha detrás del caballo. El origen es el suelo bajo el eje; +z mira al caballo. Las piezas que no se
 // mueven se funden en una sola malla (compactar); cada rueda es un grupo propio que gira con lo que anda.
 export const RUEDA_CARRO = 0.46;
+const _p = { x: 0, y: 0, z: 0 };
+const RADIO_CUERPO_CARRO = 0.6, ALTO_CUERPO_CARRO = 0.7;   // 4.12.2: lo que ocupa el cuerpo del carro para la colisión
 export function mallaCarro() {
   const R = RUEDA_CARRO;
   const madera = color('#7a5638'), oscura = color('#5a3e28'), tabla = color('#8a6b4a'), hierro = color('#2e2c2a');
@@ -206,7 +208,11 @@ export function mallaCarro() {
   return { g, ruedas };
 }
 
-export function crearCaballo(T, escena) {
+// 4.12.2: `alturaPie(x, z, y)` (opcional) es sobre qué se apoya algo en (x, z): el piso de una obra, el Puente de Troncos o un muelle si hay, y si no
+// el terreno (igual que el jugador a pie). Sin ella (pruebas viejas) vale sólo el terreno, como antes.
+// `empujar(pos, radio, alto)` (opcional) saca una posición {x, y, z} de lo que choca (la misma colisión que usan el jugador y los animales).
+export function crearCaballo(T, escena, alturaPie = null, empujar = null) {
+  const alto = (x, z, y) => (alturaPie ? alturaPie(x, z, y) : T.altura(x, z));
   let apariencia = sanearCaballoPersonal(null);
   const m = mallaCaballo(apariencia);
   m.g.visible = false;
@@ -227,10 +233,13 @@ export function crearCaballo(T, escena) {
     est.vel = lerp(est.vel, montado ? vel : 0, 1 - Math.exp(-dt * 6));
     const mc = marcha(est.vel);
     est.fase += dt * mc.cadencia;
-    const y = T.altura(est.x, est.z);
+    // 4.12.2: montado, el caballo está a la altura en que vas vos (la cubierta del puente, no el lecho del arroyo de abajo)
+    const y = alto(est.x, est.z, Number.isFinite(donde.y) ? donde.y : m.g.position.y);
+    est.y = y;
     m.g.position.set(est.x, y + (mc.modo === 'quieto' ? 0 : Math.abs(Math.sin(est.fase)) * 0.05 * mc.amplitud), est.z);
     m.g.rotation.y = est.yaw;
-    const suelo = inclinacionTerrenoMamifero(T, { x: est.x, z: est.z }, est.yaw, 0.22);
+    // 4.12.2: sobre un piso (puente, muelle) va derecho: la inclinación del terreno de abajo no vale
+    const suelo = y > T.altura(est.x, est.z) + 0.3 ? { pitch: 0, roll: 0 } : inclinacionTerrenoMamifero(T, { x: est.x, z: est.z }, est.yaw, 0.22);
     m.g.rotation.x = lerp(m.g.rotation.x, suelo.pitch, 1 - Math.exp(-dt * 6));
     m.g.rotation.z = lerp(m.g.rotation.z, suelo.roll, 1 - Math.exp(-dt * 6));
     // patas: el trote es diagonal (mano izquierda con pata derecha), el galope va de a pares
@@ -263,12 +272,25 @@ export function crearCaballo(T, escena) {
       dx /= d; dz /= d;
       const antes = { x: cs.x, z: cs.z };
       cs.x = hx - dx * ENGANCHE.largo; cs.z = hz - dz * ENGANCHE.largo;
+      // 4.12.2: el carro ya no atraviesa árboles, obras, cercas ni paredes. Si el cuerpo del carro cae adentro de algo, la colisión lo
+      // saca y el carro gira alrededor del enganche hacia donde quedó libre (sigue a ENGANCHE.largo, así que el balancín no se despega).
+      // Si la salida cae sobre el propio enganche (no hay hacia dónde girar) se queda como estaba. Es sólo dibujo: no cambia la mochila ni el paso del caballo.
+      if (empujar) {
+        try {
+          _p.x = cs.x; _p.z = cs.z; _p.y = Number.isFinite(est.y) ? est.y + 0.25 : 0;
+          empujar(_p, RADIO_CUERPO_CARRO, ALTO_CUERPO_CARRO);
+          const ex = hx - _p.x, ez = hz - _p.z, de = Math.hypot(ex, ez);
+          if (Number.isFinite(de) && de > 0.6) { dx = ex / de; dz = ez / de; cs.x = hx - dx * ENGANCHE.largo; cs.z = hz - dz * ENGANCHE.largo; }
+        } catch { /* la colisión nunca frena el dibujo */ }
+      }
       cs.yaw = Math.atan2(dx, dz);
       giro = (Math.hypot(cs.x - antes.x, cs.z - antes.z) * (((cs.x - antes.x) * dx + (cs.z - antes.z) * dz) >= 0 ? 1 : -1)) / RUEDA_CARRO;
     }
     const fx = Math.sin(cs.yaw), fz = Math.cos(cs.yaw), lx = Math.cos(cs.yaw), lz = -Math.sin(cs.yaw);
-    const yA = T.altura(cs.x + fx, cs.z + fz), yR = T.altura(cs.x - fx, cs.z - fz);
-    const yD = T.altura(cs.x + lx * 0.66, cs.z + lz * 0.66), yI = T.altura(cs.x - lx * 0.66, cs.z - lz * 0.66);
+    // 4.12.2: (todo el carro se apoya como el caballo: sobre el puente si va por el puente)
+    const yRef = Number.isFinite(est.y) ? est.y : 0;
+    const yA = alto(cs.x + fx, cs.z + fz, yRef), yR = alto(cs.x - fx, cs.z - fz, yRef);
+    const yD = alto(cs.x + lx * 0.66, cs.z + lz * 0.66, yRef), yI = alto(cs.x - lx * 0.66, cs.z - lz * 0.66, yRef);
     const g = carro.g;
     g.visible = true;
     g.rotation.y = cs.yaw;
@@ -278,7 +300,7 @@ export function crearCaballo(T, escena) {
     const rx = g.rotation.x, rz = g.rotation.z, y1 = ENGANCHE.alto * Math.cos(rz), x1 = -ENGANCHE.alto * Math.sin(rz);
     const z2 = y1 * Math.sin(rx) + ENGANCHE.largo * Math.cos(rx);
     const gx = hx - (x1 * Math.cos(cs.yaw) + z2 * Math.sin(cs.yaw)), gz = hz - (-x1 * Math.sin(cs.yaw) + z2 * Math.cos(cs.yaw));
-    g.position.set(gx, (T.altura(gx + lx * 0.66, gz + lz * 0.66) + T.altura(gx - lx * 0.66, gz - lz * 0.66)) / 2, gz);
+    g.position.set(gx, (alto(gx + lx * 0.66, gz + lz * 0.66, yRef) + alto(gx - lx * 0.66, gz - lz * 0.66, yRef)) / 2, gz);
     for (const w of carro.ruedas) w.rotation.x += giro;
   }
 
