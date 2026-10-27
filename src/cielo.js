@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { U, UAGUA, GLSL_COMUN, GLSL_ESTILO } from './materiales.js';
 import { crearRuido, smoothstep, clamp } from './ruido.js';
 import { factorLuzRasante } from './profundidad.js';
+import { cajaDeSombra, distanciaLuz, lejosDeLuz, sesgoDeSombra, sesgoNormal, encajarEnTexeles } from './sombras-alcance.js';
 
 const C = (hex) => new THREE.Color(hex);
 // 3.2: paleta pintada (HushWood): cielo de día más saturado con el horizonte turquesa
@@ -14,6 +15,26 @@ const PALETA = {
   bandaAlba: C('#f6b98c'), frioAlba: C('#8fa9d6'),
   gris: C('#8d949a'),
 };
+
+// 4.12.3: las siluetas livianas de los árboles (capa 1) nunca proyectaron sombra. En three r186 la
+// pasada de sombras decide qué dibujar con las capas de la CÁMARA del juego (no con las de la luz), y
+// esa cámara sólo mira la capa 0: los ~70 pedazos de bosque con castShadow quedaban fuera del mapa y
+// el bosque no daba sombra a nadie (sólo edificios, gente y animales). Se prende la capa 1 en la cámara
+// únicamente mientras se arma el mapa de sombras: el dibujo normal de la escena no la ve (las siluetas
+// siguen sin pintarse en pantalla) y no suma ninguna pasada.
+export function permitirSiluetasEnSombra(renderer, capa = 1) {
+  const mapa = renderer && renderer.shadowMap;
+  if (!mapa || typeof mapa.render !== 'function' || mapa.__siluetasEnSombra) return false;
+  const original = mapa.render;
+  mapa.__siluetasActivas = true;   // (las mediciones lo apagan para comparar contra la 4.12.0)
+  mapa.render = function (luces, escena, camara) {
+    const prendida = mapa.__siluetasActivas !== false && !!camara && !camara.layers.isEnabled(capa);
+    if (prendida) camara.layers.enable(capa);
+    try { return original.call(this, luces, escena, camara); } finally { if (prendida) camara.layers.disable(capa); }
+  };
+  mapa.__siluetasEnSombra = true;
+  return true;
+}
 
 export function crearCielo(escena, calidad) {
   const uniforms = {
@@ -416,19 +437,29 @@ export function crearCielo(escena, calidad) {
 
   // ---------------------------------------------------------------- luces
   const sol = new THREE.DirectionalLight(0xffffff, 2.5);
-  if (calidad.sombras) {
-    sol.castShadow = true;
-    sol.shadow.mapSize.set(calidad.sombras, calidad.sombras);
-    const s = calidad.sombras >= 2048 ? 55 : 40;
-    Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 400 });
-    sol.shadow.bias = -0.0006;
-    // 2.7: borde de sombra suave (PCF con radio) en calidad media y alta. El filtro
-    // ancho muestrea téxeles vecinos: el corrimiento por normal crece con el radio para
-    // que no aparezca acné en troncos y laderas a luz rasante.
-    sol.shadow.radius = calidad.sombraSuave || 1;
-    sol.shadow.normalBias = 0.06 + 0.035 * (sol.shadow.radius - 1) * (2048 / Math.max(512, calidad.sombras));
+  // 4.12.3: la caja del mapa (±metros alrededor tuyo) sale de la calidad (calidad.sombraCaja; antes fija: 40 en Media y 55 en Alta). Con una
+  // caja más grande la luz se aleja (así los árboles de más allá del borde siguen proyectando), se le agranda el rango de profundidad sin
+  // cambiar el sesgo en metros (el sesgo de three es una fracción del rango) y el corrimiento por normal crece con el tamaño del téxel.
+  let distLuz = 150;
+  // todo lo que depende del tamaño del mapa y de la caja, en un solo lugar (al armar el cielo y al cambiar de calidad en vivo)
+  function configurarSombra(n, radio) {
+    const s = cajaDeSombra(n, calidad.sombraCaja);
+    sol.shadow.mapSize.set(n, n);
+    // 2.7: borde de sombra suave (PCF con radio) en calidad media y alta. El filtro ancho muestrea téxeles vecinos: el corrimiento por
+    // normal crece con el radio para que no aparezca acné en troncos y laderas a luz rasante.
+    sol.shadow.radius = radio;
+    sol.shadow.normalBias = sesgoNormal(radio, n, s);
+    distLuz = distanciaLuz(s);
+    const far = lejosDeLuz(s);
+    Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far });
+    sol.shadow.bias = sesgoDeSombra(far);
+    sol.shadow.camera.updateProjectionMatrix();
     // la capa 1 tiene las siluetas livianas que solo se usan para las sombras
     sol.shadow.camera.layers.enable(1);
+  }
+  if (calidad.sombras) {
+    sol.castShadow = true;
+    configurarSombra(calidad.sombras, calidad.sombraSuave || 1);
   }
   // 1.8: la calidad automática puede cambiar el mapa de sombras sin reiniciar el
   // mundo. Cambiar el tamaño obliga a tirar el mapa viejo: three arma uno nuevo solo.
@@ -437,13 +468,16 @@ export function crearCielo(escena, calidad) {
     if (n === (sol.castShadow ? sol.shadow.mapSize.width : 0)) return false;
     if (!n) { sol.castShadow = false; return true; }
     sol.castShadow = true;
-    sol.shadow.mapSize.set(n, n);
-    sol.shadow.radius = n >= 2048 ? 2.6 : 2.2;   // 2.7: el mismo borde suave que al arrancar
-    sol.shadow.normalBias = 0.06 + 0.035 * (sol.shadow.radius - 1) * (2048 / Math.max(512, n));
-    const s = n >= 2048 ? 55 : 40;
-    Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 400 });
-    sol.shadow.camera.updateProjectionMatrix();
-    sol.shadow.camera.layers.enable(1);
+    configurarSombra(n, n >= 2048 ? 2.6 : 2.2);   // 2.7: el mismo borde suave que al arrancar
+    if (sol.shadow.map) { sol.shadow.map.dispose(); sol.shadow.map = null; }
+    return true;
+  }
+  // 4.12.3 (sólo para medir, ?debug=1): rehace el mapa con la caja y el tamaño que tenga la calidad ahora (ajustarSombras sale sin hacer nada si el tamaño no cambió)
+  function reponerSombras() {
+    const n = Math.floor(calidad.sombras) || 0;
+    if (!n) return false;
+    sol.castShadow = true;
+    configurarSombra(n, calidad.sombraSuave || (n >= 2048 ? 2.6 : 2.2));
     if (sol.shadow.map) { sol.shadow.map.dispose(); sol.shadow.map = null; }
     return true;
   }
@@ -538,15 +572,15 @@ export function crearCielo(escena, calidad) {
       if (lunaK > 0) sol.color.lerp(LUZ_LUNA_LLENA, 0.6 * lunaK);
     }
     sol.intensity = intensidad;
-    sol.position.set(cam.x + dirLuz.x * 150, cam.y + dirLuz.y * 150, cam.z + dirLuz.z * 150);
+    sol.position.set(cam.x + dirLuz.x * distLuz, cam.y + dirLuz.y * distLuz, cam.z + dirLuz.z * distLuz);
     sol.target.position.set(cam.x, cam.y, cam.z);
     if (calidad.sombras) {
-      // encaja la cámara de sombras en téxeles para que no titile al caminar
+      // encaja la cámara de sombras en téxeles para que no titile al caminar. 4.12.3: en los ejes de la LUZ (derecha y arriba de su
+      // cámara), no en x y z del mundo: con el sol de costado la grilla del mapa va en diagonal y el redondeo de antes no la seguía
       const paso = (sol.shadow.camera.right * 2) / calidad.sombras;
-      sol.target.position.x = Math.round(cam.x / paso) * paso;
-      sol.target.position.z = Math.round(cam.z / paso) * paso;
-      sol.position.x = sol.target.position.x + dirLuz.x * 150;
-      sol.position.z = sol.target.position.z + dirLuz.z * 150;
+      const t = encajarEnTexeles(cam, dirLuz, paso);
+      sol.target.position.set(t.x, t.y, t.z);
+      sol.position.set(t.x + dirLuz.x * distLuz, t.y + dirLuz.y * distLuz, t.z + dirLuz.z * distLuz);
     }
 
     hemi.color.copy(AMBIENTE_NOCHE).lerp(tmp2.copy(cenit).lerp(horiz, 0.5).lerp(CIELO_TURQUESA, 0.35).multiplyScalar(1.1), smoothstep(0, 0.6, dia));
@@ -620,7 +654,7 @@ export function crearCielo(escena, calidad) {
     luzLuna = efecto.luz;
   }
 
-  return { actualizar, sol, hemi, ajustarSombras, ponerLuna, uniforms };
+  return { actualizar, sol, hemi, ajustarSombras, reponerSombras, ponerLuna, uniforms };
 }
 
 // ---------------------------------------------------------------- constelaciones del sur

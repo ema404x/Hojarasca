@@ -1,0 +1,21 @@
+{
+  "nada": { "nada": true },
+  "m-base": { "tam": 1024, "caja": 40, "siluetas": false },
+  "m-sil": { "tam": 1024, "caja": 40, "siluetas": true },
+  "m-c70": { "tam": 1024, "caja": 70, "siluetas": true },
+  "m-c100": { "tam": 1024, "caja": 100, "siluetas": true },
+  "m-c70x2": { "tam": 2048, "caja": 70, "siluetas": true },
+  "m-c100x2": { "tam": 2048, "caja": 100, "siluetas": true },
+  "m-c70a": { "tam": 1024, "caja": 70, "siluetas": true, "arboles": 65 },
+  "m-c100a": { "tam": 1024, "caja": 100, "siluetas": true, "arboles": 95 },
+  "m-c100x2a": { "tam": 2048, "caja": 100, "siluetas": true, "arboles": 95 },
+  "a-base": { "tam": 2048, "caja": 55, "siluetas": false },
+  "a-sil": { "tam": 2048, "caja": 55, "siluetas": true },
+  "a-c85": { "tam": 2048, "caja": 85, "siluetas": true },
+  "a-c110": { "tam": 2048, "caja": 110, "siluetas": true },
+  "a-c150": { "tam": 2048, "caja": 150, "siluetas": true },
+  "a-c85a": { "tam": 2048, "caja": 85, "siluetas": true, "arboles": 80 },
+  "a-c110a": { "tam": 2048, "caja": 110, "siluetas": true, "arboles": 105 },
+  "a-c150a": { "tam": 2048, "caja": 150, "siluetas": true, "arboles": 145 },
+  "a-c110x4a": { "tam": 4096, "caja": 110, "siluetas": true, "arboles": 105 }
+}
