@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.11.5 (sobre main = 4.11.4): CARRO (`CAMBIOS_4_11_5.md`) — se fabrica en la carpintería (14 tablas, 4 troncos, $6.000), se engancha al caballo en Personalizar y suma 16 casillas montado (52 con alforjas); se ve detrás del caballo; arregla el «+undefined casillas» del panel de carga
 - 4.11.4 (sobre main = 4.11.3): BANCO DE SONIDOS (`CAMBIOS_4_11_4.md`, `herramientas/LEEME-SONIDOS.txt`) — pantalla en la pausa con 146 sonidos del juego, cada uno disparado por la función real del motor, con volúmenes reales y «Detener todo»; nada se escuchó, sólo se verificó por buses
 - 4.11.3 (sobre main = 4.11.2): PROCESO Y GUARDADO, última de las cuatro versiones con las decisiones de diseño (`CAMBIOS_4_11_3.md`) — partida más nueva en sólo lectura, guardado seguro si falla el rename, ruta del Coihue repartida en cuadros y empaquetado que pregunta antes de cerrar el juego
 - 4.11.2 (sobre main = 4.11.1): MUNDO Y GENTE, tercera de cuatro versiones con las decisiones de diseño (`CAMBIOS_4_11_2.md`) — choques en edificios, sombras de antorchas, madrigueras y postes en ladera, diario y Puesto Alto, soltar papeles, gente que reintenta y sale del local, panadera a $600, Casa de Té por calendario
