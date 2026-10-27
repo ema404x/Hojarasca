@@ -2272,6 +2272,7 @@ export function generarVegetacion(T, calidad, escena) {
     // 3.3: con impostores, el LOD simplificado sólo llega hasta donde entra el cartel y lo
     // dibuja una malla compacta por especie (como el LOD cercano), no un pedazo por chunk
     const alcanceArbol = Math.max(lejosActual, distancia.lejos);   // 3.5: la distancia de dibujo
+    const alcanceSombra = calidad.sombraArboles ?? 45;   // 4.12.3: metros al borde del tramo (calidad.sombraArboles; con la caja de sombras grande, más lejos)
     // 3.5: el presupuesto acorta el sotobosque como antes (hasta 0,68), pero de a poco y por
     // mata (el objetivo; `suavizar` lo acerca)
     // (y sigue a la calidad automática, que cambia calidad.sotobosque)
@@ -2293,7 +2294,7 @@ export function generarVegetacion(T, calidad, escena) {
           // 1.4: el LOD cercano lo dibuja la malla compacta de su especie.
           m.alta.visible = false;
           if (m.baja) m.baja.visible = !impostores && d < alcanceArbol + 8; // simplificada siempre disponible para que el crossfade no deje huecos dentro del chunk
-          if (m.sombra) m.sombra.visible = d < 45;
+          if (m.sombra) m.sombra.visible = d < alcanceSombra;   // 4.12.3: hasta dónde llega la silueta que da sombra (antes fijo en 45 m al borde del tramo)
           algo = algo || !!m.baja?.visible || !!m.sombra?.visible;
           continue;
         }

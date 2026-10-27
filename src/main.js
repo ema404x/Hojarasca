@@ -12,7 +12,8 @@ import { crearAgua, crearCascada } from './agua.js';
 import { ajustarAguaNueva } from './agua.js';
 import { actualizarBanderas } from './bandera-viento.js';
 import { cobrar as cobrarPesos, pagar as pagarPesos, puedePagar, pesosDe, hayEconomia, formatoPesos, resumenBilletera, textoDiferencia } from './economia.js';
-import { crearCielo, crearConstelaciones, crearFugaces } from './cielo.js';
+import { crearCielo, crearConstelaciones, crearFugaces, permitirSiluetasEnSombra } from './cielo.js';
+import { cajaDeSombra, umbralDeRecentrado } from './sombras-alcance.js';
 import { faseLunar, nombreFase, iluminada, luzDeLuna, nocheDeEstrellas, fugacesPorMinuto, fugaz, lunaAnotable, FUGACES_PARA_ANOTAR } from './cielo-noche.js';
 import { crearPostproceso } from './postproceso.js';
 import { crearVariantesLuces, registrarLuz } from './luces.js';
@@ -410,6 +411,8 @@ recordarHuerfanas();
 const mando = crearMando({ sensibilidad: ajustes.sensibilidad, invertirY: ajustes.invertirY });
 const calidadInicial = ajustes.calidad;
 const calidad = { ...(CALIDADES[ajustes.calidad] || CALIDADES.media) };
+// 4.12.3 (sólo con ?debug=1): `sombrasx={json}` pisa claves de la calidad para medir variantes de las sombras (herramientas/medir-sombras-4-12-3.cjs)
+if (new URLSearchParams(location.search).get('debug') === '1') { try { Object.assign(calidad, JSON.parse(new URLSearchParams(location.search).get('sombrasx') || '{}')); } catch { /* sin variante */ } }
 // 3.5: la calidad que está andando y las distancias que rigen (ver aplicarDistancias)
 let calidadActiva = CALIDADES[calidadInicial] ? calidadInicial : 'media';
 let distActual = distanciasDe(calidadActiva, ajustes.distancia, ajustes.distanciaPlantas);
@@ -454,6 +457,7 @@ configurarTexturas(calidad, renderer);
 // las sombras se recalculan cada varios cuadros, no en todos
 renderer.shadowMap.autoUpdate = false;
 renderer.shadowMap.needsUpdate = true;   // el primer mapa se calcula enseguida
+if (calidad.sombraSiluetas) permitirSiluetasEnSombra(renderer);   // 4.12.3: el bosque entra al mapa de sombras (ver cielo.js)
 // 3.5.4: al volver el contexto 3D, three r186 arma de nuevo sus administradores (geometrías,
 // texturas, render targets, mallas instanciadas) pero cada objeto ya subido conserva el oyente
 // de 'dispose' del administrador viejo, que guarda todo lo del contexto perdido (búferes, VAO,
@@ -10429,7 +10433,7 @@ function textoAjustesDistancia() {
 
 // Lo que se puede acomodar sin rehacer el mundo se aplica ya (distancias de
 // dibujo y detalle); la densidad de bosque y las sombras, al próximo arranque.
-const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'radioPasto', 'niebla', 'flotantes', 'aves', 'pixelRatio'];   // 4.10.3 (P6): + la resolución, lo que más pesa en una placa integrada
+const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'radioPasto', 'niebla', 'flotantes', 'aves', 'sombraCaja', 'pixelRatio'];   // 4.10.3 (P6): + la resolución, lo que más pesa en una placa integrada
 // 3.8.4 (decisión 35): la calidad gráfica nunca cambia sola durante el juego. La autocalidad sigue midiendo (autocalidad.js)
 // y, si el equipo no da, pregunta «El juego va lento: ¿bajar la calidad?» con «Bajar» y «No, gracias» (el cuadro de las
 // preguntas del juego: Enter/Esc, clic o A/B del mando). Si dice que no, no vuelve a preguntar en la sesión. Subir, nunca
@@ -11203,7 +11207,8 @@ function cuadroDelJuego(tRaf, manual) {
     const hzSombras = Math.max(3, 6 - presupuestoAdaptativo.nivel);
     if (acumuladoSombra > 1 / hzSombras && planificadorAntitirones.permitir('sombras', { pesada: true })) {
       const movio = Math.abs(progreso.horas - horaSombra) > 0.012;
-      const camino = Math.hypot(cam.x - posSombra.x, cam.z - posSombra.z) > 6;
+      // 4.12.3: con una caja de sombras más grande se tolera alejarse un poco más del centro del mapa antes de rehacerlo (6 m con las cajas de siempre)
+      const camino = Math.hypot(cam.x - posSombra.x, cam.z - posSombra.z) > umbralDeRecentrado(cajaDeSombra(calidad.sombras, calidad.sombraCaja));
       if (movio || camino) {
         renderer.shadowMap.needsUpdate = true;
         horaSombra = progreso.horas;

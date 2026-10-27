@@ -1,0 +1,10 @@
+[
+  { "id": "01-ladera-bosque-15h", "pitch": -0.16, "fov": 66, "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x - 24, z = L.z - 18; return { x, z, y: H.T.altura(x, z) + 16, yaw: Math.atan2(24, 18) + Math.PI, horas: 15.5 } })()" },
+  { "id": "02-ladera-bosque-ocaso", "pitch": -0.12, "fov": 66, "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x - 24, z = L.z - 18; return { x, z, y: H.T.altura(x, z) + 16, yaw: Math.atan2(24, 18) + Math.PI + 0.9, horas: 18.6 } })()" },
+  { "id": "03-aldea-plaza-ocaso", "pitch": 0, "fov": 62, "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 18.6 } })()" },
+  { "id": "04-aldea-plaza-15h", "pitch": 0, "fov": 62, "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 15.5 } })()" },
+  { "id": "05-mirador-tarde", "pitch": -0.1, "fov": 70, "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; return { x: M.x, z: M.z, yaw: Math.atan2(-(R.x - M.x), -(R.z - M.z)), horas: 16.5 } })()" },
+  { "id": "06-mirador-ocaso", "pitch": -0.1, "fov": 70, "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; return { x: M.x, z: M.z, yaw: Math.atan2(-(R.x - M.x), -(R.z - M.z)) + 0.5, horas: 18.6 } })()" },
+  { "id": "07-bosque-mediodia", "pitch": -0.04, "fov": 62, "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 12 } })()" },
+  { "id": "08-aldea-plaza-mediodia", "pitch": 0.03, "fov": 62, "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()" }
+]

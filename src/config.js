@@ -38,14 +38,17 @@ export const RIEL_CONTROL = [
 
 // 2.7: texturas = detalle material procedural (corteza, roca, suelo) y hojas en tarjetas;
 // anisotropia = filtrado de esas texturas; sombraSuave = radio del filtro de sombra (téxeles).
+// 4.12.3: sombras que llegan más lejos (sólo Media y Alta; Baja y Mínima no tienen sombras): sombraCaja = ±metros que cubre el mapa alrededor tuyo
+// (hasta la 4.12.0 eran 40 en Media y 55 en Alta), sombraArboles = hasta qué distancia (al borde del tramo de bosque) los árboles proyectan,
+// sombraSiluetas = el bosque entra al mapa de sombras (nunca había entrado). Las mediciones están en CAMBIOS_4_12_3.md.
 // 3.2: estilo pintado. `texturas` ya no pone texturas de detalle ni cartas de hojas: sólo
 // decide si el prado usa las manchas grandes del valle (pasto seco, bajos húmedos) y el
 // pasto fino. `rayos` sube: los haces salen ahora del cielo entre las copas.
 export const CALIDADES = {
   muybaja: { pasto: 9000, radioPasto: 15, sombras: 0, lejos: 160, niebla: 1.6, pixelRatio: 1, densidad: 0.45, lod: 26, sotobosque: 38, antialias: false, terrenoDetalle: 90, post: false, flotantes: 0, aves: 0, detalleSuelo: 0, texturas: 0 },
   baja: { pasto: 18000, radioPasto: 20, sombras: 0, lejos: 185, niebla: 1.35, pixelRatio: 1, densidad: 0.58, lod: 34, sotobosque: 48, antialias: false, terrenoDetalle: 120, post: false, flotantes: 90, aves: 8, detalleSuelo: 0, texturas: 1, anisotropia: 2 },
-  media: { pasto: 40000, radioPasto: 29, sombras: 1024, lejos: 230, niebla: 1.08, pixelRatio: 1, densidad: 0.82, lod: 44, sotobosque: 64, antialias: true, fxaa: true, terrenoDetalle: 170, post: true, bloom: 0.3, postEscala: 0.4, brilloPasadas: 1, rayos: 0.6, flotantes: 200, aves: 14, detalleSuelo: 1, texturas: 1, anisotropia: 4, sombraSuave: 2.2 },
-  alta: { pasto: 82000, radioPasto: 42, sombras: 2048, lejos: 310, niebla: 0.9, pixelRatio: 1.5, densidad: 1, lod: 66, sotobosque: 96, antialias: true, fxaa: true, terrenoDetalle: 240, post: true, bloom: 0.3, postEscala: 0.5, brilloPasadas: 2, rayos: 0.75, flotantes: 320, aves: 20, detalleSuelo: 1, texturas: 1, anisotropia: 8, sombraSuave: 2.6 },
+  media: { pasto: 40000, radioPasto: 29, sombras: 1024, lejos: 230, niebla: 1.08, pixelRatio: 1, densidad: 0.82, lod: 44, sotobosque: 64, antialias: true, fxaa: true, terrenoDetalle: 170, post: true, bloom: 0.3, postEscala: 0.4, brilloPasadas: 1, rayos: 0.6, flotantes: 200, aves: 14, detalleSuelo: 1, texturas: 1, anisotropia: 4, sombraSuave: 2.2, sombraSiluetas: true, sombraCaja: 70, sombraArboles: 65 },
+  alta: { pasto: 82000, radioPasto: 42, sombras: 2048, lejos: 310, niebla: 0.9, pixelRatio: 1.5, densidad: 1, lod: 66, sotobosque: 96, antialias: true, fxaa: true, terrenoDetalle: 240, post: true, bloom: 0.3, postEscala: 0.5, brilloPasadas: 2, rayos: 0.75, flotantes: 320, aves: 20, detalleSuelo: 1, texturas: 1, anisotropia: 8, sombraSuave: 2.6, sombraSiluetas: true, sombraCaja: 110, sombraArboles: 105 },
 };
 
 // 3.5: distancia de dibujo, como los chunks de Minecraft. El jugador la elige en bloques de
