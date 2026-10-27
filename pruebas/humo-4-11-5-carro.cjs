@@ -71,14 +71,15 @@ const PAGINA = String.raw`(() => {
   A.obra = (id) => O.obras.find((q) => q.plano.id === id);
   A.alLado = (id) => { const o = A.obra(id), r = o.datos.rot || 0; J.ubicar(o.datos.x - 0.9 * Math.sin(r), o.datos.z - 0.9 * Math.cos(r), r + Math.PI); for (let i = 0; i < 6; i++) { J.actualizar(0.05); H.__bucle(); } return 1; };
   A.aviso = (id) => H.__avisoObraQueTrabaja(A.obra(id));
-  // un tramo llano y sin árboles ni agua, de 40 m, cerca del refugio, para pasear al caballo
+  // un claro llano, sin árboles ni agua en 14 m a la redonda, cerca del refugio, para pasear al caballo (mira hacia +x)
   A.llano = () => {
     const r0 = T.lugares.refugio, arboles = H.veg.arboles.filter((q) => !q.sacado && !q.caido);
-    for (let r = 30; r < 300; r += 4) for (let a = 0; a < 6.28; a += 0.15) {
+    for (let r = 20; r < 450; r += 4) for (let a = 0; a < 6.28; a += 0.1) {
       const x = r0.x + Math.cos(a) * r, z = r0.z + Math.sin(a) * r;
-      let bien = true;
-      for (let i = 0; i <= 10 && bien; i++) { const px = x + i * 4, pz = z; if (pend(px, pz) > 0.03 || T.agua(px, pz) || arboles.some((q) => Math.hypot(q.x - px, q.z - pz) < 7)) bien = false; }
-      if (bien) return { x, z, yaw: -Math.PI / 2 };   // mira hacia +x
+      if (Math.abs(x) > 440 || Math.abs(z) > 440 || pend(x, z) > 0.05 || T.agua(x, z)) continue;
+      let bien = !arboles.some((q) => Math.hypot(q.x - x, q.z - z) < 14);
+      for (let k = 0; k < 8 && bien; k++) for (const d of [7, 14]) { const px = x + Math.cos(k * 0.785) * d, pz = z + Math.sin(k * 0.785) * d; if (pend(px, pz) > 0.09 || T.agua(px, pz)) bien = false; }
+      if (bien) return { x, z, yaw: -Math.PI / 2 };
     }
     return null;
   };
@@ -139,12 +140,12 @@ const PAGINA = String.raw`(() => {
 })()`;
 
 app.whenReady().then(async () => {
-  const errores = [];
+  const errores = [], consola = [];
   const w = new BrowserWindow({ show: true, width: ANCHO, height: ALTO, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   w.setContentSize(ANCHO, ALTO);
   w.webContents.on('console-message', (e) => {
     const m = String(e.message);
-    if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) errores.push(m.slice(0, 300));
+    if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) { consola.push(m.slice(0, 300)); errores.push(m.slice(0, 300)); }
   });
   let donde = 'carga';
   const js = (c) => Promise.race([w.webContents.executeJavaScript(c), new Promise((_, no) => setTimeout(() => no(new Error(`la página no respondió en 120 s (${donde})`)), 120000))]);
@@ -174,6 +175,8 @@ app.whenReady().then(async () => {
     await esperar(3500);
     await js(PAGINA);
   };
+  // deja `texto` como la partida guardada: la página que se va (beforeunload) ya no puede pisarla
+  const dejarPartida = (texto) => js(`(() => { const set = Storage.prototype.setItem, del = Storage.prototype.removeItem; Storage.prototype.setItem = function (k, v) { if (/^hojarasca-v1/.test(k)) return; return set.call(this, k, v); }; Storage.prototype.removeItem = function (k) { if (/^hojarasca-v1/.test(k)) return; return del.call(this, k); }; set.call(localStorage, 'hojarasca-v1', ${JSON.stringify(texto)}); del.call(localStorage, 'hojarasca-v1-backup'); return 1; })()`);
   const nuevas = async () => (await A('A.notas()')).join(' | ');
   const AJUSTES = `localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({ calidad: 'media', clima: 'despejado', estacion: 'otono', musica: false, modo: 'relax', relaxTipo: 'libre', autoCalidad: false, guiaPrimerDia: false }))`;
 
@@ -191,18 +194,18 @@ app.whenReady().then(async () => {
 
     // ---------------------------------------------------------------- 1. la carpintería
     seccion('la carpintería');
-    await A('(A.plata(40000), A.materiales({ tronco: 40, tabla: 40 }), 1)');
+    await A('(A.plata(60000), A.materiales({ tronco: 999, tabla: 999, piedra: 999, lana: 999 }), 1)');
     const sitio = await A('A.sitio("carpinteria")');
     ok(!!sitio, 'hay lugar para la carpintería');
     await A(`(A.parar(${JSON.stringify(sitio)}), A.limpiarNotas(), A.elegir("Carpintería"), 1)`);
     await A('A.tecla("KeyY")'); await esperar(500);
-    ok(!!(await A('A.obra("carpinteria")')), 'Y construye la carpintería');
+    ok(await A('!!A.obra("carpinteria")'), 'Y construye la carpintería');
     await A('A.tecla("KeyO")');
     ok((await A('A.cap().total')) === 24, 'a pie, 24 casillas');
 
     // ---------------------------------------------------------------- 2. el banco, sin lo que pide
     seccion('el banco sin lo que pide');
-    await A(`(A.plata(5999), P.materiales.tabla = 13, P.materiales.tronco = 4, P.cosas.caballo = 1, A.alLado("carpinteria"), A.limpiarNotas(), 1)`);
+    await A(`(A.plata(5999), P.materiales = { tabla: 13, tronco: 4 }, P.cosas.caballo = 1, A.alLado("carpinteria"), A.limpiarNotas(), 1)`);
     let aviso = await A('A.aviso("carpinteria")');
     ok(/^El carro del caballo: 14 tablas, 4 troncos y \$6\.000 de hierro$/.test(aviso), `el aviso dice qué pide: «${aviso}»`);
     await A('A.tecla("KeyE")'); await esperar(300);
@@ -380,7 +383,7 @@ app.whenReady().then(async () => {
     // una partida de antes: sin los campos del carro
     g = await js(`JSON.parse(localStorage.getItem('hojarasca-v1'))`);
     delete g.personal.caballo.carro; delete g.personal.caballo.enganchado;
-    await js(`localStorage.setItem('hojarasca-v1', ${JSON.stringify(JSON.stringify(g))}); localStorage.removeItem('hojarasca-v1-backup'); 1`);
+    await dejarPartida(JSON.stringify(g));
     await abrir();
     await entrar();
     ok(await A('P.personal.caballo.carro === false && P.personal.caballo.enganchado === false'), 'una partida de antes (sin los campos) abre sin carro');
@@ -390,7 +393,7 @@ app.whenReady().then(async () => {
     // una partida de una versión más nueva: se abre en sólo lectura y no se pisa
     g.versionJuego = '9.0.0'; g.personal.caballo.carro = true; g.personal.caballo.enganchado = true;
     const texto = JSON.stringify(g);
-    await js(`localStorage.setItem('hojarasca-v1', ${JSON.stringify(texto)}); localStorage.removeItem('hojarasca-v1-backup'); 1`);
+    await dejarPartida(texto);
     await abrir();
     await entrar();
     ok(await A('P.personal.caballo.carro === true && P.personal.caballo.enganchado === true'), 'la partida de una versión más nueva se lee con su carro');
@@ -398,7 +401,7 @@ app.whenReady().then(async () => {
     const despues = await js(`JSON.parse(localStorage.getItem('hojarasca-v1'))`);
     ok(despues.versionJuego === '9.0.0' && despues.personal.caballo.carro === true, `en sólo lectura no se pisa la partida (versión ${despues.versionJuego})`);
 
-    ok(errores.length === 0, `sin errores en la consola${errores.length ? ': ' + errores.slice(0, 3).join(' | ') : ''}`);
+    ok(consola.length === 0, `sin errores en la consola${consola.length ? ': ' + consola.slice(0, 3).join(' | ') : ''}`);
   } catch (err) {
     errores.push(`EXCEPCIÓN (${donde}): ${err && err.stack ? err.stack : err}`);
   }

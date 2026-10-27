@@ -85,7 +85,7 @@ async function revisar(raiz) {
   const main = fs.readFileSync(path.join(raiz, 'src', 'main.js'), 'utf8');
   const K = await imp('carro.js'), C = await imp('carga.js'), P = await imp('carga-pantalla.js'), E = await imp('economia.js');
   const PC = await imp('personal-caballo.js'), PP = await imp('personal-partida.js'), TODO = await imp('personal-todo.js');
-  const { crearCaballo, RUEDA_CARRO } = await imp('caballo-mundo.js');
+  const { crearCaballo, RUEDA_CARRO, mallaCarro } = await imp('caballo-mundo.js');
 
   const relax = (cab = {}, extra = {}) => ({ modo: 'relax', materiales: {}, entradas: {}, cosas: {}, personal: { caballo: cab }, ...extra });
   const CARRO_ENG = { carro: true, enganchado: true };
@@ -118,6 +118,9 @@ async function revisar(raiz) {
   // ------------------------------------------------------------ 2. las casillas
   {
     eq([C.CASILLAS_BASE, C.CASILLAS_ALFORJAS, C.CASILLAS_CARRO], [24, 12, 16], 'los tres tamaños');
+    // armar.mjs sólo exporta el primer nombre de un `export const A = 1, B = 2`: main.js recibía CASILLAS_ALFORJAS y CASILLAS_CARRO como undefined
+    const fuenteCarga = fs.readFileSync(path.join(raiz, 'src', 'carga.js'), 'utf8');
+    for (const k of ['CASILLAS_BASE', 'CASILLAS_ALFORJAS', 'CASILLAS_CARRO']) ok(new RegExp(`^export const ${k} = \\d+;`, 'm').test(fuenteCarga), `${k} se exporta solo, en su propia declaración (si no, el juego armado lo recibe vacío)`);
     const cap = (cab, montado, extra) => C.capacidad(relax(cab, extra), { montado });
     eq(cap({}, true), { base: 24, alforjas: 0, carro: 0, total: 24 }, 'sin nada, 24');
     eq(cap(CARRO_ENG, true), { base: 24, alforjas: 0, carro: 16, total: 40 }, 'montado con el carro enganchado: 40');
@@ -190,6 +193,7 @@ async function revisar(raiz) {
     eq(cont2.hijos.filter((h) => h.className === 'casillas-zona').map((h) => h.textContent), ['Carro del caballo'], 'sin alforjas sólo el título del carro');
     const css = fs.readFileSync(path.join(raiz, 'src', 'menus', 'sistema.css'), 'utf8');
     ok(/\.casilla\.carro:not\(\.vacia\)/.test(css), 'las casillas del carro tienen su color');
+    ok(/\.mochila-cuerpo \.casillas \{[^}]*overflow-y: auto/.test(css), 'con 52 casillas se desplazan adentro del panel (no tapan el pie)');
   }
 
   // ------------------------------------------------------------ 4. lo guardado en «Tu caballo» y la partida nueva
@@ -253,6 +257,12 @@ async function revisar(raiz) {
     ok(!cab.carro(), 'hecho pero desenganchado: no se ve');
     cab.personalizar({ carro: true, enganchado: true });
     ok(cab.conCarro() === true, 'enganchado');
+    // los colores: el cuerpo y las ruedas son de madera y hierro, nada blanco (un tubo pintado con un material en vez de un color salía blanco)
+    {
+      const m = mallaCarro(), colores = [];
+      m.g.traverse((o) => { const c = o.isMesh && o.geometry.attributes.color; if (c) for (let i = 0; i < c.count; i++) colores.push(Math.max(c.getX(i), c.getY(i), c.getZ(i))); });
+      ok(colores.length > 500 && colores.every((v) => v < 0.8), `ningún vértice del carro sale blanco o casi (el más claro: ${Math.max(...colores).toFixed(2)})`);
+    }
     // en terreno llano el eje queda a la distancia justa del enganche
     {
       const llano = sitioLlano();
@@ -471,6 +481,7 @@ let guardado = 0;
 const ENTRADAS = ['carro.js', 'carga.js', 'carga-pantalla.js', 'personal-caballo.js', 'personal-partida.js', 'personal-todo.js', 'caballo-mundo.js', 'economia.js'];
 const MUTACIONES = [
   ['carga.js', 'las casillas del carro valen 8', 'CASILLAS_CARRO = 16', 'CASILLAS_CARRO = 8'],
+  ['carga.js', 'las casillas se exportan con comas (el juego armado las recibe vacías)', 'export const CASILLAS_ALFORJAS = 12;\nexport const CASILLAS_CARRO = 16;', 'export const CASILLAS_ALFORJAS = 12, CASILLAS_CARRO = 16;'],
   ['carga.js', 'el carro suma aunque estés a pie', 'ctx && ctx.montado && cab?.carro === true', 'ctx && cab?.carro === true'],
   ['carga.js', 'el carro suma sin estar enganchado', ' && cab?.enganchado === true ? CASILLAS_CARRO', ' ? CASILLAS_CARRO'],
   ['carga.js', 'el carro suma sin haberlo hecho', 'ctx.montado && cab?.carro === true && cab?.enganchado', 'ctx.montado && cab?.enganchado'],
@@ -490,6 +501,8 @@ const MUTACIONES = [
   ['personal-caballo.js', 'el panel no ofrece engancharlo', 'if (d.carro) campoSi(', 'if (false) campoSi('],
   ['personal-caballo.js', 'el panel no dice dónde se hace', 'se hace en tu carpintería, con tablas, troncos y hierro', 'se compra'],
   ['personal-partida.js', 'la partida nueva hereda el carro', 'carro: false, enganchado: false };\n  return {', 'carro: resto.caballo.carro, enganchado: resto.caballo.enganchado };\n  return {'],
+  ['caballo-mundo.js', 'el balancín sale blanco (un material donde va un color)', "tubo('#2e2c2a', 0.025", 'tubo(hierro, 0.025'],
+  ['menus/sistema.css', 'las 52 casillas desbordan el panel', '.mochila-cuerpo .casillas { align-self: stretch; min-height: 0; overflow-y: auto;', '.mochila-cuerpo .casillas { align-self: stretch; min-height: 0;'],
   ['carro.js', 'el carro va pegado al caballo', 'largo: 2.05', 'largo: 1.2'],
   ['carro.js', 'el enganche queda sobre la cola', 'atras: 1.25', 'atras: 0.6'],
   ['caballo-mundo.js', 'el balancín no se acomoda al enganche', 'const gx = hx - (x1 * Math.cos(cs.yaw) + z2 * Math.sin(cs.yaw)), gz = hz - (-x1 * Math.sin(cs.yaw) + z2 * Math.cos(cs.yaw));', 'const gx = cs.x, gz = cs.z;'],

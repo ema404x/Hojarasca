@@ -174,10 +174,10 @@ export function mallaCarro() {
   for (const x of [-1, 1]) for (const z of [-0.85, 0.75]) g.add(caja(oscura, [0.06, 0.5, 0.06], [x * 0.56, 0.84, z]));
   // las dos vigas del chasis (de punta a punta), el eje y el cubo de cada rueda
   for (const l of [-1, 1]) g.add(caja(oscura, [0.07, 0.07, 1.7], [l * 0.3, 0.62, -0.02]));
-  g.add(tubo(oscura, 0.04, 0.04, 1.5, [0, R, 0], [0, 0, Math.PI / 2], 8, true));
+  g.add(tubo('#5a3e28', 0.04, 0.04, 1.5, [0, R, 0], [0, 0, Math.PI / 2], 8, true));
   // las varas suben del chasis al balancín, que queda a la altura del lomo del caballo
   for (const l of [-1, 1]) g.add(paloEntre(madera, 0.035, [l * 0.3, 0.62, 0.55], [l * 0.3, ENGANCHE.alto, ENGANCHE.largo]));
-  g.add(tubo(hierro, 0.025, 0.025, 0.72, [0, ENGANCHE.alto, ENGANCHE.largo], [0, 0, Math.PI / 2], 8, true));
+  g.add(tubo('#2e2c2a', 0.025, 0.025, 0.72, [0, ENGANCHE.alto, ENGANCHE.largo], [0, 0, Math.PI / 2], 8, true));
   // la carga: dos bolsas, un cajón y un rollo de lona
   g.add(bola('#c9b890', [0.26, 0.17, 0.2], [-0.25, 0.84, -0.45], [0, 0.4, 0.1]));
   g.add(bola('#bba57a', [0.24, 0.16, 0.2], [0.27, 0.83, -0.5], [0, -0.3, -0.1]));
@@ -189,7 +189,7 @@ export function mallaCarro() {
     const w = new THREE.Group(); w.position.set(l * 0.66, R, 0);
     w.add(new THREE.Mesh(new THREE.TorusGeometry(R - 0.035, 0.032, 6, 22), madera));
     w.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.013, 5, 22), hierro));
-    w.add(tubo(oscura, 0.065, 0.065, 0.16, [0, 0, 0], [0, 0, Math.PI / 2], 8, true));
+    w.add(tubo('#5a3e28', 0.065, 0.065, 0.16, [0, 0, 0], [0, 0, Math.PI / 2], 8, true));
     for (let k = 0; k < 4; k++) w.add(caja(madera, [0.04, 2 * (R - 0.04), 0.035], [0, 0, 0], [(k * Math.PI) / 4, 0, 0]));
     w.children.forEach((c) => { if (c.isMesh && c.geometry.type === 'TorusGeometry') c.rotation.y = Math.PI / 2; });
     g.add(w); ruedas.push(w);

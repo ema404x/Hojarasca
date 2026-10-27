@@ -253,6 +253,8 @@
 :root[data-menu] .mochila .aviso-sobrecarga p { margin: 0; font-size: var(--t-chico); }
 :root[data-menu] .mochila .aviso-sobrecarga ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0 var(--e-4); font-size: var(--t-chico); font-weight: 600; }
 :root[data-menu] .mochila .casillas { flex: none; display: grid; grid-template-columns: repeat(8, 80px); gap: var(--e-2) 6px; }
+/* 4.11.5: con las alforjas y el carro son hasta 52 casillas (siete filas): en una ventana baja las casillas se desplazan adentro y el pie del panel queda a la vista */
+:root[data-menu] .mochila-cuerpo .casillas { align-self: stretch; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: var(--e-2); scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
 :root[data-menu] .mochila .casillas-zona { grid-column: 1 / -1; margin: var(--e-1) 0 0; font-family: var(--f-titulo); font-size: var(--t-base); color: var(--p-titulo); border-bottom: var(--linea); }
 :root[data-menu] .mochila .casilla { position: relative; height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 2px; overflow: hidden; text-align: center;
   color: var(--p-color); background: var(--fila-fondo); border: 1px solid var(--p-linea-suave); border-radius: var(--b-radio); }

@@ -15,7 +15,10 @@
 //   · progreso.cosas[k]                 (sólo los contadores de COSAS_CONTABLES: yerba, harina, ponchos…)
 import { INGREDIENTES } from './cocina-pasos.js';
 
-export const CASILLAS_BASE = 24, CASILLAS_ALFORJAS = 12, CASILLAS_CARRO = 16;
+// (cada una en su `export const`: armar.mjs sólo exporta el primer nombre de una declaración con comas, y las alforjas llegaban como `undefined` a main.js)
+export const CASILLAS_BASE = 24;
+export const CASILLAS_ALFORJAS = 12;
+export const CASILLAS_CARRO = 16;
 
 // ---------------------------------------------------------------- el tamaño de pila de cada cosa
 export const PILA_DEFECTO = 30;
