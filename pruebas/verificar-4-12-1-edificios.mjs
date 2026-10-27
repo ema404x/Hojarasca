@@ -141,6 +141,20 @@ const clonar = (g) => g.clone();
   const rincon = media(gP, rP, (p, nn) => nn[1] > 0.9 && p[0] > 0.05 && p[0] < 0.2);
   const lejos = media(gP, rP, (p, nn) => nn[1] > 0.9 && p[0] > 5 && p[0] < 9);
   ok(rincon < lejos - 0.05, `el piso pegado a la pared (rincón entrante) es más oscuro que el piso libre (${rincon.toFixed(3)} < ${lejos.toFixed(3)})`);
+  // el alero lejos de la pared (a más de lo que alcanza el rincón): sólo lo ve el rayo que mira hacia afuera y hacia arriba
+  {
+    const armar = (conAlero) => {
+      const w = new G.Constructor();
+      w.agregar(new THREE.BoxGeometry(8, 5, 0.3), { color: '#8a7a60', matriz: G.matriz([0, 7.5, 0]), variar: 0 });
+      if (conAlero) w.agregar(new THREE.BoxGeometry(8, 0.12, 1.1), { color: '#45382f', matriz: G.matriz([0, 9.3, 1.1]), variar: 0 });
+      return w.geometria();
+    };
+    const sin = armar(false), con = armar(true);
+    AS.teselarGeometria(sin); AS.teselarGeometria(con);
+    AS.ocluirGeometria(sin, { base: -9 }); AS.ocluirGeometria(con, { base: -9 });
+    const prom = (g) => { let s = 0, k = 0; for (let i = 0; i < g.attributes.position.count; i++) { const p = posDe(g, i), nn = normDe(g, i); if (nn[2] > 0.9 && p[2] > 0 && p[1] > 7.3 && p[1] < 8.2 && Math.abs(p[0]) < 2) { s += lum(g, i); k++; } } return s / k; };
+    ok(prom(con) < prom(sin) - 0.02, `un alero que sale a medio metro y está un metro más arriba oscurece la pared (${prom(con).toFixed(3)} < ${prom(sin).toFixed(3)})`);
+  }
   // las cosas varias
   const cero = clonar(g); const r0 = clonar(cero); AS.ocluirGeometria(cero, { fuerza: 0 });
   ok(media(cero, r0, () => true) > 0.9999, 'con fuerza 0 no cambia nada más de lo ya hecho');
@@ -150,8 +164,8 @@ const clonar = (g) => g.clone();
   let rotos = 0; for (const v of g.attributes.color.array) if (!Number.isFinite(v) || v < 0) rotos++;
   ok(rotos === 0, 'ningún color roto');
   // cada canal baja a lo sumo la fuerza: nada queda negro
-  let negro = 0; for (let i = 0; i < g.attributes.position.count; i++) if (lum(g, i) < lum(ref, i) * 0.38) negro++;
-  ok(negro === 0, 'nada queda más oscuro que un tercio (el pintado no ensucia)');
+  let negro = 0; for (let i = 0; i < g.attributes.position.count; i++) if (lum(g, i) < lum(ref, i) * 0.27) negro++;
+  ok(negro === 0, 'nada queda más oscuro que un cuarto de lo que era (el pintado no ensucia)');
   // lo demasiado chico, grande o sin atributos se deja
   ok(AS.ocluirGeometria(new THREE.BufferGeometry()) === 0, 'una geometría vacía no se toca');
   ok(AS.ocluirGeometria(casa(), { maxVerts: 10 }) === 0, 'una geometría que pasa el tope no se toca');
@@ -259,7 +273,7 @@ const clonar = (g) => g.clone();
   const prendido = armar({ ocluir: true, contacto: true, halos: true }, asiento);
   ok(huellas.size >= 8, `prendido, las obras grandes registran su sombra de contacto (${huellas.size})`);
   for (const h of huellas.values()) {
-    ok(h.w > 0.3 && h.d > 0.3 && h.radio > 0.3 && h.radio <= 1.41 && h.fuerza > 0.1 && h.fuerza < 0.55 && Number.isFinite(h.x) && Number.isFinite(h.z), 'cada huella es razonable');
+    ok(h.w > 0.3 && h.d > 0.3 && h.radio > 0.3 && h.radio <= 1.41 && h.fuerza > 0.1 && h.fuerza < 0.6 && Number.isFinite(h.x) && Number.isFinite(h.z), 'cada huella es razonable');
   }
   ok(JSON.stringify(prendido.obs) === JSON.stringify(apagado.obs), 'las colisiones son EXACTAMENTE las mismas con y sin asentado');
   ok(JSON.stringify(prendido.plats) === JSON.stringify(apagado.plats), 'las plataformas son EXACTAMENTE las mismas');

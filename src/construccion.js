@@ -2374,7 +2374,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   // 4.12.1 · EDIFICIOS ASENTADOS: el color de los vértices de la obra ya armada (ver asentado.js). Sólo Media y Alta (`asentadoActivo().ocluir`):
   // en Baja y Mínima esto no hace nada. El desgaste sale de la posición y el id de la obra (nunca del azar del juego) y es leve: cuánto depende del
   // tipo de obra, y las casas a medio hacer no se manchan. Las colisiones, los tamaños y las etapas no se tocan: sólo cambia el color.
-  const DESGASTE_OBRA = { refugios: 0.3, trabajo: 0.26, exterior: 0.22, mobiliario: 0.1, defensa: 0.2, amistosa: 0.08 };
+  const DESGASTE_OBRA = { refugios: 0.38, trabajo: 0.34, exterior: 0.29, mobiliario: 0.13, defensa: 0.26, amistosa: 0.1 };
   function asentarObra(g, plano, datos, marcas) {
     if (!asentadoActivo().ocluir || !datos || !(datos.etapas > 0) || plano.jardin) return;
     const terminada = datos.etapas >= plano.etapas.length;
@@ -2398,7 +2398,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     const rot = d.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
     const grande = h.w * h.d;
     asiento.poner(obra, { x: d.x + h.cx * c + h.cz * s, z: d.z - h.cx * s + h.cz * c, rot, w: h.w, d: h.d,
-      radio: Math.min(1.4, Math.max(0.5, 0.36 + 0.07 * Math.max(h.w, h.d))), fuerza: grande > 10 ? 0.44 : 0.34 });
+      radio: Math.min(1.4, Math.max(0.5, 0.36 + 0.07 * Math.max(h.w, h.d))), fuerza: grande > 10 ? 0.5 : 0.4 });
   }
 
   // 3.0.1: la altura del terreno bajo un punto de la obra, desde su pie (ver calces.js). Sólo

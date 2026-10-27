@@ -80,7 +80,12 @@ app.whenReady().then(async () => {
     if (!lugar) { console.log('  ' + t.id + ': este lugar no está en esta versión'); continue; }
     for (let i = 0; i < 150; i++) { await js(`${H}.progreso.horas = window.__hora; 1`); await cuadro(1); await esperar(20); }
     await esperar(300);
-    const img = await w.webContents.capturePage();
+    // (a veces la placa devuelve UnknownVizError al capturar: se reintenta con la ventana al frente)
+    let img = null;
+    for (let intento = 0; intento < 5 && !img; intento++) {
+      try { img = await w.webContents.capturePage(); } catch (e) { console.log('  (captura fallida: ' + (e && e.message) + ', se reintenta)'); try { w.show(); w.focus(); } catch { /* sin ventana */ } await cuadro(3); await esperar(1500); }
+    }
+    if (!img) { console.log('  ' + t.id + ': sin captura'); continue; }
     fs.writeFileSync(path.join(salida, `${t.id}.png`), img.toPNG());
     console.log('  ' + t.id + ' · ' + calidad + ' · ' + JSON.stringify(lugar));
   }

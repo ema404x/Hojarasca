@@ -197,7 +197,7 @@ function marcarCeldas(pos, n, g) {
   }
 }
 
-export const OCLUSION = { celda: 0.28, fuerza: 0.6, pie: 0.6, maxVerts: 48000, tope: 120 };
+export const OCLUSION = { celda: 0.28, fuerza: 0.7, pie: 0.6, maxVerts: 48000, tope: 120 };
 
 // Pinta la oclusión en el color de los vértices. Devuelve cuántos vértices se tocaron (0 si no hizo nada).
 //   o.base: altura del suelo en el marco local (0 por defecto) · o.fuerza: cuánto oscurece lo más tapado (0 a 1)

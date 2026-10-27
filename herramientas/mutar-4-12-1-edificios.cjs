@@ -26,7 +26,7 @@ const MUTACIONES = [
   ['la panza del techo sin sombra', AS, '    if (uy < -0.5) oc += 0.55 * Math.min(1, (-uy - 0.5) * 3);', '    if (uy < -0.5) oc += 0 * Math.min(1, (-uy - 0.5) * 3);'],
   ['las caras se oscurecen con su propia pared', AS, '      if (delante < h * 0.95) continue;', '      if (delante < -9) continue;'],
   ['sin rincón entrante', AS, '      suma += (1 - d / R) * Math.min(1, (delante / d) * 1.3);', '      suma += 0 * (1 - d / R) * Math.min(1, (delante / d) * 1.3);'],
-  ['oscurece de más', AS, 'export const OCLUSION = { celda: 0.28, fuerza: 0.6,', 'export const OCLUSION = { celda: 0.28, fuerza: 0.97,'],
+  ['oscurece de más', AS, 'export const OCLUSION = { celda: 0.28, fuerza: 0.7,', 'export const OCLUSION = { celda: 0.28, fuerza: 0.97,'],
   ['la oclusión se pasa del tope de vértices', AS, "const m = leer(geo, o.maxVerts ?? OCLUSION.maxVerts);", "const m = leer(geo, 1e9);"],
   // ---- el desgaste
   ['una obra nueva se mancha', AS, 'nivel = Math.min(1, Math.max(0, o.nivel ?? 0.3))', 'nivel = Math.min(1, Math.max(0.5, o.nivel ?? 0.3))'],
@@ -68,7 +68,7 @@ const MUTACIONES = [
   ['los canteros con sombra de contacto', CO, '!(d.etapas > 0) || p.jardin ||', '!(d.etapas > 0) ||'],
   ['la sombra queda al retirar la obra', CO, '    asiento?.quitar(obra);\n    if (obra.luzInterior)', '    if (obra.luzInterior)'],
   ['la sombra queda al mover con Shift+Y', CO, '    asiento?.quitar(mejor);\n', ''],
-  ['sombra de contacto exagerada', CO, 'fuerza: grande > 10 ? 0.44 : 0.34', 'fuerza: grande > 10 ? 0.94 : 0.9'],
+  ['sombra de contacto exagerada', CO, 'fuerza: grande > 10 ? 0.5 : 0.4', 'fuerza: grande > 10 ? 0.94 : 0.9'],
   ['el refugio no corre sus marcas', ES, 'remarcarRangos(marcas, teselarGeometria(', 'void (marcas, teselarGeometria('],
   ['las estructuras se asientan en Baja', ES, '    if (A.ocluir) {\n      remarcarRangos', '    if (true) {\n      remarcarRangos'],
   ['las estructuras sin sombra de contacto', ES, '    if (asiento && A.contacto) {', '    if (false) {'],
