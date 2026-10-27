@@ -347,14 +347,14 @@ for (const [nombre, m] of [['ciervo', bichos[2][1]], ['huemul', bichos[4][1]]]) 
   const gente = leer('src/gente.js');
   ok(/function precalentar\(camara, dibujar\) \{[^]*?precalentarPiel\(escena, camara, dibujar\)/.test(gente), 'gente.js: la pasada de precompilado de la carga también arma el programa con huesos de los animales');
   const pre = P.precalentarPiel.toString();
-  ok(/pielPermitida\(\)/.test(pre) && /escena\.add\(malla\)/.test(pre) && /escena\.remove\(malla\)/.test(pre) && /dibujar\(\)/.test(pre), 'precalentarPiel: sólo si la piel corre, dibuja una malla mínima con huesos y la saca');
+  ok(/pielPermitida\(\)/.test(pre) && /escena\.add\(f\)/.test(pre) && /escena\.remove\(f\)/.test(pre) && /dibujar\(\)/.test(pre), 'precalentarPiel: sólo si la piel corre, dibuja una malla mínima con huesos y la saca');
   ok(/castShadow = true/.test(pre), 'precalentarPiel: la malla proyecta sombra (se compila también el programa de la sombra)');
   const ecena = new THREE.Scene(), cam = new THREE.PerspectiveCamera(); let dibujos = 0;
   P.fijarPielFauna(false);
   ok(P.precalentarPiel(ecena, cam, () => { dibujos++; }) === false && dibujos === 0, 'en Baja y Mínima no se dibuja nada de más');
   P.fijarPielFauna(true);
   const antes = P.esqueletosEnUso();
-  ok(P.precalentarPiel(ecena, cam, () => { dibujos++; ok(ecena.children.length === 1 && ecena.children[0].isSkinnedMesh, 'durante el dibujo hay una malla con huesos'); }) === true && dibujos === 1 && ecena.children.length === 0 && P.esqueletosEnUso() === antes, 'en Media y Alta dibuja una vez y no deja nada');
+  ok(P.precalentarPiel(ecena, cam, () => { dibujos++; ok(ecena.children.some((o) => o.isSkinnedMesh), 'durante el dibujo hay una malla con huesos'); }) === true && dibujos === 2 && ecena.children.length === 0 && P.esqueletosEnUso() === antes, 'en Media y Alta dibuja (4.12.2 bugs: dos veces, con tres figuras; ver verificar-4-12-2-visual-animales.mjs) y no deja nada');
   for (const f of ['src/caballo-mundo.js', 'src/perro.js', 'src/bichos.js', 'src/vida.js']) ok(!/new THREE\.(Shader|RawShader)Material|onBeforeCompile *= .*skin/i.test(leer(f).split('4.12.2')[1] || ''), `${f}: sin shaders propios para la piel`);
   ok(!/onBeforeCompile|ShaderMaterial/.test(leer('src/animales-piel.js').replace(/\/\/.*$/gm, '')), 'animales-piel.js: ni un shader propio (usa el material de la fauna con el skinning de three)');
 }

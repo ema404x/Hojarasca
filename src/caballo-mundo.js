@@ -35,7 +35,9 @@ function caja(mat, tam, pos, rot = [0, 0, 0]) {
 // rodilla, garrón, menudillo y casco, y cola tupida. Los cabos oscuros (crin, cola, hocico y
 // medias) y las manchas del overo se pintan en los vértices; también la cabezada. Los pivotes
 // (cuello, cabeza y patas) y lo del recado están donde estaban.
-export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
+// 4.12.2 (bugs, K2/K3): `piel: false` para los caballos que nunca se acercan a la piel (el palenque de la aldea, el redomón de la fiesta, el de la jaula del
+// tren): sin malla con huesos, sin la copia de vértices y sin tramo reservado en la textura de huesos (que además nadie liberaba). Sólo tu caballo la usa.
+export function mallaCaballo(ap = sanearCaballoPersonal(null), { piel = true } = {}) {
   const g = new THREE.Group();
   const pj = PELAJE_CABALLO[ap.pelaje] || PELAJE_CABALLO.zaino;
   const pelo = pj.pelo, oscuro = pj.oscuro, ojo = '#0a0806';
@@ -157,7 +159,7 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
   g.traverse((o) => { if (o.isMesh) o.castShadow = o.parent === g; });   // sombra del cuerpo, no de cada hueso
   // 4.12.2: la misma figura con huesos, para cuando está cerca (null en Baja y Mínima)
   const m = { g, cuello, cabeza, patas };
-  m.piel = armarPielCaballo(m);
+  m.piel = piel ? armarPielCaballo(m) : null;
   return m;
 }
 

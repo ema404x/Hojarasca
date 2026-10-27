@@ -45,6 +45,7 @@ import { crearFauna } from './fauna.js';
 import { crearVida } from './vida.js';
 import { crearBichos } from './bichos.js';
 import { crearPerro } from './perro.js';
+import { fijarCalidadPiel } from './animales-piel.js';
 import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
 // 4.6 puestos: los puestos de ruta (reglas, lo que se ve y la E)
@@ -419,6 +420,7 @@ fijarAsentado({ ocluir: !!calidad.post, contacto: !!calidad.post, halos: !!calid
 if (new URLSearchParams(location.search).get('debug') === '1') { try { Object.assign(calidad, JSON.parse(new URLSearchParams(location.search).get('sombrasx') || '{}')); } catch { /* sin variante */ } }
 // 3.5: la calidad que está andando y las distancias que rigen (ver aplicarDistancias)
 let calidadActiva = CALIDADES[calidadInicial] ? calidadInicial : 'media';
+fijarCalidadPiel(calidadActiva);   // 4.12.2 (bugs, K4): la piel de los animales sigue la calidad que CORRE, no la guardada en Ajustes (ver animales-piel.js)
 let distActual = distanciasDe(calidadActiva, ajustes.distancia, ajustes.distanciaPlantas);
 // 4.10.3 (P5): ¿la calidad elegida pide reiniciar? Sí si no es con la que se armó el mundo, o si no es la que corre ahora (tras
 // «Bajar» corre una más baja que la de arranque: volver a elegir la de arranque no cambiaba nada y escondía el cartel)
@@ -10503,6 +10505,7 @@ function aplicarCalidadAutomatica(cambio, avisar = true) {
   calidadActiva = cambio.hasta;
   aplicarDistancias();
   try { acomodarEscalaPantalla(); } catch { /* 4.10.3 (P6): la resolución baja con la calidad; si el lienzo no la acepta, queda como estaba */ }
+  fijarCalidadPiel?.(calidadActiva);   // 4.12.2 (bugs, K4): los animales con huesos siguen la calidad que corre
   est?.molinoPaisaje?.aplicarCalidad(nueva.densidad ?? 1);   // 4.0: menos tulipanes en las calidades bajas
   // las sombras son lo más caro que se puede acomodar sin rehacer el mundo
   if (nueva.sombras !== calidad.sombras) {
@@ -11367,6 +11370,8 @@ async function rehacerGraficos() {
   cronometroGpu = undefined;                   // las consultas de tiempo eran del contexto viejo
   // los programas, ahora (con el cartel puesto) y no a tirones al volver a caminar
   if (modo !== 'carga' && jugador) await Promise.race([Promise.resolve(variantesLuces.compilarCarga(jugador.estado.pos)).catch(() => null), esperarMs(8000)]);
+  // 4.12.2 (bugs, K5): three armó todo de cero con el contexto nuevo; `compile` no hace los programas de las sombras con huesos (gente y animales): se vuelven a precalentar acá, con el cartel puesto
+  if (modo !== 'carga' && jugador) { try { gente?.precalentar?.(camara, () => { renderer.shadowMap.needsUpdate = true; dibujar(null, 0); }); } catch (err) { console.warn('precalentar tras recuperar el contexto:', err); } }
 }
 lienzo.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();   // sin esto el navegador no devuelve nunca el contexto

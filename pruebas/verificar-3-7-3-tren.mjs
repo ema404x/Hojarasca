@@ -169,7 +169,7 @@ const ok = (c, t) => { n++; assert.ok(c, t); };
   ok(main.includes('|| alCalorDelTren());') && main.includes("op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal')"), 'la salamandra saca el frío; en la cucheta se duerme (con la salamandra, calentito)');
   ok(main.includes('prepararTren(dt);') && main.includes('ctxTren.manejo = cacheManejo.manejo;') && main.includes('ctxTren.agarre = cacheManejo.agarre;'), 'la caldera, el freno y el arenero llegan a la cabina');
   // los pulidos del prototipo
-  ok(tren.includes("caballoJaula = apariencia ? mallaCaballo(apariencia) : mallaCaballo();") && main.includes("tren.tren.ponerCaballo(caballoMundo?.apariencia?.() || null);"), 'el caballo de la jaula es el tuyo');
+  ok(tren.includes("caballoJaula = apariencia ? mallaCaballo(apariencia, { piel: false }) : mallaCaballo(undefined, { piel: false });") && main.includes("tren.tren.ponerCaballo(caballoMundo?.apariencia?.() || null);"), 'el caballo de la jaula es el tuyo');
   ok(tren.includes("else if (dentro.tipo === 'dormitorio') { luzFuego.position.set(0.3, 2.4, 0).applyMatrix4(dentro.o.matrixWorld); luzFuego.intensity = 2.2 + noche * 4.2;"), 'el dormitorio de noche, con más luz');
   ok(tren.includes('const pf = enVia(s + 14);') && tren.includes('function curvarHaz(geo, haz)') && tren.includes('new THREE.SpotLight(0xffe2ab, 0, 32, 0.26, 0.75, 1.5)'), 'el farol: el haz sigue la vía y el foco apunta a la vía, bajo y angosto (sin brillo en las copas)');
   ok(tren.includes('const LEJOS_ADENTRO = 45;') && tren.includes('nombres.push(`${id}.adentro`);'), 'los interiores se apagan de lejos');

@@ -561,7 +561,7 @@ export function crearFiestasMundo(ctx) {
   const caballo = { m: null, t: 0, monta: null, jinete: null, base: null };
   function armarCaballo() {
     if (caballo.m) return;
-    caballo.m = mallaCaballo({ pelaje: 'tordillo', montura: '#4a3226', manta: '#8a3a2a' });
+    caballo.m = mallaCaballo({ pelaje: 'tordillo', montura: '#4a3226', manta: '#8a3a2a' }, { piel: false });   // 4.12.2: rígido siempre
     caballo.m.g.visible = false;
     escena.add(caballo.m.g);
   }

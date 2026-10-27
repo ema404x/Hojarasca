@@ -53,14 +53,14 @@ export function crearAnimalesAldea(ctx) {
     for (const def of ANIMALES_ALDEA.perros) {
       const casa = patioDe(def.casa);
       if (!casa) continue;
-      const m = mallaPerro(sanearPerro({ pelo: def.pelo, dibujo: def.dibujo, collar: def.collar, conCollar: true }));
+      const m = mallaPerro(sanearPerro({ pelo: def.pelo, dibujo: def.dibujo, collar: def.collar, conCollar: true }), { piel: false });   // 4.12.2: rígido siempre
       m.g.rotation.order = 'YXZ';
       m.g.visible = false;
       escena.add(m.g);
       perros.set(def.id, { m, def, casa, x: casa.x, z: casa.z, rumbo: 0, vel: 0, fase: Math.random() * 6, estado: 'casa', t: 0, hasta: 0, cuando: -999, objetivo: { x: casa.x, z: casa.z } });
     }
     for (const def of ANIMALES_ALDEA.caballos) {
-      const m = mallaCaballo(sanearCaballoPersonal({ pelaje: def.pelaje }));
+      const m = mallaCaballo(sanearCaballoPersonal({ pelaje: def.pelaje }), { piel: false });   // 4.12.2: rígido siempre
       const w = enMundo(def.x, def.z);
       m.g.position.set(w.x, T.altura(w.x, w.z), w.z);
       m.g.rotation.y = M.rotMundo(def.rot);
@@ -191,7 +191,7 @@ export function crearAnimalesAldea(ctx) {
     const dj = Math.hypot(centro.x - js.pos.x, centro.z - js.pos.z);
     if (!cachorro) {
       if (dj > ARMAR) return;
-      const mm = mallaPerro(sanearPerro({ pelo: MASCOTA.pelo, dibujo: MASCOTA.dibujo, conCollar: true, collar: '#2f5a74' }));
+      const mm = mallaPerro(sanearPerro({ pelo: MASCOTA.pelo, dibujo: MASCOTA.dibujo, conCollar: true, collar: '#2f5a74' }), { piel: false });   // 4.12.2: rígido siempre
       mm.g.rotation.order = 'YXZ';
       escena.add(mm.g);
       cachorro = { m: mm, x: centro.x, z: centro.z, rumbo: 0, vel: 0, fase: 0, t: 0, objetivo: { ...centro } };

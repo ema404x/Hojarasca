@@ -25,6 +25,7 @@ export function fijarMaterialPiel(mat) { MAT_FAUNA = mat; }
 // ---------------------------------------------------------------- reglas
 export const CERCA_PIEL = 40;        // hasta acá se dibuja con piel (y se queda hasta CERCA_PIEL + HISTERESIS)
 export const HISTERESIS_PIEL = 6;
+export const MEZCLA_CUELLO = 12;     // 4.12.2: el cuello llega a su curva entera 12 m antes del límite (a 28 m)
 export const HUESOS_ANIMAL = 24;     // lugares por esqueleto en la textura
 export const LADO_PAGINA = 64;
 export const CAP_PAGINA = ((LADO_PAGINA * LADO_PAGINA) / 4 / HUESOS_ANIMAL) | 0;
@@ -43,6 +44,10 @@ const suavizado = (dt, k) => 1 - Math.exp(-dt * k);
 // vuelve a mirar cada tanto: si baja a Baja o Mínima en vivo, los animales vuelven solos a la versión rígida. `?piel=0` la apaga (para medir).
 let forzada = null;
 let calidadVista = null, calidadT = -1e9;
+// 4.12.2 (bugs, K4): la calidad con la que corre el mundo, que fija main.js al arrancar y cada vez que la automática la baja. Con ésta fijada ya no se mira
+// lo guardado en Ajustes: elegir otra calidad en vivo (que "pide reiniciar") no apaga la piel ni arma una nueva a mitad del juego.
+let calidadMundo = null;
+export function fijarCalidadPiel(c) { calidadMundo = typeof c === 'string' ? c : null; }
 export function fijarPielFauna(v) { forzada = v === null || v === undefined ? null : !!v; calidadT = -1e9; }
 export function calidadConPiel(c) { return c === 'media' || c === 'alta'; }
 function leerCalidad() {
@@ -58,6 +63,7 @@ function apagadaPorUrl() {
 export function pielPermitida() {
   if (forzada !== null) return forzada;
   if (apagadaPorUrl()) return false;
+  if (calidadMundo !== null) return calidadConPiel(calidadMundo);
   const t = typeof performance !== 'undefined' ? performance.now() : 0;
   if (calidadVista === null || t - calidadT > 3000 || t < calidadT) { calidadVista = leerCalidad(); calidadT = t; }
   return calidadConPiel(calidadVista);
@@ -298,6 +304,9 @@ function crearPiel(malla, rigidas, H, esp) {
   const p = {
     malla, rigidas, huesos: H, esp, S: { listo: false, t: Math.random() * 100, amp: 0, gal: 0, post: 0, anda: 0, v: 0, cola: [0, 0], oreja: [0, 0], semilla: Math.random() * 40 },
     activa: false,
+    // 4.12.2 (bugs, K1): 0 = el cuello y la cabeza posados como el animal rígido (a 40 m, donde cambia una versión por la otra), 1 = el cuello curvado en tres
+    // huesos. Sube con la cercanía (de 40 a 28 m): así el cambio de una versión a otra no mueve la cabeza (antes saltaba hasta 0,85 m)
+    mezcla: 1,
     // pone un hueso: rotación (rx, ry, rz) en radianes
     r(i, x, y, z) { const o = i * 3; H.rot[o] = x; H.rot[o + 1] = y; H.rot[o + 2] = z; },
     e(i, x, y, z) { const o = i * 3; H.esc[o] = x; H.esc[o + 1] = y; H.esc[o + 2] = z; },
@@ -308,6 +317,7 @@ function crearPiel(malla, rigidas, H, esp) {
       if (!OBS.listo) return p.activa;
       const dx = g.position.x - OBS.x, dz = g.position.z - OBS.z, d2 = dx * dx + dz * dz;
       const lim = p.activa ? CERCA_PIEL + HISTERESIS_PIEL : CERCA_PIEL;
+      p.mezcla = 1 - sv(CERCA_PIEL - MEZCLA_CUELLO, CERCA_PIEL, Math.sqrt(d2));
       return p.mostrar(d2 < lim * lim);
     },
     mostrar(si) {
@@ -377,10 +387,13 @@ function aplicarColaOrejas(p, S, o) {
 // El cuello y la cabeza: el ángulo que ya ponen la IA y el movimiento en los pivotes rígidos (baja, mira) se reparte en tres huesos: se curva en vez de
 // girar entero. `curva` > 1 agacha más (pastar).
 function cuelloYCabeza(p, ang, giro, extra, curva) {
-  const t = ang * curva;
-  p.r(HUESO.CUELLO1, 0.34 * t + extra.c1, 0.2 * giro, 0);
-  p.r(HUESO.CUELLO2, 0.36 * t + extra.c2, 0.3 * giro, 0);
-  p.r(HUESO.CABEZA, 0.3 * t + extra.c3, 0.5 * giro, 0);
+  const t = ang * curva, k = p.mezcla;
+  // 4.12.2 (bugs, K1): lo que hace el animal rígido con el mismo ángulo. El caballo, el huemul y el perro giran el cuello entero sobre su base; el ciervo
+  // sólo gira la cabeza sobre su pivote (el cuello queda quieto). A 40 m, donde se cambia de versión, la piel está posada así (k = 0)
+  const entero = !!(p.esp.cuelloG || p.esp.cuelloEnCabeza);
+  p.r(HUESO.CUELLO1, mezcla(entero ? ang : 0, 0.34 * t + extra.c1, k), mezcla(entero ? giro : 0, 0.2 * giro, k), 0);
+  p.r(HUESO.CUELLO2, mezcla(0, 0.36 * t + extra.c2, k), mezcla(0, 0.3 * giro, k), 0);
+  p.r(HUESO.CABEZA, mezcla(entero ? 0 : ang, 0.3 * t + extra.c3, k), mezcla(entero ? 0 : giro, 0.5 * giro, k), 0);
 }
 
 // ---- el caballo. c = { fase, modo, amplitud, galope, montado }
@@ -524,25 +537,44 @@ export function armarPielPerro(m) {
 // Con piel, MAT_FAUNA y la sombra son dos programas más (la variante «con huesos»). `renderer.compile` no arma los de las sombras y un animal
 // que aparece a mitad del juego los armaría en ese cuadro: se dibuja un instante, en la carga, una malla mínima con huesos delante de la cámara
 // (como la gente: gente.js la llama junto con su `precalentar`). Si la piel no corre en esta calidad, no hace nada.
+// 4.12.2 (bugs, W1): el programa de la pasada de sombras sale del material de profundidad COMPARTIDO de three y su clave lleva los contadores de luces
+// del momento y el tipo del objeto (rígido, con huesos, instanciado). El primer dibujo de la vida de la escena corre la pasada de sombras con los
+// contadores en cero (three cuenta las luces después), así que lo compilado ahí no sirve; y el material compartido sólo pide programa nuevo cuando
+// el objeto siguiente cambia de tipo. Por eso: (1) se dibuja DOS veces, y la segunda ya ve los contadores del juego; (2) se dejan en la escena las
+// tres figuras que se alternan en el juego —rígida, con huesos e instanciada (la silueta de un árbol: capa 1, con color por instancia)— en ese
+// orden, así cada cambio de tipo ocurre con las luces contadas. Todo en la carga: nada de esto se hace en el juego. Sin la piel (Baja y Mínima)
+// no hace nada.
 export function precalentarPiel(escena, camara, dibujar) {
   if (!pielPermitida() || !escena || !camara) return false;
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0.02, 0, 0, 0, 0.02, 0]), 3));
-  geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]), 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9).fill(0.5), 3));
+  const triangulo = () => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0.02, 0, 0, 0, 0.02, 0]), 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9).fill(0.5), 3));
+    geo.setIndex([0, 1, 2]);
+    return geo;
+  };
+  const geoRigida = triangulo(), geoInstancia = triangulo(), geo = triangulo();
   geo.setAttribute('skinIndex', new THREE.BufferAttribute(new Uint16Array(12), 4));
   geo.setAttribute('skinWeight', new THREE.BufferAttribute(new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]), 4));
-  geo.setIndex([0, 1, 2]);
   const lugar = lugarHuesos();
-  const malla = new MallaConPiel(geo, MAT_FAUNA, new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1));
-  malla.castShadow = true; malla.frustumCulled = false;
-  malla.skeleton = { boneTexture: lugar.pagina.tex, boneMatrices: lugar.pagina.matrices, update() { lugar.pagina.tex.needsUpdate = true; }, computeBoneTexture() { return this; }, dispose() {} };
   const dir = new THREE.Vector3(); camara.getWorldDirection(dir);
-  malla.position.set(camara.position.x + dir.x * 3, camara.position.y - 1.2, camara.position.z + dir.z * 3);
-  escena.add(malla);
-  try { dibujar(); } finally {
-    escena.remove(malla);
-    geo.dispose();
+  const ponerDelante = (o, lado) => { o.position.set(camara.position.x + dir.x * 3 + lado, camara.position.y - 1.2, camara.position.z + dir.z * 3); o.castShadow = true; o.frustumCulled = false; };
+  // 1) rígida (los animales lejos, el resto de los casters)
+  const rigida = new THREE.Mesh(geoRigida, MAT_FAUNA); ponerDelante(rigida, -0.3);
+  // 2) con huesos
+  const malla = new MallaConPiel(geo, MAT_FAUNA, new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1)); ponerDelante(malla, 0);
+  malla.skeleton = { boneTexture: lugar.pagina.tex, boneMatrices: lugar.pagina.matrices, update() { lugar.pagina.tex.needsUpdate = true; }, computeBoundingSphere() {}, computeBoneTexture() { return this; }, dispose() {} };
+  // 3) instanciada con color por instancia, en la capa 1 como las siluetas de los árboles (sólo la ve la pasada de sombras)
+  const instancia = new THREE.InstancedMesh(geoInstancia, MAT_FAUNA, 1); ponerDelante(instancia, 0.3);
+  instancia.setColorAt(0, new THREE.Color(0.5, 0.5, 0.5));
+  instancia.layers.set(1);
+  const figuras = [rigida, malla, instancia];
+  for (const f of figuras) escena.add(f);
+  try { dibujar(); dibujar(); } finally {
+    for (const f of figuras) escena.remove(f);
+    instancia.dispose();
+    geo.dispose(); geoRigida.dispose(); geoInstancia.dispose();
     soltarHuesos(lugar);
   }
   return true;

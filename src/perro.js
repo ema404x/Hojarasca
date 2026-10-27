@@ -18,7 +18,9 @@ import { tono, desechar } from './personal-mallas.js';
 // derechas y las de atrás tienen muslo y garrón; la cola es tupida. El dibujo (pecho blanco,
 // manchas, antifaz) y el pelaje (lomo más oscuro, panza más clara) se pintan en los vértices.
 // Los pivotes de cabeza, patas y cola están donde estaban: las animaciones no cambian.
-export function mallaPerro(ap = sanearPerro(null)) {
+// 4.12.2 (bugs, K2): `piel: false` para los perros que nunca se acercan a la piel (los de la aldea, el cachorro): no arman la malla con huesos, ni la copia de
+// vértices, ni reservan un tramo de la textura de huesos. Sólo el perro del jugador (crearPerro y personalizar) la usa.
+export function mallaPerro(ap = sanearPerro(null), { piel = true } = {}) {
   const g = new THREE.Group();
   const claro = ap.pelo === '#c9b89a' || ap.pelo === '#a8804f';
   const pelo = ap.pelo, oscuro = '#1f1b17';
@@ -136,7 +138,7 @@ export function mallaPerro(ap = sanearPerro(null)) {
   palito.visible = false;
   cabeza.add(palito);
   const m = { g, cabeza, patas, cola, palito };
-  m.piel = armarPielPerro(m);   // 4.12.2: null en Baja y Mínima
+  m.piel = piel ? armarPielPerro(m) : null;   // 4.12.2: null en Baja y Mínima (y sin piel si el que llama no la usa)
   return m;
 }
 

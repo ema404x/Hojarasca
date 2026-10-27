@@ -1583,7 +1583,7 @@ export function armarTren(o = {}) {
     const v = vagones.caballo.o;
     if (caballoJaula) { v.remove(caballoJaula.g); caballoJaula.g.traverse((m) => { if (m.isMesh) m.geometry.dispose(); }); caballoJaula = null; }
     try {
-      caballoJaula = apariencia ? mallaCaballo(apariencia) : mallaCaballo();
+      caballoJaula = apariencia ? mallaCaballo(apariencia, { piel: false }) : mallaCaballo(undefined, { piel: false });   // 4.12.2 (K2/K3): rígido siempre, sin tramo de huesos que soltar
       caballoJaula.g.position.set(0.05, COCHE.piso, 0.4);
       caballoJaula.g.scale.setScalar(0.95);
       caballoJaula.g.visible = false;
