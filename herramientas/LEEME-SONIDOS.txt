@@ -1,0 +1,60 @@
+BANCO DE SONIDOS (4.11.4) — para oír todo lo nuevo sin jugar hasta provocarlo
+==============================================================================
+
+Nadie escuchó nunca los sonidos de las últimas versiones (todo se midió con instrumentos, nada se oyó).
+Este banco los pone todos en una lista: elegís uno, apretás Enter y suena.
+
+CÓMO ABRIRLO
+  1. Jugando (en el Relax o en La noche de los duendes), apretá Escape: se abre la pausa.
+  2. Tocá «Banco de sonidos» (está debajo de «Banco de pruebas»).
+  3. Para salir, Escape: volvés a la pausa y se corta lo que sonaba. Otro Escape y seguís jugando.
+  No toca tu partida: no guarda nada, no gasta noches ni recursos. Lo único que queda cambiado son los
+  volúmenes si los movés (son los mismos de Ajustes).
+
+CÓMO USARLO (sólo teclado y ratón)
+  Flechas arriba y abajo ....... elegir el sonido (Re Pág y Av Pág saltan de grupo; Inicio y Fin)
+  Enter (o un clic) ............ oírlo
+  Flechas izquierda y derecha .. cambiar la variante del sonido elegido (el suelo de un paso, la hondura del hachazo...)
+  Espacio ...................... DETENER TODO (corta fuentes, gramola, radio, lluvia y viento prendidos, silencios)
+  D, L y F ..................... distancia (6, 25 o 60 m), desde dónde llega (frente, derecha, atrás, izquierda) y fuerza
+  Tab .......................... pasar a los volúmenes (los de verdad: general, El bosque, Efectos, Música)
+  A la derecha ve qué suena, por qué bus sale (El bosque, Efectos o Música) y cómo se dispara.
+  Lluvia, viento, arroyo, fuego, abejas y grillos son continuos: Enter los prende y otro Enter los apaga.
+  La gramola y la radio duran un buen rato: Espacio las corta.
+
+EL CATÁLOGO: 146 SONIDOS EN 18 GRUPOS
+  Noche de los duendes: Coihue y su subida (8), voces y risas (15), avisos y miedo (7), asedio (15),
+  aliados y campana (10), defensas, trampas y brasas (12), armas (10).
+  Bosque: pájaros y animales (19), viento y hojas (2), agua (5), lluvia y techos (4), fuego, abejas y grillos (3).
+  Más: pasos y trabajo (8), gente y aldea (5), trochita, kayak y pesca (10), música (6), radio de madrugada (2),
+  interfaz y avisos (5).
+  Un sonido que nunca oíste lleva una marca verde («nuevo 4.9.0»); uno que cambió de lugar en la mezcla, una amarilla.
+
+QUÉ ESCUCHAR PRIMERO (las marcas verdes, 17 sonidos)
+  1. El Coihue Viejo caminando (grupo del Coihue) y las cuatro de las raíces de la subida: brotan, crujido, sale, se cierran.
+  2. El tañido de la campana de alarma (grupo de aliados).
+  3. El martillo de Anselmo y la piedra de los chicos (grupo de aliados).
+  4. La pala de brasas: abanico, cargar y la miel que prende (el tintineo de la miel).
+  5. Los del miedo de la 4.8.0: la rama que cruje, el tero, la vaca, «Salen», el silencio raro y los pájaros que se callan.
+  Después, lo que cambió de bus en la 4.11.1 (marca amarilla): los pájaros (ahora por El bosque), la gramola
+  (ahora por Música) y la radio de la madrugada (tango y Morse, con apagado).
+  Las habilidades, los trofeos y las placas no tienen un sonido propio: avisan con el par de notas de «Un logro» (grupo de interfaz).
+
+QUÉ CONTESTAR AL ESCUCHAR CADA UNO (con una línea alcanza; «bien» también es respuesta)
+  - VOLUMEN: ¿suena muy fuerte o muy flojo comparado con los pasos o el hachazo? ¿Se tapa o tapa a otros?
+    Probalo con los tres volúmenes en 1 y después a la mitad: ¿baja lo que tiene que bajar?
+  - TIMBRE: ¿parece lo que dice ser (una campana, un martillo, una vaca, madera que cruje)? ¿Qué le falta o le sobra?
+    ¿Es agudo y áspero de más? ¿Retumba?
+  - CLICS: ¿se oye un «tac» o un corte seco al empezar, al terminar o cuando apretás Espacio?
+  - SOLAPAMIENTOS: apretá Enter dos o tres veces seguidas y mezclalos con otros: ¿se pisan, se vuelven un ruido,
+    hay un tope raro (la risa de los duendes sólo deja tres a la vez)?
+  - DISTANCIA Y LADO: con «Lejos» y con «Atrás» o «Derecha», ¿se nota que está lejos y de qué lado viene? (los subtítulos del
+    Desafío dicen la dirección; acá sólo se oye)
+  - REPETICIÓN: los que tienen varias variantes (raíces, risas, brasas, tero): ¿suenan distintos cada vez o cansan?
+  Anotalo así: «nombre del sonido: volumen / timbre / clics / solapamientos» (por ejemplo «vaca: flojo, parece un grito de gato, ok, ok»).
+
+SI ALGO NO SUENA
+  - Un cartel rojo dice «el motor no creó ningún sonido»: es el tope de sonidos a la vez; esperá un momento o apretá Espacio.
+  - La primera vez que tocás un sonido el banco prepara lo que falte (puede tardar una fracción de segundo).
+  - Con el volumen general o el del bus en 0 no se oye nada (mirá los volúmenes de abajo).
+  - En el Relax el banco deja sonar los sonidos de La noche de los duendes mientras está abierto, y al salir los vuelve a apagar.
