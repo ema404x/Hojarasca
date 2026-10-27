@@ -20,6 +20,8 @@ app.commandLine.appendSwitch('no-sandbox');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 const visible = process.env.HUMO_OCULTO === '0';
 const calidades = (process.env.HUMO_CALIDADES || 'baja,media').split(',');
+// HUMO_CONTROL=1: contra una página de ANTES (sin las mallas nuevas): sólo cuenta programas y dibujos, para comparar
+const control = process.env.HUMO_CONTROL === '1';
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 14 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 14 * 60 * 1000).unref?.();
 let pasos = 0, fallas = 0;
 const ok = (c, t) => { pasos++; if (c) console.log('OK ' + t); else { fallas++; console.log('FALLA ' + t); } };
@@ -52,12 +54,26 @@ app.whenReady().then(async () => {
     console.log(`-- ${q}: sombra de contacto ${sombra}, halos ${halos}`);
     ok(sombra === conPost, `${q}: ${conPost ? 'tiene' : 'no tiene'} la malla de sombras de contacto`);
     ok(halos === conPost, `${q}: ${conPost ? 'tiene' : 'no tiene'} la malla de halos del valle`);
-    if (conPost) {
+    if (conPost && !control) {
       const mat = await js(`(() => { const m = ${H}.escena.getObjectByName('sombras-de-contacto'), h = ${H}.escena.getObjectByName('halos-valle');
         return { sombra: { tipo: m.material.type, blending: m.material.blending, colores: m.material.vertexColors, niebla: m.material.fog, lucesDeLaEscena: 0 },
                  halos: { tipo: h.material.type, aditivo: h.material.blending === 2 } } })()`);
       ok(mat.sombra.tipo === 'MeshBasicMaterial' && mat.sombra.blending === 3 && mat.sombra.colores === true && mat.sombra.niebla === false, `${q}: la sombra de contacto es un material básico que resta, con color por vértice`);
       ok(mat.halos.tipo === 'ShaderMaterial' && mat.halos.aditivo, `${q}: los halos son el material aditivo de siempre`);
+    }
+    const progs = () => js(`${H}.renderer.info.programs.length`);
+    const nombres = () => js(`${H}.renderer.info.programs.map((p) => p.name + ':' + (p.cacheKey || '').length + ':' + (p.cacheKey || '').slice(0, 60))`);
+    // (A) como el humo de los bordes: en el sitio de partida (el refugio), asentarse de día y contar los programas de día, de noche y girando
+    await correr(120);
+    {
+      const vistos = new Set(await nombres()), n0 = await progs();
+      await js(`(() => { ${H}.progreso.horas = 12; return 1 })()`); await correr(40);
+      await js(`(() => { ${H}.progreso.horas = 22; return 1 })()`); await correr(40);
+      await js(`(() => { ${H}.progreso.horas = 7; const J = ${H}.jugador.estado; J.yaw += 2.4; J.pitch = 0.5; return 1 })()`); await correr(40);
+      await js(`(() => { ${H}.progreso.horas = 12; const J = ${H}.jugador.estado; J.pitch = -0.05; return 1 })()`); await correr(40);
+      const n1 = await progs();
+      if (n1 !== n0) console.log('   programas nuevos (A): ' + JSON.stringify((await nombres()).filter((n) => !vistos.has(n))));
+      ok(n1 === n0, `${q}: en el sitio de partida, ningún programa de shader nuevo en 160 cuadros de día, noche y giros (${n0} → ${n1})`);
     }
     // las casas del jugador, ya terminadas, en un claro cerca del refugio
     const demo = await js(`(() => { const H = ${H}, T = H.T, r0 = T.lugares.refugio, arboles = H.veg.arboles.filter((a) => !a.sacado && !a.caido);
@@ -85,9 +101,9 @@ app.whenReady().then(async () => {
     }
     await js(`(() => { const H = ${H}, d = window.__demo; if (d) { H.jugador.ubicar(d.x - 14, d.z + 16, 0); } H.progreso.horas = 12; return 1 })()`);
     await correr(160);
-    // asentarse, y recién ahí se cuentan los programas
-    const progs = () => js(`${H}.renderer.info.programs.length`);
-    const nombres = () => js(`${H}.renderer.info.programs.map((p) => p.name + ':' + (p.cacheKey || '').length + ':' + (p.cacheKey || '').slice(0, 60))`);
+    // (B) las casas puestas: lo nuevo se compila la primera vez que se ve (las casas, el refugio de noche); se recorre una vez y recién ahí se cuentan los programas
+    await js(`(() => { const H = ${H}, r = H.T.lugares.refugio; H.jugador.ubicar(r.x + 8, r.z + 10, 0); H.progreso.horas = 22.5; return 1 })()`); await correr(60);
+    await js(`(() => { const H = ${H}, d = window.__demo; if (d) H.jugador.ubicar(d.x - 14, d.z + 16, 0); H.progreso.horas = 12; return 1 })()`); await correr(60);
     const antesNombres = new Set(await nombres());
     const antes = await progs();
     const dibujos = () => js(`(() => { const R = ${H}.renderer; R.info.autoReset = false; R.info.reset(); ${H}.__bucle(); const r = R.info.render.calls; R.info.autoReset = true; return r })()`);
@@ -95,23 +111,24 @@ app.whenReady().then(async () => {
     await js(`(() => { ${H}.progreso.horas = 12; return 1 })()`); await correr(40);
     const dia = await estado(), llamadasDia = await dibujos();
     console.log(`   día: ${JSON.stringify(dia)} · ${llamadasDia} dibujos`);
-    if (conPost) {
+    if (conPost && !control) {
       ok(dia.sombra && dia.sombra.visible && dia.sombra.verts > 24, `${q}: de día se dibuja la sombra de contacto (${dia.sombra && dia.sombra.verts} vértices)`);
       ok(dia.halos && dia.halos.visible === false, `${q}: de día los halos no se dibujan`);
-      const sinSombra = await js(`(() => { const s = ${H}.escena.getObjectByName('sombras-de-contacto'); s.visible = false; const R = ${H}.renderer; R.info.autoReset = false; R.info.reset(); R.render(${H}.escena, ${H}.camara); const a = R.info.render.calls; s.visible = true; R.info.reset(); R.render(${H}.escena, ${H}.camara); const b = R.info.render.calls; R.info.autoReset = true; return b - a })()`);
+      // (con el material apagado el renderizador se la salta; se cuenta con el cuadro del juego, no con un render aparte a la pantalla, que compilaría programas propios)
+      const sinSombra = await js(`(() => { const H = ${H}, s = H.escena.getObjectByName('sombras-de-contacto'), R = H.renderer; R.info.autoReset = false; const cuenta = () => { R.info.reset(); H.__bucle(); return R.info.render.calls }; const d = []; for (let i = 0; i < 7; i++) { s.material.visible = false; const a = cuenta(); s.material.visible = true; const b = cuenta(); d.push(b - a); } R.info.autoReset = true; d.sort((x, y) => x - y); return d[3] })()`);   // (la mediana de siete pares: la gente y el LOD cambian de un cuadro al otro)
       ok(sinSombra === 1, `${q}: la sombra de contacto suma UN dibujo (${sinSombra})`);
-    } else {
+    } else if (!control) {
       ok(dia.sombra === null && dia.halos === null, `${q}: sin mallas de sombra ni de halos`);
     }
     await js(`(() => { ${H}.progreso.horas = 22.5; return 1 })()`); await correr(60);
     const noche = await estado(), llamadasNoche = await dibujos();
     console.log(`   noche: ${JSON.stringify(noche)} · ${llamadasNoche} dibujos`);
-    if (conPost) {
+    if (conPost && !control) {
       // cerca del refugio hay vidrios: los halos de sus ventanas
       await js(`(() => { const H = ${H}, r = H.T.lugares.refugio; H.jugador.ubicar(r.x + 8, r.z + 10, 0); H.progreso.horas = 22.5; return 1 })()`); await correr(60);
       const cerca = await estado();
       ok(cerca.halos && cerca.halos.verts >= 4 && cerca.halos.visible, `${q}: de noche, cerca del refugio, se ven los halos de sus ventanas (${cerca.halos && cerca.halos.verts / 4} halos)`);
-      const sinHalos = await js(`(() => { const h = ${H}.escena.getObjectByName('halos-valle'); h.visible = false; const R = ${H}.renderer; R.info.autoReset = false; R.info.reset(); R.render(${H}.escena, ${H}.camara); const a = R.info.render.calls; h.visible = true; R.info.reset(); R.render(${H}.escena, ${H}.camara); const b = R.info.render.calls; R.info.autoReset = true; return b - a })()`);
+      const sinHalos = await js(`(() => { const H = ${H}, h = H.escena.getObjectByName('halos-valle'), R = H.renderer; R.info.autoReset = false; const cuenta = () => { R.info.reset(); H.__bucle(); return R.info.render.calls }; const d = []; for (let i = 0; i < 7; i++) { h.material.visible = false; const a = cuenta(); h.material.visible = true; const b = cuenta(); d.push(b - a); } R.info.autoReset = true; d.sort((x, y) => x - y); return d[3] })()`);
       ok(sinHalos === 1, `${q}: los halos suman UN dibujo de noche (${sinHalos})`);
       await js(`(() => { ${H}.progreso.horas = 12; return 1 })()`); await correr(40);
       const manana = await estado();
@@ -124,7 +141,10 @@ app.whenReady().then(async () => {
     await js(`(() => { ${H}.progreso.horas = 12; const J = ${H}.jugador.estado; J.pitch = -0.05; return 1 })()`); await correr(40);
     const despues = await progs();
     if (despues !== antes) console.log('   programas nuevos: ' + JSON.stringify((await nombres()).filter((n) => !antesNombres.has(n))));
-    ok(despues === antes, `${q}: ningún programa de shader nuevo en 160 cuadros de día, noche y giros (${antes} → ${despues})`);
+    if (despues !== antes) console.log('   por qué (primeros 3): ' + JSON.stringify(await js(`(() => { const ps = ${H}.renderer.info.programs, ids = window.__pvistos || new Set(); const nuevos = ps.slice(-${despues - antes}); const viejos = ps.slice(0, ${antes});
+      return nuevos.slice(0, 3).map((p) => { const t = String(p.cacheKey).split(','); let mejor = null, m = -1; for (const v of viejos) { const u = String(v.cacheKey).split(','); const k = t.filter((x, i) => x === u[i]).length; if (k > m) { m = k; mejor = u; } }
+        return { nombre: p.name, difiere: t.map((x, i) => (mejor && mejor[i] !== x ? i + ':' + String(mejor[i]).slice(0, 40) + ' -> ' + x.slice(0, 40) : null)).filter(Boolean).slice(0, 8) }; }) })()`)));
+    ok(despues === antes, `${q}: con las casas puestas, ningún programa de shader nuevo en 160 cuadros de día, noche y giros (${antes} → ${despues})`);
     // guardar y recargar: el mismo aspecto en cada casa
     if (demo) {
       await js(`(() => { ${H}.guardar(); return 1 })()`);
