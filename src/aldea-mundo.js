@@ -2120,6 +2120,14 @@ export function crearAldeaMundo(ctx) {
   const luzNoche = crearLuzAldeaNoche(ctx.escena);
   function rehacerLuzNoche() {
     const halos = [], charcos = [];
+    // 4.12.1: la sombra de contacto al pie de cada edificio levantado (asentado-mundo.js; sólo Media y Alta: sin `ctx.asiento` no hay nada)
+    if (ctx.asiento) {
+      for (const b of edificios.values()) {
+        const d = b.datos;
+        if (d && d.etapa >= 2) ctx.asiento.poner('aldea:' + b.id, { x: b.sitio.x, z: b.sitio.z, rot: b.sitio.rot, w: b.ancho + 0.3, d: b.fondo + 0.3, y: b.sitio.y, radio: 1.5, fuerza: 0.5 });
+        else ctx.asiento.quitar('aldea:' + b.id);
+      }
+    }
     const calido = [1.0, 0.56, 0.24];
     for (const b of edificios.values()) {
       const d = b.datos;

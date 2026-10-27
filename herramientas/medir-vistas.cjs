@@ -25,6 +25,8 @@ const CUADROS = Number(process.env.CUADROS || 200);
 const ASIENTO = Number(process.env.ASIENTO || 150);
 const SOLO = process.env.VISTAS ? process.env.VISTAS.split(',') : null;
 const COMPLETA = process.env.COMPLETA === '1';
+// 4.12.1: OBRAS=1 planta en un claro cerca del refugio unas casas y muebles del jugador ya terminados (las vistas casas-dia y casas-noche las miran)
+const OBRAS = process.env.OBRAS === '1';
 const perfil = (process.argv.find((a) => a.startsWith('--user-data-dir=')) || '').slice(16);
 if (!perfil) { console.error('falta --user-data-dir=<carpeta propia>'); process.exit(2); }
 app.setPath('userData', path.resolve(perfil));
@@ -91,13 +93,17 @@ const VISTAS = [
       return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22 } })()` },
   { id: 'cantina-dentro-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-153.5, 43.2), q = A.aMundo(-153.5, 36), b = A.estadoEdificio('cantina');
       return { x: p.x, z: p.z, y: (b && b.sitio ? b.sitio.y : H.T.altura(p.x, p.z)) + 1.6, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 21 } })()` },
+  // 4.12.1 (edificios y luz): las casas del jugador (con OBRAS=1), de día y de noche
+  { id: 'casas-dia', modos: ['relax'], donde: `(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 20, z = d.z + 24; return { x, z, yaw: Math.atan2(-(d.x + 5 - x), -(d.z + 4 - z)), horas: 14 } })()` },
+  { id: 'casas-noche', modos: ['relax'], donde: `(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 20, z = d.z + 24; return { x, z, yaw: Math.atan2(-(d.x + 5 - x), -(d.z + 4 - z)), horas: 22 } })()` },
   { id: 'pena-sabado', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-153.5, 43.2), q = A.aMundo(-153.5, 36), b = A.estadoEdificio('cantina');
       return { x: p.x, z: p.z, y: (b && b.sitio ? b.sitio.y : H.T.altura(p.x, p.z)) + 1.6, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22.5, dia: 13 } })()` },
 ];
 
 app.whenReady().then(async () => {
   const r = { html: HTML, calidad: CALIDAD, modo: MODO, cuadros: CUADROS, cargas: {}, vistas: {}, errores: [] };
-  const w = new BrowserWindow({ show: false, width: 1280, height: 720, useContentSize: true, webPreferences: { backgroundThrottling: false } });
+  // 4.12.1: con el lanzador y -Visible (HUMO_OCULTO=0) la ventana se muestra (en el monitor externo): así la placa dibuja como en una partida
+  const w = new BrowserWindow({ show: process.env.HUMO_OCULTO === '0', width: 1280, height: 720, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   w.webContents.on('console-message', (e) => {
     const m = String(e.message);
     if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|favicon/.test(m)) r.errores.push(m.slice(0, 300));
@@ -157,6 +163,22 @@ app.whenReady().then(async () => {
     if (r.completa) r.cargas.gente = await js(`(async()=>{ const H = window.__hojarasca, A = H.__aldeaMundo(), s = A.estadoEdificio('plaza').sitio, js = H.jugador.estado; const t0 = performance.now();
       js.pos.set(s.x, H.T.altura(s.x, s.z) + 1.65, s.z); for (let i = 0; i < 600; i++) { js.pos.x = s.x; js.pos.z = s.z; H.__bucle(); if (i % 50 === 49) await new Promise((ok) => setTimeout(ok, 0)); }
       const G = H.__aldea && H.__aldea.mundo(); return { ms: Math.round(performance.now() - t0), faltan: G && G.faltanFiguras ? G.faltanFiguras() : null } })()`);
+    if (OBRAS && MODO === 'relax') r.obras = await js(`(() => { const H = window.__hojarasca, T = H.T, r0 = T.lugares.refugio, arboles = H.veg.arboles.filter((q) => !q.sacado && !q.caido);
+      let sitio = null;
+      for (let r = 30; r < 420 && !sitio; r += 4) for (let a = 0; a < 6.28 && !sitio; a += 0.1) {
+        const x = r0.x + Math.cos(a) * r, z = r0.z + Math.sin(a) * r;
+        if (Math.abs(x) > 430 || Math.abs(z) > 430 || T.agua(x, z)) continue;
+        let bien = !arboles.some((q) => Math.hypot(q.x - x, q.z - z) < 24);
+        for (let k = 0; k < 8 && bien; k++) for (const d of [8, 16]) { const px = x + Math.cos(k * 0.785) * d, pz = z + Math.sin(k * 0.785) * d; if (1 - T.normal(px, pz).y > 0.045 || T.agua(px, pz)) bien = false; }
+        if (bien && 1 - T.normal(x, z).y < 0.03) sitio = { x, z };
+      }
+      if (!sitio) return null;
+      const lista = [['puesto', 0, 0, 0], ['casilla', 11, -1, 0.3], ['galponcito', -11, 1, -0.2], ['cabana-piedra', 0, 12, 0], ['casa-galeria', 14, 12, 0.2], ['fogon', 5, 6, 0], ['banco', -4, 5, 0.3], ['lenera', -6, -3, 0], ['cobertizo', -14, 12, 0.1], ['gallinero', 7, -10, 0.2], ['telar', -8, 8, 0]];
+      const t0 = performance.now();
+      H.obras.sincronizar(lista.map(([plano, dx, dz, rot]) => ({ plano, x: sitio.x + dx, z: sitio.z + dz, y: T.altura(sitio.x + dx, sitio.z + dz), rot, etapas: 99 })));
+      window.__demo = sitio;
+      let verts = 0; for (const o of H.obras.obras) if (o.malla) verts += o.malla.geometry.attributes.position.count;
+      return { obras: H.obras.obras.length, ms: Math.round(performance.now() - t0), verts } })()`);
     r.lugares = await js(`(()=>{ const H = window.__hojarasca, e = H.est, pt = (o) => (o ? { x: +o.x.toFixed(1), z: +o.z.toFixed(1) } : null);
       return { refugio: pt(H.T.lugares.refugio), almacen: pt(e.almacen), casaTe: pt(e.casaTe), sorteo: e.lugaresSorteo ? { almacen: pt(e.lugaresSorteo.almacen), casaTe: pt(e.lugaresSorteo['casa-te']) } : null,
         paradas: (H.tren.paradas || []).map((p) => ({ nombre: p.nombre, ...pt(p.anden) })) } })()`);
