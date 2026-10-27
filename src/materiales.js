@@ -647,6 +647,42 @@ export function materialTerreno() {
           col = mix(col, cArena, smoothstep(1.5, 0.35, vPosMundo.y) * (1.0 - bosque));
           col = mix(col, cTierra, smoothstep(0.25, 0.7, sendero + (n1 - 0.5) * 0.15));
           col = mix(col, cRoca, smoothstep(0.38, 0.6, pend + (n2 - 0.5) * 0.1));
+          // 4.12.0: variedad de escala media (de 2 a 25 m) entre lo grande del valle y el grano del pasto. Sólo con el detalle del suelo
+          // (Media y Alta: uDetalleSuelo; Baja y Mínima, nada y el mismo costo) y hasta ~300 m, sin texturas ni luces nuevas: tres
+          // ruidos más sobre las mismas máscaras. Franjas de pasto seco y de verde hondo en el prado; en el piso del bosque, manchas de
+          // musgo, de hojarasca y pozos más oscuros bajo las copas; tierra pelada en los claros ralos; el camino con borde de pasto
+          // quemado, motas y pedregullo; y el borde del bosque dorado, en transición hacia el claro.
+          if (uDetalleSuelo > 0.5) {
+            float dV = length(cameraPosition.xz - p);
+            float cercaV = 1.0 - smoothstep(180.0, 300.0, dV);
+            if (cercaV > 0.01) {
+              vec2 qV = p + vec2(n2, n1) * 7.0;
+              float franja = vnoise(vec2(dot(qV, vec2(0.83, 0.56)) * 0.045, dot(qV, vec2(-0.56, 0.83)) * 0.19));
+              float n3 = vnoise(p * 0.42 + 11.0);
+              float n4 = vnoise(p * 0.075 + vec2(5.0, 17.0) + n1 * 1.5);
+              float libre = (1.0 - estepa) * (1.0 - smoothstep(0.35, 0.6, pend));
+              float enPradoV = smoothstep(0.35, 0.75, pasto) * (1.0 - bosque * 0.8) * (1.0 - smoothstep(0.1, 0.4, sendero)) * (1.0 - humedo * 0.5) * libre;
+              float seco = smoothstep(0.55, 0.8, franja) * smoothstep(0.3, 0.62, n4);
+              col = mix(col, mix(srgb(vec3(0.66, 0.58, 0.31)), srgb(vec3(0.58, 0.52, 0.27)), n3), seco * 0.55 * enPradoV * cercaV);
+              float hondo = smoothstep(0.6, 0.28, franja) * smoothstep(0.62, 0.32, n4);
+              col = mix(col, col * vec3(0.76, 0.93, 0.74), hondo * 0.5 * enPradoV * cercaV);
+              float enBosque = smoothstep(0.3, 0.8, bosque) * libre * (1.0 - smoothstep(0.15, 0.5, sendero));
+              float musgoV = smoothstep(0.52, 0.74, n4 * 0.7 + n3 * 0.3 + humedo * 0.25);
+              col = mix(col, srgb(vec3(0.20, 0.35, 0.17)) * (0.85 + 0.3 * n3), musgoV * 0.6 * enBosque * cercaV);
+              float hojasV = smoothstep(0.5, 0.28, n4 * 0.6 + franja * 0.4) * (1.0 - musgoV);
+              col = mix(col, mix(srgb(vec3(0.46, 0.34, 0.18)), srgb(vec3(0.36, 0.28, 0.16)), n3), hojasV * 0.5 * enBosque * cercaV);
+              col *= 1.0 - enBosque * cercaV * (0.06 + 0.24 * smoothstep(0.35, 0.8, n3 * 0.55 + franja * 0.45));
+              float tierraV = smoothstep(0.6, 0.82, n4 * 0.55 + n3 * 0.45) * smoothstep(0.6, 0.25, pasto) * (1.0 - bosque * 0.6) * libre;
+              col = mix(col, mix(srgb(vec3(0.62, 0.48, 0.31)), srgb(vec3(0.52, 0.41, 0.28)), n3), tierraV * 0.6 * cercaV);
+              float bordeCam = smoothstep(0.04, 0.28, sendero) * (1.0 - smoothstep(0.38, 0.75, sendero));
+              col = mix(col, mix(srgb(vec3(0.60, 0.52, 0.28)), srgb(vec3(0.30, 0.46, 0.20)), n3), bordeCam * 0.4 * cercaV);
+              float dentroCam = smoothstep(0.4, 0.8, sendero);
+              col *= 1.0 + (n3 - 0.5) * 0.3 * dentroCam * cercaV;
+              col = mix(col, srgb(vec3(0.70, 0.64, 0.52)), smoothstep(0.78, 0.9, vnoise(p * 1.3 + 3.0)) * dentroCam * 0.35 * cercaV);
+              float bordeBosque = smoothstep(0.2, 0.45, bosque) * (1.0 - smoothstep(0.5, 0.8, bosque)) * libre;
+              col *= mix(vec3(1.0), vec3(1.14, 1.07, 0.8), bordeBosque * (0.3 + 0.7 * n4) * 0.5 * cercaV);
+            }
+          }
           // 3.2: manchones de flores: el prado se tiñe de blanco y de lila donde hay flores
           {
             vec2 flor = camposFlores(p) * smoothstep(0.35, 0.75, pasto) * (1.0 - smoothstep(0.2, 0.5, sendero)) * (1.0 - estepa) * (1.0 - bosque * 0.6);
@@ -689,6 +725,8 @@ export function materialTerreno() {
           float estepa352 = smoothstep(0.12, 0.88, estepa * (1.0 - ladera352 * 0.55) + (n2 - 0.5) * 0.5 + (n1 - 0.5) * 0.22) * smoothstep(0.0, 0.15, estepa);
           vec3 cEstepa352 = mix(srgb(vec3(0.43, 0.47, 0.27)), mix(cEstepa, cEstepaSeca, n1 * 0.5 + 0.5), smoothstep(0.35, 0.85, estepa352));
           col = mix(col, cEstepa352, estepa352 * 0.82 * (1.0 - nieve));
+          // 4.12.0: la estepa en manchas más tibias y más frías (media escala), sólo con el detalle del suelo y cerca
+          if (uDetalleSuelo > 0.5) col *= mix(vec3(1.0), mix(vec3(0.88, 0.94, 0.8), vec3(1.12, 1.05, 0.9), smoothstep(0.25, 0.75, vnoise(p * 0.075 + vec2(5.0, 17.0)) * 0.35 + n2 * 0.65)), estepa352 * 0.7 * (1.0 - smoothstep(180.0, 300.0, length(cameraPosition.xz - p))));
           col *= sombraSuelo;
           // RC31.2: manto de bosque lejano. Donde los árboles del LOD lejano se achican
           // y desaparecen (calidad.lejos), el suelo boscoso toma el tono de las copas con

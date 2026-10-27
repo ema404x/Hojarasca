@@ -1316,6 +1316,138 @@ export function roca(semilla, rico = false) {
   return c.geometria({ soldar: true });
 }
 
+// ---------------------------------------------------------------- 4.12.0: cinco modelos de piedra
+// Antes había una sola (`roca(7)`, el peñasco con musgo). Ahora hay cinco, todos de bultos suaves y pintados (nada facetado):
+//   roca  · peñasco redondeado (el de siempre)
+//   roca1 · lajas apiladas (tres losas redondeadas, cada una de otro gris, con musgo en la de arriba)
+//   roca2 · canto rodado (liso, bajo, con una veta clara y granitos; sin musgo)
+//   roca3 · roca partida (caras planas más claras, como recién quebradas, aristas redondeadas)
+//   roca4 · peña con musgo y líquenes (alta, abollada, mucho musgo y manchas de liquen ocre y verde pálido)
+// Los cinco usan el mismo material y el aTipo de siempre (4 + 0,95 · puntaje de musgo): ningún shader nuevo. Sólo en Media y Alta
+// (con el musgo); en Baja y Mínima sigue la piedra de siempre, sola, y el costo no cambia.
+function icosferaModelada(detalle, f) {
+  const g = new THREE.IcosahedronGeometry(1, detalle), p = g.attributes.position, o = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), l = Math.hypot(x, y, z) || 1;
+    f(x / l, y / l, z / l, o, i);
+    p.setXYZ(i, o.x, o.y, o.z);
+  }
+  return g;
+}
+// radio de una superelipsoide de semiejes (a, h, c) y exponente n (n = 2: elipsoide; más: losa de esquinas redondeadas)
+function superElipsoide(ux, uy, uz, a, h, c, n, o) {
+  const d = Math.pow(Math.pow(Math.abs(ux / a), n) + Math.pow(Math.abs(uy / h), n) + Math.pow(Math.abs(uz / c), n), 1 / n) || 1;
+  return o.set(ux / d, uy / d, uz / d);
+}
+// puntaje de musgo de las piedras nuevas: lo que mira para arriba, más manchas de ruido (`k` lo multiplica, `b` lo sube)
+function musgoNuevo(lx, ly, lz, ny, desde, k, b) {
+  const l = Math.hypot(lx, ly, lz) || 1, ux = lx / l + desde, uy = ly / l, uz = lz / l;
+  const arriba = sm01(0.35, 0.98, ny), mancha = ruido3(ux * 2.1 + 31, uy * 2.1 + 17, uz * 2.1 + 5) - 0.5, fino = ruido3(ux * 4.4 + 3, uy * 4.4 + 7, uz * 4.4 + 1) - 0.5;
+  return Math.min(1, Math.max(0, k * (0.85 * arriba + 0.75 * mancha + 0.14 * fino) + b));
+}
+const tipoMusgoNuevo = (desde, k, b) => (lx, ly, lz, wx, wy, wz, ny) => 4 + 0.95 * musgoNuevo(lx, ly, lz, ny, desde, k, b);
+const mezclarColor = (c, i3, hex, t) => {
+  if (t <= 0) return;
+  const k = new THREE.Color(hex);
+  c.col[i3] += (k.r - c.col[i3]) * t; c.col[i3 + 1] += (k.g - c.col[i3 + 1]) * t; c.col[i3 + 2] += (k.b - c.col[i3 + 2]) * t;
+};
+
+// lajas apiladas: tres losas de gris distinto, giradas unas sobre otras; la de arriba lleva más musgo
+export function rocaLajas() {
+  const c = new Constructor();
+  const lajas = [   // [centro y, semieje x, alto, semieje z, giro, desvío x, desvío z, color, color de arriba, musgo (k, b)]
+    [-0.15, 1.14, 0.31, 0.94, 0.00, 0.00, 0.00, '#686b6e', '#767a76', 0.7, -0.05],
+    [0.20, 0.98, 0.26, 0.82, 0.46, 0.10, -0.07, '#7b7a76', '#838578', 0.9, 0.0],
+    [0.53, 0.68, 0.21, 0.58, -0.38, -0.06, 0.09, '#6f6e6b', '#7b8068', 1.1, 0.12],
+  ];
+  lajas.forEach(([cy, a, h, cc, giro, dx, dz, color, arriba, k, b], i) => {
+    const g = icosferaModelada(4, (ux, uy, uz, o) => {
+      superElipsoide(ux, uy, uz, a, h, cc, 3.2, o);
+      o.multiplyScalar(1 + (ruido3(ux * 1.9 + i * 7.3, uy * 1.9 + 2, uz * 1.9 - i) - 0.5) * 0.15);
+    });
+    c.agregar(g, { color, colorArriba: arriba, tipo: 4, variar: 0.05, suave: 3, sombraAbajo: [-h, 0.02], matriz: matriz([dx, cy, dz], [0.03 * (i - 1), giro, 0.05 * (1 - i)]),
+      tipoVert: tipoMusgoNuevo(i * 5.3, k, b) });
+  });
+  return c.geometria({ soldar: true });
+}
+
+// canto rodado: huevo liso y bajo, de un gris tibio, con una veta clara que lo cruza y granitos; sin musgo (aTipo 4 justo)
+export function rocaCanto() {
+  const c = new Constructor();
+  const g = icosferaModelada(5, (ux, uy, uz, o) => {
+    const d = 1 + (ruido3(ux * 1.6 + 9, uy * 1.6 + 4, uz * 1.6 + 1) - 0.5) * 0.1;
+    o.set(ux * 1.08 * (1 + 0.1 * uz) * d, uy * 0.6 * (1 + 0.08 * ux) * d, uz * 0.84 * d);
+  });
+  const ini = c.col.length;
+  c.agregar(g, { color: '#8b867c', colorArriba: '#98958b', tipo: 4, variar: 0.04, suave: 3, sombraAbajo: [-0.6, 0.05], matriz: matriz([0, 0.08, 0], [0.04, 0.5, 0.03]) });
+  for (let i = ini; i < c.col.length; i += 3) {
+    const x = c.pos[i], y = c.pos[i + 1], z = c.pos[i + 2];
+    const t = x * 0.6 + y * 0.35 + z * 0.75, s = Math.abs(((t * 1.5 + ruido3(x * 2, y * 2, z * 2) * 0.7) % 1 + 1) % 1 - 0.5);
+    const veta = sm01(0.09, 0.03, s), grano = ruido3(x * 9, y * 9, z * 9) - 0.5;
+    mezclarColor(c, i, '#cdc8ba', veta * 0.45);
+    for (let k = 0; k < 3; k++) c.col[i + k] *= 1 + grano * 0.16;
+  }
+  return c.geometria({ soldar: true });
+}
+
+// roca partida: una piedra quebrada por cinco planos; las caras de la quebradura quedan planas y más claras, las aristas, redondeadas
+const PLANOS_PARTIDA = [[0.12, 0.97, 0.2, 0.74], [0.92, 0.28, 0.18, 0.7], [-0.78, 0.25, 0.58, 0.66], [0.15, 0.12, -0.98, 0.64], [-0.6, 0.55, -0.58, 0.72]].map(([x, y, z, d]) => { const l = Math.hypot(x, y, z); return [x / l, y / l, z / l, d]; });
+export function rocaPartida() {
+  const c = new Constructor(), corte = [];
+  const g = icosferaModelada(6, (ux, uy, uz, o, i) => {
+    const d = 1 + (ruido3(ux * 1.5 + 21, uy * 1.5 + 6, uz * 1.5 + 12) - 0.5) * 0.3;
+    o.set(ux * d * 1.12, uy * d * 0.98, uz * d);
+    let cerca = 0;
+    for (const [nx, ny, nz, dd] of PLANOS_PARTIDA) {
+      const t = o.x * nx + o.y * ny + o.z * nz - dd, rojo = 0.5 * (t + Math.sqrt(t * t + 0.0049));   // arista redondeada de ~7 cm
+      o.x -= nx * rojo; o.y -= ny * rojo; o.z -= nz * rojo;
+    }
+    for (const [nx, ny, nz, dd] of PLANOS_PARTIDA) cerca = Math.max(cerca, sm01(-0.05, -0.008, o.x * nx + o.y * ny + o.z * nz - dd));
+    corte[i] = cerca;
+  });
+  const ini = c.col.length / 3;
+  c.agregar(g, { color: '#716e68', colorArriba: '#7b7d6c', tipo: 4, variar: 0.06, suave: 0.62, sombraAbajo: [-0.7, 0.0], matriz: matriz([0, 0.14, 0], [0.02, 0.9, 0.03], [1, 0.82, 1]),
+    tipoVert: tipoMusgoNuevo(14.7, 0.8, -0.1) });
+  for (let v = 0; v < corte.length; v++) {
+    const i3 = (ini + v) * 3, ny = c.nor[i3 + 1];
+    mezclarColor(c, i3, ny > 0.5 ? '#a49f8e' : '#a8a396', corte[v] * 0.72);
+  }
+  return c.geometria({ soldar: true });
+}
+
+// peña con musgo y líquenes: alta y abollada, con mucho musgo arriba y manchas de liquen ocre y verde pálido en los costados
+export function rocaPenaMusgosa() {
+  const c = new Constructor();
+  const g = icosferaModelada(6, (ux, uy, uz, o) => {
+    const d = 1 + (ruido3(ux * 1.4 + 11, uy * 1.4 + 3, uz * 1.4 + 8) - 0.5) * 0.55 + (ruido3(ux * 3.1 + 2, uy * 3.1 + 9, uz * 3.1 + 5) - 0.5) * 0.1;
+    o.set(ux * 0.98 * d, uy * (uy < 0 ? 0.8 : 1.0) * d, uz * 0.88 * d);
+  });
+  const ini = c.col.length;
+  c.agregar(g, { color: '#6d7073', colorArriba: '#7a7d68', tipo: 4, variar: 0.07, suave: 3, sombraAbajo: [-0.9, 0.1], matriz: matriz([0, 0.26, 0], [0.05, 2.2, 0.04], [1, 0.9, 1]),
+    tipoVert: tipoMusgoNuevo(27.1, 1.25, 0.42) });
+  for (let i = ini; i < c.col.length; i += 3) {
+    const x = c.pos[i], y = c.pos[i + 1], z = c.pos[i + 2], ny = c.nor[i + 1];
+    const mancha = ruido3(x * 4.2 + 5, y * 4.2 + 1, z * 4.2 + 9), lado = sm01(0.9, 0.55, ny) * sm01(-0.2, 0.2, y);
+    const liquen = sm01(0.62, 0.72, mancha) * lado * 0.88;
+    mezclarColor(c, i, ruido3(x * 1.3 + 3, y * 1.3, z * 1.3 + 7) > 0.5 ? '#c4893a' : '#b9b98c', liquen);
+  }
+  return c.geometria({ soldar: true });
+}
+
+// 4.12.0: qué modelo de piedra va en cada lugar (0 peñasco, 1 lajas, 2 canto rodado, 3 roca partida, 4 peña con musgo). Es un hash de la
+// posición (no gasta números al azar: el resto del bosque sale igual) según dónde está la piedra (ladera, orilla, suelta, grupo del
+// paisaje) y su tamaño: las chicas, cantos rodados; las grandes, peñascos y peñas con musgo. Un grupo del paisaje tiene un modelo que
+// domina (la mayoría de sus piedras), como en un afloramiento.
+export const PESOS_ROCA = { ladera: [0.2, 0.25, 0.12, 0.27, 0.16], orilla: [0.2, 0.15, 0.5, 0.05, 0.1], suelta: [0.24, 0.18, 0.22, 0.14, 0.22], grupo: [0.22, 0.2, 0.18, 0.18, 0.22] };
+export function modeloDePiedra(x, z, tam, contexto, dominante = -1) {
+  if (dominante >= 0 && h3(x * 1.37 - 9.1, z * 0.59 + 3.3, 7.7) < 0.55) return dominante;
+  const w = (PESOS_ROCA[contexto] || PESOS_ROCA.suelta).slice();
+  if (tam < 0.5) { w[2] *= 3; w[3] *= 0.6; w[4] *= 0.3; } else if (tam > 1.3) { w[0] *= 1.3; w[2] *= 0.4; w[4] *= 1.4; }
+  let u = h3(x * 0.713 + 1.7, z * 0.931 - 4.1, 2.9) * (w[0] + w[1] + w[2] + w[3] + w[4]);
+  for (let i = 0; i < 5; i++) { u -= w[i]; if (u < 0) return i; }
+  return 4;
+}
+
 // 4.6.0: cuánto se acuesta la roca con la ladera (0: derecha, como antes; 1: con el plano del suelo bajo su huella)
 export const ACOSTAR_ROCA = 1;
 // 4.6.0: lo que puede quedar la cintura de la roca (su borde) arriba del suelo donde la ladera no es pareja (m)
@@ -1492,6 +1624,15 @@ export function generarVegetacion(T, calidad, escena) {
   registrar('chaura', arbusto(10, '#2f4a24', '#e8c3c6', 30, 0.55), null, mats.arbusto, 'soto');
   const musgo = calidad.pasto >= 40000;   // 4.0: el musgo pintado de las piedras, sólo en calidad media y alta (baja: lo de siempre)
   registrar('roca', roca(7, musgo), null, mats.roca, 'soto');
+  // 4.12.0: los otros cuatro modelos de piedra (sólo con el musgo, o sea en Media y Alta; en Baja y Mínima, la de siempre)
+  const modelosRoca = ['roca'];
+  if (musgo) {
+    registrar('roca1', rocaLajas(), null, mats.roca, 'soto');
+    registrar('roca2', rocaCanto(), null, mats.roca, 'soto');
+    registrar('roca3', rocaPartida(), null, mats.roca, 'soto');
+    registrar('roca4', rocaPenaMusgosa(), null, mats.roca, 'soto');
+    modelosRoca.push('roca1', 'roca2', 'roca3', 'roca4');
+  }
   registrar('tronco', troncoCaido(8), null, mats.roca, 'soto');
   registrar('hojarasca0', mantaHojarasca(31), null, mats.suelo, 'suelo');
   registrar('hojarasca1', mantaHojarasca(47), null, mats.suelo, 'suelo');
@@ -1523,18 +1664,37 @@ export function generarVegetacion(T, calidad, escena) {
   // dónde (ni los números al azar que se sacan: el resto del bosque sale igual), se acuestan con el plano del suelo bajo su huella
   // (quedan sobre la ladera como en lo llano) y se hunden lo que haga falta: donde el suelo cae por debajo de ese plano y donde la
   // panza sobresale de una ladera muy empinada. En lo llano no cambia nada.
-  const puntosRoca = muestrasRoca(tipos.roca.alta);
+  const puntosPorModelo = {};
+  for (const n of modelosRoca) puntosPorModelo[n] = muestrasRoca(tipos[n].alta);
+  let puntosRoca = puntosPorModelo.roca;
   const _pRoca = new THREE.Vector3(), _qRoca = new THREE.Quaternion(), _sRoca = new THREE.Vector3();
   const _qLadera = new THREE.Quaternion(), _nLadera = new THREE.Vector3(), _vRoca = new THREE.Vector3(), _arriba = new THREE.Vector3(0, 1, 0);
   const _nRoca = new THREE.Vector3();
   // la cintura: lo que en la piedra mira de costado (normal casi horizontal). La panza: lo que en el mundo mira para abajo (en la
   // de pocas caras, de calidad baja, un poco más: una cara grande que apenas mira para arriba puede ser el borde de abajo)
-  const corteRoca = 0.3, abajoRoca = puntosRoca.pocos ? 0.5 : 0.1;
+  const corteRoca = 0.3;
   const holguraRoca = HOLGURA_ROCA;
-  function colocarRoca(x, y, z, esc, rotY, inclinar) {
-    const ref = colocar('roca', x, y, z, esc, rotY, inclinar);
-    const M = ref.ch.listas.roca[ref.i];
+  // 4.12.0: el modelo de cada piedra (ver modeloDePiedra); con un solo modelo (Baja y Mínima), el de siempre
+  const HUNDIR_ROCA = { roca: 0, roca1: 0.03, roca2: 0.12, roca3: 0.06, roca4: 0.08 };   // cuánto más se entierra cada modelo (× tamaño)
+  function modeloRoca(x, z, tam, contexto, dominante) {
+    return modelosRoca.length === 1 ? 'roca' : modelosRoca[modeloDePiedra(x, z, tam, contexto, dominante)];
+  }
+  function colocarRoca(x, y, z, esc, rotY, inclinar, contexto = 'suelta', dominante = -1) {
+    const tam = typeof esc === 'number' ? esc : (esc[0] + esc[1] + esc[2]) / 3;
+    const modelo = modeloRoca(x, z, tam, contexto, dominante);
+    puntosRoca = puntosPorModelo[modelo];
+    const abajoRoca = puntosRoca.pocos ? 0.5 : 0.1;
+    const ref = colocar(modelo, x, y, z, esc, rotY, inclinar);
+    const M = ref.ch.listas[modelo][ref.i];
     M.decompose(_pRoca, _qRoca, _sRoca);
+    // 4.12.0: cada piedra con su proporción (más ancha, más alta) y su hundimiento, por posición (con un solo modelo, como siempre)
+    let hunde = 0;
+    if (modelosRoca.length > 1) {
+      _sRoca.x *= 0.9 + 0.24 * h3(x * 2.31 + 0.5, z * 1.77 - 2.2, 4.4);
+      _sRoca.z *= 0.9 + 0.24 * h3(x * 1.13 - 7.7, z * 2.91 + 1.9, 9.1);
+      _sRoca.y *= 0.88 + 0.3 * h3(x * 3.7 + 5.1, z * 0.83 - 0.4, 6.6);
+      hunde = HUNDIR_ROCA[modelo] * tam * (0.4 + 0.9 * h3(x * 0.91 + 2.6, z * 1.43 + 8.8, 3.3));
+    }
     const R = Math.max(0.5, Math.max(_sRoca.x, _sRoca.z));
     const hx = (T.altura(x + R, z) - T.altura(x - R, z)) / (2 * R), hz = (T.altura(x, z + R) - T.altura(x, z - R)) / (2 * R);
     _nLadera.set(-hx * ACOSTAR_ROCA, 1, -hz * ACOSTAR_ROCA).normalize();
@@ -1558,6 +1718,7 @@ export function generarVegetacion(T, calidad, escena) {
       if (_nRoca.y <= abajoRoca * _nRoca.length()) sobra = Math.max(sobra, _vRoca.y - suelo - VUELO_ROCA);
     }
     if (sobra > 0) M.elements[13] -= sobra;
+    M.elements[13] -= hunde;
     // lo alto de la roca cerca de su centro (donde se sube la lagartija): ya no es el suelo + 0,35 de antes
     let arriba = -Infinity;
     for (const { p: v } of puntosRoca) {
@@ -1690,7 +1851,7 @@ export function generarVegetacion(T, calidad, escena) {
       else if (b > 0.5 && tirada < 0.02) { tipo = 'tronco'; esc = 1; }
       if (!tipo) continue;
       const rot = r() * Math.PI * 2;
-      const ref = tipo === 'roca' ? colocarRoca(x, h - 0.2 * esc, z, esc, rot, 0.1) : colocar(tipo, x, h - 0.05, z, esc, rot, tipo === 'tronco' ? 0 : 0.1);   // 4.6.0: la roca, apoyada
+      const ref = tipo === 'roca' ? colocarRoca(x, h - 0.2 * esc, z, esc, rot, 0.1, pend > 0.55 ? 'ladera' : dAgua < 6 ? 'orilla' : 'suelta') : colocar(tipo, x, h - 0.05, z, esc, rot, tipo === 'tronco' ? 0 : 0.1);   // 4.6.0: la roca, apoyada
       let choque = null;
       if (tipo === 'roca' && esc > 0.9) { choque = { x, z, r: esc * 0.9 }; colisiones.push(choque); }
       if (tipo === 'tronco') {
@@ -1751,7 +1912,8 @@ export function generarVegetacion(T, calidad, escena) {
           if (T.agua(x, z) || T.distSendero[T.indice(x, z)] < 3.2) continue;
           const esc = 0.38 + r() * (0.7 + perfil.exposicion * 0.45);
           const ref = colocarRoca(x, T.altura(x, z) - 0.16 * esc, z,   // 4.6.0: apoyada en la ladera
-            [esc * (0.78 + r() * 0.55), esc * (0.58 + r() * 0.38), esc * (0.82 + r() * 0.5)], r() * Math.PI * 2, 0.08);
+            [esc * (0.78 + r() * 0.55), esc * (0.58 + r() * 0.38), esc * (0.82 + r() * 0.5)], r() * Math.PI * 2, 0.08, 'grupo',
+            Math.floor(h3(cx * 0.37 + 0.2, cz * 0.53 - 0.7, 1.1) * modelosRoca.length));   // 4.12.0: el modelo que domina el grupo
           matas.push({ x, z, tipo: 'roca', ref, choque: null, decorativo: true, esc });
           composicionPaisaje.rocas++;
         }

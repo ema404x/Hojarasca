@@ -29,7 +29,7 @@ function medir(calidad) {
   const filas = [];
   for (const m of veg.matas) {
     if (m.tipo !== 'roca') continue;
-    const im = m.ref.ch.porTipo.roca[0];
+    const im = m.ref.ch.porTipo[m.ref.tipo][0];
     im.getMatrixAt(m.ref.i, M);
     const geo = im.geometry, p = geo.attributes.position, idx = geo.index, nt = idx ? idx.count : p.count;
     const W = [];
@@ -100,6 +100,6 @@ for (const calidad of ['media', 'baja']) {
 const b = leer('src/bichos.js');
 ok(b.includes('mejor.ref?.arriba ?? T.altura(mejor.x, mejor.z) + 0.35'), 'la lagartija se sube arriba de la piedra de verdad');
 const v = leer('src/vegetacion.js');
-ok(/colocarRoca\(x, h - 0\.2 \* esc, z, esc, rot, 0\.1\)/.test(v) && /colocarRoca\(x, T\.altura\(x, z\) - 0\.16 \* esc, z,/.test(v), 'las dos maneras de poner rocas (el sotobosque y los grupos del paisaje) pasan por colocarRoca');
+ok(/colocarRoca\(x, h - 0\.2 \* esc, z, esc, rot, 0\.1[,)]/.test(v) && /colocarRoca\(x, T\.altura\(x, z\) - 0\.16 \* esc, z,/.test(v), 'las dos maneras de poner rocas (el sotobosque y los grupos del paisaje) pasan por colocarRoca');
 
 console.log(`OK 4.6.0 rocas apoyadas (${n} comprobaciones)`);
