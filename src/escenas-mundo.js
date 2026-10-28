@@ -6,7 +6,6 @@
 // Lo que necesita de main.js (el enganche, mínimo) está en `ctx`; ver el llamado en main.js y CAMBIOS_4_14_0.md.
 import { crearDirector, crearMirada, escenasDe, escenasNuevas, PERSONAJES_BASE } from './escenas.js';
 import { ESCENA_DEMO, ID_ESCENA_DEMO } from './escenas-demo.js';
-import { alturaDePie } from './gente.js';
 
 const num = (v, d = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : d);
 const acotar = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -78,10 +77,11 @@ const POSES_QUIETUD = new Set(['cruzados', 'cintura', 'barba', 'gorro', 'atras',
 // ctx: { doc, gente(), jugador(), camara, T, col, progreso(), clima(), sonido, modo(), ajustes(), nota(t, s), puedeEmpezar(), fallo(e, donde),
 //        alEmpezar(), alTerminar(r), alquilerDeTiempo }
 export function crearEscenasMundo(ctx) {
-  const doc = ctx.doc || document;
+  const doc = ctx.doc || (typeof document !== 'undefined' ? document : null);
   let dom = null;
   const captura = new Map();   // clave → { n, guardado, propia, pose, aviso }
   let pendiente = null;
+  const alturaDePie = (T, col, x, z, y) => (ctx.alturaDePie ? ctx.alturaDePie(T, col, x, z, y) : T.altura(x, z));   // (de gente.js: lo pasa main.js; así este módulo no necesita three)
   const mirada = crearMirada();
   const sinHistoria = escenasNuevas();
 
@@ -317,7 +317,7 @@ export function crearEscenasMundo(ctx) {
       return;
     }
     // el mouse queda suelto en toda la escena (volver de la pausa lo bloqueaba)
-    if (document.pointerLockElement) { try { ctx.jugador().soltar(); } catch { /* ya */ } }
+    if (doc?.pointerLockElement) { try { ctx.jugador().soltar(); } catch { /* ya */ } }
     try { director.actualizar(dt); } catch (e) { ctx.fallo?.(e, 'escenas'); director.saltar(); }
     aplicarCamara();
     pintar();

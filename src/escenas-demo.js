@@ -31,6 +31,7 @@ export const ESCENA_DEMO = {
       // 3) sobre el hombro: contraplano de ella hablando con vos
       { texto: 'Soy Josefina, la guardaparque. Hace años que nadie vivía acá abajo.', plano: { plano: 'hombro', desde: 'jugador', a: 'josefina', mezcla: 0.5, dur: 30, sinEsperar: true } },
       { texto: 'Ese techo no va a aguantar el invierno, pero la chimenea tira bien. Eso ya es algo.', gesto: { accion: 'posar', pose: 'senalar', dur: 1.8 } },
+      { texto: 'Yo vivo del otro lado del mirador, en una casita con más goteras que la tuya.' },
       { texto: 'Don Ramón dice que sos de afuera. Yo digo que eso se arregla con el tiempo.' },
     ] },
     // 4) vos contestás: la elección ramifica con `si`

@@ -899,7 +899,7 @@ async function construir() {
   // 4.14.0: el director de escenas (sólo Relax e Historia). Lo mínimo del juego le llega por `ctx`.
   if (!esDesafio) {
     escenasMundo = crearEscenasMundo({
-      doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
+      doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && !js.enKayak && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
       alTerminar: () => { programarGuardadoSuave(); },
