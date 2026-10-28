@@ -267,6 +267,7 @@ import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
 import { registrarEfectosHistoria } from './historia-escenas-efectos.js';
+import { crearGracielaMundo } from './historia-graciela.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
@@ -2290,6 +2291,17 @@ function historiaPuertaCerca() {
   cachePuertaHist.t = ahora;
   cachePuertaHist.v = valle.accionPuerta();
   return cachePuertaHist.v;
+}
+// Graciela Pugh, la ingeniera del ramal (capítulo 4): una persona más de la gente, armada de a poco (ver historia-graciela.js)
+let gracielaMundo = null;
+function gracielaDeHistoria() {
+  if (esDesafio || !valle) return null;
+  if (!gracielaMundo) gracielaMundo = crearGracielaMundo({
+    gente: () => gente, historia: () => valle.historia(), altura: (x, z) => T.altura(x, z), tomada: () => !!escenasMundo?.activa(),
+    ms: () => (planificadorAntitirones.permitir('historia-graciela') ? 3 : 0),
+    anden: () => { const e = T.lugares.estacion, q = e?.espera; if (!q) return null; const cx = Number.isFinite(e.x) ? e.x : q.x, cz = Number.isFinite(e.z) ? e.z : q.z + 1, dx = cx - q.x, dz = cz - q.z, d = Math.hypot(dx, dz) || 1; return { x: q.x - (dz / d) * 2.2, z: q.z + (dx / d) * 2.2, mira: { x: cx, z: cz } }; },
+  });
+  return gracielaMundo;
 }
 function gastarUnaTabla() {
   if ((Number(progreso.materiales?.tabla) || 0) > 0) { progreso.materiales.tabla -= 1; refrescarBarra(true); return true; }
@@ -10902,7 +10914,8 @@ function cuadroDelJuego(tRaf, manual) {
   if (modo === 'jugando') revisarPistas(dt);
   if (!esDesafio) revisarGuiaRelax(dt);
   try { if (!esDesafio) valle?.actualizar(dt); } catch (e) { fallaSistema('valle', e); }
-  try { if (!esDesafio && duendesHist) { if (valle) presenciaHist?.actualizar(dt); duendesHist.actualizar(dt); } } catch (e) { fallaSistema('duendes-historia', e); }   // 4.13.0 (A)   // 3.1: la historia y los eventos del valle
+  try { if (!esDesafio && duendesHist) { if (valle) presenciaHist?.actualizar(dt); duendesHist.actualizar(dt); } } catch (e) { fallaSistema('duendes-historia', e); }
+  try { if (!esDesafio && valle) gracielaDeHistoria()?.actualizar(); } catch (e) { fallaSistema('historia-graciela', e); }   // 4.15.0: Graciela Pugh   // 4.13.0 (A)   // 3.1: la historia y los eventos del valle
   try { veg.actualizarCaidas(dt); } catch (e) { fallaSistema('caidas-arboles', e); }
   try { if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); } } catch (e) { fallaSistema('majada/casa', e); }
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
@@ -11828,6 +11841,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
   if (HOJARASCA_DEBUG) window.__hojarasca.__escenas = escenasMundo;   // 4.14.0 (QA): el director de escenas
+  if (HOJARASCA_DEBUG) Object.assign(window.__hojarasca, { __historiaObjetos: () => objetosHist, __distanciasHistoria: () => ({ ...distanciasHistoria() }), __puntosHistoria: () => ({ ...puntosDeHistoria() }), __objetoHistoriaCerca: () => historiaObjetoCerca(), __puertaHistoria: () => historiaPuertaCerca(), __graciela: () => gracielaMundo });   // 4.15.0 (QA): los objetos de la Historia nueva
   if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;
   if (HOJARASCA_DEBUG) { window.__hojarasca.__duendesHist = () => duendesHist; window.__hojarasca.__presencia = () => presenciaHist; }   // 4.13.0 (A)   // 4.13.0 (B)
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas

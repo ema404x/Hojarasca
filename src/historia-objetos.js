@@ -73,11 +73,11 @@ const esfera = (c, r, pos, color, esc = [1, 1, 1], variar = 0.05) => c.agregar(n
 const palo = (c, r, largo, pos, rot, color) => c.agregar(new THREE.CylinderGeometry(r, r * 1.1, largo, 7), { color, tipo: 0, variar: 0.1, matriz: matriz(pos, rot) });
 
 const FORMAS = {
-  canto: (c) => { esfera(c, 0.13, [0, 0.1, 0], '#efece3', [1, 0.78, 0.9], 0.03); },
+  canto: (c) => { esfera(c, 0.15, [0, 0.11, 0], '#f3f0e8', [1, 0.78, 0.9], 0.02); },
   ronda: (c) => {
     for (let i = 0; i < 11; i++) {
       const a = (i / 11) * Math.PI * 2;
-      caja(c, [0.34, 0.03, 0.03], [Math.cos(a) * 0.5, 0.03, Math.sin(a) * 0.5], '#6d5238', [0, -a + Math.PI / 2, 0], 0.14);
+      caja(c, [0.4, 0.045, 0.045], [Math.cos(a) * 0.55, 0.05, Math.sin(a) * 0.55], '#8a6a45', [0, -a + Math.PI / 2, 0], 0.14);
     }
   },
   bolsa: (c) => {
@@ -139,7 +139,7 @@ export function crearObjetosHistoria(ctx) {
       m.name = `historia-objeto:${id}`;
       m.position.set(q.x, alt(q.x, q.z), q.z);
       m.rotation.y = (Number(ctx.refugio()?.rot) || 0) + (id === 'puertita' ? 0.4 : 0);
-      m.castShadow = true; m.receiveShadow = true;
+      m.castShadow = false; m.receiveShadow = true;   // (sin sombra propia: un dibujo menos en el mapa de sombras y ningún programa de profundidad nuevo cuando sale a la luz de día)
       grupo.add(m);
       mallas[id] = m;
     }

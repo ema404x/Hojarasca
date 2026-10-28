@@ -604,6 +604,49 @@ async function chequear(arch = '', sufijo = '') {
     ok(r.ok, `una escena que usa los efectos con nombre se registra (${r.errores})`);
   }
 
+  // ---------------------------------------------------------------- 8b. Graciela Pugh, la persona nueva
+  {
+    const GR = await imp('historia-graciela.js');
+    const AS = await import('../src/gente-ropa.js');
+    const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.fase = 'jugando';
+    ok(!GR.debeExistir(h) && !GR.debeVerse(h), 'en el capítulo 1 Graciela no existe');
+    h.capitulo = 3;
+    ok(GR.debeExistir(h) && !GR.debeVerse(h), 'en el capítulo 4 existe (llega en la trochita) pero no se ve hasta bajar');
+    EN.marcarVista(h, 'anden-graciela', 4);
+    ok(GR.debeVerse(h), 'bajó del tren: se ve');
+    h.fase = 'outro'; ok(GR.debeExistir(h), 'hasta cerrar el capítulo se queda');
+    h.capitulo = 4; h.fase = 'jugando'; ok(!GR.debeExistir(h) && !GR.debeVerse(h), 'cerrado el capítulo, se queda en el hospedaje (sale del mundo)');
+    ok(!GR.debeExistir({ ...h, activa: false, capitulo: 3 }) && !GR.debeExistir(null), 'en pausa, o sin historia, no');
+    // el controlador, con una gente de mentira
+    const quitados = [], armados = [];
+    const gente = { armarPobladorDeAPoco: (def) => { armados.push(def); let pasos = 0; const t = { npc: null, avanzar: () => { pasos++; if (pasos < 3) return false; t.npc = { pos: { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, g: { rotation: { y: 0 } }, dormido: false, camino: [{ x: 1 }] }; return true; } }; return t; }, quitar: (n) => quitados.push(n) };
+    const hh = H.historiaNueva(); H.empezarHistoria(hh, 1); hh.fase = 'jugando'; hh.capitulo = 3;
+    let escena = false, ms = 3;
+    const m = GR.crearGracielaMundo({ gente: () => gente, historia: () => hh, anden: () => ({ x: 10, z: 20, mira: { x: 10, z: 30 } }), altura: () => 7, tomada: () => escena, ms: () => ms });
+    ms = 0; m.actualizar(); ok(armados.length === 0, 'sin cupo de tiempo no se arma nada');
+    ms = 3; m.actualizar(); m.actualizar(); ok(armados.length === 1 && m.npc() === null && m.armando(), 'se arma de a poco (unos cuadros)');
+    m.actualizar();
+    const g = m.npc();
+    ok(g && g.dormido === true && g.camino.length === 0, 'armada, espera dormida (sin verse) hasta que baje del tren');
+    ok(armados[0].clave === 'graciela' && armados[0].mano === 'planilla' && /ingeniera/.test(armados[0].oficio) && armados[0].pos.x === 10, 'con su nombre, su oficio y la tablilla en la mano');
+    EN.marcarVista(hh, 'anden-graciela', 4);
+    escena = true; m.actualizar(); ok(g.dormido === true, 'si una escena la tiene, no se toca');
+    escena = false; m.actualizar();
+    ok(g.dormido === false && g.pos.x === 10 && g.pos.z === 20 && g.pos.y === 7 && Math.abs(g.g.rotation.y) < 1e-9, 'bajó del tren: aparece en el andén, mirando a la vía');
+    g.pos.x = 99; m.actualizar(); ok(g.pos.x === 99, 'y ahí se queda (no se la reubica cada cuadro)');
+    hh.capitulo = 4; m.actualizar();
+    ok(quitados.length === 1 && quitados[0] === g && m.npc() === null, 'al cerrar el capítulo, sale del mundo');
+    m.actualizar(); ok(armados.length === 1, 'y no se vuelve a armar');
+    ok(GR.crearGracielaMundo({ gente: () => ({}), historia: () => hh }).actualizar() === undefined, 'sin la gente armada no rompe');
+    // su ropa y su lugar entre los personajes de las escenas
+    const a = AS.ASPECTO.graciela;
+    ok(a && a.mujer && a.R.rodete && a.R.campera === 'larga' && a.colores.abrigo === '#6a6d72' && !a.R.trenza, 'su ropa: sobretodo gris y rodete (en gente-ropa.js)');
+    ok(EN.PERSONAJES_BASE.graciela.clave === 'graciela' && EN.PERSONAJES_BASE.fermin.clave === 'fermin' && EN.PERSONAJES_BASE.graciela.nombre === 'Graciela', 'las escenas conocen a Graciela y a Fermín');
+    const Pu = leer('src/historia-graciela.js');
+    ok(!/from 'three'|document\.|window\./.test(Pu) && Pu.includes("import { capituloActual } from './historia.js';"), 'el módulo no toca three ni el DOM');
+    ok(leer('src/main.js').includes("gracielaDeHistoria()?.actualizar();") && leer('src/main.js').includes("import { crearGracielaMundo } from './historia-graciela.js';"), 'enganchada en main.js');
+  }
+
   // ---------------------------------------------------------------- 9. el enganche con el juego (por texto)
   {
     for (const f of ['src/historia.js', 'src/historia-disparadores.js', 'src/historia-reinicio.js', 'src/historia-escenas-efectos.js']) {
@@ -685,6 +728,9 @@ const MUT = [
   ['historia-reinicio.js', "if (v.personal !== undefined) p.personal = v.personal;", "", 'el reinicio pierde cómo sos'],
   ['historia-reinicio.js', "h.activa = true; h.empezada = 1; h.avisoReinicio = true;", "h.activa = true; h.empezada = 1; h.avisoReinicio = false;", 'sin tarjeta de aviso'],
   ['historia-reinicio.js', "export const REINICIAR_HISTORIAS_VIEJAS = true;", "export const REINICIAR_HISTORIAS_VIEJAS = false;", 'el reinicio apagado'],
+  ['historia-graciela.js', "export const debeVerse = (h) => debeExistir(h) && !!h.escenas?.vistas && Object.hasOwn(h.escenas.vistas, ESCENA_ANDEN);", 'export const debeVerse = (h) => debeExistir(h);', 'Graciela se ve antes de bajar del tren'],
+  ['historia-graciela.js', 'if (ctx.tomada?.()) return;', '', 'Graciela se reubica aunque una escena la tenga'],
+  ['historia-graciela.js', "export const CAPITULOS_GRACIELA = ['ramal'];", "export const CAPITULOS_GRACIELA = ['ramal', 'mesa'];", 'Graciela en el capítulo 3'],
   ['historia-objetos.js', "if (a.especie !== 'coihue') continue;", "if (a.especie === 'coihue') continue;", 'el coihue grande no es coihue'],
   ['historia-objetos.js', "const radio = Object.hasOwn(OBJETOS, id) && OBJETOS[id].forma === 'raiz' ? 3.4 : RADIO_OBJETO;", "const radio = 100;", 'el objeto se alcanza desde cualquier lado'],
   ['historia-escenas-efectos.js', "if (h && PERSONAS_LAZO.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n);", "if (h && PERSONAS_LAZO.includes(a?.quien)) cambiarLazo(h, a.quien, a.n);", 'los efectos de lazo no son idempotentes'],

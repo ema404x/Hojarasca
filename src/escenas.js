@@ -51,6 +51,9 @@ export const PERSONAJES_BASE = {
   ercilia: { nombre: 'Ercilia', color: '#d98f6a', clave: 'ercilia' },
   elsa: { nombre: 'Elsa', color: '#9aa6d9', clave: 'guarda' },
   guarda: { nombre: 'Elsa', color: '#9aa6d9', clave: 'guarda' },
+  // 4.15.0: las personas nuevas de la Historia (Graciela, la ingeniera del ramal; Fermín, el pastor del galpón de esquila)
+  graciela: { nombre: 'Graciela', color: '#b9b2a0', clave: 'graciela' },
+  fermin: { nombre: 'Fermín', color: '#c9a07a', clave: 'fermin' },
 };
 
 // ---------------------------------------------------------------- lo guardado (progreso.historia.escenas)

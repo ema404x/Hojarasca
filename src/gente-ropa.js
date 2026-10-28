@@ -129,6 +129,18 @@ export const ASPECTO = {
     poses: ['atras', 'cruzados', 'gorro'],
     abrigo: { colores: { bufanda: '#7a2e2e', gorro: 'gorro' } },
   },
+  // 4.15.0: Graciela Pugh, la ingeniera de la Administración del Ramal (la Historia nueva, capítulo 4): sobretodo gris, rodete, botas de ciudad
+  // (no son para el barro), la tablilla en la mano y poca sonrisa; habla rápido y anota todo
+  graciela: {
+    edad: 37, mujer: true,
+    cuerpo: { ancho: 0.96, fondo: 0.95, alto: 1.0 },
+    cara: { ancho: 0.98, largo: 1.04, nariz: 1.02, ojos: 1.0, boca: 0.94, sonrisa: 0.18, iris: '#5a5444' },
+    colores: { piel: '#d0a888', pelo: '#3a2c24', ropa: '#d8d0c0', abrigo: '#6a6d72', gorro: null, bufanda: '#9a7a8a' },
+    R: { mujer: true, rodete: true, campera: 'larga', botones: '#8a8a8a', pantalon: '#3c4048', botaCol: '#2e2a28' },
+    guardas: { cuello: [10, 0, 'todo'] },
+    poses: ['atras', 'cintura', 'cruzados'],
+    abrigo: { colores: { bufanda: '#9a7a8a', gorro: null } },
+  },
 
   // ------------------------------------------------------------ los vecinos de la aldea
   // Ernesto Llancafil, el jefe de estación: uniforme, gorra, barba gris prolija
