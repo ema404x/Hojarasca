@@ -8,6 +8,11 @@
 // `historia.js` y `eventos-valle.js` (puros, se prueban en Node).
 
 import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, momentoPerdido, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
+// 4.15.0: la Historia nueva: decisiones, lazos, lo raro, escenas y objetos del acto I
+import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, sumarReparacion } from './historia.js';
+import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO } from './historia-disparadores.js';
+import { tarjetaAviso } from './historia-reinicio.js';
+import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
 import { resumenEventos } from './eventos-valle.js';
@@ -35,6 +40,11 @@ export const CSS_VALLE = `
 .valle-opciones b { font-weight: 600; font-size: 16px; }
 .valle-opciones small { grid-column: 2; font-size: 13px; color: #6b5838; }
 .historia-hud b small { display: block; font-family: 'Spectral', Georgia, serif; font-size: 12px; font-weight: 400; opacity: .7; }
+.historia-hud .ramal { margin: 6px 0 2px; font-size: 12px; opacity: .85; }
+.historia-hud .ramal i { display: block; height: 6px; margin-top: 3px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+.historia-hud .ramal i b { display: block; height: 100%; background: var(--notro, #b8432f); }
+.valle-guia ul.lazos { list-style: none; padding: 0; margin: 4px 0; font-size: 13px; opacity: .85; }
+.valle-guia ul.raro { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,.05); }
 .valle-guia h3 { margin: 0 0 4px; font-size: 18px; }
 .valle-guia p { margin: 4px 0; font-size: 14px; opacity: .85; }
@@ -152,7 +162,8 @@ export function crearValleUi(ctx) {
     panel.classList.toggle('oculto', !datos);
     if (!datos) return;
     const html = `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
-      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>`).join('');
+      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>`).join('')
+      + (datos.ramal ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '');
     if (html !== htmlPanel) { htmlPanel = html; panel.innerHTML = html; ctx.traducir?.(panel); }
     // debajo de la guía del primer día, si está a la vista
     const tut = $('tutorial');
@@ -166,7 +177,7 @@ export function crearValleUi(ctx) {
     const c = capituloActual(h);
     tarjetas.mostrar({
       clase: 'capitulo', arriba: `La historia del valle · capítulo ${numeroCapitulo(h)} de ${CAPITULOS.length}`,
-      titulo: c.titulo, texto: c.intro, lista: c.objetivos.map((o) => o.texto),
+      titulo: c.titulo, texto: lineasCarta(c, h, 'intro'), lista: c.objetivos.filter((o) => !o.visible).map((o) => textoObjetivo(o, estado())),
       opciones: [{ id: 'empezar', texto: 'Empezar el capítulo', detalle: 'Los objetivos quedan arriba, a la izquierda. Nada más cambia: el valle sigue libre.' }],
       alElegir: () => {
         arrancarCapitulo(h, estado());
@@ -184,10 +195,11 @@ export function crearValleUi(ctx) {
     const ultimo = h.capitulo >= CAPITULOS.length - 1;
     tarjetas.mostrar({
       clase: 'capitulo', arriba: `Capítulo ${numeroCapitulo(h)} · terminado`,
-      titulo: c.titulo, texto: c.outro, premio: c.premio?.texto ? `Te queda: ${c.premio.texto}` : '',
+      titulo: c.titulo, texto: lineasCarta(c, h, 'outro'), premio: c.premio?.texto ? `Te queda: ${c.premio.texto}` : '',
       opciones: [{ id: 'seguir', texto: ultimo ? 'Seguir en el valle' : 'Seguir', detalle: ultimo ? 'La historia termina; el juego no' : `Sigue: «${CAPITULOS[h.capitulo + 1].titulo}»` }],
       alElegir: () => {
         const r = cerrarCapitulo(h, ctx.progreso().dia);
+        if (r) alCerrarCapitulo(h, c.id, ctx.progreso().dia);   // 4.15.0: lo raro que dejó la decisión, la ingeniera que se va
         if (r?.premio) ctx.cobrar(r.premio);
         ctx.diario('capitulo', `terminé «${c.titulo}»`);
         ctx.sonido?.()?.anotar?.();
@@ -200,6 +212,100 @@ export function crearValleUi(ctx) {
         return true;
       },
     });
+  }
+
+  // ---------------------------------------------------------------- 4.15.0: avisos, decisiones, escenas y objetos
+  function mostrarAvisoReinicio(h) {
+    const a = tarjetaAviso(h);
+    tarjetas.mostrar({
+      clase: 'despues', arriba: 'La historia del valle', titulo: a.titulo, texto: a.texto,
+      opciones: [{ id: 'seguir', texto: 'Entendido', detalle: 'Empieza «El trato del molino»' }],
+      alElegir: () => { h.avisoReinicio = false; ctx.guardar(); tarjetas.cerrar(); return true; },
+    });
+  }
+  function mostrarDecision(h, dec, s) {
+    tarjetas.mostrar({
+      clase: 'evento', arriba: 'Una decisión', titulo: dec.titulo, texto: dec.texto,
+      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); return { id: o.id, texto: o.texto, detalle: ok ? o.detalle : o.sinRequisito, deshabilitada: !ok }; }),
+      alElegir: (id) => {
+        const o = tomarDecision(h, dec.id, id, estado());
+        if (!o) return false;
+        ctx.diario('evento', o.diario || dec.titulo);
+        ctx.sonido?.()?.anotar?.();
+        ctx.guardar();
+        tarjetas.cerrar();
+        return true;
+      },
+    });
+  }
+  // Dispara una escena del capítulo (si hay una que toca) con el director; si no se puede empezar ahora, se reintenta después
+  function lanzarEscena(h, s, o = {}) {
+    const dir = ctx.escenas?.();
+    if (!dir || dir.activa()) return false;
+    const id = escenaPendiente(h, s, { ...o, apuntaArbolVivo: s.apuntaArbolVivo, visitaActiva: s.visitaActiva });
+    if (!id) return false;
+    // una escena que todavía no está escrita (o no se pudo registrar) se da por vista: la historia nunca se traba por una escena que falta
+    if (typeof dir.hay === 'function' && !dir.hay(id)) { marcarVista(h, id, ctx.progreso().dia); aplicarEscenas(h); return true; }
+    return dir.disparar(id) === true;
+  }
+  // Aplica lo que falte de las escenas vistas y anota en pantalla lo raro nuevo
+  function aplicarEscenas(h) {
+    const p = ctx.progreso();
+    const antes = (h.raro || []).length;
+    const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos });
+    if (hechos.length) {
+      for (const x of (h.raro || []).slice(antes)) { ctx.nota('El cuaderno anota algo raro', textoRaro(x.id)); ctx.diario?.('evento', textoRaro(x.id)); }
+      ctx.guardar();
+    }
+    return hechos;
+  }
+  // La E sobre un vecino con una escena guionada pendiente (un tema de historia arriba de todo): true si la escena arrancó
+  function alHablarCon(clave) {
+    if (ctx.esDesafio) return false;
+    const h = historia();
+    if (!h.activa || h.fase !== 'jugando') return false;
+    if (anotarCharla(h, clave)) ctx.guardar();
+    return lanzarEscena(h, estado(), { modo: 'hablar', clave });
+  }
+  // La E sobre un objeto de historia del mundo: { aviso, hacer } o null
+  function accionObjeto(id) {
+    const h = historia();
+    if (!h.activa || h.fase !== 'jugando') return null;
+    const s = estado();
+    const a = accionDeObjeto(id, h, s);
+    if (!a) return null;
+    if (a.tipo === 'reparar' && (s.tablas || 0) < 1) return { aviso: 'Para cambiar una tabla del alero hace falta una tabla', hacer: () => ctx.nota('Te falta una tabla', 'El banco de carpintero y el hacha te dan tablas') };
+    if (a.tipo === 'escena' && !escenaPendiente(h, s, { modo: 'interaccion', clave: id })) return null;
+    return { aviso: a.aviso, hacer: () => usarObjeto(id, a) };
+  }
+  function usarObjeto(id, a) {
+    const h = historia();
+    const p = ctx.progreso();
+    if (a.tipo === 'nota') { ctx.nota(a.nota[0], a.nota[1], true); return true; }
+    if (a.tipo === 'marca') {
+      if (marcarObjeto(h, a.marca, p.dia)) { ctx.nota(a.nota[0], a.nota[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); }
+      return true;
+    }
+    if (a.tipo === 'reparar') {
+      if (!ctx.gastarTabla?.()) { ctx.nota('Te falta una tabla', 'El banco de carpintero y el hacha te dan tablas'); return false; }
+      const n = sumarReparacion(h, a.id, a.n);
+      ctx.nota(n >= a.n ? 'El alero quedó firme' : 'Cambiaste una tabla del alero', `${Math.min(n, a.n)} de ${a.n}`);
+      ctx.sonido?.()?.juntar?.();
+      ctx.guardar();
+      revisarAhora();
+      return true;
+    }
+    if (a.tipo === 'escena') return lanzarEscena(h, estado(), { modo: 'interaccion', clave: id });
+    return false;
+  }
+  // La E sobre la puerta del refugio, con la llave de Eusebio
+  function accionPuerta() {
+    const h = historia();
+    if (!h.activa || h.fase !== 'jugando') return null;
+    const s = estado();
+    if (!escenaPendiente(h, s, { modo: 'interaccion', clave: 'puerta-refugio' })) return null;
+    if (!(Number(s.lugares?.['refugio-puerta']) <= 4)) return null;
+    return { aviso: 'Abrir con la llave de Eusebio', hacer: () => lanzarEscena(h, estado(), { modo: 'interaccion', clave: 'puerta-refugio' }) };
   }
 
   // ---------------------------------------------------------------- cada medio segundo
@@ -220,19 +326,29 @@ export function crearValleUi(ctx) {
     const s = h.activa ? estado() : null;
     if (jugando && h.activa) {
       const r = revisarHistoria(h, s);
-      for (const o of r.nuevos) { ctx.nota(`✓ ${o.texto}`, `${capituloActual(h).titulo} · la historia del valle`); ctx.sonido?.()?.anotar?.(); }
+      for (const o of r.nuevos) { ctx.nota(`✓ ${textoObjetivo(o, s)}`, `${capituloActual(h).titulo} · la historia del valle`); ctx.sonido?.()?.anotar?.(); }
       if (r.nuevos.length) ctx.guardar();
       if (revisarNoche(h)) ctx.guardar();   // 4.13.0 (A): con el encuentro y las dos armas, la noche queda pendiente
     }
+    // 4.15.0: lo que cambia al ver una escena (una sola vez), lo raro que se anota y los objetos que se ven en el mundo
+    if (jugando && h.activa) aplicarEscenas(h);
+    if (ctx.objetos) ctx.objetos.mostrar(h.activa && s ? objetosVisibles(h, s) : []);
     dibujarPanel(h, s);
     // 4.13.0 (A): el encuentro del galpón espera en el lugar mientras su momento esté pendiente
     if (jugando && h.activa) ctx.presencia?.pedirGalpon?.(momentoPendiente(h, s) === 'duendes-galpon');
     if (noche.activa()) return false;   // 4.13.0 (B): de noche, ni tarjetas ni eventos
     if (!jugando || tarjetas.abierta() || esperaInicio > 0 || !ctx.libre()) return false;
+    if (h.activa && h.avisoReinicio) { mostrarAvisoReinicio(h); return true; }   // 4.15.0: la partida vieja se reinició
     if (h.activa && h.fase === 'intro') { mostrarIntro(); return true; }
     // 4.13.0 (B): el último capítulo no se cierra ahí: ofrece la noche, y el final sale de ganarla
     if (h.activa && h.fase === 'outro') { if (noche.interviene(h)) return ctx.enVehiculo() ? false : noche.ofrecer(); mostrarOutro(); return true; }
     if (ctx.enVehiculo()) return false;
+    // 4.15.0: una decisión grande (la bolsa del molinero) y las escenas del capítulo
+    if (h.activa && h.fase === 'jugando') {
+      const dec = decisionPendiente(h, s);
+      if (dec) { mostrarDecision(h, dec, s); return true; }
+      if (lanzarEscena(h, s, { modo: 'auto' })) return true;
+    }
     // el momento del capítulo va antes que el azar
     if (h.activa) {
       const m = momentoPendiente(h, s);
@@ -280,12 +396,21 @@ export function crearValleUi(ctx) {
     const h = historia();
     const quiere = ctx.ajustes().relaxTipo === 'historia';
     if (quiere && !h.activa && h.fase !== 'fin') {
-      empezarHistoria(h, ctx.progreso().dia);
+      const nueva = empezarHistoria(h, ctx.progreso().dia);
+      if (nueva) comenzar(h);
       ctx.alActivarHistoria?.();   // 4.13.0 (A)
       esperaInicio = 2.5;
       ctx.guardar();
     } else if (!quiere && h.activa) { pausarHistoria(h); ctx.guardar(); }
-    else if (quiere) { esperaInicio = 2.5; ctx.alActivarHistoria?.(); }   // 4.13.0 (A)
+    else if (quiere) { esperaInicio = 2.5; ctx.alActivarHistoria?.(); comenzar(h); }   // 4.13.0 (A)
+  }
+  // 4.15.0: una Historia que recién empieza (capítulo 1, tarjeta de entrada, sin haber andado) arranca en la Estación del Valle al caer la tarde
+  function comenzar(h) {
+    const p = ctx.progreso();
+    if (h.capitulo !== 0 || h.fase !== 'intro' || p.pos || (p.dia || 1) !== 1) return false;
+    p.horas = COMIENZO.horas;
+    ctx.comenzarEnEstacion?.();
+    return true;
   }
 
   // ---------------------------------------------------------------- portada, pausa y guía
@@ -295,7 +420,7 @@ export function crearValleUi(ctx) {
     caja.classList.toggle('oculto', ajustes.modo !== 'relax');
     const t = $('relax-tipo-texto');
     if (t) t.textContent = ajustes.relaxTipo === 'historia'
-      ? `Ocho capítulos cortos, con un rumbo: llegar, arreglar el refugio, conocer a los vecinos… Nada se traba: el valle sigue libre.`
+      ? `«El trato del molino»: trece capítulos en un año del valle, con escenas, decisiones y vecinos que se acuerdan de lo que hacés. El valle sigue libre.`
       : 'Sin capítulos: el valle entero, a tu ritmo. La historia se puede empezar cuando quieras desde la guía o la pausa.';
   }
   let botonPausa = null, cajaGuia = null;
@@ -313,7 +438,11 @@ export function crearValleUi(ctx) {
       if (b) { botonPausa.textContent = b.texto; botonPausa.dataset.accion = b.accion; }
     }
     if (cajaGuia) {
+      const lazos = lazosEnPalabras(h);
+      const raros = (h.raro || []).slice().reverse();
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
+        + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}: ${escP(l.palabra)}</li>`).join('')}</ul>` : '')
+        + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
         + (b ? `<button data-historia="${b.accion}">${escP(b.texto)}</button>` : '')
         + `<p>${escP(resumenEventos(eventos.ev()))}.</p>`;
       ctx.traducir?.(cajaGuia);
@@ -351,6 +480,7 @@ export function crearValleUi(ctx) {
 
   return {
     actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas, noche,
+    alHablarCon, accionObjeto, accionPuerta, aplicarEscenas,
     abierta: () => tarjetas.abierta(),
     azar: (v) => { azarEnPruebas = !!v; return azarEnPruebas; },
     // para las pruebas: revisar ya, sin esperar el medio segundo ni el rato del capítulo

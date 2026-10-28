@@ -194,7 +194,7 @@ for (const mal of ['24', '25', '-1', '12:60', 'abc', '', '12:', ':30', '9.9999']
   corre(w, 'historia capitulo 2'); eq(hist().capitulo, 1, 'se puede volver'); ok(H.CAPITULOS[3].objetivos.every((o) => hist().hechos[`${H.CAPITULOS[3].id}:${o.id}`] === undefined), 'los siguientes se deshacen');
   corre(w, 'historia completar'); eq(hist().fase, 'fin'); ok(hist().terminada > 0, 'completa'); eq(H.sanearHistoria(hist()).fase, 'fin');
   corre(w, 'historia reiniciar'); eq(hist().capitulo, 0); eq(hist().terminada, 0, 'reiniciada');
-  for (const mal of ['historia', 'historia capitulo', 'historia capitulo 0', 'historia capitulo 9', 'historia capitulo x', 'historia nada']) ok(!corre(w, mal).ok, `«${mal}» no vale`);
+  for (const mal of ['historia', 'historia capitulo', 'historia capitulo 0', 'historia capitulo 14', 'historia capitulo x', 'historia nada']) ok(!corre(w, mal).ok, `«${mal}» no vale`);
 
   // amigos
   const nivel = (k) => V.nivelDe(k, w.p);
@@ -274,7 +274,7 @@ for (const mal of ['24', '25', '-1', '12:60', 'abc', '', '12:', ':30', '9.9999']
   ok(s('esta').includes('estacion') && s('esta').includes('estado'), 'esta…'); ok(s('estacion ').join() === 'verano,otoño,invierno,auto', 'argumentos de estación');
   ok(s('estacion oto').join() === 'otoño', 'otoño con o sin tilde'); ok(s('estacion OTONO').length === 0 || true, 'mayúsculas');
   ok(s('ir f').includes('faro'), 'ir f → faro'); ok(s('ir ').length === 7, 'ir lista los lugares'); ok(s('historia ').join() === 'capitulo,completar,reiniciar', 'historia');
-  ok(s('historia capitulo ').length === H.CAPITULOS.length, 'capítulos'); ok(s('oficios ').includes('maximo') && s('oficios ').includes('hachero'), 'oficios'); ok(s('amigos ').includes('todos') && s('amigos ').includes('ercilia'), 'amigos');
+  ok(s('historia capitulo ').length === Math.min(12, H.CAPITULOS.length) && s('historia capitulo 1').includes('13'), 'capítulos (4.15.0: son 13 y la lista muestra 12 como mucho; el 13 se encuentra escribiendo 1)'); ok(s('oficios ').includes('maximo') && s('oficios ').includes('hachero'), 'oficios'); ok(s('amigos ').includes('todos') && s('amigos ').includes('ercilia'), 'amigos');
   eq(s(''), [], 'sin texto no sugiere'); eq(s('   '), [], 'sólo espacios');
   eq(E.completar('estacion oto', w.m).linea, 'estacion otoño', 'Tab completa'); eq(E.completar('hist', w.m).linea, 'historia ', 'Tab completa el código y deja el espacio');
   eq(E.completar('xx', w.m).linea, 'xx', 'Tab sin nada no cambia');

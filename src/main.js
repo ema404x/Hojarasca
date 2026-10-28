@@ -262,6 +262,11 @@ import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
 import { crearTrucosJuego } from './trucos-juego.js';
 // 4.14.0: las escenas de la Historia (director de escenas: escenas.js; en el juego: escenas-mundo.js)
 import { crearEscenasMundo } from './escenas-mundo.js';
+// 4.15.0: la Historia nueva: las escenas del acto I, sus objetos en el mundo y el reinicio de las partidas viejas
+import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';
+import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
+import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
+import { registrarEfectosHistoria } from './historia-escenas-efectos.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
@@ -348,6 +353,25 @@ const CATEGORIAS_CONSTRUCCION = CATEGORIAS_TODAS.filter((c) => !c.soloDesafio ||
 // y al revés: la huerta es del Relax (en el Desafío el tiempo es para defenderse)
 const PLANOS_JUEGO = PLANOS.filter((p) => (!p.soloDesafio || esDesafio) && (!p.soloRelax || !esDesafio));
 let progreso = cargarProgreso();
+// 4.15.0: una partida del Relax con la historia VIEJA (ocho capítulos) en curso se reinicia por completo, pero antes se guarda una copia aparte
+// (el archivo en la carpeta de datos y, de respaldo, una clave del navegador). Si la copia no se puede guardar, no se reinicia nada: sólo se
+// limpia la parte de la historia. Todo vive en historia-reinicio.js (REINICIAR_HISTORIAS_VIEJAS lo apaga).
+function guardarCopiaPrevia(vieja) {
+  const nombre = nombreCopia(ranuraActual());
+  const texto = textoCopia(vieja);
+  if (!texto) return null;
+  let ok = false;
+  try { ok = !!window.hojarasca?.copias?.escribir?.(`hojarasca${ranuraActual() > 1 ? `-p${ranuraActual()}` : ''}`, nombre, texto); } catch { ok = false; }
+  try { localStorage.setItem(`hojarasca-copia-previa-historia-p${ranuraActual()}`, texto); ok = true; } catch { /* sin lugar en el navegador: queda el archivo */ }
+  return ok ? nombre : null;
+}
+if (progreso && !esDesafio && historiaVieja(progreso)) {
+  if (debeReiniciar(progreso, 'relax')) {
+    const copia = guardarCopiaPrevia(progreso);
+    if (copia) { progreso = reiniciarPartida(progreso, progresoNuevo(), copia); guardarProgreso(progreso); }
+    else progreso = limpiarHistoria(progreso);
+  } else progreso = limpiarHistoria(progreso);   // una historia vieja en pausa o terminada: sólo la parte de la historia empieza de nuevo
+}
 let reiniciandoPartida = false;
 const origenGuardado = origenUltimaCarga();
 // 4.10.3 (P12): el aviso «Partida recuperada» sobrevive a la recarga de la portada (cambiar la calidad o el idioma recarga, y la
@@ -902,8 +926,13 @@ async function construir() {
       doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && !js.enKayak && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
-      alTerminar: () => { programarGuardadoSuave(); },
+      alTerminar: () => { try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
     });
+    // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
+    try {
+      for (const e of Object.values(ESCENAS_ACTO1)) { const r = escenasMundo.registrar(e); if (!r.ok) console.warn('escena de la historia mal armada', e?.id, r.errores); }
+      registrarEfectosHistoria(escenasMundo, { historia: () => (valle ? valle.historia() : null), dia: () => progreso.dia, estado: () => (valle ? valle.estado() : null), opcionDeEvento: (id) => progreso.eventosValle?.hechos?.[id]?.opcion });
+    } catch (e) { fallaSistema('historia-escenas', e); }
     document.addEventListener('keyup', (e) => { escenasMundo?.teclaSuelta(e); });   // (soltar Mayús: la escritura vuelve a su velocidad)
   }
   escena.add(camara);
@@ -2201,6 +2230,78 @@ function nocheDelMundo() {
   if (!nocheMundo) nocheMundo = crearNocheMundo({ T, escena, camara, col, sonido, jugador: () => jugador, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
   return nocheMundo;
 }
+// 4.15.0: dónde están las cosas de la Historia nueva. Los puntos con nombre del mundo (y de la aldea); se recalculan cada medio segundo con la
+// posición del jugador, sin armar objetos nuevos por cuadro más que el mapa de distancias de siempre.
+let objetosHist = null, puntosHist = null, molinoViejoHist = null;
+function puntosDeHistoria() {
+  const L = T.lugares, ref = L.refugio, est = L.estacion;
+  if (!puntosHist) puntosHist = {};
+  const P = puntosHist;
+  const ponr = (k, q) => { if (q && Number.isFinite(q.x) && Number.isFinite(q.z)) P[k] = { x: q.x, z: q.z }; };
+  ponr('refugio', ref);
+  if (ref) ponr('refugio-puerta', aMundoRefugio(ref, 0, 3.4));
+  const e = est?.espera || est;
+  ponr('estacion', e);
+  if (ref && e) ponr('sendero', { x: (ref.x + e.x) / 2, z: (ref.z + e.z) / 2 });
+  ponr('aldea', PARADA_ALDEA);
+  try { ponr('plaza', edificioEnMundo('plaza')); ponr('ramos', edificioEnMundo('almacen')); } catch { /* sin aldea */ }
+  for (const k of ['casa-te', 'molino', 'galpon', 'faro', 'mirador', 'puesto']) ponr(k, L[k]);
+  ponr('molino-viejo', molinoViejoHist?.raiz);
+  return P;
+}
+const distanciasHist = {};
+function distanciasHistoria() {
+  if (!jugador || esDesafio) return distanciasHist;
+  return distanciasA(jugador.estado.pos, puntosDeHistoria(), distanciasHist);
+}
+// los objetos del mundo: se arman la primera vez que se piden (con el mundo ya construido)
+function objetosHistoriaMundo() {
+  if (esDesafio) return null;
+  if (!objetosHist) {
+    const agua = (x, z) => { const k = T.indice(x, z); return T.distRio[k] - T.anchoRio[k] <= 1.5 && T.altura(x, z) > -1; };
+    molinoViejoHist = molinoViejo(T.lugares.refugio, agua, veg.arboles);
+    objetosHist = crearObjetosHistoria({ T, escena, refugio: () => T.lugares.refugio, molino: () => molinoViejoHist });
+  }
+  return objetosHist;
+}
+// el objeto de historia más cercano con algo que hacer: { id, aviso, hacer } o null (se busca a 4 Hz, no por cuadro)
+let cacheObjetoHist = { t: -1, v: null };
+function historiaObjetoCerca() {
+  if (desafio || !valle || !objetosHist || !jugador) return null;
+  const ahora = performance.now();
+  if (ahora - cacheObjetoHist.t < 250) return cacheObjetoHist.v;
+  cacheObjetoHist.t = ahora;
+  cacheObjetoHist.v = null;
+  const h = valle.historia();
+  if (!h.activa || h.fase !== 'jugando') return null;
+  const visibles = Object.entries(objetosHist.mallas).filter(([, m]) => m.visible).map(([k]) => k).concat(objetosHist.posiciones['nota-mesa'] ? ['nota-mesa'] : [], objetosHist.posiciones['raiz-coihue'] ? ['raiz-coihue'] : []);
+  const id = objetosHist.cercano(jugador.estado.pos, [...new Set(visibles)], (k) => valle.accionObjeto(k));
+  const a = id ? valle.accionObjeto(id) : null;
+  cacheObjetoHist.v = a ? { id, ...a } : null;
+  return cacheObjetoHist.v;
+}
+let cachePuertaHist = { t: -1, v: null };
+function historiaPuertaCerca() {
+  if (desafio || !valle || !jugador) return null;
+  const h = valle.historia();
+  if (!h.activa || h.fase !== 'jugando' || h.capitulo !== 0) return null;   // (la llave de Eusebio es del capítulo 1)
+  const ahora = performance.now();
+  if (ahora - cachePuertaHist.t < 250) return cachePuertaHist.v;
+  cachePuertaHist.t = ahora;
+  cachePuertaHist.v = valle.accionPuerta();
+  return cachePuertaHist.v;
+}
+function gastarUnaTabla() {
+  if ((Number(progreso.materiales?.tabla) || 0) > 0) { progreso.materiales.tabla -= 1; refrescarBarra(true); return true; }
+  if ((Number(progreso.acopio?.tabla) || 0) > 0) { progreso.acopio.tabla -= 1; refrescarBarra(true); return true; }
+  return false;
+}
+// Una Historia nueva arranca en la Estación del Valle (la espera de la parada), mirando para el refugio
+function comenzarEnLaEstacion() {
+  const e = T.lugares.estacion?.espera, ref = T.lugares.refugio;
+  if (!e || !ref || !jugador) return;
+  jugador.ubicar(e.x, e.z, Math.atan2(-(ref.x - e.x), -(ref.z - e.z)));
+}
 function crearValle() {
   valle = crearValleUi({
     esDesafio, nota, guardar, sumarMaterial, traducir: traducirPanel,
@@ -2214,9 +2315,12 @@ function crearValle() {
     reanudar: () => volverAlJuego(),
     // 3.8.7: ni con un panel del HUD abierto (la cocina, el taller del tren, las fiestas): la tarjeta salía encima y al
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
-    libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo'),
+    libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo') && !escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
-    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso) }; },
+    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), sentado: !!js.sentado, apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
+    // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
+    escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id) => escenasMundo.disparar(id) } : null),
+    objetos: objetosHistoriaMundo(), gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(),
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()), taparHuerta: () => { taparHuerta(huerta(), progreso.dia); },
     obras: () => obras, altura: (x, z) => T.altura(x, z), sincronizarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); },
@@ -8570,6 +8674,8 @@ function zumbidoColmena() {
 const charla = { npc: null, historia: null, parte: 0, fin: false };
 function hablar(npc) {
   if (!npc) return;
+  // 4.15.0: un tema de historia arriba de todo: si el vecino tiene una escena guionada pendiente, arranca la escena
+  if (!desafio && valle?.alHablarCon?.(npc.clave)) return;
   // 3.6 (vida): el que invitaste a tomar algo, ya sentado: E te sienta con él; si todavía va
   // para la mesa, te lo dice (ver vecindad-juego.js)
   const enCita = vecindadJuego?.invitado(npc);
@@ -10091,6 +10197,7 @@ function accionInteraccion(nombre, enE) {
 function limpiarInteraccion(nombre) {
   switch (nombre) {
     case 'empleo': cacheEmpleo = null; break;
+    case 'historia': cacheObjetoHist.t = -1; cachePuertaHist.t = -1; break;   // 4.15.0
     case 'rincones': cacheRincones = null; break;
     case 'huevos': cacheHuevos = null; break;
     case 'puestos': cachePuestos = null; break;
@@ -10194,6 +10301,7 @@ const ctxInteraccion = {
   enElBanco: () => enElBanco(), cerrarBanco: () => bancoPueblo.cerrar(),   // 3.8.8
   panelAbierto: (n) => panelesInteraccion[n](), cerrarPanel: cerrarPanelInteraccion,
   urgente: () => (rinconesJuego ? rinconesJuego.urgente(jugador.estado) : null),
+  historiaObjeto: () => historiaObjetoCerca(), historiaPuerta: () => historiaPuertaCerca(),   // 4.15.0
   textoVecino: textoVecinoAviso, ordenarCompanero: (v) => ordenarCompanero(v), hablar: (v) => hablar(v),
   puedeSentarseALaCita: () => vecindadJuego?.puedeSentarse(jugador.estado.pos), textoSentarse: () => vecindadJuego.textoSentarse(),
   sentarseALaCita: () => sentarseALaCita(),

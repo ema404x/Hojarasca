@@ -127,9 +127,11 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
 // ---------------------------------------------------------------- 9. el temporal del capítulo 8: pasada la noche
 {
   const H = await import('../src/historia.js');
+  const { instalarCapituloTemporal } = await import('./ayuda-capitulo-temporal.mjs');
+  const IT = instalarCapituloTemporal(H);   // 4.15.0: el capítulo de la noche del temporal de la Historia vieja, sólo para probar su mecánica
   const { CUENTOS } = await import('../src/cuentos.js');
   const p = (dia, temporal) => ({ dia, entradas: Object.fromEntries(CUENTOS.map((c) => [c.id, { dia: 3, hora: 21, cantidad: 0 }])), visitas: { cuenta: 3 }, eventosValle: { hechos: { temporal: { dia: temporal, opcion: 'lena' } } } });
-  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 7; h.fase = 'intro';
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = IT; h.fase = 'intro';
   H.arrancarCapitulo(h, H.estadoHistoria({ ...p(20, 0), eventosValle: { hechos: {} } }));
   H.revisarHistoria(h, H.estadoHistoria({ ...p(20, 0), visitas: { cuenta: 4 }, eventosValle: { hechos: {} } }));
   H.momentoLanzado(h);

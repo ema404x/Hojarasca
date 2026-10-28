@@ -36,7 +36,7 @@ async function chequear(sufijo = '') {
   // ---------------------------------------------------------------- 1. lo guardado
   {
     const d0 = H.duendesNuevos();
-    igual(d0, { trato: null, vistos: 0, regalos: 0, armas: { arco: false, honda: false }, noche: 'ninguna', final: null, intentos: 0 }, 'el esquema nuevo');
+    igual(d0, { trato: null, vistos: 0, regalos: 0, armas: { arco: false, honda: false }, noche: 'ninguna', final: null, intentos: 0, deuda: 0, perdon: false, convidado: 0 }, 'el esquema nuevo (4.15.0: y deuda, perdón y convidado)');
     igual(H.sanearHistoria(null).duendes, d0, 'una historia nueva trae los duendes en blanco');
     igual(H.sanearHistoria({ activa: true, capitulo: 2 }).duendes, d0, 'una partida vieja (sin duendes) abre con el default');
     for (const basura of [null, 7, 'x', [], { trato: 'otro', vistos: -4, regalos: 99, armas: { arco: 1, honda: 'si' }, noche: 'rara', final: 'x', intentos: -1 }, { armas: [] }]) {
@@ -44,7 +44,7 @@ async function chequear(sufijo = '') {
       ok(d.trato === null && d.noche === 'ninguna' && d.final === null && d.vistos >= 0 && d.regalos <= H.REGALOS_TOPE && d.intentos >= 0, `basura ${JSON.stringify(basura)}`);
       ok(d.armas.arco === false && d.armas.honda === false, `las armas sólo valen con true (${JSON.stringify(basura)})`);
     }
-    const bueno = { trato: 'pelea', vistos: 3, regalos: 2, armas: { arco: true, honda: false }, noche: 'pendiente', final: 'trato', intentos: 4 };
+    const bueno = { trato: 'pelea', vistos: 3, regalos: 2, armas: { arco: true, honda: false }, noche: 'pendiente', final: 'trato', intentos: 4, deuda: 1, perdon: true, convidado: 2 };
     igual(H.sanearHistoria({ duendes: bueno }).duendes, bueno, 'lo bueno se conserva');
     igual(H.sanearHistoria({ duendes: { ...bueno, regalos: 50 } }).duendes.regalos, H.REGALOS_TOPE, 'los regalos tienen tope');
     // el trato y las armas
@@ -72,17 +72,37 @@ async function chequear(sufijo = '') {
 
   // ---------------------------------------------------------------- 2. los capítulos
   {
-    igual(H.CAPITULOS.map((c) => c.id), ['llegada', 'manos', 'vecinos', 'trochita', 'lago', 'molino', 'invierno', 'temporal'], 'siguen los ocho capítulos de siempre');
+    // 4.15.0: la Historia nueva tiene trece capítulos y el encuentro del galpón y las armas son de los capítulos 10 y 11, que vienen en una versión
+    // que sigue. Lo que mira esta sección es la MECÁNICA de historia.js (el momento con lugar, la presencia, el arma por pedir), con dos capítulos de
+    // prueba iguales a los del lago y el invierno de la Historia vieja, subidos al final de la lista.
+    igual(H.CAPITULOS.map((c) => c.id).slice(0, 4), ['llave', 'bolsa', 'mesa', 'ramal'], 'los capítulos de la historia nueva');
+    ok(H.CAPITULOS.length >= 13, 'trece o más capítulos');
+    const desde = (s, b, k) => Math.max(0, (Number(s[k]) || 0) - (Number(b?.[k]) || 0));
+    const iLago = H.CAPITULOS.push({
+      id: 'lago', titulo: 'El lago', intro: ['Esa semana, al caer la tarde, desde los árboles de la orilla llega una risa finita, como de chicos. Nicanor dice que son zorros. Los zorros no se ríen.'],
+      objetivos: [
+        { id: 'pez', tecla: 'Q', texto: 'Pescá una trucha', hecho: (s, b) => desde(s, b, 'peces') >= 1 },
+        { id: 'varadero', tecla: 'O', texto: 'Construí un varadero', hecho: (s) => s.terminadas.has('varadero-velero') },
+        { id: 'navegar', tecla: 'E', texto: 'Salí a navegar', hecho: (s) => s.enVela },
+        { id: 'duendes', tecla: '·', delMomento: true, texto: 'Al anochecer, pasá por el Galpón de Esquila', hecho: (s) => s.eventos.has('duendes-galpon') },
+      ],
+      momento: { evento: 'duendes-galpon', cuando: 'resto', lugar: 'galpon' }, outro: ['x'], premio: { materiales: { tabla: 8 }, texto: 'Ocho tablas' },
+    }) - 1;
+    const iInv = H.CAPITULOS.push({
+      id: 'invierno', titulo: 'Antes del invierno', intro: ['x'],
+      objetivos: [{ id: 'armas', tecla: '·', delMomento: true, texto: 'Conseguí un arco y una honda', vecinos: true, meta: 2, cuenta: (s) => (s.armas.arco ? 1 : 0) + (s.armas.honda ? 1 : 0) }],
+      momento: { evento: 'arco-josefina', cuando: 'pronto' }, outro: ['x'], premio: { materiales: { tronco: 6 }, texto: 'Seis troncos' },
+    }) - 1;
+    H.CAPITULO.lago = H.CAPITULOS[iLago]; H.CAPITULO.invierno = H.CAPITULOS[iInv];
     const lago = H.CAPITULO.lago, inv = H.CAPITULO.invierno;
-    ok(lago.momento?.evento === 'duendes-galpon' && lago.momento.lugar === 'galpon' && lago.momento.cuando === 'resto', 'el encuentro es el momento del lago, en el galpón y al final');
+    ok(lago.momento?.evento === 'duendes-galpon' && lago.momento.lugar === 'galpon' && lago.momento.cuando === 'resto', 'el encuentro es un momento en el galpón y al final');
     ok(lago.objetivos.some((o) => o.id === 'duendes' && o.delMomento), 'y su objetivo espera el momento');
-    ok(inv.momento?.evento === 'arco-josefina' && inv.objetivos.some((o) => o.id === 'armas' && o.delMomento && o.vecinos && o.meta === 2), 'las armas son un objetivo del invierno con su momento');
-    ok(lago.objetivos.length <= 5 && inv.objetivos.length <= 5, 'ningún capítulo pasa de cinco objetivos');
+    ok(inv.momento?.evento === 'arco-josefina' && inv.objetivos.some((o) => o.id === 'armas' && o.delMomento && o.vecinos && o.meta === 2), 'las armas son un objetivo con su momento');
     const objArmas = inv.objetivos.find((o) => o.id === 'armas');
     ok(objArmas.cuenta({ armas: { arco: true, honda: false } }) === 1 && objArmas.cuenta({ armas: { arco: true, honda: true } }) === 2 && objArmas.cuenta({ armas: { arco: false, honda: false } }) === 0, 'el objetivo cuenta las armas');
-    ok(/risa/.test(lago.intro.join(' ')) && !/enemig|monstruo|ataque/i.test(lago.intro.join(' ')), 'la intro del lago deja el misterio sin decir que son enemigos');
-    // el recorrido del lago: el momento sale cuando lo demás está hecho
-    const hh = H.sanearHistoria({ activa: true, capitulo: 4, fase: 'jugando', empezada: 1, base: { dia: 1 }, hechos: { 'lago:pez': 3, 'lago:varadero': 3 } });
+    ok(/risa/.test(lago.intro.join(' ')) && !/enemig|monstruo|ataque/i.test(lago.intro.join(' ')), 'la intro deja el misterio sin decir que son enemigos');
+    // el recorrido: el momento sale cuando lo demás está hecho
+    const hh = H.sanearHistoria({ activa: true, capitulo: iLago, fase: 'jugando', empezada: 1, base: { dia: 1 }, hechos: { 'lago:pez': 3, 'lago:varadero': 3 } });
     const base = H.estadoHistoria({ dia: 5, horas: 20, eventosValle: { hechos: {} } }, {});
     ok(H.momentoPendiente(hh, base) === null, 'con el velero sin navegar, el encuentro todavía no');
     hh.hechos['lago:navegar'] = 4;
@@ -90,16 +110,19 @@ async function chequear(sufijo = '') {
     const luego = H.estadoHistoria({ dia: 5, horas: 20, eventosValle: { hechos: { 'duendes-galpon': { dia: 5, opcion: 'comida' } } } }, {});
     const r = H.revisarHistoria(hh, luego);
     ok(r.completo && hh.fase === 'outro', 'elegido el encuentro, el capítulo se completa');
-    ok(H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 4 })) && H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 5 })), 'hay presencia en el lago y el molino');
-    ok(!H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 0 })) && !H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 6 })) && !H.hayPresencia(H.sanearHistoria({ capitulo: 4 })), 'y no en los otros, ni con la historia en pausa');
-    // armaPorPedir
-    const ha = H.sanearHistoria({ activa: true, capitulo: 6, fase: 'jugando', empezada: 1, momentos: { invierno: 'lanzado' } });
+    // la presencia de lejos: los capítulos 6 a 8 de la historia nueva (los indicios del acto II)
+    ok(H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 5 })) && H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 6 })) && H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 7 })), 'hay presencia en los capítulos 6, 7 y 8');
+    ok(!H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 0 })) && !H.hayPresencia(H.sanearHistoria({ activa: true, capitulo: 8 })) && !H.hayPresencia(H.sanearHistoria({ capitulo: 5 })), 'y no en los otros, ni con la historia en pausa');
+    // armaPorPedir (con el capítulo de prueba)
+    const ha = H.sanearHistoria({ activa: true, capitulo: iInv, fase: 'jugando', empezada: 1, momentos: { invierno: 'lanzado' } });
     const sa = (arco, honda) => ({ vecinos: true, armas: { arco, honda } });
     ok(H.armaPorPedir(ha, sa(false, false), []) === 'arco-josefina', 'sin armas ni nada pendiente: se vuelve a pedir el arco');
     ok(H.armaPorPedir(ha, sa(true, false), []) === 'honda-ramon', 'con el arco: la honda');
     ok(H.armaPorPedir(ha, sa(true, false), ['s-honda-ramon']) === null, 'con el seguimiento agendado: nada');
     ok(H.armaPorPedir(ha, sa(true, true), []) === null && H.armaPorPedir(ha, { ...sa(false, false), vecinos: false }, []) === null, 'con las dos o sin vecinos: nada');
-    ok(H.armaPorPedir(H.sanearHistoria({ activa: true, capitulo: 3, fase: 'jugando' }), sa(false, false), []) === null, 'fuera del invierno: nada');
+    ok(H.armaPorPedir(H.sanearHistoria({ activa: true, capitulo: 3, fase: 'jugando' }), sa(false, false), []) === null, 'fuera de ese capítulo: nada');
+    // los capítulos de prueba salen de la lista para lo que sigue
+    H.CAPITULOS.splice(iLago, 2); delete H.CAPITULO.lago; delete H.CAPITULO.invierno;
   }
 
   // ---------------------------------------------------------------- 3. los eventos
@@ -237,8 +260,8 @@ const MUT = [
   ['historia.js', "d.trato = v.trato === 'trato' || v.trato === 'pelea' ? v.trato : null;", 'd.trato = v.trato || null;', 'el saneado acepta cualquier trato'],
   ['historia.js', "d.armas.arco = a.arco === true; d.armas.honda = a.honda === true;", 'd.armas.arco = !!a.arco; d.armas.honda = !!a.honda;', 'las armas valen con cualquier cosa'],
   ['historia.js', '  h.duendes = sanearDuendes(v.duendes);', '', 'sanearHistoria descarta los duendes'],
-  ['historia.js', "export const CAPITULOS_CON_PRESENCIA = ['lago', 'molino'];", "export const CAPITULOS_CON_PRESENCIA = ['lago', 'molino', 'invierno'];", 'presencia también en el invierno'],
-  ['historia.js', "momento: { evento: 'duendes-galpon', cuando: 'resto', lugar: 'galpon' },", "momento: { evento: 'duendes-galpon', cuando: 'resto' },", 'el encuentro sin lugar'],
+  ['historia.js', "export const CAPITULOS_CON_PRESENCIA = ['perdido', 'cosecha', 'cuaderno'];", "export const CAPITULOS_CON_PRESENCIA = ['perdido', 'cosecha', 'cuaderno', 'frios'];", 'presencia también en el invierno'],
+  ['historia.js', "if (m.cuando === 'resto' && !c.objetivos.every((o) => o.delMomento || h.hechos[`${c.id}:${o.id}`] !== undefined)) return null;", "", 'el momento sale sin esperar a lo demás'],
   ['historia.js', "if (!s.armas.arco) return 'arco-josefina';", "if (!s.armas.arco) return 'honda-ramon';", 'se pide la honda primero'],
   ['historia.js', 'd.regalos = Math.max(0, Math.min(REGALOS_TOPE,', 'd.regalos = Math.max(0, Math.min(1e6,', 'regalos sin tope'],
   ['historia-presencia.js', 'huyeSinTrato: 16, huyeConTrato: 8,', 'huyeSinTrato: 8, huyeConTrato: 16,', 'el trato y la pelea al revés al huir'],

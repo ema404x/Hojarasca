@@ -33,6 +33,10 @@ contextBridge.exposeInMainWorld('hojarasca', {
     escribir: (clave, fotos, opciones) => ipcRenderer.sendSync('fotos-escribir', String(clave || ''), fotos && typeof fotos === 'object' ? fotos : {}, { reemplazar: opciones?.reemplazar !== false }),
     borrar: (clave) => ipcRenderer.sendSync('fotos-borrar', String(clave || '')),
   },
+  // 4.15.0: la copia previa de una partida que la Historia nueva reinicia, en un archivo aparte (ver copias-main.cjs). Sincrónico
+  copias: {
+    escribir: (partida, nombre, texto) => ipcRenderer.sendSync('copia-escribir', String(partida || ''), String(nombre || ''), String(texto || '')),
+  },
   // 1.10: logros de Steam (no hace nada si Steam no está)
   steam: {
     activar: (api) => ipcRenderer.invoke('steam-logro', String(api || '').slice(0, 64)),

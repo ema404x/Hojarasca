@@ -334,10 +334,11 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
 
 // ============================================================ 7. el primer viaje
 {
-  const c = CAPITULO.manos;
-  ok(c.objetivos.find((o) => o.id === 'hacha').texto === 'Tomá la trochita a la Aldea de los Duendes y conseguite el hacha en el almacén', 'el objetivo del hacha es el primer viaje');
-  ok(c.intro.some((t) => /Estación del Valle/.test(t) && /bajate en la aldea/.test(t)) && c.intro.some((t) => /Aldea de los Duendes/.test(t)), 'el capítulo dice dónde subir y dónde bajar');
-  ok(/Ercilia, que atiende el almacén de la Aldea de los Duendes/.test(CAPITULO.vecinos.intro[0]) && /Ercilia, en la aldea/.test(CAPITULO.vecinos.objetivos[0].texto), 'Ercilia vive en la aldea');
+  // (4.15.0: la Historia nueva: el capítulo 2 manda a la aldea en la trochita y el 3 a conocer a Ercilia ahí)
+  const c = CAPITULO.bolsa;
+  ok(c.objetivos.find((o) => o.id === 'viaje').texto === 'Tomá la trochita a la Aldea de los Duendes' && c.objetivos.find((o) => o.id === 'hacha').texto === 'Conseguí el hacha en el almacén de Ercilia', 'el objetivo del hacha es el primer viaje');
+  ok(c.objetivos.some((o) => /Aldea de los Duendes/.test(o.texto)), 'el capítulo dice dónde bajar');
+  ok(/Ercilia/.test(CAPITULO.mesa.intro.join(' ')) && /Ercilia/.test(CAPITULO.mesa.objetivos[0].texto), 'Ercilia vive en la aldea');
   ok(/almacén de la aldea \(en la trochita\)/.test(PASOS_RELAX.find((x) => x.id === 'madera').texto), 'los primeros pasos también');
   const main = leer('src/main.js');
   ok(main.includes("const PISTA_PRIMER_VIAJE = 'Subite a la trochita en la Estación del Valle, acá cerca del refugio, y bajate en la Aldea de los Duendes: ahí está el almacén de Ercilia';"), 'la pista del primer viaje');

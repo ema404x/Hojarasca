@@ -1,5 +1,5 @@
 // 3.1: la historia guiada del Relax y los eventos del valle con decisiones.
-//   1. los capítulos: ocho, cada uno con entrada, 2 a 4 objetivos, salida y premio
+//   1. los capítulos (4.15.0: trece, «El trato del molino»), cada uno con entrada, objetivos, salida y premio
 //   2. el recorrido de un capítulo: empezar, tildar, cerrar, premio, el siguiente, el final
 //   3. los objetivos miran la partida de verdad (estadoHistoria) y cuentan desde el capítulo
 //   4. los momentos de la historia (eventos puntuales dentro de un capítulo)
@@ -20,6 +20,7 @@ globalThis.localStorage = {
   get length() { return almacen.size; },
 };
 const H = await import('../src/historia.js');
+const { instalarCapituloTemporal } = await import('./ayuda-capitulo-temporal.mjs');   // 4.15.0: el capítulo de la noche del temporal de la Historia vieja, sólo para probar el momento «al final»
 const E = await import('../src/eventos-valle.js');
 const G = await import('../src/guardado.js');
 const { crearDiario } = await import('../src/diario.js');
@@ -28,13 +29,13 @@ const { VISITANTES } = await import('../src/visitas.js');
 const leer = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 
 // ---------------------------------------------------------------- 1. los capítulos
-assert.ok(H.CAPITULOS.length >= 6 && H.CAPITULOS.length <= 8, `entre 6 y 8 capítulos (${H.CAPITULOS.length})`);
+assert.equal(H.CAPITULOS.length, 13, `trece capítulos (${H.CAPITULOS.length})`);   // 4.15.0: eran ocho
 assert.equal(new Set(H.CAPITULOS.map((c) => c.id)).size, H.CAPITULOS.length, 'ids de capítulo únicos');
 for (const c of H.CAPITULOS) {
   assert.ok(c.titulo && c.intro.length >= 1 && c.outro.length >= 1, `${c.id}: entrada y salida`);
-  assert.ok(c.objetivos.length >= 2 && c.objetivos.length <= 5, `${c.id}: 2 a 5 objetivos (${c.objetivos.length})`);
+  assert.ok(c.objetivos.length >= 1 && c.objetivos.length <= 8, `${c.id}: 1 a 8 objetivos (${c.objetivos.length})`);   // (4.15.0: el acto I tiene hasta ocho; del 5 al 13, el «continuará» tiene uno)
   assert.equal(new Set(c.objetivos.map((o) => o.id)).size, c.objetivos.length, `${c.id}: objetivos únicos`);
-  for (const o of c.objetivos) assert.ok(o.texto && (typeof o.hecho === 'function' || typeof o.cuenta === 'function'), `${c.id}:${o.id} se mide`);
+  for (const o of c.objetivos) assert.ok(o.texto && (typeof o.hecho === 'function' || typeof o.cuenta === 'function'), `${c.id}:${o.id} se mide`);   // (4.15.0: `texto` puede ser una función del estado)
   assert.ok(c.premio && c.premio.texto && (c.premio.materiales || c.premio.cuenta || c.premio.ramitas), `${c.id}: premio concreto`);
   for (const k of Object.keys(c.premio.materiales || {})) assert.ok(['tronco', 'tabla', 'piedra', 'lana'].includes(k), `${c.id}: material ${k}`);
   if (c.momento) {
@@ -52,8 +53,8 @@ for (const c of H.CAPITULOS) {
     assert.ok(!/soloDesafio: true/.test(linea), `${id} se construye en el Relax`);
   }
 }
-// los temas pedidos, en orden: llegada, refugio, vecinos, tren, lago, molino, invierno, final
-assert.deepEqual(H.CAPITULOS.map((c) => c.id), ['llegada', 'manos', 'vecinos', 'trochita', 'lago', 'molino', 'invierno', 'temporal']);
+// los trece capítulos del guion, en orden (acto I completo; del 5 al 13, el «continuará»)
+assert.deepEqual(H.CAPITULOS.map((c) => c.id), ['llave', 'bolsa', 'mesa', 'ramal', 'rueda', 'perdido', 'cosecha', 'cuaderno', 'frios', 'golpea', 'arco', 'nevada', 'deshielo']);
 
 // ---------------------------------------------------------------- 2. el recorrido
 const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materiales: {}, acopio: {}, peces: {}, talados: [], renovales: [], encargos: {}, obras: [], huerta: {}, visitas: { cuenta: 0 }, comercio: { entregas: 0 }, historia: H.historiaNueva() });
@@ -78,21 +79,24 @@ const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materia
   // el fuego apagado no destilda
   s = H.estadoHistoria(p, { fuego: false });
   assert.deepEqual(H.revisarHistoria(h, s).nuevos, []);
-  assert.ok(h.hechos['llegada:fuego'] !== undefined, 'un objetivo cumplido queda cumplido');
-  // tres anotaciones más (la del refugio cuenta) y una noche
-  p.entradas.coihue = {}; p.entradas.lenga = {};
+  assert.ok(h.hechos['llave:fuego'] !== undefined, 'un objetivo cumplido queda cumplido');
+  // dos anotaciones (la del refugio cuenta), la puerta de Eusebio, el canto blanco y una noche
+  p.entradas.coihue = {};
   s = H.estadoHistoria(p, {});
   const panel = H.panelHistoria(h, s);
-  assert.match(panel.titulo, /Capítulo 1 · La llegada/);
-  assert.ok(panel.objetivos.find((o) => o.id === 'anotar').texto.includes('(3/3)'), 'el panel muestra la cuenta');
+  assert.match(panel.titulo, /Capítulo 1 · La llave del molinero/);
+  assert.ok(panel.objetivos.find((o) => o.id === 'anotar').texto.includes('(2/2)'), 'el panel muestra la cuenta');
   r = H.revisarHistoria(h, s);
   assert.deepEqual(r.nuevos.map((o) => o.id), ['anotar']);
   p.dia = 2;
   r = H.revisarHistoria(h, H.estadoHistoria(p, {}));
-  assert.ok(r.completo && h.fase === 'outro', 'la primera noche cierra el capítulo');
+  assert.deepEqual(r.nuevos.map((o) => o.id), ['noche'], 'la primera noche se tilda');
+  p.historia.escenas.vistas['nota-eusebio'] = 2; p.historia.objetos['canto-blanco'] = 2;   // la llave de Eusebio y el canto blanco del umbral
+  r = H.revisarHistoria(h, H.estadoHistoria(p, {}));
+  assert.ok(r.completo && h.fase === 'outro', 'con la puerta, la noche y el canto blanco se cierra el capítulo');
   assert.equal(H.panelHistoria(h, s).objetivos.every((o) => o.hecho), true);
   const c = H.cerrarCapitulo(h, 2);
-  assert.equal(c.capitulo.id, 'llegada');
+  assert.equal(c.capitulo.id, 'llave');
   assert.ok(c.premio.ramitas > 0 && !c.fin);
   assert.equal(h.capitulo, 1); assert.equal(h.fase, 'intro');
   assert.equal(H.cerrarCapitulo(h, 2), null, 'no se cobra dos veces');
@@ -136,13 +140,13 @@ const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materia
   assert.ok(s.terminadas.has('banco-trabajo') && s.eventos.has('tobillo') && s.conduciendo && s.enVela);
   assert.equal(H.estadoHistoria(p, { terminadas: [{ id: 'mesa-campo', x: 0, z: 0 }, { id: 'silla-campo', x: 1, z: 0 }] }).mesa, false, 'una sola silla no alcanza');
   // lo que se mide "desde ahora": cuenta desde que empezó el capítulo
-  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 4;   // el lago
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 1;   // la bolsa del molinero (4.15.0: antes, el lago)
   H.arrancarCapitulo(h, s);
-  assert.deepEqual(H.revisarHistoria(h, H.estadoHistoria(p, { terminadas })).nuevos.map((o) => o.id), [], 'los peces de antes no cuentan');
-  p.peces.marron.cantidad = 2;
-  assert.deepEqual(H.revisarHistoria(h, H.estadoHistoria(p, { terminadas, enVela: true })).nuevos.map((o) => o.id), ['pez', 'navegar'], 'uno nuevo sí; y navegar se tilda en el momento');
+  assert.deepEqual(H.revisarHistoria(h, H.estadoHistoria(p, { terminadas })).nuevos.map((o) => o.id), ['viaje', 'hacha', 'banco'], 'los árboles talados de antes no cuentan (lo demás es de tenerlo)');
+  p.talados = [1, 2, 3];
+  assert.deepEqual(H.revisarHistoria(h, H.estadoHistoria(p, { terminadas })).nuevos.map((o) => o.id), ['talar'], 'uno nuevo sí');
   // una partida sin vecinos (2.8) no se traba en los capítulos de vecinos
-  const hv = H.historiaNueva(); H.empezarHistoria(hv, 1); hv.capitulo = 2;
+  const hv = H.historiaNueva(); H.empezarHistoria(hv, 1); hv.capitulo = 2;   // la mesa larga
   const sv = H.estadoHistoria(progresoBase(), { vecinos: false, terminadas });
   H.arrancarCapitulo(hv, sv);
   const rv = H.revisarHistoria(hv, sv);
@@ -158,12 +162,12 @@ const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materia
 {
   const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 2; h.fase = 'jugando';
   const s = H.estadoHistoria(progresoBase(), {});
-  assert.equal(H.momentoPendiente(h, s), 'tobillo', 'en los vecinos, Nicanor se lastima pronto');
+  assert.equal(H.momentoPendiente(h, s), 'tobillo', 'en la mesa larga, Nicanor se lastima pronto');
   assert.equal(H.momentoPendiente(h, { ...s, vecinos: false }), null, 'sin vecinos, Nicanor no se lastima');
   H.momentoLanzado(h);
   assert.equal(H.momentoPendiente(h, s), null, 'una sola vez');
   // el temporal espera a que lo demás esté hecho
-  const f = H.historiaNueva(); H.empezarHistoria(f, 1); f.capitulo = 7; f.fase = 'jugando';
+  const f = H.historiaNueva(); H.empezarHistoria(f, 1); f.capitulo = instalarCapituloTemporal(H); f.fase = 'jugando';   // (4.15.0: el capítulo del temporal de antes, sólo para probar la mecánica)
   assert.equal(H.momentoPendiente(f, s), null, 'el temporal no llega antes de la visita y el cuento');
   f.hechos['temporal:visita'] = 9; f.hechos['temporal:cuento'] = 9;
   assert.equal(H.momentoPendiente(f, s), 'temporal', 'y llega al final');
@@ -310,17 +314,17 @@ function correr(semilla, dias = 240) {
   assert.deepEqual(basura.regalos, {}); assert.equal(basura.activo, null); assert.deepEqual(basura.veces, {});
   assert.equal(E.sanearEventosValle(null).activo, null);
   assert.equal(E.sanearEventosValle({ semilla: 44 }).semilla, 44);
-  const hb = H.sanearHistoria({ activa: 'sí', capitulo: 99, fase: 'volando', hechos: { 'llegada:fuego': 3, 'x:y': 2, constructor: 1 }, base: { anotaciones: -3, dia: 4, toString: 1 }, hablados: { ramon: 1, __proto__: 1 }, momentos: { vecinos: 'lanzado', llegada: 'otra', constructor: 'lanzado' } });
+  const hb = H.sanearHistoria({ activa: 'sí', capitulo: 99, fase: 'volando', hechos: { 'llave:fuego': 3, 'x:y': 2, constructor: 1 }, base: { anotaciones: -3, dia: 4, toString: 1 }, hablados: { ramon: 1, __proto__: 1 }, momentos: { mesa: 'lanzado', llave: 'otra', constructor: 'lanzado' } });
   assert.equal(hb.activa, false); assert.equal(hb.capitulo, H.CAPITULOS.length - 1); assert.equal(hb.fase, 'intro');
-  assert.deepEqual(hb.hechos, { 'llegada:fuego': 3 }); assert.deepEqual(hb.base, { anotaciones: 0, dia: 4 });
-  assert.deepEqual(hb.hablados, { ramon: true }); assert.deepEqual(hb.momentos, { vecinos: 'lanzado' });
+  assert.deepEqual(hb.hechos, { 'llave:fuego': 3 }); assert.deepEqual(hb.base, { anotaciones: 0, dia: 4 });
+  assert.deepEqual(hb.hablados, { ramon: true }); assert.deepEqual(hb.momentos, { mesa: 'lanzado' });
   assert.deepEqual(H.sanearHistoria('x'), H.historiaNueva());
   // la vuelta entera por el guardado
   G.usarModoGuardado('relax', 1);
   const p = G.progresoNuevo();
   assert.equal(p.historia, undefined, 'una partida nueva no trae historia hasta que haga falta');
   p.pos = { x: 1, z: 2 };
-  p.historia = H.historiaNueva(); H.empezarHistoria(p.historia, 1); p.historia.hablados.ema = true; p.historia.hechos['llegada:fuego'] = 1;
+  p.historia = H.historiaNueva(); H.empezarHistoria(p.historia, 1); p.historia.hablados.ema = true; p.historia.hechos['llave:fuego'] = 1;
   p.eventosValle = E.sanearEventosValle({ semilla: 99 }); E.forzarEvento(p.eventosValle, 'viajero', 4); E.agendar(p.eventosValle, 's-oveja-lana', 6); E.sumarGratitud(p.eventosValle, 'ema', 2, 4);
   assert.ok(G.guardarProgreso(p));
   const v = G.cargarProgreso();
@@ -378,4 +382,4 @@ function correr(semilla, dias = 240) {
   for (const marca of ['La historia del valle', 'Lo que pasó después', 'Pasa algo en el valle', 'data-ajuste="relaxTipo"', 'valle?.actualizar(dt)']) assert.ok(index.includes(marca), `el paquete trae «${marca}»`);
 }
 
-console.log(`OK 3.1 historia y eventos del valle · ${H.CAPITULOS.length} capítulos (${H.CAPITULOS.reduce((s, c) => s + c.objetivos.length, 0)} objetivos) · ${E.EVENTOS_VALLE.length} eventos · ${Object.keys(E.SEGUIMIENTOS).length} consecuencias después`);
+console.log(`OK 3.1 historia y eventos del valle · ${H.CAPITULOS.length - 1} capítulos (${H.CAPITULOS.filter((c) => c.id !== 'temporal').reduce((s, c) => s + c.objetivos.length, 0)} objetivos) · ${E.EVENTOS_VALLE.length} eventos · ${Object.keys(E.SEGUIMIENTOS).length} consecuencias después`);

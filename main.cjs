@@ -253,6 +253,8 @@ const recuperacion = registrarRecuperacion({
 require('./sincronia-main.cjs').registrarSincronia({ ipcMain, dialog, app, ventana: () => ventanaPrincipal, alError: (m) => escribirCrash('sync', m) });
 // 3.8.4: las fotos del álbum, en archivos en la carpeta de la partida (ver fotos-main.cjs)
 require('./fotos-main.cjs').registrarFotos({ ipcMain, app, alError: (m) => escribirCrash('fotos', m) });
+// 4.15.0: la copia previa de las partidas que la Historia nueva reinicia (ver copias-main.cjs)
+require('./copias-main.cjs').registrarCopias({ ipcMain, app, alError: (m) => escribirCrash('copias', m) });
 
 const { cuidarVentana, cuidarPermisos } = require('./ventana-main.cjs');
 // 4.10.4 (M3): los errores sin atrapar del proceso principal quedan en hojarasca-crash.log (antes: el cuadro de Electron y nada anotado)

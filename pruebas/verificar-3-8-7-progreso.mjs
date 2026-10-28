@@ -23,6 +23,8 @@ import { fileURLToPath } from 'node:url';
 import { expresion } from './ayuda-codigo.mjs';
 
 const HI = await import('../src/historia.js');
+const { instalarCapituloTemporal } = await import('./ayuda-capitulo-temporal.mjs');
+const IT = instalarCapituloTemporal(HI);   // 4.15.0: el capítulo de la noche del temporal de la Historia vieja, sólo para probar su mecánica
 const EV = await import('../src/eventos-valle.js');
 const DI = await import('../src/diario.js');
 const ME = await import('../src/meteo.js');
@@ -38,7 +40,7 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
 // ---------------------------------------------------------------- 1. el temporal del capítulo 8
 {
   const p = { dia: 20, horas: 12, entradas: {}, visitas: { cuenta: 0 }, eventosValle: EV.eventosValleNuevos(() => 0.5) };
-  const h = HI.sanearHistoria({ activa: true, capitulo: 7, fase: 'jugando', empezada: 1, hechos: { 'temporal:visita': 20, 'temporal:cuento': 20 }, base: { dia: 20 } });
+  const h = HI.sanearHistoria({ activa: true, capitulo: IT, fase: 'jugando', empezada: 1, hechos: { 'temporal:visita': 20, 'temporal:cuento': 20 }, base: { dia: 20 } });
   let s = HI.estadoHistoria(p, {});
   eq(HI.momentoPendiente(h, s), 'temporal', 'con lo demás hecho, llega el temporal');
   ok(EV.forzarEvento(p.eventosValle, 'temporal', 20), 'se fuerza la tarjeta');
@@ -55,11 +57,11 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   eq(HI.revisarHistoria(HI.sanearHistoria(h), HI.estadoHistoria(p, {})).completo, true, 'días después, sí');
   ok(leer('src/main.js').includes('hasta = horaAbsoluta(d + 1, FIN_TEMPORAL);'), 'la tormenta forzada termina a la misma hora');
   // lanzado pero perdido de verdad (la tarjeta no llegó a contestarse y se perdió): se vuelve a pedir
-  const h2 = HI.sanearHistoria({ activa: true, capitulo: 7, fase: 'jugando', empezada: 1, hechos: {}, base: { dia: 20 }, momentos: { temporal: 'lanzado' } });
+  const h2 = HI.sanearHistoria({ activa: true, capitulo: IT, fase: 'jugando', empezada: 1, hechos: {}, base: { dia: 20 }, momentos: { temporal: 'lanzado' } });
   eq(HI.momentoPerdido(h2, HI.estadoHistoria({ dia: 20, eventosValle: { hechos: {} } }, {})), 'temporal', 'perdido de verdad, vuelve');
   eq(HI.momentoPerdido(h2, HI.estadoHistoria({ dia: 20, eventosValle: { hechos: { temporal: { dia: 12 } } } }, {})), 'temporal', 'un temporal de antes del capítulo no cuenta');
   // un temporal al azar del mismo capítulo: no trae otro el mismo día
-  const h3 = HI.sanearHistoria({ activa: true, capitulo: 7, fase: 'jugando', empezada: 1, hechos: { 'temporal:visita': 20, 'temporal:cuento': 20 }, base: { dia: 19 } });
+  const h3 = HI.sanearHistoria({ activa: true, capitulo: IT, fase: 'jugando', empezada: 1, hechos: { 'temporal:visita': 20, 'temporal:cuento': 20 }, base: { dia: 19 } });
   eq(HI.momentoPendiente(h3, HI.estadoHistoria({ dia: 20, eventosValle: { hechos: { temporal: { dia: 20, opcion: 'atar' } } } }, {})), null, 'un temporal al azar en el capítulo no trae otro');
   ok(leer('src/historia-ui.js').includes('else if (!m && momentoPerdido(h, s) && !eventos.ev().activo && lugarOk) eventos.forzar(def.evento);'), 'la historia en pantalla usa momentoPerdido');
 }
@@ -120,7 +122,7 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
 {
   const v = VI.sanearVisitas({ ultima: 1, cuenta: 2, recibidas: 2, activa: null });
   const p = { dia: 10, visitas: v, entradas: {}, eventosValle: { hechos: {} } };
-  const h = HI.sanearHistoria({ activa: true, capitulo: 7, fase: 'jugando', empezada: 1, base: HI.baseDe(HI.estadoHistoria(p, {})) });
+  const h = HI.sanearHistoria({ activa: true, capitulo: IT, fase: 'jugando', empezada: 1, base: HI.baseDe(HI.estadoHistoria(p, {})) });
   VI.visitaFueraDeTurno(v, 'nicanor', 10);
   eq(VI.recibidas(v), 2, 'todavía no llegó: no cuenta');
   const g = VI.sanearVisitas(JSON.parse(JSON.stringify(v)));

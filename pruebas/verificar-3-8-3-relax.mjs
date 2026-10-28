@@ -21,6 +21,8 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import * as H from '../src/historia.js';
+import { instalarCapituloTemporal } from './ayuda-capitulo-temporal.mjs';
+const IT = instalarCapituloTemporal(H);   // 4.15.0: el capítulo de la noche del temporal de la Historia vieja, sólo para probar su mecánica
 import { CUENTOS } from '../src/cuentos.js';
 import * as Conservas from '../src/conservas.js';
 import * as Vivero from '../src/vivero.js';
@@ -79,8 +81,8 @@ const trozo = (desde, hasta) => {
 {
   // una partida que ya escuchó los cuatro cuentos y pasó un temporal al azar el día 5
   const p = (dia, visitas, temporal = 5) => ({ dia, entradas: Object.fromEntries(CUENTOS.map((c) => [c.id, { dia: 3, hora: 21, cantidad: 0 }])), visitas: { cuenta: visitas }, eventosValle: { hechos: { temporal: { dia: temporal, opcion: 'lena' } } } });
-  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 7; h.fase = 'intro';
-  ok(H.capituloActual(h).id === 'temporal', 'el capítulo 8 es el del temporal');
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = IT; h.fase = 'intro';
+  ok(H.capituloActual(h).id === 'temporal', 'el capítulo de prueba es el del temporal');
   H.arrancarCapitulo(h, H.estadoHistoria(p(20, 9)));
   let r = H.revisarHistoria(h, H.estadoHistoria(p(20, 9)));
   ok(!r.nuevos.some((o) => o.id === 'temporal'), 'el temporal al azar del día 5 no tilda el del capítulo');
@@ -94,7 +96,7 @@ const trozo = (desde, hasta) => {
   r = H.revisarHistoria(h, H.estadoHistoria(p(22, 10, 21)));
   ok(r.completo, 'pasar el temporal del capítulo (a la mañana siguiente) termina la historia');
   // con un cuento por contar todavía, hace falta el cuento (como siempre)
-  const g = H.historiaNueva(); H.empezarHistoria(g, 1); g.capitulo = 7; g.fase = 'intro';
+  const g = H.historiaNueva(); H.empezarHistoria(g, 1); g.capitulo = IT; g.fase = 'intro';
   const q = (dia, visitas) => { const x = p(dia, visitas); delete x.entradas[CUENTOS[0].id]; return x; };
   H.arrancarCapitulo(g, H.estadoHistoria(q(20, 9)));
   r = H.revisarHistoria(g, H.estadoHistoria(q(21, 10)));
@@ -195,7 +197,7 @@ const trozo = (desde, hasta) => {
   ok(vieja.cuenta === 6 && Visitas.recibidas(vieja) === 5, 'y desde ahí, el turno salteado no cuenta');
   // en la historia: capítulo 8, al que le tocaba no pudo venir
   const prog = { dia: 20, entradas: {}, visitas: Visitas.sanearVisitas({ ultima: 17, cuenta: 9 }) };
-  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 7; h.fase = 'intro';
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = IT; h.fase = 'intro';
   H.arrancarCapitulo(h, H.estadoHistoria(prog));
   Visitas.saltearTurno(prog.visitas);
   let r = H.revisarHistoria(h, H.estadoHistoria(prog));
