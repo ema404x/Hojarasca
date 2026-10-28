@@ -1,23 +1,35 @@
-# 4.13.0 (agente A) · Duendes en la Historia: presencia, encuentro y armas (EN CURSO)
+# 4.13.0 (agente A) · Duendes en la Historia: presencia, encuentro con elección y armas
 
-Rama `v4130-a` (sale de `main` = 4.12.3). No se subió la versión.
+Rama `v4130-a` (sale de `main` = 4.12.3; ya con la rama de B mergeada). No se subió la versión, no se tocó `main`, sin etiqueta ni zip. Pasos 1 y 2 de `DECISIONES_HISTORIA_DUENDES.md`; el paso 3 (la noche y los finales) es de B (`CAMBIOS_4_13_0_B.md`).
 
-## Estado al pausar
+## Qué se hizo
+- **Infraestructura** (`src/historia-duendes.js`): `crearDuendesHistoria(ctx)` (API documentada en el encabezado del archivo). Instala y precalienta los modelos del Desafío (`instalarDuendes` + `precalentarDuendes`) **sólo si la Historia está en marcha**, y en la carga; duendes sueltos (`aparecer` → `mirar`, `irA`, `huir`, `saludar`, `reir`, `esconder`, `quitar`) con el animador del Desafío pero sin vida, daño ni IA; reciclados (cada duende creado gasta una fila de la textura de huesos para siempre). La voz: `reirDuende` apaga `sonido.relax` **sólo durante la llamada** (el Relax normal sigue mudo; la risa de los duendes no cambió).
+- **Presencia** (`src/historia-presencia.js`), capítulos 5 y 6 (lago y molino): siluetas al anochecer (17:30 a 21:30) entre los árboles, a 38–52 m, que miran y se esconden si te acercás (con trato dejan acercarse a 13 m y a veces saludan; sin trato se van a 30 m); risa lejana de noche (21 a 4); dos «luciérnagas raras» azuladas y violetas (halos del sistema de los duendes, ningún shader nuevo); con trato, un atadito de ramitas en la puerta del refugio por la mañana (hasta 3, cobra al pasar cerca). Cuenta `vistos` cuando una silueta estuvo a la vista unos segundos.
+- **Encuentro** (evento `duendes-galpon`, momento del capítulo 5 con `lugar: 'galpon'`): cuando lo demás del capítulo está hecho, de noche (18 a 3 h) y cerca del Galpón de Esquila, dos duendes esperan en el portón con una luz verdosa; a 14 m sale la tarjeta con tres opciones (sin diálogos de los duendes): **dejarles yerba** y **seguir la luz** (las dos son TRATO) y **gritarles y espantarlos** (PELEA). Después se van según lo elegido (saludan y se van caminando, o salen corriendo riéndose). Es sólo-Historia (`soloHistoria`): nunca sale al azar.
+- **Misiones de las armas** (capítulo 7, objetivo `armas`, meta 2): tarjeta de Josefina (**arco**: 4 tablas, 1 tronco, 2 horas) y, al otro día, la de Ramón (**honda**: 5 piedras y 4 ramitas, 1 hora), encadenadas por seguimientos; «todavía no» vuelve a preguntar al día siguiente. Si algo se pierde en el camino, `armaPorPedir` la vuelve a pedir. Sin vecinos el objetivo se da por hecho (regla de siempre) y las armas no se tienen: la noche de B las presta igual.
+- **Hito de la noche**: con el trato y las dos armas, `duendes.noche` pasa de `'ninguna'` a `'pendiente'` (`revisarNoche`). B lo espeja y escribe `ganada`/`perdida`.
 
-### Hecho (commiteado)
-- `src/historia-duendes.js` (ya en origin): infraestructura para B y para la presencia. `crearDuendesHistoria(ctx)` con `paraCompilar`, `asegurar`, `aparecer(tipo, opts)` (duende suelto: `mirar`, `irA`, `huir`, `saludar`, `reir`, `esconder`, `quitar`), `actualizar(dt)`, `limpiar`, `reir`, `prepararVoz`; helpers `hayHistoria`, `reirDuende` (voz con `sonido.relax` apagado sólo durante la llamada), `prepararVozDuende`. Duendes reciclados (cada uno ocupa una fila de la textura de huesos). Probado a mano en Node con el three local (aparece, mira, huye, desaparece).
-- `src/historia.js`: esquema `progreso.historia.duendes` = `{ trato: null|'trato'|'pelea', vistos, regalos, armas: {arco, honda}, noche: 'ninguna'|'pendiente'|'ganada'|'perdida', final: null|'trato'|'pelea', intentos }`, con `duendesNuevos`, `sanearDuendes` (default seguro; `sanearHistoria` lo llama), `duendesDe`, `hacerTrato`, `ganarArma`, `revisarNoche` (pasa a `pendiente` con trato + las dos armas), `armaPorPedir`, `hayPresencia` (capítulos lago y molino). `estadoHistoria` suma `trato` y `armas`.
-- Capítulo 5 (lago): línea de intro de misterio, objetivo `duendes` (del momento) y `momento` `duendes-galpon` con `lugar: 'galpon'`. Capítulo 7 (invierno): intro, objetivo `armas` (meta 2, 5 objetivos en total) y `momento` `arco-josefina`.
-- `src/eventos-valle.js`: eventos `duendes-galpon` (comida / señal = trato; espantar = pelea), `arco-josefina`, `honda-ramon` (sólo Historia: `soloHistoria`, nunca salen al azar) y seguimientos `s-honda-ramon`, `s-arco-otra-vez`, `s-honda-otra-vez`; efectos nuevos `duendes` y `arma` (documentados, SIN implementar todavía en `eventos-valle-ui.js`).
+## Esquema de guardado (`progreso.historia.duendes`)
+```
+{ trato: null|'trato'|'pelea',    // el encuentro del galpón
+  vistos: n, regalos: n (tope 3),
+  armas: { arco: bool, honda: bool },
+  noche: 'ninguna'|'pendiente'|'ganada'|'perdida',
+  final: null|'trato'|'pelea', intentos: n }
+```
+Default seguro (`duendesNuevos`), saneado en `sanearHistoria` (`sanearDuendes`: basura, valores inventados, topes); una partida vieja sin el campo abre con el default. Helpers: `duendesDe`, `hacerTrato`, `ganarArma`, `revisarNoche`, `armaPorPedir`, `hayPresencia`. El merge con la rama de B dejó `duendes: duendesNuevos(), noche: nocheNueva()` y las dos asignaciones.
 
-### Falta (próximos pasos)
-1. `eventos-valle-ui.js`: casos `duendes` (llama `hacerTrato`) y `arma` (llama `ganarArma`), avisar a main para el epílogo.
-2. `historia-ui.js`: puerta `lugar` del momento (cerca del galpón `T.lugares.galpon` y de noche, 18 a 3 h), `revisarNoche` y `armaPorPedir` en `revisarAhora`; `alActivarHistoria`.
-3. `src/historia-presencia.js` (NUEVO): siluetas al anochecer, risa lejana de noche, luciérnagas raras (halos), regalitos con trato, escena del galpón y su epílogo.
-4. `main.js`: crear `duendesHist` y la presencia, `paraCompilar()` antes de la compilación de la carga, `actualizar(dt)` junto a `valle.actualizar`.
-5. Pruebas: `verificar-4-13-0-historia-a.mjs` (con mutaciones), sumarla con `herramientas/sumar-prueba.cjs`, humo `humo-4-13-0-historia-a.cjs`, y ajustar `verificar-3-1-historia.mjs` (objetivos por capítulo hasta 5 por el capítulo 7; eventos hasta 14) y las pruebas de basura/trucos si hace falta. Gate `npm run verify`, partida real y capturas (con el candado `hx\electron.lock`).
+## Decisiones propias
+1. **Las armas se hacen con tarjetas de los vecinos**, no con una tecla E nueva: no se toca la tabla de interacciones (67 entradas, 20 mil comprobaciones) ni hace falta construir una carpintería de $22.000.
+2. **Capítulos**: sin capítulos nuevos (siguen 8). El capítulo 5 queda con 4 objetivos y el 7 con 5: la prueba 3-1 pedía «2 a 4»; **se subió a «2 a 5»** y los eventos de «10 a 12» a **«10 a 14»** (tres eventos nuevos, sólo de la Historia). `verificar-3-8-7-progreso` fijaba el texto exacto de la línea de `momentoPerdido`; se le sumó `&& lugarOk` (el galpón) y la prueba se ajustó a eso.
+3. El resumen de la guía («N cosas pasaron de M que pueden pasar») no cuenta los eventos sólo-Historia.
+4. **Sin «huellitas»**: se evitó sumar geometría y materiales; quedan siluetas, risas, luciérnagas raras y regalitos.
+5. **Dónde se instala**: `duendesHistoria()?.paraCompilar()` va **después de `gente?.trasCompilar?.()`** (aviso de B: antes, el programa de sombra de la silueta del jugador se compila tarde, 109 → 110). Si la Historia se empieza ya con el juego andando, se arma bajo la pausa/tarjeta (`alActivarHistoria`) y se compila contra la salida del posproceso.
 
-### Notas
-- No se corrió Electron ni el gate en esta tanda.
-- Decisión propia: las armas se consiguen con tarjetas de los vecinos (materiales: arco 4 tablas + 1 tronco; honda 5 piedras + 4 ramitas), no con una tecla E nueva, para no tocar la tabla de interacciones.
-- Pendiente de decir al coordinador: `historia-presencia.js` y `main.js` son los puntos de choque con B.
+## Verificación
+- `pruebas/verificar-4-13-0-historia-a.mjs` (en el gate): 192 comprobaciones (esquema y basura, capítulos y momentos, eventos y cadenas, ventanas de hora y puntos, infraestructura con el three local —aparece, mira, camina, huye, se recicla—, enganche) y **18 mutaciones atrapadas**.
+- `pruebas/humo-4-13-0-historia-a.cjs`: partida real (ver el resultado abajo).
+- Ajustes mínimos: `verificar-3-1-historia.mjs` (topes, tipos de efecto) y `verificar-3-8-7-progreso.mjs` (línea con `lugarOk`).
+
+## Resultado de las corridas
+(se completa al final)
