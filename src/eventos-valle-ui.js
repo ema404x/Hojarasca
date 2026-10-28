@@ -9,6 +9,7 @@ import { EVENTO_VALLE, SEGUIMIENTOS, sanearEventosValle, revisarEventos, forzarE
 import { mesaPuesta, VISITANTES, VISITA, visitaFueraDeTurno } from './visitas.js';
 import { TRUEQUES } from './trueque.js';
 import { puedeLlegar, llamarProximo, NOMBRE_ALDEA } from './aldea.js';
+import { sanearHistoria, hacerTrato, ganarArma } from './historia.js';
 
 // lo que el viento puede voltear: piezas chicas y sueltas, que no estén bajo techo
 const LIVIANAS = ['tendal', 'maceton', 'cerco', 'silla-campo', 'banco', 'mesa-campo', 'lena'];
@@ -132,6 +133,15 @@ export function crearEventosValleUi(ctx, tarjetas) {
           }
           break;
         }
+        // 4.13.0: los duendes del galpón y las armas (quedan en progreso.historia.duendes)
+        case 'duendes':
+          if (!p.historia) p.historia = sanearHistoria(null);
+          if (hacerTrato(p.historia, f.trato)) { ctx.alDecidirDuendes?.(f.trato); dichos.push(f.trato === 'trato' ? 'Algo en el monte se rió, contento' : 'Se fueron corriendo, riéndose'); }
+          break;
+        case 'arma':
+          if (!p.historia) p.historia = sanearHistoria(null);
+          if (ganarArma(p.historia, f.id)) dichos.push(f.id === 'arco' ? 'Tenés un arco' : 'Tenés una honda');
+          break;
         default: break;
       }
     }

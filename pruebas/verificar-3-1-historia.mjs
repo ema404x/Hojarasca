@@ -32,7 +32,7 @@ assert.ok(H.CAPITULOS.length >= 6 && H.CAPITULOS.length <= 8, `entre 6 y 8 capí
 assert.equal(new Set(H.CAPITULOS.map((c) => c.id)).size, H.CAPITULOS.length, 'ids de capítulo únicos');
 for (const c of H.CAPITULOS) {
   assert.ok(c.titulo && c.intro.length >= 1 && c.outro.length >= 1, `${c.id}: entrada y salida`);
-  assert.ok(c.objetivos.length >= 2 && c.objetivos.length <= 4, `${c.id}: 2 a 4 objetivos (${c.objetivos.length})`);
+  assert.ok(c.objetivos.length >= 2 && c.objetivos.length <= 5, `${c.id}: 2 a 5 objetivos (${c.objetivos.length})`);
   assert.equal(new Set(c.objetivos.map((o) => o.id)).size, c.objetivos.length, `${c.id}: objetivos únicos`);
   for (const o of c.objetivos) assert.ok(o.texto && (typeof o.hecho === 'function' || typeof o.cuenta === 'function'), `${c.id}:${o.id} se mide`);
   assert.ok(c.premio && c.premio.texto && (c.premio.materiales || c.premio.cuenta || c.premio.ramitas), `${c.id}: premio concreto`);
@@ -174,9 +174,9 @@ const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materia
 }
 
 // ---------------------------------------------------------------- 5. los eventos
-assert.ok(E.EVENTOS_VALLE.length >= 10 && E.EVENTOS_VALLE.length <= 12, `10 a 12 eventos (${E.EVENTOS_VALLE.length})`);
+assert.ok(E.EVENTOS_VALLE.length >= 10 && E.EVENTOS_VALLE.length <= 14, `10 a 14 eventos (${E.EVENTOS_VALLE.length})`);
 assert.equal(new Set(E.EVENTOS_VALLE.map((e) => e.id)).size, E.EVENTOS_VALLE.length);
-const TIPOS = ['dar', 'gratitud', 'horas', 'lena', 'helada', 'tapar', 'voltear', 'cosa', 'visita', 'poblador'];
+const TIPOS = ['dar', 'gratitud', 'horas', 'lena', 'helada', 'tapar', 'voltear', 'cosa', 'visita', 'poblador', 'duendes', 'arma'];
 const QUIENES = ['ramon', 'nicanor', 'ema', 'ercilia', 'guarda'];
 const COSAS_ITEM = new Set(TRUEQUES.map((t) => t.id));
 function revisarEfectos(donde, efectos) {

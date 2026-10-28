@@ -253,6 +253,9 @@ import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-t
 import { crearValleUi } from './historia-ui.js';
 // 4.13.0 (B): la noche de defensa del final de la Historia
 import { crearNocheMundo } from './historia-noche-mundo.js';
+// 4.13.0 (A): los duendes de lejos en los capítulos 5 y 6, el encuentro del galpón y las armas
+import { crearDuendesHistoria, hayHistoria } from './historia-duendes.js';
+import { crearPresencia } from './historia-presencia.js';
 // 3.8.6: la noche del temporal del capítulo 8
 import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
 // 4.5: la consola de códigos (Ctrl+Mayús+C) y hasta dónde se puede teletransportar
@@ -1085,6 +1088,7 @@ async function construir() {
     gente?.trasCompilar?.();
     // 4.13.0 (B): la historia ya empezada trae sus duendes y la noche armados y compilados en la carga (después de lo de la gente: si se arma antes, el programa de profundidad de la silueta del jugador se compila tarde)
     if (!esDesafio && (progreso.historia?.activa || progreso.historia?.empezada || ajustes.relaxTipo === 'historia')) nocheDelMundo()?.preparar();
+    duendesHistoria()?.paraCompilar();   // 4.13.0 (A): también después de lo de la gente (ver arriba); sólo si la Historia está en marcha
     prearmarAldea();   // 3.7.0 (integración): la gente de la aldea se arma en la portada
   });
   infoCarga.texturas = await texturasEnCamino;
@@ -2145,6 +2149,38 @@ function revisarGuiaRelax(dt) {
 // Capítulos con objetivos y eventos con decisiones, sólo en el Relax (ver historia-ui.js).
 // Con una tarjeta abierta el mundo queda quieto: `modo` pasa a 'valle' hasta que elegís.
 let valle = null;
+// 4.13.0 (A): los duendes sueltos de la Historia (infraestructura: historia-duendes.js) y su presencia (historia-presencia.js)
+let duendesHist = null, presenciaHist = null;
+function compilarContraPost(o) {
+  const rt = renderer.getRenderTarget();
+  renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null);
+  try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); }
+}
+function duendesHistoria() {
+  if (esDesafio) return null;
+  if (!duendesHist) duendesHist = crearDuendesHistoria({
+    escena, altura: (x, z) => T.altura(x, z), jugador: () => jugador?.estado.pos, sonido: () => sonido,
+    noche: () => 1 - (luzUltimaFoto?.dia ?? 1), activo: () => hayHistoria(ajustes, progreso?.historia), compilar: compilarContraPost,
+  });
+  return duendesHist;
+}
+function presenciaHistoria() {
+  if (esDesafio) return null;
+  if (!presenciaHist) {
+    const alt = (x, z) => T.altura(x, z);
+    const p = new THREE.Vector3();
+    presenciaHist = crearPresencia({
+      dh: duendesHistoria(), escena, historia: () => valle.historia(), jugador: () => jugador?.estado.pos,
+      rumbo: () => (jugador?.estado.yaw || 0) + Math.PI, altura: alt, hora: () => progreso.horas, dia: () => progreso.dia,
+      libre: () => modo === 'jugando' && !(jugador.estado.enTren || jugador.estado.enKayak || jugador.estado.enVela || jugador.estado.montado),
+      enTierra: (x, z) => alt(x, z) >= 0.45,
+      cercaDeArbol: (x, z) => { p.set(x, alt(x, z), z); try { col.resolver(p, 2.4, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) > 0.05; },
+      refugio: () => T.lugares.refugio, galpon: () => T.lugares.galpon || null,
+      cobrar: (premio) => cobrarPremio({ premio }), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+    });
+  }
+  return presenciaHist;
+}
 // 4.13.0 (B): la noche de la Historia en el mundo (se arma de a poco: ver historia-noche-mundo.js)
 let nocheMundo = null;
 function nocheDelMundo() {
@@ -2155,6 +2191,7 @@ function nocheDelMundo() {
 function crearValle() {
   valle = crearValleUi({
     esDesafio, nota, guardar, sumarMaterial, traducir: traducirPanel,
+    presencia: presenciaHistoria(), alActivarHistoria: () => { try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } }, alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
     noche: nocheDelMundo(), creditos: () => { abrir('pausa'); abrirInfo('creditos', 'pausa'); },   // 4.13.0 (B)
     teclaVisible: (t) => teclaVisible(t, teclasPropias),   // 3.8.4: el panel de la historia, con las teclas del jugador
     // con ?debug=1 los eventos al azar quedan quietos (las pruebas los prenden con __valle.azar(true))
@@ -10736,7 +10773,8 @@ function cuadroDelJuego(tRaf, manual) {
   }
   if (modo === 'jugando') revisarPistas(dt);
   if (!esDesafio) revisarGuiaRelax(dt);
-  try { if (!esDesafio) valle?.actualizar(dt); } catch (e) { fallaSistema('valle', e); }   // 3.1: la historia y los eventos del valle
+  try { if (!esDesafio) valle?.actualizar(dt); } catch (e) { fallaSistema('valle', e); }
+  try { if (!esDesafio && duendesHist) { if (valle) presenciaHist?.actualizar(dt); duendesHist.actualizar(dt); } } catch (e) { fallaSistema('duendes-historia', e); }   // 4.13.0 (A)   // 3.1: la historia y los eventos del valle
   try { veg.actualizarCaidas(dt); } catch (e) { fallaSistema('caidas-arboles', e); }
   try { if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); } } catch (e) { fallaSistema('majada/casa', e); }
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
@@ -11659,7 +11697,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.0: la supervivencia sin fin, para las pruebas
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
-  if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;   // 4.13.0 (B)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;
+  if (HOJARASCA_DEBUG) { window.__hojarasca.__duendesHist = () => duendesHist; window.__hojarasca.__presencia = () => presenciaHist; }   // 4.13.0 (A)   // 4.13.0 (B)
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__preguntaLento = preguntaLento;   // 3.8.4
   if (HOJARASCA_DEBUG) window.__hojarasca.__caidas = { dialogos, graficos: estadoGraficos, fallas: () => [...fallasBucle.values()], fallaSistema, rehacerGraficos, pedirNombre, recuperadoDe, modo: () => modo };

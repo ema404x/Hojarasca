@@ -19,7 +19,7 @@
 //     sonido: () => sonido,            // el motor de sonido (sólo para la risa)
 //     noche: () => 0..1,               // qué tan de noche está (1 - luz.dia); sin esto, 0
 //     activo: () => true|false,        // ¿la Historia está en marcha? (relaxTipo === 'historia' o progreso.historia.activa)
-//     compilar: () => void,            // opcional: compilar ya los shaders (sólo si se asegura a mitad de juego, ver `asegurar`)
+//     compilar: (raiz) => void,        // opcional: compilar ya los shaders de lo instalado (sólo si se asegura a mitad de juego, ver `asegurar`)
 //   });
 //   dh.paraCompilar()      // en la CARGA, antes de compilar los programas: instala + precalienta (no hace nada si no es Historia)
 //   dh.asegurar()          // instala + precalienta si todavía no se hizo (idempotente). Devuelve true si quedó listo.
@@ -81,7 +81,7 @@ const angulo = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.P
 
 export function crearDuendesHistoria(ctx) {
   const vivos = [], libres = {};
-  let instalado = false, precalentado = false;
+  let instalado = false, precalentado = false, raiz = null;
   const noche = () => Math.max(0, Math.min(1, Number(ctx.noche?.()) || 0));
   const activo = () => (typeof ctx.activo === 'function' ? !!ctx.activo() : true);
   let vozPedida = false;
@@ -89,14 +89,14 @@ export function crearDuendesHistoria(ctx) {
   // En la carga: sólo si la Historia está en marcha. A mitad de juego, `asegurar` compila ya (queda detrás de la pausa o la tarjeta).
   function paraCompilar() {
     if (!activo()) return false;
-    if (!instalado) { instalarDuendes(ctx.escena); instalado = true; }
+    if (!instalado) { raiz = instalarDuendes(ctx.escena); instalado = true; }
     if (!precalentado) { precalentarDuendes(); precalentado = true; }
     return true;
   }
   function asegurar() {
     if (instalado && precalentado) return true;
     if (!paraCompilar()) return false;
-    try { ctx.compilar?.(); } catch (e) { console.warn('duendes de la historia: compilar', e && e.message); }
+    try { ctx.compilar?.(raiz); } catch (e) { console.warn('duendes de la historia: compilar', e && e.message); }
     return true;
   }
   const listo = () => instalado && precalentado;
