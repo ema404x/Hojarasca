@@ -13,7 +13,7 @@ import { duendesDe, hayPresencia, REGALOS_TOPE } from './historia.js';
 
 // ---------------------------------------------------------------- reglas puras
 export const VENTANAS = {
-  silueta: [17.5, 21.5],   // el anochecer
+  silueta: [18, 22],   // el anochecer (con los ojos ya prendidos: de lejos se los ve)
   risa: [21, 4],           // la noche cerrada (cruza la medianoche)
   luz: [20, 4.5],          // las luciérnagas raras
   galpon: [18, 3],         // el encuentro del galpón
@@ -23,10 +23,11 @@ export function enVentana(horas, [desde, hasta]) {
   const h = ((Number(horas) % 24) + 24) % 24;
   return desde <= hasta ? h >= desde && h < hasta : h >= desde || h < hasta;
 }
+export const ESCALA_SILUETA = 1.6;   // a 25 m un duende de 75 cm entre el pasto alto es un punto: así miden ~1,2 m, «el alto de un chico»
 export const TIEMPOS = {
   primeraSilueta: [25, 50], entreSiluetas: [70, 130], vidaSilueta: 40,
   entreRisas: [45, 100], vidaLuz: 45, luces: 2,
-  distSilueta: [38, 52], huyeSinTrato: 30, huyeConTrato: 13, vistaDist: 62, vistaSegundos: 2.5,
+  distSilueta: [24, 38], huyeSinTrato: 16, huyeConTrato: 8, vistaDist: 45, vistaSegundos: 2.5,
   galponAparece: 75, galponTarjeta: 14, galponSuelta: 110,
 };
 const entre = (r, [a, b]) => a + r() * (b - a);
@@ -69,7 +70,7 @@ export function crearPresencia(ctx) {
     for (let i = 0; i < 14; i++) {
       const p = puntoEnAbanico(j, rumbo, azar, TIEMPOS.distSilueta);
       if (!ctx.enTierra(p.x, p.z) || !ctx.cercaDeArbol(p.x, p.z)) continue;
-      const d = dh.aparecer('rastreador', { x: p.x, z: p.z, mira: true });
+      const d = dh.aparecer('rastreador', { x: p.x, z: p.z, mira: true, escala: ESCALA_SILUETA });
       if (!d) return false;
       sil = d; silEdad = 0; silVista = 0; silVisto = false;
       return true;
@@ -187,7 +188,7 @@ export function crearPresencia(ctx) {
     const mirar = yo();
     for (const [lx, tipo] of [[-1.3, 'rastreador'], [1.2, 'rastreador']]) {
       const p = delGalpon(g, PUERTA_GALPON.lx + lx, PUERTA_GALPON.lz - 0.6);
-      const d = dh.aparecer(tipo, { x: p.x, z: p.z, mira: true, viejo: lx > 0 });
+      const d = dh.aparecer(tipo, { x: p.x, z: p.z, mira: true, viejo: lx > 0, escala: ESCALA_SILUETA });
       if (d) galpon.duendes.push(d);
     }
     const p = delGalpon(g, 0, PUERTA_GALPON.lz + 1.8);

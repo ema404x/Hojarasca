@@ -25,7 +25,7 @@
 //   dh.asegurar()          // instala + precalienta si todavía no se hizo (idempotente). Devuelve true si quedó listo.
 //                          //   Si se llama a mitad de juego (la Historia se empieza desde la pausa) llama a `ctx.compilar()`.
 //   dh.listo()             // ¿instalado y precalentado?
-//   const d = dh.aparecer(tipo, { x, z, rumbo, mira, viejo, etapa, agazapado })
+//   const d = dh.aparecer(tipo, { x, z, rumbo, mira, viejo, etapa, agazapado, escala })
 //                          // tipo: 'rastreador' (travieso), 'saltador', 'bruto' (viejo), 'tirador', ... (los de TIPOS_ALIEN)
 //                          // devuelve el duende suelto `d` (null si no está listo o si la Historia no está en marcha)
 //   d.mirar(true|false)    // girar despacio hacia el jugador y quedarse mirándolo
@@ -116,6 +116,7 @@ export function crearDuendesHistoria(ctx) {
     const m = (libres[tipo] || (libres[tipo] = [])).pop() || crearDuende(tipo);   // (se reciclan: cada duende creado ocupa una fila de la textura de huesos para siempre)
     m.reiniciar();
     if (o.viejo || o.etapa !== undefined) m.vestir(!!o.viejo, o.etapa ?? 1);
+    if (Number.isFinite(o.escala) && o.escala > 0) m.malla.scale.multiplyScalar(o.escala);   // más grande para que se lo vea de lejos (reiniciar/vestir la devuelve a su tamaño al reciclarlo)
     const yo = ctx.jugador?.() || { x: 0, z: 0 };
     const e = { dt: 0, velocidad: 0, golpe: 0, ataca: false, carrera: false, apuntando: false, agazapado: false, enredado: false, saltando: 0, noche: 0, reflejo: 0, jugador: yo };
     const s = {

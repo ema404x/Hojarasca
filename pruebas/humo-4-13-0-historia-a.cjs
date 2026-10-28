@@ -34,6 +34,7 @@ const PAGINA = String.raw`(() => {
   N.elegir = (id) => { const b = document.querySelector('#valle-tarjeta button[data-valle-opcion="' + id + '"]'); if (!b) return false; b.click(); return true; };
   N.cerrarTarjetas = () => { let n = 0; while (H.__valle.abierta() && n++ < 5) { const b = document.querySelector('#valle-tarjeta button'); if (!b) break; b.click(); } return n; };
   N.camaraA = (x, y, z) => { const j = J.estado, c = H.camara; c.position.set(j.pos.x, j.pos.y + j.alturaOjos, j.pos.z); c.lookAt(x, y, z); c.updateMatrixWorld(true); j.yaw = Math.atan2(-(x - c.position.x), -(z - c.position.z)); j.pitch = Math.atan2(y - c.position.y, Math.hypot(x - c.position.x, z - c.position.z)); };
+  N.pedir = async () => { for (let i = 0; i < 8; i++) { H.__valle.revisarAhora(); await dormir(30); if (N.tarjeta().abierta) return 1; await N.cuadros(2); } return 0; };
   N.dh = () => H.__duendesHist(); N.pres = () => H.__presencia();
   // corre la presencia y los duendes sueltos como en el juego, n segundos
   N.correr = async (seg, dt = 0.1) => { for (let t = 0; t < seg; t += dt) { N.pres().actualizar(dt); N.dh().actualizar(dt); if (((t / dt) | 0) % 5 === 0) H.__bucle(); } return 1; };
@@ -58,6 +59,8 @@ app.whenReady().then(async () => {
     const m = String(e.message);
     if ((e.level === 'error' || /Uncaught|Shader Error|WebGLProgram/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) { consola.push(m.slice(0, 300)); errores.push(m.slice(0, 300)); }
   });
+  w.webContents.on('render-process-gone', (e, d) => console.log('  PROCESO DE LA PÁGINA CAÍDO:', JSON.stringify(d)));
+  w.webContents.on('console-message', (e) => { if (/Context Lost|context lost|WebGL/i.test(String(e.message))) console.log('  consola:', String(e.message).slice(0, 200)); });
   let donde = 'carga';
   const js = (c) => Promise.race([w.webContents.executeJavaScript(c), new Promise((_, no) => setTimeout(() => no(new Error(`la página no respondió en 120 s (${donde})`)), 120000))]);
   const ok = (cond, texto) => { console.log(`${cond ? '✓' : '✗'} ${texto}`); if (!cond) errores.push(texto); };
@@ -74,9 +77,11 @@ app.whenReady().then(async () => {
   const foto = async (nombre) => {
     if (!CAPTURAS) return;
     await js('window.__N && window.__N.cuadros(3, 30)'); await esperar(500);
-    const img = await w.webContents.capturePage();
-    fs.writeFileSync(path.join(salida, nombre + '.png'), img.toPNG());
-    console.log(`  (captura ${nombre}.png)`);
+    try {
+      const img = await w.webContents.capturePage();
+      fs.writeFileSync(path.join(salida, nombre + '.png'), img.toPNG());
+      console.log(`  (captura ${nombre}.png)`);
+    } catch (e) { console.log(`  (captura ${nombre} no se pudo: ${e && e.message})`); }
   };
   const entrar = async () => {
     await js(`document.getElementById('btn-entrar').click(); 1`);
@@ -101,30 +106,42 @@ app.whenReady().then(async () => {
     // ================================================================ 2. la presencia (capítulo 5)
     donde = 'presencia';
     await N(`N.capitulo(4)`);
-    await N(`(() => { P.horas = 19.2; return 1 })()`);
+    await N(`(() => { const r = H.T.lugares.refugio; H.jugador.ubicar(r.x + 16, r.z + 16, 0); P.horas = 19.2; return 1 })()`);
     await N('N.valle().revisarAhora()'); await N('N.cerrarTarjetas()');
     let sil = null;
     for (let i = 0; i < 40 && !sil; i++) { await N('N.correr(5)'); sil = await N(`(() => { const s = N.pres().silueta(); return s ? { x: s.x, z: s.z, estado: s.estado } : null })()`); }
     ok(!!sil, `al anochecer en el capítulo 5 aparece una silueta (${JSON.stringify(sil)})`);
     if (sil) {
       const d = await N(`Math.hypot(${sil.x} - H.jugador.estado.pos.x, ${sil.z} - H.jugador.estado.pos.z)`);
-      ok(d > 30 && d < 60, `está lejos: ${Math.round(d)} m`);
+      ok(d > 20 && d < 45, `está lejos: ${Math.round(d)} m`);
       await N(`N.camaraA(${sil.x}, H.T.altura(${sil.x}, ${sil.z}) + 0.5, ${sil.z})`);
       await foto('silueta-lejos');
+      // y de más cerca, con el mismo dibujo: uno suelto a 16 m, mirándote, entre los árboles de enfrente
+      await N(`(() => { const j = H.jugador.estado, a = j.yaw + Math.PI, x = j.pos.x + Math.sin(a) * 16, z = j.pos.z + Math.cos(a) * 16; const d = N.dh().aparecer('rastreador', { x, z, mira: true }); N.camaraA(x, H.T.altura(x, z) + 0.5, z); return 1 })()`);
+      await N('N.correr(1)'); await foto('silueta-a-16-m');
+      console.log('  dibujo:', await N(`(() => { const d = N.dh().lista()[0], cam = H.camara; const ms = []; H.escena.traverse((o) => { if (o.isInstancedMesh && /duendes:/.test(o.name) && o.count > 0) ms.push(o.name + ' x' + o.count); }); return JSON.stringify({ hay: !!d, estado: d && d.estado, padre: d && !!d.m.g.parent, vis: d && d.m.g.visible, x: d && d.x, z: d && d.z, y: d && d.m.g.position.y, cam: [cam.position.x, cam.position.y, cam.position.z], ms }) })()`));
+      if (process.env.HUMO_HASTA === 'silueta') {
+        await N('N.dh().limpiar()');
+        await N(`(() => { const j = H.jugador.estado, a = j.yaw + Math.PI, fx = Math.sin(a), fz = Math.cos(a), px = fz, pz = -fx; const col = (k, d, lado) => ({ x: j.pos.x + fx * d + px * lado, z: j.pos.z + fz * d + pz * lado }); const dh = N.dh(); const p1 = col(0, 25, -3), p2 = col(0, 25, 0), p3 = col(0, 25, 3); dh.aparecer('rastreador', { x: p1.x, z: p1.z, mira: true, escala: 1.6 }); const v = dh.aparecer('bruto', { x: p2.x, z: p2.z, mira: true, viejo: true, etapa: 2, escala: 1.6 }); const e = dh.aparecer('rastreador', { x: p3.x, z: p3.z, mira: true, escala: 1.6 }); e.m.g.userData.alzado = 1; N.camaraA(p2.x, H.T.altura(p2.x, p2.z) + 0.8, p2.z); return 1 })()`);
+        await N('N.correr(1)'); await foto('prueba-tamanos-a-25-m');
+        app.exit(0); return;
+      }
+      await N('N.dh().limpiar()');
       // me acerco: se esconde
       await N(`(() => { const j = H.jugador.estado; H.jugador.ubicar(${sil.x} + 8, ${sil.z} + 8, 0); return 1 })()`);
       await N('N.correr(2)');
       const huye = await N(`(() => { const s = N.pres().silueta(); return s ? s.estado : 'fuera' })()`);
       ok(huye === 'huyendo' || huye === 'escondiendo' || huye === 'fuera', `si me acerco, se va (${huye})`);
-      await N('N.correr(8)');
+      await N('N.correr(16)');
       ok((await N(`N.pres().silueta() === null`)), 'y desaparece');
     }
     const vistos = await N('P.historia.duendes.vistos');
     ok(vistos >= 0, `vistos guardados (${vistos})`);
     // las luciérnagas raras y la risa, de noche
     await N(`(() => { P.horas = 22.5; return 1 })()`);
-    await N('N.correr(120)');
-    const luces = await N('N.pres().luces()');
+    let luces = 0;
+    for (let i = 0; i < 24; i++) { await N('N.correr(5)'); luces = Math.max(luces, await N('N.pres().luces()')); if (luces >= 2) break; }
+    await N('N.correr(2)');
     ok(luces >= 1, `luciérnagas raras de noche (${luces})`);
     await foto('luciernagas-raras');
     ok((await N('N.programas()')) === progsCarga, 'la presencia no compiló nada (siluetas, luces)');
@@ -136,7 +153,7 @@ app.whenReady().then(async () => {
     // ================================================================ 3. el encuentro del galpón: trato
     donde = 'galpon-trato';
     await N(`N.capitulo(4, 'jugando', N.lago())`);
-    await N(`(() => { P.horas = 20; P.cosas = P.cosas || {}; P.cosas.yerba = 4; return 1 })()`);
+    await N(`(() => { P.horas = 21.3; P.cosas = P.cosas || {}; P.cosas.yerba = 4; return 1 })()`);
     await N(`N.alGalpon(40)`);
     await N('N.valle().revisarAhora()'); await N('N.cerrarTarjetas()');
     await N('N.correr(4)');
@@ -145,6 +162,14 @@ app.whenReady().then(async () => {
     await N(`N.alGalpon(16)`);
     await N('N.correr(1)');
     await foto('galpon-cerca');
+    await N(`N.alGalpon(15)`);
+    await N('N.correr(1)');
+    await foto('galpon-cerca-2');
+    // (una mirada de cerca, sin que la tarjeta ya tape la escena: se simula estar lejos para la puerta del momento)
+    await N(`(() => { const p = N.pres(), orig = p.cercaDelGalpon; p.cercaDelGalpon = () => false; N.__orig = orig; return 1 })()`);
+    await N(`N.alGalpon(6)`); await N('N.correr(2)'); await foto('galpon-muy-cerca');
+    await N(`N.alGalpon(11)`); await N('N.correr(1)'); await foto('galpon-a-once');
+    await N(`(() => { N.pres().cercaDelGalpon = N.__orig; return 1 })()`);
     await N(`N.alGalpon(9)`);
     await N('N.correr(1)');
     await N('N.valle().revisarAhora()');
@@ -168,14 +193,14 @@ app.whenReady().then(async () => {
 
     // ================================================================ 3b. la pelea
     donde = 'galpon-pelea';
+    await abrir('historia');   // una partida nueva
     await entrar();
-    await N(`N.limpiarEventos()`);
     await N(`N.capitulo(4, 'jugando', N.lago())`);
     await N(`(() => { P.horas = 20; return 1 })()`);
     await N(`N.alGalpon(40)`); await N('N.valle().revisarAhora()'); await N('N.cerrarTarjetas()'); await N('N.correr(4)');
     await N(`N.alGalpon(9)`); await N('N.correr(1)'); await N('N.valle().revisarAhora()');
     t = await N('N.tarjeta()');
-    if (!t.abierta) console.log('  debug:', await N('JSON.stringify({ galpon: N.pres().hayGalpon(), horas: P.horas, h: P.historia, ev: P.eventosValle && P.eventosValle.activo })'));
+    if (!t.abierta || !/Galpón de Esquila/.test(t.texto)) console.log('  debug:', JSON.stringify(t).slice(0, 300), await N('JSON.stringify({ galpon: N.pres().hayGalpon(), horas: P.horas, h: P.historia, ev: P.eventosValle && P.eventosValle.activo })'));
     ok(t.abierta && /Galpón de Esquila/.test(t.texto), 'otra partida: sale la tarjeta');
     await N(`N.elegir('espantar')`);
     await N('N.correr(1)');
@@ -186,11 +211,13 @@ app.whenReady().then(async () => {
 
     // ================================================================ 4. las armas (capítulo 7)
     donde = 'armas';
+    await N('N.cerrarTarjetas()');   // (la tarjeta de cierre del capítulo 5 de la partida anterior)
     await N(`N.capitulo(6)`);
     await N(`(() => { P.historia.duendes.trato = 'trato'; P.materiales = { tabla: 20, tronco: 5, piedra: 12 }; P.ramitas = 10; P.horas = 12; P.eventosValle = null; return 1 })()`);
-    await N('N.valle().revisarAhora()'); await N('N.cerrarTarjetas()');
-    await N('N.valle().revisarAhora()');
+    await N(`(() => { const r = H.T.lugares.refugio; H.jugador.ubicar(r.x + 3, r.z + 3, 0); return 1 })()`); await N('N.cuadros(5)');
+    await N('N.pedir()');
     t = await N('N.tarjeta()');
+    if (!t.abierta || !/Un arco/.test(t.texto)) console.log('  debug:', t.texto.slice(0, 160), await N('JSON.stringify({ hudOculto: document.getElementById("hud").classList.contains("oculto"), pausa: !document.getElementById("pausa").classList.contains("oculto"), fundido: document.getElementById("fundido") && document.getElementById("fundido").className, h: P.historia.capitulo + ":" + P.historia.fase, momentos: P.historia.momentos, ev: P.eventosValle && P.eventosValle.activo, pos: H.jugador.estado.pos, pantalla: document.activeElement && document.activeElement.tagName })'));
     ok(t.abierta && /Un arco para el valle/.test(t.texto), 'en el invierno, Josefina propone el arco');
     await foto('arco-tarjeta');
     await N(`N.elegir('hacer')`);
@@ -198,16 +225,17 @@ app.whenReady().then(async () => {
     ok((await N('P.eventosValle.pendientes.some((x) => x.id === "s-honda-ramon")')), 'y agenda a Ramón con la honda');
     ok((await N('P.materiales.tabla')) === 16 && (await N('P.materiales.tronco')) === 4, 'el arco cobró 4 tablas y 1 tronco');
     await N(`(() => { P.dia += 1; P.horas = 10; return 1 })()`);
-    await N('N.valle().revisarAhora()');
+    await N('N.pedir()');
     t = await N('N.tarjeta()');
     ok(t.abierta && /Ramón pasó/.test(t.texto), 'al otro día, Ramón pasa por la puerta');
     await N(`N.elegir('seguir')`);
+    await N('N.pedir()');
     t = await N('N.tarjeta()');
     ok(t.abierta && /honda/i.test(t.texto), 'y trae la honda');
     await N(`N.elegir('luego')`);
     ok(!(await N('P.historia.duendes.armas.honda')), 'el «todavía no» no hace la honda');
     await N(`(() => { P.dia += 1; P.horas = 10; return 1 })()`);
-    await N('N.valle().revisarAhora()'); await N(`N.elegir('seguir')`);
+    await N('N.pedir()'); await N(`N.elegir('seguir')`); await N('N.pedir()');
     t = await N('N.tarjeta()');
     ok(t.abierta && /honda/i.test(t.texto), 'vuelve a preguntar');
     await N(`N.elegir('hacer')`);

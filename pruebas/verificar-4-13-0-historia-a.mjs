@@ -139,7 +139,7 @@ async function chequear(sufijo = '') {
 
   // ---------------------------------------------------------------- 4. la presencia
   {
-    ok(P.enVentana(19, P.VENTANAS.silueta) && !P.enVentana(12, P.VENTANAS.silueta) && !P.enVentana(21.5, P.VENTANAS.silueta), 'el anochecer');
+    ok(P.enVentana(19, P.VENTANAS.silueta) && !P.enVentana(12, P.VENTANAS.silueta) && !P.enVentana(22.5, P.VENTANAS.silueta), 'el anochecer');
     ok(P.enVentana(23, P.VENTANAS.risa) && P.enVentana(2, P.VENTANAS.risa) && !P.enVentana(4.5, P.VENTANAS.risa) && !P.enVentana(15, P.VENTANAS.risa), 'la risa cruza la medianoche');
     ok(P.enVentana(25, P.VENTANAS.risa) === P.enVentana(1, P.VENTANAS.risa) && P.enVentana(-1, P.VENTANAS.risa), 'las horas fuera de rango se acomodan');
     ok(P.enVentana(18, P.VENTANAS.galpon) && P.enVentana(0, P.VENTANAS.galpon) && !P.enVentana(10, P.VENTANAS.galpon), 'el galpón: de noche');
@@ -241,7 +241,7 @@ const MUT = [
   ['historia.js', "momento: { evento: 'duendes-galpon', cuando: 'resto', lugar: 'galpon' },", "momento: { evento: 'duendes-galpon', cuando: 'resto' },", 'el encuentro sin lugar'],
   ['historia.js', "if (!s.armas.arco) return 'arco-josefina';", "if (!s.armas.arco) return 'honda-ramon';", 'se pide la honda primero'],
   ['historia.js', 'd.regalos = Math.max(0, Math.min(REGALOS_TOPE,', 'd.regalos = Math.max(0, Math.min(1e6,', 'regalos sin tope'],
-  ['historia-presencia.js', 'huyeSinTrato: 30, huyeConTrato: 13,', 'huyeSinTrato: 13, huyeConTrato: 30,', 'el trato y la pelea al revés al huir'],
+  ['historia-presencia.js', 'huyeSinTrato: 16, huyeConTrato: 8,', 'huyeSinTrato: 8, huyeConTrato: 16,', 'el trato y la pelea al revés al huir'],
   ['historia-presencia.js', "risa: [21, 4],", "risa: [9, 12],", 'la risa de día'],
   ['historia-presencia.js', 'return desde <= hasta ? h >= desde && h < hasta : h >= desde || h < hasta;', 'return h >= desde && h < hasta;', 'las ventanas no cruzan la medianoche'],
   ['historia-presencia.js', 'Math.abs(d) <= medio', 'Math.abs(d) >= medio', 'la vista al revés'],
