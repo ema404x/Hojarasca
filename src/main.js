@@ -251,6 +251,8 @@ import { sanearChinches, ponerChinche, chincheCerca, sacarChinche, rumboHacia, t
 import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-tutorial.js';
 // 3.1: la historia guiada y los eventos del valle con decisiones (ver historia-ui.js)
 import { crearValleUi } from './historia-ui.js';
+// 4.13.0 (B): la noche de defensa del final de la Historia
+import { crearNocheMundo } from './historia-noche-mundo.js';
 // 3.8.6: la noche del temporal del capítulo 8
 import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
 // 4.5: la consola de códigos (Ctrl+Mayús+C) y hasta dónde se puede teletransportar
@@ -1081,6 +1083,8 @@ async function construir() {
     // gente se pinta en la portada
     gente?.precalentar?.(camara, () => { renderer.shadowMap.needsUpdate = true; dibujar(null, 0); });
     gente?.trasCompilar?.();
+    // 4.13.0 (B): la historia ya empezada trae sus duendes y la noche armados y compilados en la carga (después de lo de la gente: si se arma antes, el programa de profundidad de la silueta del jugador se compila tarde)
+    if (!esDesafio && (progreso.historia?.activa || progreso.historia?.empezada || ajustes.relaxTipo === 'historia')) nocheDelMundo()?.preparar();
     prearmarAldea();   // 3.7.0 (integración): la gente de la aldea se arma en la portada
   });
   infoCarga.texturas = await texturasEnCamino;
@@ -2141,9 +2145,17 @@ function revisarGuiaRelax(dt) {
 // Capítulos con objetivos y eventos con decisiones, sólo en el Relax (ver historia-ui.js).
 // Con una tarjeta abierta el mundo queda quieto: `modo` pasa a 'valle' hasta que elegís.
 let valle = null;
+// 4.13.0 (B): la noche de la Historia en el mundo (se arma de a poco: ver historia-noche-mundo.js)
+let nocheMundo = null;
+function nocheDelMundo() {
+  if (esDesafio) return null;
+  if (!nocheMundo) nocheMundo = crearNocheMundo({ T, escena, camara, col, sonido, jugador: () => jugador, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
+  return nocheMundo;
+}
 function crearValle() {
   valle = crearValleUi({
     esDesafio, nota, guardar, sumarMaterial, traducir: traducirPanel,
+    noche: nocheDelMundo(), creditos: () => { abrir('pausa'); abrirInfo('creditos', 'pausa'); },   // 4.13.0 (B)
     teclaVisible: (t) => teclaVisible(t, teclasPropias),   // 3.8.4: el panel de la historia, con las teclas del jugador
     // con ?debug=1 los eventos al azar quedan quietos (las pruebas los prenden con __valle.azar(true))
     sinAzar: () => HOJARASCA_DEBUG,
@@ -11647,6 +11659,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.0: la supervivencia sin fin, para las pruebas
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;   // 4.13.0 (B)
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__preguntaLento = preguntaLento;   // 3.8.4
   if (HOJARASCA_DEBUG) window.__hojarasca.__caidas = { dialogos, graficos: estadoGraficos, fallas: () => [...fallasBucle.values()], fallaSistema, rehacerGraficos, pedirNombre, recuperadoDe, modo: () => modo };

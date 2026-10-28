@@ -16,6 +16,8 @@
 import { contadores } from './encargos-temporada.js';
 import { mesaPuesta, recibidas } from './visitas.js';
 import { CUENTOS } from './cuentos.js';
+// 4.13.0 (B): lo que guarda la noche de defensa del final (historia-noche.js)
+import { nocheNueva, sanearNoche } from './historia-noche.js';
 
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia'];
 const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', ercilia: 'Ercilia' };
@@ -239,7 +241,7 @@ export const CAPITULO = Object.fromEntries(CAPITULOS.map((c) => [c.id, c]));
 // `fase`: 'intro' (falta mostrar la tarjeta de entrada), 'jugando', 'outro' (falta la de
 // salida y el premio) y 'fin' (terminada: se sigue jugando libre).
 export function historiaNueva() {
-  return { activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {} };
+  return { activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {}, noche: nocheNueva() };
 }
 const FASES = ['intro', 'jugando', 'outro', 'fin'];
 const ent = (v, max = 1e6) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
@@ -258,6 +260,7 @@ export function sanearHistoria(v) {
   for (const k of Object.keys(obj(v.hablados))) if (VECINOS_HISTORIA.includes(k)) h.hablados[k] = true;
   for (const [k, x] of Object.entries(obj(v.momentos))) if (Object.hasOwn(CAPITULO, k) && x === 'lanzado') h.momentos[k] = 'lanzado';
   for (const [k, d] of Object.entries(obj(v.cerrados))) if (Object.hasOwn(CAPITULO, k)) h.cerrados[k] = ent(d);
+  h.noche = sanearNoche(v.noche);   // 4.13.0 (B)
   // una historia terminada no vuelve atrás
   if (h.terminada) { h.capitulo = CAPITULOS.length - 1; h.fase = 'fin'; }
   return h;
