@@ -32,4 +32,14 @@ Default seguro (`duendesNuevos`), saneado en `sanearHistoria` (`sanearDuendes`: 
 - Ajustes mínimos: `verificar-3-1-historia.mjs` (topes, tipos de efecto) y `verificar-3-8-7-progreso.mjs` (línea con `lugarOk`).
 
 ## Resultado de las corridas
-(se completa al final)
+- **Gate:**  de corrido: **verify: 316 pasos OK** (con la rama de B mergeada).
+- **Partida real de A** (, Media, Visible): todo en orden. Programas de shader: 110 al terminar la carga y 110 después de pisar el refugio, de noche y con siluetas, luciérnagas y duendes del galpón (0 nuevos). Aparece la silueta, se va si te acercás, el galpón trae la tarjeta con tres opciones, trato y pelea se guardan (y el trato sobrevive a recargar), el arco y la honda encadenados con el «todavía no», el objetivo se tilda y la noche queda pendiente; en Libre no se instala nada.
+- **Partida real de B** () sobre la rama juntada: todo en orden (la noche de pelea y de trato, los dos finales, 110 → 110 programas).
+- **Capturas** (, no van al repositorio): de noche en el galpón se ven los ojos verdes de los dos duendes en el portón (se lee bien y es ambiguo); la tarjeta del encuentro y las del arco.
+
+## Lo que no se vio
+- Las siluetas de día entre el pasto alto: en las capturas no se distinguen (el pasto las tapa, aun a 1,6 de escala); sólo se confirmó su dibujo por el conteo de mallas instanciadas y los ojos de noche. Falta mirarlas jugando.
+- La risa a oído, las luciérnagas raras en movimiento y el regalito en la puerta (la lógica está probada en Node; el regalito no tiene captura).
+- Una partida de punta a punta con las manos (caps 5 a 8 seguidos): se probó por tramos con el progreso armado.
+- Fps en la 4600G.
+
