@@ -11719,6 +11719,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.0: la supervivencia sin fin, para las pruebas
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__escenas = escenasMundo;   // 4.14.0 (QA): el director de escenas
   if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;
   if (HOJARASCA_DEBUG) { window.__hojarasca.__duendesHist = () => duendesHist; window.__hojarasca.__presencia = () => presenciaHist; }   // 4.13.0 (A)   // 4.13.0 (B)
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas

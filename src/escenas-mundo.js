@@ -20,7 +20,7 @@ export const CSS_ESCENAS = `
 .escena-barra.abajo { bottom: 0; }
 body.escena-en-curso .escena-barra { height: 11.5vh; }
 body.escena-saliendo .escena-barra { height: 0; transition-duration: .9s; }
-body.escena-en-curso #hud { opacity: 0; pointer-events: none; transition: opacity .4s; }
+body.escena-en-curso #hud, body.escena-en-curso #notas { opacity: 0; pointer-events: none; transition: opacity .4s; }
 #escena-velo { position: fixed; inset: 0; background: #000; opacity: 0; z-index: 46; pointer-events: none; }
 #escena-dialogo { position: fixed; left: 50%; bottom: calc(11.5vh + 18px); transform: translateX(-50%); width: min(840px, 92vw); z-index: 45; display: none; box-sizing: border-box;
   padding: 14px 22px 12px; background: rgba(16,14,10,.82); border: 1px solid rgba(255,236,200,.2); border-radius: 10px; color: #f3ead6; box-shadow: 0 6px 30px rgba(0,0,0,.45); }
@@ -33,6 +33,7 @@ body.escena-en-curso #hud { opacity: 0; pointer-events: none; transition: opacit
 #escena-dialogo .opciones { display: none; gap: 8px; margin-top: 10px; }
 #escena-dialogo.con-opciones .opciones { display: grid; }
 #escena-dialogo.con-opciones .sigue { display: none; }
+#escena-dialogo.con-opciones .texto { min-height: 0; }
 #escena-dialogo .opciones button { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; text-align: left; padding: 9px 14px; border-radius: 8px; border: 1px solid rgba(255,236,200,.18);
   background: rgba(255,236,200,.06); color: inherit; font: inherit; font-size: 18px; cursor: pointer; }
 #escena-dialogo .opciones button:hover, #escena-dialogo .opciones button[aria-selected="true"] { background: rgba(255,236,200,.2); border-color: rgba(255,236,200,.5); }
