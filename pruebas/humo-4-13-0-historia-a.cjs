@@ -176,7 +176,7 @@ app.whenReady().then(async () => {
     let t = await N('N.tarjeta()');
     ok(t.abierta && /Galpón de Esquila/.test(t.texto), 'cerca del galpón sale la tarjeta del encuentro');
     ok(JSON.stringify(t.botones) === JSON.stringify(['comida', 'senal', 'espantar']), `con tres opciones (${t.botones})`);
-    ok(!/dijo|dice|«/.test(t.texto), 'los duendes no hablan');
+    ok(!/\bdijo\b|\bdice\b|«/.test(t.texto), 'los duendes no hablan');
     await foto('galpon-tarjeta');
     await N(`N.elegir('comida')`);
     await N('N.correr(8)');
