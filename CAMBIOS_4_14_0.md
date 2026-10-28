@@ -136,3 +136,6 @@ Barras de cine de 11,5 % arriba y abajo; caja de diálogo oscura con el nombre e
 - Mando: no se tocó (sólo teclado y ratón). El inglés no se escribió.
 - Los efectos con nombre del guion (dar objeto, marcar flag…) los registra quien escribe las escenas; el motor sólo da el mecanismo.
 - No se midieron fps en la 4600G (la escena es DOM más rotaciones de huesos; los programas de shader no cambian).
+
+## Aviso sobre una prueba de partida real
+- humo-4-13-0-historia-b (la noche de defensa de la 4.13.0) dio "Todo en orden" al cerrar la 4.13.0 y en esta notebook, hoy, da 20 problemas **también sobre main 4.13.0 puro y con los enganches del motor de escenas desactivados**: la ventana de Electron no tiene el foco de Windows, el juego abre la pausa por el blur (main.js, if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa) abrir('pausa')) y la noche no corre. Forzar el foco desde la prueba no lo arregló. Hay que repetirla en una corrida donde la ventana conserve el foco (la 4600G, sin usar el teclado ni el mouse durante la prueba), o hacer que la prueba no dependa del foco. No es una falla del juego.
