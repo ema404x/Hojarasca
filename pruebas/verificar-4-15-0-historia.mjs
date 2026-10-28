@@ -105,7 +105,7 @@ async function chequear(arch = '', sufijo = '') {
       decisiones: { bolsa: 'z', coihue: 'b', toString: 'a', majada: 7 },
       ramal: -4, fletes: 99, entregasVistas: 'n', molido: 1e12,
       prestado: { herrero: 'sí', tobias: true, constructor: true },
-      raro: [{ id: 'ronda', dia: 3 }, { id: 'ronda', dia: 4 }, { id: 'inventado', dia: 1 }, 5, null, { id: '__proto__', dia: 1 }, { id: 'hacha', dia: 'n' }],
+      raro: [{ id: 'ronda-ramitas', dia: 3 }, { id: 'ronda-ramitas', dia: 4 }, { id: 'inventado', dia: 1 }, 5, null, { id: '__proto__', dia: 1 }, { id: 'hacha-tocon', dia: 'n' }],
       temas: { 'ramon:alero': 3, __proto__: 1, constructor: 2, 'a b': 1, [`x${'y'.repeat(80)}`]: 1 },
       objetos: { 'canto-blanco': 2, hasOwnProperty: 1 }, entregados: 5, reparaciones: { alero: 99, constructor: 2 }, aplicadas: { 'nota-eusebio': 2, valueOf: 3 },
       acompanante: 'cualquiera', avisoReinicio: 1, copiaPrevia: '../../x',
@@ -117,7 +117,7 @@ async function chequear(arch = '', sufijo = '') {
     igual(b.decisiones, { bolsa: null, coihue: 'b', molienda: null, cuaderno: null, majada: null }, 'decisiones sólo a, b o c');
     ok(b.ramal === 0 && b.fletes === 8 && b.entregasVistas === 0 && b.molido === 9999, 'ramal, fletes y molido acotados');
     igual(b.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: true }, 'prestado sólo con true');
-    igual(b.raro, [{ id: 'ronda', dia: 3 }, { id: 'hacha', dia: 0 }].map((x) => ({ ...x, dia: Math.max(1, x.dia) })), 'lo raro: sin repetidos ni inventados');
+    igual(b.raro, [{ id: 'ronda-ramitas', dia: 3 }, { id: 'hacha-tocon', dia: 0 }].map((x) => ({ ...x, dia: Math.max(1, x.dia) })), 'lo raro: sin repetidos ni inventados');
     igual(Object.keys(b.temas), ['ramon:alero'], 'temas sin claves peligrosas ni largas');
     igual(Object.keys(b.objetos), ['canto-blanco'], 'objetos sin claves peligrosas');
     ok(Object.keys(b.entregados).length === 0 && b.reparaciones.alero === 99 && !Object.hasOwn(b.reparaciones, 'constructor'), 'reparaciones');
@@ -135,7 +135,7 @@ async function chequear(arch = '', sufijo = '') {
     const p = G.progresoNuevo();
     p.pos = { x: 1, z: 2 };
     p.historia = H.historiaNueva(); H.empezarHistoria(p.historia, 1);
-    H.cambiarLazo(p.historia, 'ramon', 2); H.marcarObjeto(p.historia, 'canto-blanco', 2); H.anotarRaro(p.historia, 'ronda', 2); H.sumarRamal(p.historia, 3); p.historia.decisiones.bolsa = 'a'; p.historia.acompanante = 'graciela';
+    H.cambiarLazo(p.historia, 'ramon', 2); H.marcarObjeto(p.historia, 'canto-blanco', 2); H.anotarRaro(p.historia, 'ronda-ramitas', 2); H.sumarRamal(p.historia, 3); p.historia.decisiones.bolsa = 'a'; p.historia.acompanante = 'graciela';
     ok(G.guardarProgreso(p), 'se guarda');
     igual(G.cargarProgreso().historia, p.historia, 'la historia nueva vuelve igual del guardado');
     almacen.set('hojarasca-v1', JSON.stringify({ dia: 9, horas: 10, entradas: {}, pos: { x: 0, z: 0 }, historia: { activa: true, capitulo: 5, fase: 'jugando', empezada: 2, hechos: { 'molino:molino': 8 } } }));
@@ -248,7 +248,7 @@ async function chequear(arch = '', sufijo = '') {
     const hb = { ...h, decisiones: { ...h.decisiones, bolsa: 'b' } }, hc = { ...h, decisiones: { ...h.decisiones, bolsa: 'c' } };
     ok(H.lineasCarta(H.CAPITULOS[1], hb, 'outro')[1].includes('pan') && H.lineasCarta(H.CAPITULOS[1], hc, 'outro')[1].includes('Josefina pasó dos veces') && H.lineasCarta(H.CAPITULOS[1], { decisiones: {} }, 'outro').length === 1, 'y la de B, la de C y la sin decisión');
     D.alCerrarCapitulo(h, 'bolsa', 3);
-    ok(h.raro.some((x) => x.id === 'risa'), 'lo raro que dejó la decisión');
+    ok(h.raro.length === 0, 'al cerrar el capítulo 2 no se anota nada de más (lo raro lo anotan las escenas)');
     H.cerrarCapitulo(h, 3);
     // ---- capítulo 3
     H.arrancarCapitulo(h, e());
@@ -288,7 +288,7 @@ async function chequear(arch = '', sufijo = '') {
     q.eventosValle = { hechos: { derrumbe: { dia: 4, opcion: 'ayudar' } } };
     EN.marcarVista(hh, 'derrumbe-puertita', 4);
     D.aplicarVistas(hh, 4, { eventos: q.eventosValle.hechos });
-    ok(hh.raro.some((x) => x.id === 'puertita') && hh.lazos.graciela === 0, 'ayudar en el derrumbe: la puertita y Graciela contenta');
+    ok(hh.lazos.graciela === 0, 'ayudar en el derrumbe: Graciela contenta (lo raro y los lazos de la escena los dan sus efectos)');
     const po = H.panelHistoria(hh, e4({ conduciendo: true })).objetivos;
     ok(po.find((o) => o.id === 'anden').hecho && po.find((o) => o.id === 'aldea').hecho && !po.find((o) => o.id === 'puertita').hecho, 'los hechos del panel hasta ahora');
     H.sumarRamal(hh, 2); D.alCerrarCapitulo(hh, 'ramal', 5);
@@ -318,7 +318,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(H.lazosEnPalabras(H.historiaNueva()).length === 0, 'sin conocer a nadie, sin lazos que mostrar');
     const g = H.historiaNueva(); g.hablados.ramon = true; H.cambiarLazo(g, 'ema', 2);
     igual(H.lazosEnPalabras(g).map((l) => `${l.nombre}:${l.palabra}`), ['Don Ramón:conocido', 'Josefina:de confianza'], 'sólo los que conocés, sin números');
-    ok(H.anotarRaro(g, 'ronda', 2) && !H.anotarRaro(g, 'ronda', 3) && !H.anotarRaro(g, 'inventado', 3) && g.raro.length === 1, 'el cuaderno de lo raro anota una vez cada indicio, con su fecha');
+    ok(H.anotarRaro(g, 'ronda-ramitas', 2) && !H.anotarRaro(g, 'ronda-ramitas', 3) && !H.anotarRaro(g, 'inventado', 3) && g.raro.length === 1, 'el cuaderno de lo raro anota una vez cada indicio, con su fecha');
     ok(H.textoRaro('algo-cruzo').includes('zorro con gorro') && H.textoRaro('x') === '', 'el texto de lo raro');
     ok(!H.marcarTema(g, '__proto__', 'x', 1) && H.marcarTema(g, 'ramon', 'alero', 1) && !H.marcarTema(g, 'ramon', 'alero', 2), 'los temas se marcan una vez');
     const s0 = H.historiaNueva(); s0.activa = true; s0.capitulo = 2;
@@ -420,7 +420,7 @@ async function chequear(arch = '', sufijo = '') {
       ok(quien(h, p, { lugares: { 'casa-te': 5 } }) === null, 'sin llevarla, no');
       p.eventosValle = { hechos: { derrumbe: { dia: 4, opcion: 'seguir' } } };
       ok(quien(h, p, {}) === 'derrumbe-puertita', 'después del derrumbe, la puertita');
-      ok(D.aplicarVistas({ ...h, escenas: { vistas: { 'derrumbe-puertita': 4 }, elecciones: {} }, aplicadas: {}, lazos: { ...h.lazos }, raro: [] }, 4, { eventos: { derrumbe: { opcion: 'seguir' } } }).length === 1, 'se aplica el efecto de la puertita');
+      ok(D.aplicarVistas({ ...h, escenas: { vistas: { 'te-graciela': 4 }, elecciones: {} }, aplicadas: {}, lazos: { ...h.lazos }, raro: [], temas: {} }, 4, {}).length === 1, 'se aplica lo de la escena del té');
     }
     // fuera de la historia nada sale
     {
@@ -435,23 +435,9 @@ async function chequear(arch = '', sufijo = '') {
       const { p, h } = base();
       EN.marcarVista(h, 'ramon-tranquera', 2); EN.marcarVista(h, 'algo-cruza', 2); EN.marcarVista(h, 'bolsa-coihue', 3); EN.marcarVista(h, 'te-graciela', 4); EN.marcarVista(h, 'nota-eusebio', 1); EN.marcarVista(h, 'bolsa-alero', 2); EN.marcarVista(h, 'anden-graciela', 4);
       const a1 = D.aplicarVistas(h, 4, {});
-      ok(a1.length === 7, `se aplican las siete (${a1.length})`);
-      ok(h.temas['ramon:alero'] && h.raro.some((x) => x.id === 'algo-cruzo') && h.entregados['raiz:bolsa-eusebio'] && h.duendes.convidado === 1 && h.lazos.graciela === 2 && h.ramal === 2 && h.objetos.nota && h.objetos['bolsa-eusebio'] && h.acompanante === 'graciela', 'cada una deja lo suyo');
-      ok(h.raro.some((x) => x.id === 'bolsa-coihue'), 'dejar la bolsa en la raíz queda en lo raro');
-      ok(D.aplicarVistas(h, 5, {}).length === 0 && h.lazos.graciela === 2 && h.ramal === 2 && h.duendes.convidado === 1, 'la segunda vez no cuenta de nuevo');
-      // las respuestas del jugador mueven los lazos (acuerdo con quien escribe las escenas)
-      const h2 = H.historiaNueva(); EN.marcarVista(h2, 'anden-graciela', 4); h2.escenas.elecciones['anden-graciela'] = { respuesta: 'si' };
-      D.aplicarVistas(h2, 4, {});
-      ok(h2.lazos.graciela === 1, 'la respuesta «Sí» suma con Graciela');
-      const h3 = H.historiaNueva(); EN.marcarVista(h3, 'anden-graciela', 4); h3.escenas.elecciones['anden-graciela'] = { respuesta: 'no-se' };
-      D.aplicarVistas(h3, 4, {});
-      ok(h3.lazos.guarda === -1 && h3.lazos.graciela === 0, '«Todavía no sé» resta con Elsa');
-      const h4 = H.historiaNueva(); EN.marcarVista(h4, 'derrumbe-puertita', 4);
-      D.aplicarVistas(h4, 4, { eventos: { derrumbe: { opcion: 'seguir' } } });
-      ok(h4.lazos.graciela === -1, 'seguir de largo en el derrumbe: Graciela −1');
-      const h5 = H.historiaNueva(); EN.marcarVista(h5, 'derrumbe-puertita', 4);
-      D.aplicarVistas(h5, 4, { eventos: { derrumbe: { opcion: 'ayudar' } } });
-      ok(h5.lazos.graciela === 0, 'ayudar no resta');
+      ok(a1.length === 6, `se aplican las seis que dejan algo de este lado (${a1.length})`);
+      ok(h.temas['ramon:alero'] && h.entregados['raiz:bolsa-eusebio'] && h.duendes.convidado === 1 && h.temas['graciela:abuelo'] && h.objetos.nota && h.objetos['bolsa-eusebio'] && h.acompanante === 'graciela', 'cada una deja lo suyo');
+      ok(D.aplicarVistas(h, 5, {}).length === 0 && h.duendes.convidado === 1, 'la segunda vez no cuenta de nuevo');
     }
   }
 
@@ -586,7 +572,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(h.lazos.ramon === 2, 'en otra escena, otro lazo');
     efectos.lazo({ quien: 'nadie', n: 1 }, { escena: 'z' }); efectos.lazo(null, null);
     ok(h.lazos.ramon === 2, 'con basura no pasa nada');
-    efectos.raro({ id: 'ronda' }); efectos.raro({ id: 'ronda' }); ok(h.raro.length === 1, 'lo raro, una vez');
+    efectos.raro({ id: 'ronda-ramitas' }); efectos.raro({ id: 'ronda-ramitas' }); ok(h.raro.length === 1, 'lo raro, una vez');
     efectos['dar-objeto']({ id: 'puertita' }); ok(h.objetos.puertita === 3, 'dar un objeto');
     efectos.tema({ quien: 'ema', tema: 'abuelo' }); efectos.entrega({ quien: 'ema', cosa: 'bolsa' }); ok(h.temas['ema:abuelo'] && h.entregados['ema:bolsa'], 'tema y entrega');
     efectos.ramal({ n: 2 }, { escena: 'a' }); efectos.ramal({ n: 2 }, { escena: 'a' }); ok(h.ramal === 2, 'el ramal, una vez por escena');
@@ -602,6 +588,42 @@ async function chequear(arch = '', sufijo = '') {
     X.registrarEfectosHistoria(dir, { historia: () => h, dia: () => 1, estado: () => null });
     const r = dir.registrar({ id: 'prueba-efectos', pasos: [{ tipo: 'efecto', nombre: 'lazo', args: { quien: 'fermin', n: 1 } }, { tipo: 'dialogo', quien: 'jugador', lineas: ['Hola'] }] });
     ok(r.ok, `una escena que usa los efectos con nombre se registra (${r.errores})`);
+  }
+
+  // ---------------------------------------------------------------- 8a. los efectos de las escenas de B (lazo:ema:2, decision:bolsa:a…)
+  {
+    const A1 = await import('../src/historia-escenas-acto1.js');
+    const efectos = {}, conds = {}, llamados = [];
+    const h = H.historiaNueva(); h.activa = true;
+    X.registrarEfectosHistoria({ registrarEfecto: (k, f) => { efectos[k] = f; }, registrarCondicion: (k, f) => { conds[k] = f; } }, { historia: () => h, dia: () => 5, estado: () => H.estadoHistoria({ dia: 5, eventosValle: { hechos: { tobillo: { dia: 4 } } } }, {}) });
+    X.registrarEfectosActo1({ registrarEfecto: (k, f) => { efectos[k] = f; } }, { historia: () => h, dia: () => 5, dar: (c, n) => llamados.push(['dar', c, n]), mundo: (id) => llamados.push(['mundo', id]), duende: (id, args) => llamados.push(['duende', id, args.tipo]) }, A1.EFECTOS_ACTO1);
+    for (const nombre of A1.EFECTOS_ACTO1) ok(typeof efectos[nombre] === 'function', 'registrado: ' + nombre);
+    efectos['lazo:ema:2']({}, { escena: 's' }); efectos['lazo:ema:2']({}, { escena: 's' });
+    ok(h.lazos.ema === 2, 'lazo:ema:2 una sola vez por escena');
+    efectos['lazo:rosa:1']({}, { escena: 's' }); ok(h.lazos.ema === 2, 'un secundario sin lazo se ignora');
+    efectos['decision:bolsa:b'](); ok(h.decisiones.bolsa === 'b', 'decision:bolsa:b');
+    efectos['decision:bolsa:c'](); ok(h.decisiones.bolsa === 'c', 'la última acción manda');
+    efectos['ramal:2']({}, { escena: 's' }); efectos['ramal:2']({}, { escena: 's' }); ok(h.ramal === 2, 'ramal:2 una vez');
+    efectos['raro:ronda-ramitas'](); ok(h.raro.length === 1, 'raro con el id de B');
+    efectos['hablado:fermin'](); ok(h.hablados.fermin === true, 'hablado:fermin cuenta para conocer a los vecinos');
+    efectos['objeto:puertita'](); efectos['entrega:bolsa-eusebio']();
+    ok(h.temas['obj:puertita'] && h.entregados['obj:bolsa-eusebio'] && !h.objetos.puertita, 'objeto y entrega se anotan sin tocar los objetos del mundo');
+    efectos['dar:pan-casero:3']({}, { escena: 's' }); efectos['dar:pan-casero:3']({}, { escena: 's' });
+    efectos['mundo:ronda-ramitas']({}, { escena: 's' }); efectos['duende:pillo-cruza']({ tipo: 'rastreador' });
+    ok(JSON.stringify(llamados) === JSON.stringify([['dar', 'pan-casero', 3], ['mundo', 'ronda-ramitas'], ['duende', 'pillo-cruza', 'rastreador']]), 'dar (una vez), mundo y duende llegan a main');
+    h.decisiones.bolsa = null;
+    ok(conds.decision({ args: { d: 'bolsa', es: 'ninguna' } }) && !conds.decision({ args: { d: 'bolsa', es: 'a' } }), 'condición decision con «ninguna» (la de B)');
+    h.decisiones.bolsa = 'a'; ok(conds.decision({ args: { d: 'bolsa', es: 'a' } }), 'y con la elegida');
+    ok(conds.lazo({ args: { quien: 'ema', min: 2 } }) && !conds.lazo({ args: { quien: 'ema', max: 1 } }) && conds.evento({ args: { id: 'tobillo' } }), 'condiciones lazo (min y max) y evento');
+    // las escenas de B corren con el director y dejan lo que dicen
+    const dir = EN.crearDirector({ mundo: { puedeEmpezar: () => true }, estado: () => h.escenas, dia: () => 5 });
+    X.registrarEfectosHistoria(dir, { historia: () => h, dia: () => 5, estado: () => null });
+    X.registrarEfectosActo1(dir, { historia: () => h, dia: () => 5 }, A1.EFECTOS_ACTO1);
+    const reg = Object.values(A1.ESCENAS_ACTO1).map((e) => dir.registrar(e).ok);
+    ok(reg.length === 21 && reg.every(Boolean), 'las 21 escenas de B se registran en el director');
+    ok(Object.values(A1.ESCENAS_ACTO1).every((e) => dir.efectosFaltantes(e.id).length === 0), 'y ninguna pide un efecto sin registrar');
+    for (const id of D.ESCENAS_ACTO1_IDS) ok(Object.hasOwn(A1.ESCENAS_ACTO1, id), id + ': existe en el archivo de B');
+    for (const e of Object.values(A1.ESCENAS_ACTO1)) for (const c of (await import('../src/historia-escenas-util.js')).condicionesDe(e)) ok(typeof conds[c] === 'function', 'condición registrada: ' + c);
   }
 
   // ---------------------------------------------------------------- 8b. Graciela Pugh, la persona nueva
@@ -661,7 +683,7 @@ async function chequear(arch = '', sufijo = '') {
     }
     const main = leer('src/main.js');
     for (const frag of [
-      "import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';",
+      "import { ESCENAS_ACTO1, EFECTOS_ACTO1 } from './historia-escenas-acto1.js';",
       "import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';",
       'if (progreso && !esDesafio && historiaVieja(progreso)) {',
       'if (debeReiniciar(progreso, \'relax\')) {',
@@ -722,7 +744,6 @@ const MUT = [
   ['historia-disparadores.js', "    if (d.despues && !(s.dia > (Number(h.base?.dia) || 1))) continue;\n", "", 'la ronda de ramitas sin dormir'],
   ['historia-disparadores.js', "cond: (s) => s.decisiones.bolsa === 'b' }", "cond: (s) => true }", 'Rosa sale aunque no la hayas elegido'],
   ['historia-disparadores.js', "    if (Object.hasOwn(h.aplicadas, id)) continue;\n", "", 'los efectos de una escena se cuentan dos veces'],
-  ['historia-disparadores.js', "if (op === 'seguir') cambiarLazo(h, 'graciela', -1);", "if (op === 'ayudar') cambiarLazo(h, 'graciela', -1);", 'Graciela se enoja al revés'],
   ['historia-disparadores.js', "    if (d.requiere && !d.requiere.every((x) => s.escenas.has(x))) continue;\n", "", 'las escenas salen en cualquier orden'],
   ['historia-reinicio.js', "return REINICIAR_HISTORIAS_VIEJAS && modo === 'relax' && historiaVieja(p) && p.historia.activa === true;", "return REINICIAR_HISTORIAS_VIEJAS && historiaVieja(p) && p.historia.activa === true;", 'el Desafío también se reinicia'],
   ['historia-reinicio.js', "return REINICIAR_HISTORIAS_VIEJAS && modo === 'relax' && historiaVieja(p) && p.historia.activa === true;", "return REINICIAR_HISTORIAS_VIEJAS && modo === 'relax' && historiaVieja(p);", 'la historia vieja en pausa también se reinicia'],

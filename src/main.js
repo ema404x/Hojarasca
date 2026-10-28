@@ -263,10 +263,10 @@ import { crearTrucosJuego } from './trucos-juego.js';
 // 4.14.0: las escenas de la Historia (director de escenas: escenas.js; en el juego: escenas-mundo.js)
 import { crearEscenasMundo } from './escenas-mundo.js';
 // 4.15.0: la Historia nueva: las escenas del acto I, sus objetos en el mundo y el reinicio de las partidas viejas
-import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';
+import { ESCENAS_ACTO1, EFECTOS_ACTO1 } from './historia-escenas-acto1.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
-import { registrarEfectosHistoria } from './historia-escenas-efectos.js';
+import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
 import { crearGracielaMundo } from './historia-graciela.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
@@ -932,7 +932,9 @@ async function construir() {
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
     try {
       for (const e of Object.values(ESCENAS_ACTO1)) { const r = escenasMundo.registrar(e); if (!r.ok) console.warn('escena de la historia mal armada', e?.id, r.errores); }
-      registrarEfectosHistoria(escenasMundo, { historia: () => (valle ? valle.historia() : null), dia: () => progreso.dia, estado: () => (valle ? valle.estado() : null), opcionDeEvento: (id) => progreso.eventosValle?.hechos?.[id]?.opcion });
+      const ctxEfectos = { historia: () => (valle ? valle.historia() : null), dia: () => progreso.dia, estado: () => (valle ? valle.estado() : null), opcionDeEvento: (id) => progreso.eventosValle?.hechos?.[id]?.opcion };
+      registrarEfectosHistoria(escenasMundo, ctxEfectos);
+      registrarEfectosActo1(escenasMundo, { ...ctxEfectos, dar: (cosa, n) => darCosaHistoria(cosa, n), mundo: (id, args, escena) => efectoMundoHistoria(id, args, escena), duende: (id, args) => efectoDuendeHistoria(id, args) }, EFECTOS_ACTO1);
     } catch (e) { fallaSistema('historia-escenas', e); }
     document.addEventListener('keyup', (e) => { escenasMundo?.teclaSuelta(e); });   // (soltar Mayús: la escritura vuelve a su velocidad)
   }
@@ -2302,6 +2304,23 @@ function gracielaDeHistoria() {
     anden: () => { const e = T.lugares.estacion, q = e?.espera; if (!q) return null; const cx = Number.isFinite(e.x) ? e.x : q.x, cz = Number.isFinite(e.z) ? e.z : q.z + 1, dx = cx - q.x, dz = cz - q.z, d = Math.hypot(dx, dz) || 1; return { x: q.x - (dz / d) * 2.2, z: q.z + (dx / d) * 2.2, mira: { x: cx, z: cz } }; },
   });
   return gracielaMundo;
+}
+// 4.15.0: lo que piden los efectos de las escenas del acto I: dar algo, cambiar algo del mundo (los props ya los dibuja historia-objetos.js según el estado) y el pillo que cruza el sendero
+function darCosaHistoria(cosa, n) { try { cobrarPremio({ premio: { cuenta: { [cosa]: n }, texto: '' } }); refrescarBarra(true); } catch (e) { fallaSistema('historia-dar', e); } }
+function efectoMundoHistoria() { dibujarObjetosHistoriaYa(); }
+function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
+function efectoDuendeHistoria(id, args) {
+  if (id !== 'pillo-cruza' || !escenasMundo || !args) return;
+  try {
+    const dh = duendesHistoria();
+    if (!dh) return;
+    dh.asegurar();
+    const d = escenasMundo.mundo.posicion(args.desde), h = escenasMundo.mundo.posicion(args.hasta);
+    if (!d || !h) return;
+    const s = dh.aparecer(args.tipo || 'rastreador', { x: d.x, z: d.z, rumbo: Math.atan2(h.x - d.x, h.z - d.z) });
+    if (!s) return;
+    s.irA(h.x, h.z, { correr: true, alLlegar: () => { try { if (args.rie) dh.reir({ x: h.x, y: T.altura(h.x, h.z) + 0.4, z: h.z }); s.huir(null, { desaparecer: true }); } catch { /* ya */ } } });
+  } catch (e) { fallaSistema('historia-duende', e); }
 }
 function gastarUnaTabla() {
   if ((Number(progreso.materiales?.tabla) || 0) > 0) { progreso.materiales.tabla -= 1; refrescarBarra(true); return true; }

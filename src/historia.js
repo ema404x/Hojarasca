@@ -21,6 +21,8 @@ import { CUENTOS } from './cuentos.js';
 import { sanearEscenas, escenasNuevas } from './escenas.js';
 // 4.13.0 (B): lo que guarda la noche de defensa del final (historia-noche.js)
 import { nocheNueva, sanearNoche } from './historia-noche.js';
+// 4.15.0: los textos del acto I (el cuaderno de lo raro)
+import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
 
 // 4.15.0: Fermín (el galpón de esquila) se suma a los que se conocen
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia', 'fermin'];
@@ -546,16 +548,7 @@ export function decisionesDe(h) {
   return h.decisiones;
 }
 // el cuaderno de lo raro: indicios con fecha. Cada uno se anota una vez.
-export const RAROS = {
-  'algo-cruzo': 'Algo cruzó el sendero. Un zorro, seguro. Un zorro con gorro.',
-  'ronda': 'Las ramitas que sobraron amanecieron acomodadas en ronda, como un relojito, y en el medio un canto blanco, liso como un huevo.',
-  'hacha': 'El hacha caminó sola hasta el tocón. Los zorros no hacen eso.',
-  'puertita': 'Una puertita de madera de coihue, del tamaño de una mano, con bisagra de cuero y manijita de hueso. Estaba entre las piedras de la vía.',
-  'bolsa-coihue': 'Dejé la bolsa en la raíz del coihue. Cuando me fui, ya no estaba. O estaba, y fue la luz.',
-  'risa': 'Del lado del arroyo, de noche, alguien se rió bajito. Una risa contenta, si es que las risas se entienden.',
-  'gallinero': 'En mi gallinero, a la noche, alguien abrió la puertita.',
-  'josefina-mira': 'Josefina pasó dos veces por mi camino. Las dos veces miró el refugio.',
-};
+export const RAROS = Object.fromEntries(Object.entries(TEXTO_ACTO1.raro).map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
 export function anotarRaro(h, id, dia = 1) {
   if (!Object.hasOwn(RAROS, id)) return false;
   if (!Array.isArray(h.raro)) h.raro = [];

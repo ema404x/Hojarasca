@@ -46,7 +46,15 @@ const PAGINA = String.raw`(() => {
     const t0 = performance.now();
     while (performance.now() - t0 < maxSeg * 1000) {
       const es = H.__escenas;
-      if (es && es.activa()) { N.tecla('Escape'); await dormir(80); N.tecla('Escape'); await N.tick(0.4); continue; }
+      if (es && es.activa()) {
+        const d = es.director.datos && es.director.datos();
+        if (d && d.eleccion && N.elegirEscena !== false) { N.tecla('Digit1'); await N.tick(0.3); }   // la primera opción de cada pregunta (en la bolsa es «A»)
+        // (Esc sólo con la escena corriendo: sin escena abriría la pausa; la primera vez pide confirmar y la segunda salta)
+        if (es.director.fase() === 'corriendo') N.tecla('Escape');
+        await dormir(120);
+        if (es.activa() && es.director.fase() === 'corriendo') N.tecla('Escape');
+        await N.tick(0.4); continue;
+      }
       await N.tick(0.4);
       if (!(es && es.activa())) break;
     }
@@ -127,6 +135,15 @@ app.whenReady().then(async () => {
     const nombres0 = await N('N.nombresProgramas()');
     await N('N.elegir("empezar")');
     await N('N.tick(1.5)');
+    // la primera escena de verdad («Boleto, pasajero»): se mira una línea y se salta
+    if (await N('H.__escenas.director.hay("trochita-boleto")')) {
+      await N('N.hasta(() => H.__escenas.activa() && H.__escenas.director.datos() && H.__escenas.director.datos().dialogo, 20)');
+      await N('N.tick(2.5)');
+      ok(await N('H.__escenas.activa() && document.body.classList.contains("escena-en-curso")'), 'la escena «Boleto, pasajero» corre con barras de cine y caja de diálogo');
+      await foto('1b-escena-boleto');
+      await N('N.tecla("Enter")'); await N('N.tick(1.5)');
+      await foto('1c-escena-boleto-2');
+    }
     await N('N.despejar(8)');
     await N('N.tick(1)');
     const pan = await N('N.panel()');
@@ -176,7 +193,7 @@ app.whenReady().then(async () => {
     await N('N.tecla("KeyE")');
     await N('N.tick(1.5)');
     ok((await N('P.historia.objetos["canto-blanco"] > 0 && P.historia.hechos["llave:canto"] !== undefined')) === true, 'levantarlo tilda el último objetivo');
-    ok((await N('P.historia.raro.some((x) => x.id === "ronda")')) === true, 'y la ronda quedó en el cuaderno de lo raro');
+    ok((await N('P.historia.raro.some((x) => x.id === "ronda-ramitas")')) === true, 'y la ronda quedó en el cuaderno de lo raro');
     await N('N.despejar(1)');
     // la tarjeta de cierre del capítulo 1
     await N('N.hasta(() => N.tarjeta(), 10)');
@@ -215,16 +232,26 @@ app.whenReady().then(async () => {
       await N('N.tick(0.7)');
     }
     ok((await N('P.historia.reparaciones.alero')) === 4 && (await N('P.materiales.tabla')) === 2, `cuatro tablas gastadas con la E (quedan ${await N('P.materiales.tabla')})`);
-    await N('N.despejar(8)');
-    // la decisión de la bolsa
-    const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 10); return N.tarjeta() })()');
-    ok(dec && dec.titulo === 'La bolsa del molinero' && dec.opciones.length === 3, `sale la tarjeta de decisión de la bolsa (${dec && dec.opciones.map((o) => o.id)})`);
-    ok(dec && dec.opciones.find((o) => o.id === 'b').deshabilitada && !dec.opciones.find((o) => o.id === 'a').deshabilitada, 'llevársela a Rosa está apagado: Rosa todavía no llegó a la aldea');
-    await foto('7-decision-bolsa'); await vigilar('decisión');
+    // la decisión de la bolsa: la toma la escena «bolsa-alero» (con su pregunta de tres opciones); se juega la primera (A)
+    const conEscena = await N('H.__escenas.director.hay("bolsa-alero")');
+    if (conEscena) {
+      const eleccion = await N('(async () => { await N.hasta(() => { const d = H.__escenas.director.datos(); if (d && d.dialogo) { N.tecla("Enter"); } return d && d.eleccion; }, 60); const d = H.__escenas.director.datos(); return d && d.eleccion ? { opciones: d.eleccion.opciones.map((o) => o.texto), pregunta: d.eleccion.pregunta } : null })()');
+      ok(eleccion && eleccion.opciones.length === 3, 'sale la pregunta de la bolsa con tres opciones: ' + (eleccion && eleccion.opciones.join(' / ')));
+      await foto('7-decision-bolsa');
+      await N('N.tecla("Digit1")');
+      await N('N.tick(1)');
+      await N('N.despejar(15)');
+    } else {
+      await N('N.despejar(8)');
+      const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 10); return N.tarjeta() })()');
+      ok(dec && dec.titulo === 'La bolsa del molinero' && dec.opciones.length === 3, 'sale la tarjeta de decisión de la bolsa');
+      await foto('7-decision-bolsa');
+      await N('N.tecla("Digit1")');
+    }
+    await vigilar('decisión');
     const progAntesDeLaRaiz = await N('N.programas()');   // (4.15.0: ir de día al molino viejo, cerca de (-29, -2), compila un programa de profundidad más en CUALQUIER partida, también en Libre y en la 4.14.0: no es de la historia)
-    await N('N.tecla("Digit1")');
     await N('N.tick(1)');
-    ok((await N('P.historia.decisiones.bolsa === "a" && P.historia.lazos.ramon === 1')) === true, 'elegir la raíz del coihue: queda guardado y Ramón +1');
+    ok((await N('P.historia.decisiones.bolsa === "a"')) === true, 'elegir la raíz del coihue: queda guardada la decisión');
     ok(!(await N('N.tarjeta()')), 'la tarjeta se cierra');
     // la raíz del coihue
     const raiz2 = await N('H.__historiaObjetos().posiciones["raiz-coihue"]');
@@ -238,14 +265,14 @@ app.whenReady().then(async () => {
     ok(o2 === 'raiz-coihue', `la E sobre la raíz (${o2})`);
     await N('N.tecla("KeyE")');
     await N('N.tick(1)'); await N('N.despejar(1)');
-    ok((await N('Object.hasOwn(P.historia.escenas.vistas, "bolsa-coihue") && P.historia.duendes.convidado === 1')) === true, 'dejar la bolsa: la escena y lo convidado');
+    ok((await N('Object.hasOwn(P.historia.escenas.vistas, "bolsa-coihue") && P.historia.duendes.convidado === 1 && P.historia.lazos.ramon === 1')) === true, 'dejar la bolsa: la escena y lo convidado');
     await N('N.hasta(() => N.tarjeta() && /terminado/.test(N.tarjeta().arriba), 12)');
     const c2 = await N('N.tarjeta()');
     ok(c2 && c2.titulo === 'La bolsa del molinero' && /se rió bajito/.test(c2.texto), 'la tarjeta de cierre del capítulo 2 con la línea de la decisión (A)');
     await foto('9-cierre-capitulo-2'); await vigilar('cierre 2');
     await N('N.elegir("seguir")');
     await N('N.tick(1)');
-    ok((await N('P.historia.raro.some((x) => x.id === "risa") && P.materiales.tabla >= 8')) === true, 'lo raro que dejó la decisión y el premio (seis tablas)');
+    ok((await N('P.historia.raro.some((x) => x.id === "bolsa-raiz") && P.materiales.tabla >= 8')) === true, 'lo raro que dejó la decisión y el premio (seis tablas)');
 
     // ================================================================ 4. el capítulo 4: el ramal y los lazos
     donde = 'capitulo 4';

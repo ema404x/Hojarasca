@@ -88,41 +88,27 @@ const juntar = (...fs) => (h, dia, ctx) => { for (const f of fs) f(h, dia, ctx);
 const raro = (id) => (h, dia) => anotarRaro(h, id, dia);
 const lazo = (q, n) => (h) => cambiarLazo(h, q, n);
 export const EFECTOS_ESCENA = {
-  'algo-cruza': raro('algo-cruzo'),
   'nota-eusebio': (h, dia) => marcarObjeto(h, 'nota', dia),
-  'ronda-umbral': raro('ronda'),
   'ramon-tranquera': T('ramon', 'alero'),
   'almacen-ercilia': T('ercilia', 'hacha'),
   'ese-no-josefina': T('ema', 'ese-no'),
   'bolsa-alero': (h, dia) => marcarObjeto(h, 'bolsa-eusebio', dia),
-  'bolsa-coihue': juntar((h, dia) => marcarEntrega(h, 'raiz', 'bolsa-eusebio', dia), raro('bolsa-coihue'), (h) => { duendesDe(h).convidado = Math.min(99, duendesDe(h).convidado + 1); }),
+  'bolsa-coihue': juntar((h, dia) => marcarEntrega(h, 'raiz', 'bolsa-eusebio', dia), (h) => { duendesDe(h).convidado = Math.min(99, duendesDe(h).convidado + 1); }),
   'bolsa-rosa': (h, dia) => marcarEntrega(h, 'panadera', 'bolsa-eusebio', dia),
   'bolsa-josefina': juntar((h, dia) => marcarEntrega(h, 'ema', 'bolsa-eusebio', dia), T('ema', 'abuelo')),
-  'hacha-tocon': raro('hacha'),
   'placa-herminia': T('herminia', 'placa'),
   'mesa-visita-nicanor': T('nicanor', 'mesa'),
   'mesa-visita-ramon': T('ramon', 'mesa'),
   'fermin-galpon': T('fermin', 'galpon'),
   'anden-graciela': (h) => { h.acompanante = 'graciela'; },
   'cabina-elsa': T('guarda', 'cabina'),
-  // la puertita aparece sí o sí; si seguiste de largo, Graciela se queja («¿así se ayudan acá?»)
-  'derrumbe-puertita': juntar(raro('puertita'), (h, dia, ctx) => {
-    const op = ctx?.eventos && Object.hasOwn(ctx.eventos, 'derrumbe') ? ctx.eventos.derrumbe?.opcion : null;
-    if (op === 'seguir') cambiarLazo(h, 'graciela', -1);
-  }),
-  'te-graciela': juntar(lazo('graciela', 2), (h) => sumarRamal(h, 2), T('graciela', 'abuelo')),
+  'te-graciela': T('graciela', 'abuelo'),
 };
 
 // Los lazos que mueven las respuestas del jugador en una escena. La respuesta se guarda como `elecciones[escena][eleccion] = opcion`; acá se
 // busca por el id de la elección y de la opción. Lo que no está en la tabla no mueve nada. (Los ids son el acuerdo con quien escribe las
 // escenas: ver CAMBIOS_4_15_0_A.md.)
-export const LAZOS_POR_ELECCION = {
-  'anden-graciela': {
-    respuesta: { 'cuatro-dias': { graciela: 0 }, 'si': { graciela: 1 }, 'no-se': { guarda: -1 } },
-  },
-  'trochita-boleto': { respuesta: {} },
-  'almacen-ercilia': { respuesta: {} },
-};
+export const LAZOS_POR_ELECCION = {};   // (4.15.0: con las escenas de B, los lazos los dan los efectos `lazo:<quien>:<n>` de cada opción)
 
 // Aplica lo que falte de las escenas vistas. Devuelve los ids aplicados.
 export function aplicarVistas(h, dia = 1, ctx = {}) {
@@ -151,12 +137,7 @@ export function aplicarVistas(h, dia = 1, ctx = {}) {
 
 // Lo que se anota en el cuaderno de lo raro al cerrar un capítulo, según lo decidido (la tarjeta de cierre del capítulo 2)
 export function alCerrarCapitulo(h, capId, dia = 1) {
-  if (capId === 'bolsa') {
-    const d = h.decisiones?.bolsa;
-    if (d === 'a') anotarRaro(h, 'risa', dia);
-    else if (d === 'b') anotarRaro(h, 'gallinero', dia);
-    else if (d === 'c') anotarRaro(h, 'josefina-mira', dia);
-  }
+
   // la ingeniera sigue su camino: se queda en el hospedaje de la aldea
   if (capId === 'ramal') h.acompanante = null;
   // Graciela con muy buen lazo suma a la cuenta del ramal (se cuenta una sola vez)
