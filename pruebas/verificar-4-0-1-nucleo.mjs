@@ -43,7 +43,7 @@ tiene(main, "if (g?.modo === 'inicio') { $('hud').classList.add('oculto'); $('in
 tiene(main, "if (modo !== 'inicio') abrir('pausa');", 'banco: Cerrar no abre la pausa desde la portada');
 
 // 6) el espejo de Bruno: suelta el mouse y las teclas, y soltar el mouse no abre la pausa
-tiene(main, "alSoltar: () => { if (modo === 'jugando' && !creadorAbierto) abrir('pausa'); }", 'espejo: el mouse suelto con el creador abierto no abre la pausa');
+tiene(main, "alSoltar: () => { if (modo === 'jugando' && !creadorAbierto && !escenasMundo?.activa()) abrir('pausa'); }", 'espejo: el mouse suelto con el creador abierto no abre la pausa');
 tiene(main, 'jugador.soltar(); } catch { /* sin bloqueo */ } }\n  jugador.teclas.clear();', 'espejo: suelta el mouse y olvida las teclas');
 
 // 7) la catapulta, la campana y las trampas ignoran a las crías de adentro del Coihue

@@ -46,7 +46,7 @@ const ok = (cond, que) => { assert.ok(cond, que); console.log('✓', que); };
   tiene(main, "if (modo !== 'jugando' || mochilaAbierta || foto.activo || banco.activa) return;   // 4.0.5 (G15)", 'la rueda no cambia de ranura en el banco');
   tiene(main, "if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta || foto.activo || banco.activa) return;", 'el clic derecho no usa lo que tenés en la mano en el banco');
   tiene(main, "desafio.caido || foto.activo || banco.activa) return;", 'el clic izquierdo no ataca en el banco');
-  tiene(main, "if (jugador && modo === 'jugando' && !banco.activa && !jugador.bloqueado()) jugador.pedirBloqueo();", 'el clic en el lienzo no bloquea el mouse en el banco');
+  tiene(main, "if (jugador && modo === 'jugando' && !banco.activa && !escenasMundo?.activa() && !jugador.bloqueado()) jugador.pedirBloqueo();", 'el clic en el lienzo no bloquea el mouse en el banco');
 }
 
 // ---------------------------------------------------------------- E8: Chela y Rubén (Rubén se quedó en el tren)

@@ -62,7 +62,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   const siesta = f.indexOf("if (!deNoche && ajustes.duracion === 'reloj')");
   ok(siesta > 0 && siesta < f.indexOf('desafio.curar(') && siesta < f.indexOf('setTimeout('), 'con la hora de tu reloj no hay siesta (antes de curar o apagar el fuego)');
   ok(f.indexOf("if (enCarpa) diario.anotar('carpa');") > f.indexOf('Ya dormiste esta noche'), 'la carpa se anota después de las guardas');
-  ok(main.includes("if (durmiendo && codigo !== 'Escape') return;") && main.includes("activo: () => modo === 'jugando' && !durmiendo,") && main.includes('js.sentado && !durmiendo &&'), 'en el fundido no se juega ni corre el reloj acelerado');
+  ok(main.includes("if (durmiendo && codigo !== 'Escape') return;") && main.includes("activo: () => modo === 'jugando' && !durmiendo && !escenasMundo?.activa(),") && main.includes('js.sentado && !durmiendo &&'), 'en el fundido no se juega ni corre el reloj acelerado');
 }
 
 // ---------------------------------------------------------------- 4. el aviso junto al fuego

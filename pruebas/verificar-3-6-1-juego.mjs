@@ -128,7 +128,7 @@ const { veg } = contexto.__R;
   ok(abrir.includes("if (cual !== 'jugando') {") && abrir.indexOf('if (foto.activo) abrirModoFoto(false);') > abrir.indexOf("if (cual !== 'jugando') {"), 'abrir la pausa, el cuaderno o el mapa cierra el modo foto');
   // los caminos que abren la pausa sin pasar por la tecla Escape siguen yendo por abrir()
   ok(main.includes("if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa) abrir('pausa');"), 'perder el foco pausa por abrir()');
-  ok(main.includes("alSoltar: () => { if (modo === 'jugando' && !creadorAbierto) abrir('pausa'); },"), 'soltar el mouse también');
+  ok(main.includes("alSoltar: () => { if (modo === 'jugando' && !creadorAbierto && !escenasMundo?.activa()) abrir('pausa'); },"), 'soltar el mouse también');
 }
 
 const pkg = JSON.parse(leer('package.json'));

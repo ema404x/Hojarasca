@@ -120,7 +120,19 @@ Lo guardado va en `progreso.historia.escenas = { vistas: { id: día }, eleccione
 6. **Un solo director** a la vez; si no se puede empezar, `disparar` da `false` y el que llama reintenta.
 
 ## Verificación
-Ver más abajo (se completa al cerrar).
+- : **verify: 317 pasos OK** (de corrido). Una corrida previa falló en  («huemul: alerta, las orejas»): es intermitente y ajena (pasa sola 6 de 6 veces); no toca nada de esta versión.
+-  (en el gate, 77 comprobaciones): validación, correr la demo de punta a punta, la cámara (arranca desde la del jugador, vuelve interpolando, sin giros bruscos), saltar (efectos en orden, el que caminaba llega, elección por defecto, Esc dos veces), guardado (a mitad no queda vista; recarga la deja pendiente), saneo con basura y , ramas y condiciones, hora hacia adelante pasando la medianoche, fundido, escritura y Enter, los tipos de plano, la mirada dirigida, tomar y soltar personajes (sin DOM) y el enganche por texto (pausa, guardar, mouse, teclas, sin three/materiales/luces). **17 mutaciones** del código (se rompe una garantía) que la prueba atrapa todas.
+- Se ajustaron a propósito cuatro pruebas viejas que miraban el texto exacto de líneas que ahora llevan : , ,  y .
+- Partida real:  (Electron con WebGL, Historia): **todo en orden**. Dispara la demo con la consola de códigos; cámara dirigida; barras, caja y elección en HTML; Enter completa la línea y avanza; el número 2 elige y ramifica; la pausa congela (21,24 s → 21,24 s) y el mouse queda suelto al volver; guardar a mitad no escribe; Esc dos veces salta (Josefina queda en su lugar y libre, la cámara vuelve en 20 cuadros sin saltos); una escena terminada queda vista y recargando sigue; una a medias queda pendiente y se puede volver a disparar; la mirada dirigida corta gira y vuelve; **0 programas de shader nuevos (110 → 110)**; sin errores de consola. Capturas en  (miradas con ojo crítico; ver abajo).
 
-## Estado al pausar → ya no hace falta
-(La sección anterior de «Estado al pausar» se reemplazó por este documento.)
+## Lo que se vio en las capturas
+Barras de cine de 11,5 % arriba y abajo, caja de diálogo oscura con el nombre en color (Caveat) y texto serif, legible sobre pasto y flores; la elección con tres botones numerados; el aviso de Esc arriba. El HUD y las notas se atenúan (se arreglaron: al principio los carteles de arriba a la derecha seguían a la vista). El saludo de Josefina (brazo en alto) se lee bien; «señalar» queda como un brazo adelantado y es el menos convincente.
+
+## Lo que no se pudo verificar / límites
+- No se miró con ojo humano el movimiento (sólo capturas sueltas): ritmo de los planos, el «travelling» al costado y la velocidad de escritura (42 letras/s) hay que sentirlos jugando.
+- **Sobre el hombro**: el cuerpo del jugador no se dibuja en primera persona, así que el plano no muestra el hombro; queda como un medio ligeramente corrido. Para que se vea hay que dibujar el cuerpo del jugador (modo foto) durante la escena: no se hizo.
+- Las poses propias se probaron en Josefina; con otros personajes (con mate, bastón o poncho) pueden pedir ajuste.
+- Con la partida fuera de la Historia las vistas no se guardan (no hay ): las escenas del guion corren sólo en la Historia.
+- Mando: no se tocó (sólo teclado y ratón). El inglés no se escribió.
+- Los efectos con nombre del guion (dar objeto, marcar flag…) los registra quien escribe las escenas; el motor sólo da el mecanismo.
+- No se midió fps en la 4600G (la escena es DOM + rotaciones de huesos; los programas de shader no cambian).
