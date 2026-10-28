@@ -1,0 +1,374 @@
+﻿Hojarasca 4.15.0 — paquete completo
+==================================
+Hojarasca-4.15.0-Setup-x64.exe ............ instalador de Windows (64 bits)
+Hojarasca-4.15.0-Portable-x64.exe ......... versión portable: se abre sin instalar
+Hojarasca-4.15.0-Steam-depot-win64.zip .... carpeta del juego lista para el depot de Steam (Hojarasca.exe adentro)
+Hojarasca-4.15.0-codigo-fuente.zip ........ código fuente, con el juego ya armado (index.html)
+
+CÓMO SABER QUE ES ESTA VERSIÓN
+En la portada, abajo a la derecha, tiene que decir:   Hojarasca · 4.15.0 · build <huella>
+Si dice otra cosa, lo que se abrió es un juego anterior. Pasa cuando hay un Hojarasca viejo abierto (aunque esté minimizado): Windows no deja
+abrir dos y muestra el que ya estaba. Cerrá todos los «Hojarasca.exe» desde el Administrador de tareas (Ctrl+Mayús+Esc) y abrí el nuevo.
+
+QUÉ HAY DE NUEVO (jugá en modo RELAX)
+- LA CANTINA (3.9.0) al final de la calle de la Loma, con Lucrecia la moza (de 18 a 2), y LA PEÑA DE LOS SÁBADOS con Dalia la bailarina (3.9.1).
+  El banco del pueblo y la casa de té con más vida (3.9.2).
+- EL CREADOR DE BRUNO (4.1): al empezar una partida nueva elegís su aspecto y su historia (personalidad, oficio, gustos, hobby, virtud y
+  defecto). Hay un prólogo de 5 tarjetas que se puede saltar. Los rasgos tienen efecto en el abrigo, el trato con los vecinos, la pesca y el
+  cuaderno de cielo, y hay un guardarropa. Los textos de las tarjetas son una propuesta: decime cuáles cambiar.
+- MEJORAS VISUALES (4.0): faroles con halo y charcos de luz de noche en la aldea; la casa de té por dentro con faroles encendidos, fuego y
+  ventanas con paisaje; rayos de luz entre los árboles al atardecer, espuma en la orilla del lago y niebla de valle al amanecer; las mujeres
+  con busto propio y Dalia más escotada; caras, pelo y botas con más detalle.
+- EL MOLINO Y EL PUENTE REHECHOS (4.0): molino de piedra y madera con aspas de listones, puente con herrajes y faroles, y junto al molino un
+  campo de tulipanes en franjas, un arroyo con cascadita de rocas, cercos y una casa con galería.
+
+NOVEDADES DE LAS VERSIONES 4.0.1 A 4.15.0
+- Cantina y casa de té: el pedido ya no se cobra sin servirse. Creador de Bruno: si falla el 3D, entrás igual.
+- Casas en ladera, escalera de la torre de vigía, dinero que volvía mal al deshacer una casa, trochita, modo foto, fauna tras la pausa.
+- El molino: el campo de tulipanes ya no tapa el sendero; el arroyo sigue el suelo.
+- Ritmo automático: vuelve a 60 fps después de un momento pesado (antes se quedaba en 30).
+- Dalia: zapatos que apoyan y paso de baile más corto; borde de la blusa de las mujeres sin festoneado. Greta con la cara y el pelo pulidos.
+- Piedras con musgo (calidad media y alta).
+- EASTER EGGS (sólo Relax): una estrella fugaz con deseo, la yerba al pie de un coihue grande, un huemul blanco al amanecer con niebla, el
+  hueso que entierra el perro, un código secreto en la portada y la radio de madrugada. No se explican en el juego: a descubrirlos.
+
+NOVEDADES DE LA 4.5.0 (19-10)
+- Dalia: los zapatos de taco apoyan la punta y el taco juntos (no flotan) y la V del escote es de borde limpio.
+- Con la mesa larga llena, E te sienta en el banco libre en vez de hablar con quien come del otro lado.
+- Arreglos: con la estación en automático el paisaje ya no arranca en verano y pasa a invierno a la vista; el ratón en el banco de pruebas;
+  el aviso de Chela al bajar del tren; el diario juzga el pronóstico por lo que llovió después; la lagartija que huye por la loma.
+
+NOVEDADES DE LA 4.2 (19-10) — MÁS PARA CONSTRUIR Y MÁS USO DEL DINERO (jugá en modo RELAX)
+- EL PICO: para picar piedra hace falta el pico (tecla H frente a una roca). Se consigue de tres maneras: trueque en el almacén (3 cantos y 12 ramitas),
+  el herrero de la aldea lo forja (3 cantos y $300) o se compra en el almacén por $1.200. Picar piedra es a golpes (6 al empezar, 2 de Maestro) y
+  tiene su propio oficio, el PICAPEDRERO, que sube con el uso. El herrero también afila el pico.
+- LAS PIEZAS AHORA PUEDEN COSTAR PESOS: el menú de construcción muestra el precio de cada una («Vitrina de roble · $4.500») y avisa lo que te falta.
+- ~50 PIEZAS NUEVAS PARA CONSTRUIR:
+  · Ampliaciones de la casa (de $20.000 a $78.000): dormitorio anexo, despensa de piedra, taller anexo, quincho, galería cerrada, cocina ampliada,
+    bodega de piedra, buhardilla, salón grande, planta alta con escalera, torreón de piedra, gran hogar de piedra, y paredes de piedra y techo de teja.
+  · Edificios de oficio (de $18.000 a $42.000): cantería, carpintería, quesería, panadería de horno grande, tienda de campo, herrería propia,
+    telar grande y cervecería (Lucrecia compra los barriles y la cerveza de la cantina te sale más barata).
+  · Lujo y decoración (de $900 a $12.000, más las 5 del ejemplo): estantería de roble, sillón de cuero, cama con dosel, mesa de banquete, biombo,
+    candelabros, cuadros, gramola (con E suena música), estatua del baqueano, chimenea de salón, pérgola y más.
+  · Almacenaje con tope que se amplía con pesos: pila de piedra, depósito de piedra techado, barraca de materiales, silo y herramientero.
+    El acopio de siempre ahora guarda hasta 40 de cada material.
+  · Huerta, granja y exteriores: huerta en terrazas, establo, corral grande, cobertizo de heno, palomar, aljibe, pozo, tranquera, portón, puente de piedra,
+    pirca y camino empedrado.
+- Al armar una pieza, el juego avisa lo que te sobró.
+- El trueno de la lluvia fuerte ahora llega después de su destello.
+
+NOVEDADES DE LA 4.3 (19-10) — TRABAJAR DE EMPLEADO Y TENER TU NEGOCIO (jugá en modo RELAX)
+- EMPLEO FIJO: en cuatro locales (almacén de Ercilia, casa de té, taller ferroviario y banco) hay un cartel de turnos junto a la puerta. Con E tomás el
+  puesto, fichás y hacés 8 tareas cortas con E (barrer la vereda, atender el mostrador, amasar, atizar la fragua, contar billetes…); al terminar cobrás
+  el sueldo (de $1.600 a $2.800 según el escalón). Si te vas antes cobrás lo hecho menos el 25 % y queda una falta. Hay un turno por día y ocupa
+  uno de los dos jornales. Se asciende por días cumplidos y el nivel de un oficio: Aprendiz, Empleado y Encargado. El cuaderno tiene la página
+  «Trabajo en la aldea» con tu historial.
+- NEGOCIO PROPIO: en O → Trabajo hay dos locales para construir: el almacén de campo ($28.000) y la panadería y cafetería ($36.000). Con E abrís el
+  panel: surtís los estantes desde la mochila, fijás el precio de cada producto (barato, normal o caro) y abrís o cerrás el local. Los clientes
+  llegan de 8 a 21 h mientras el local esté abierto y vos cerca; los atendés vos, uno por uno, con E junto al mostrador. La reputación sube con la buena
+  atención y trae más clientes; la caja tiene un tope de $12.000. Un solo local por partida.
+
+NOVEDADES DE LA 4.4 (20-10) — EMPLEADOS, COMPRAR NEGOCIOS Y SOCIEDAD (jugá en modo RELAX)
+- CONTRATAR EMPLEADOS EN TU NEGOCIO: desde el panel de tu local (E) contratás hasta 2 vecinos a sueldo diario (de $600 a $1.200 según su habilidad).
+  Con menos de 25 puntos de amistad no aceptan; de amigo aceptan; de compadre aceptan con gusto y cobran menos. Trabajan de lunes a sábado detrás del
+  mostrador de tu local (el primero de 8:30 a 19, el segundo de 11 a 21) y venden aunque vos no estés, a un 56–63 % de lo que vendés vos el primer día y hasta
+  un 79–87 % con los días y la habilidad. Si te vas lejos, las ventas se simulan y al volver te cuentan qué vendieron. El primer día es de prueba, sin sueldo.
+  El vecino contratado deja de hacer lo suyo durante su turno.
+- COMPRAR EL NEGOCIO DE UN VECINO: en la charla con el dueño, «Hacer juntos» → «Hablar de su negocio» (y Amadeo, en el banco, te ofrece «Hablar de negocios»).
+  Se pueden comprar la panadería de Rosa ($80.000), la pescadería de Aurelio, la sala de miel de Guido, la hilandería de Elvira, la casa de té de Ceinwen, la
+  herrería de Anselmo, el almacén de Ercilia y la cantina de Lucrecia ($200.000). Cada vecino reacciona según su historia y su amistad con vos. El local
+  lleva un cartel «de [tu nombre]», rinde una ganancia por día a una caja que guarda hasta 10 días (si no pasás a verlo, rinde menos) y paga sueldos, insumos y
+  gastos fijos (alquiler, impuestos y luz).
+- SOCIEDAD CON UN VECINO: ponés del 10 al 40 % del precio y cobrás un porcentaje de la ganancia diaria; podés retirarte con aviso (se hace a los 2 días).
+
+NOVEDADES DE LA 4.5.0 — GASTOS FIJOS Y REPOSICIÓN DE TU LOCAL (jugá en modo RELAX)
+- TU LOCAL PAGA GASTOS FIJOS cada día, estés donde estés: el almacén de campo $250 (alquiler, impuesto y luz) y la panadería y cafetería $200. Salen de la caja del
+  local y, si no alcanza, de tu billetera. Si no hay con qué pagar queda una deuda (hasta 5 días); con 2 días el local cierra solo, sin perder mercadería ni fama.
+  El panel muestra los gastos, el balance de hoy y de la semana, y un botón para pagar la deuda.
+- REPOSICIÓN: tu empleado repone los estantes desde tus depósitos cercanos (barraca, pila y depósito de piedra, silo) cuando no estás; y hay un botón
+  «Pedir al proveedor» que surte los estantes a precio de plaza más un 20 % (tope de $3.000 por día).
+
+NOVEDADES DE LA 4.5.0 — PASE DE BUGS (jugá en modo RELAX)
+- LAS TECLAS CON MAYÚS CAMBIARON: Mayús es sólo correr. Ya no se paga, desmonta ni mueve nada por correr y tocar E.
+  · Ampliar un depósito o abrir el panel de tu local: mantené E unos 0,7 segundos (la primera vez muestra el precio; mantené E otra vez para pagar).
+  · Desmontar una pieza: con los planos abiertos, Supr avisa lo que recuperás; otro Supr, entre 0,6 y 12 segundos después, la desmonta.
+  · Mover una pieza: M con los planos abiertos (sin planos, M sigue siendo el mapa).
+  · Sacar todo lo guardado de un depósito: Supr junto al depósito (con los planos cerrados).
+- TU NEGOCIO Y TUS EMPLEADOS: el guardado ya no se dispara cada segundo; mover o desarmar un local ya no cierra el otro; despedir y recontratar ya no
+  evita el sueldo (el día de prueba sin sueldo es uno solo por vecino y local); lo que compres al proveedor se vende pero no se saca del estante.
+- EL EMPLEO: con los dos jornales del día hechos ya no podés fichar el turno; el HUD del turno ya no se dibuja encima de la pausa, el cuaderno ni el mapa;
+  el ascenso siempre avisa; no hay turno los días en que el jefe no está (baile del sábado, fiestas, cumpleaños, minga); si comprás el local en pleno
+  turno, se cierra con lo hecho; dormir o la siesta cuentan como irse antes.
+- LA CONSTRUCCIÓN: los galpones, los edificios de oficio y los locales ahora cubren de la lluvia; las rocas que picás quedan picadas al recargar; la gramola
+  ya no suelta todas las notas juntas y hay una sola; el herrero ya no tapa el afilado con el pico; las piezas grandes ya no se funden una encima de otra.
+
+NOVEDADES DE LA 4.5.0 — VENDER UN NEGOCIO Y SUMAR PLATA A UNA SOCIEDAD (jugá en modo RELAX)
+- VENDER DE VUELTA UN NEGOCIO QUE COMPRASTE: en la charla con el dueño original, «Hablar de su negocio» → «Venderle [el local] de vuelta». Muestra el cálculo antes de cerrar.
+  Te pagan entre el 50 % y el 85 % de lo que pagaste (más cuantos más días lo tuviste y cuanta más amistad, menos si lo descuidaste o lo vendés enseguida); la caja del
+  negocio se cobra aparte. El cartel «de [tu nombre]» desaparece y el vecino vuelve a su local. Si lo recomprás antes de 30 días de juego, cuesta un 10 % más.
+- SUMAR PLATA A UNA SOCIEDAD: siendo socio, la charla dice «Hablar de la sociedad» y tiene «Sumar plata a la sociedad» con tres montos. Sube tu porcentaje de la ganancia hasta el
+  45 % y el aporte total hasta el 40 % del precio. El vecino puede negarse (si ya estás en el tope, si la amistad bajó, si avisaste el retiro).
+
+NOVEDAD 4.5.0: CONSOLA DE CODIGOS (Ctrl+Mayus+C)
+- Se abre y se cierra con Ctrl+Mayus+C (Esc tambien la cierra). Escribis un codigo y Enter; Tab completa; flechas arriba y abajo recorren el
+  historial; «ayuda» lista todos los codigos. Dinero y materiales, hora, dia, estacion y clima, velocidad, salto, vuelo, ir a un lugar,
+  desbloquear planos y oficios, historia, amigos y cuaderno. No marca la partida ni afecta los logros.
+- Para probar a mano: que al cerrar la consola con Esc el mouse vuelva a quedar atrapado en el juego.
+
+NOVEDADES DE LA 4.5.1 — SIN CARRERAS NI TORNEO
+- Se sacaron las carreras contrarreloj (los postes con banderín y carteles repartidos por el valle) y el torneo de la semana. Se conserva el código de la
+  semana de La noche de los duendes. Las partidas viejas cargan igual. El «Desafío del día» sigue, ahora con pesca, obras o trochita.
+
+NOVEDADES DE LA 4.15.0 — HISTORIA NUEVA, ACTO I
+- El modo Historia es nuevo: «El trato del molino», 13 capítulos. Están completos los capítulos 1 a 4 (verano), con escenas con cámara y diálogos, misiones de varias partes y la primera decisión grande (la bolsa del molinero). Del 5 al 13 todavía dice «continuará».
+- Las partidas viejas en modo Historia se reinician por completo; antes se guarda una copia y sale una tarjeta de aviso. El Relax libre y el Desafío no cambian.
+
+PARA MIRAR Y CONTARME (4.15.0)
+- Si las escenas se leen cómodas y la cámara acompaña; si los vecinos suenan a gente real; si las misiones se entienden sin ayuda; si Graciela te cierra como personaje.
+
+NOVEDADES DE LA 4.14.0 — MOTOR DE ESCENAS
+- Es la base técnica de la Historia nueva: escenas dirigidas con cámara, diálogos, elecciones y cambios de hora. Todavía no hay escenas en el juego normal.
+- Para probarlo: en el modo Historia abrí la consola de códigos y escribí «escena demo» (Llegada de Josefina). Enter, Espacio o clic avanzan; Esc dos veces o Tab saltan; F1 pausa.
+
+PARA MIRAR (4.14.0)
+- Si el ritmo de la cámara y del texto se siente bien, si el cuadro de diálogo se lee cómodo y si la escena vuelve al juego sin saltos.
+
+NOVEDADES DE LA 4.13.0 — DUENDES EN LA HISTORIA
+- En el modo Historia, a partir del capítulo 5 empiezan a aparecer señales de los duendes: siluetas al anochecer, risas lejanas, luciérnagas raras.
+- Hay un encuentro de noche en el galpón con tres opciones (dos de trato, una de pelea). Lo que elijas cambia cómo es la noche final y el final de la historia.
+- Josefina y Ramón te dan el arco y la honda a cambio de materiales. Después viene una noche de defensa de unos 3 minutos; si perdés, reintentás sin castigo.
+- Hay dos finales: «El valle en silencio» (pelea) y «El trato».
+
+PARA MIRAR Y CONTARME (4.13.0)
+- Si los duendes dan misterio sin pasarse de susto, y si se ven de día entre el pasto.
+- Si la noche de defensa es difícil o fácil, y si apuntar con el arco se siente bien.
+- Si los dos finales te dejan con ganas.
+
+NOVEDADES DE LA 4.12.3 — EL SHADER TARDÍO
+- Se arregló un tirón de un cuadro que aparecía una vez al jugar en Media y Alta (un programa de sombra se compilaba recién al verse; ahora se compila en la carga).
+
+PARA MIRAR (4.12.3)
+- Nada nuevo para mirar: si notabas un tirón corto al empezar a caminar, ya no debería estar.
+
+NOVEDADES DE LA 4.12.2 — MEJORA VISUAL 2
+- El agua refleja el cielo, el ocaso y la luna; la orilla es más turquesa y tiene una lengua de espuma que va y viene.
+- Los edificios se asientan en el suelo (sombra de contacto, esquinas oscuras), cada uno tiene su desgaste y musgo, y de noche las ventanas y fogatas tienen halo.
+- El caballo, el ciervo, el huemul y el perro se mueven con huesos: las marchas se mezclan sin saltos (en Media y Alta, de cerca).
+- Las sombras llegan más lejos y ahora los árboles también dan sombra.
+
+NOVEDAD 4.12.2: QUINTO PASE DE BUGS (sin contenido nuevo)
+- Sonido: al minimizar el juego o hacer Alt+Tab a otro juego, el sonido (viento, agua, lluvia, gramola) se suspende; vuelve solo al volver.
+- Caballo y carro: ya no se dibujan en el lecho del arroyo al cruzar el Puente de Troncos o un muelle; el carro no atraviesa arboles, obras ni
+  paredes; la carpinteria con el caballo muestra el bono de madera.
+- Animales: la cabeza del ciervo, el caballo, el huemul y el perro ya no saltan al cruzar los 40 m (de malla rigida a malla con huesos); el
+  perro y el caballo de la aldea, la fiesta y el tren no arman piel de mas (menos costo al armar la aldea); el shader de profundidad se
+  precalienta mas completo en la carga (pendiente de confirmar con la placa).
+- Sombras: la sombra de contacto se apaga con la distancia y no oscurece lo transparente.
+- Partidas: «Empezar aca» en una ranura vacia ya no cambia los ajustes de las otras partidas; al importar una partida de una version mas
+  nueva se avisa la version y que queda en solo lectura, y no se pierden sus campos nuevos; abrir el banco de sonidos no corta la gramola.
+
+PARA MIRAR (4.12.2)
+- Cuántos cuadros por segundo hace en tu PC en Media y Alta (con F3), sobre todo con sombras lejanas en el bosque. Si tironea, avisame y bajo el alcance de las sombras.
+- Si el caballo y el ciervo se ven bien al moverse, y si el agua y los halos de noche gustan.
+
+NOVEDADES DE LA 4.12.0 — MEJORA VISUAL 1
+- Los bordes ya no se ven escalonados en calidad Media y Alta (suavizado FXAA).
+- Hay cinco tipos de roca en vez de uno, y el terreno tiene más variedad de color: franjas en el prado, musgo y hojarasca bajo los árboles, bordes en los caminos. (Media y Alta.)
+
+PARA MIRAR (4.12.0)
+- Si los bordes se ven bien sin quedar borrosos, y si las rocas y el terreno se ven más ricos sin ruido o repetición.
+- Cuántos cuadros por segundo hace en tu PC en Media y Alta (con F3).
+
+NOVEDADES DE LA 4.11.5 — EL CARRO
+- Se fabrica en tu carpintería (E en el banco de carpintero): 14 tablas, 4 troncos y $6.000. Se engancha al caballo en Personalizar (F5), «Tu caballo».
+- Montado y enganchado suma 16 casillas de carga (52 con las alforjas). Se ve detrás del caballo.
+- El panel de carga ya no dice «+undefined casillas».
+
+PARA MIRAR (4.11.5)
+- Cómo se mueve el carro en curvas y cuestas, y si el interruptor en «Tu caballo» se encuentra bien.
+
+NOVEDADES DE LA 4.11.4 — BANCO DE SONIDOS
+- En la pausa hay un botón nuevo, «Banco de sonidos»: 146 sonidos del juego, cada uno con su botón, para oírlos sin jugar hasta provocarlos. Guía en LEEME-SONIDOS.txt.
+
+PARA ESCUCHAR (4.11.4)
+- Todo: nadie escuchó todavía los sonidos nuevos. Anotá cuáles suenan fuertes, bajos, raros o con clics.
+
+NOVEDADES DE LA 4.11.3 — PROCESO Y GUARDADO
+- Si abrís con esta versión una partida guardada por una más nueva, se abre en sólo lectura (marca fija «Sólo lectura: no se guarda») para no pisarla.
+- El guardado es más seguro: si el sincronizador de la nube tiene el archivo tomado, queda la copia anterior y se reintenta.
+- La noche del Coihue ya no hace un tirón al calcular su camino.
+
+PARA MIRAR (4.11.3)
+- Si el Coihue sigue caminando bien hacia la base y la noche no tironea.
+
+NOVEDADES DE LA 4.11.2 — MUNDO Y GENTE
+- Los barriles, mesas y bloques de tus edificios ya no se atraviesan. Las madrigueras en ladera y los postes del tablero de trofeos se apoyan en el terreno. Las sombras de las antorchas no son todas iguales.
+- El diario anota a quién conociste; hay un encargo nuevo del Puesto Alto y podés soltar los papeles del tablón que tomaste y no querés.
+- Contratar a un compadre que está de visita corta la visita. El empleado que termina el turno sale caminando del local. La panadera vende 3 panes por $600.
+
+PARA MIRAR (4.11.2)
+- Si algún edificio quedó trabado o difícil de usar por los choques nuevos.
+- Si la novia empleada y el resto de la gente se mueven bien al empezar y terminar el turno.
+
+NOVEDADES DE LA 4.11.1 — INTERFAZ Y SONIDO
+- El tablero de trofeos abre un panel con los siete trofeos y se queda hasta que lo cerrás. Los pies de la carta, el banco y el local usan tu tecla de interactuar.
+- Junto a un cantero vacío podés elegir la semilla con Tab o la rueda. La mochila y el cuaderno conservan el foco del teclado al actualizarse.
+- «Empezar acá» en una ranura vacía también trae tus recetas y tu ropa.
+- Los pájaros suenan con la perilla de «El bosque» y se apagan adentro de las casas. La gramola obedece a Música. La radio de la madrugada se apaga con E.
+
+PARA MIRAR Y ESCUCHAR (4.11.1)
+- Si los pájaros, la gramola y el apagado de la radio suenan bien (nada se escuchó todavía, sólo se midió).
+- Si elegir la semilla con la rueda y Tab se siente natural.
+
+NOVEDADES DE LA 4.11.0 — AJUSTES DEL DESAFÍO
+- La Pesadilla mantiene sus duendes de más durante toda la partida (antes, en Implacable, los perdía desde la noche 7).
+- «Nueva partida» escribe debajo de cada opción bloqueada por qué lo está. Las noches más largas no se pueden combinar con la hora de tu reloj.
+- «Otra vuelta» te deja todo lo ganado: habilidades, bestiario, trofeos y las reglas que elegiste. Para que vuelva el bono de los trofeos hay que armar un tablero nuevo.
+- En la noche silenciosa, los refuerzos también son tiradores.
+
+PARA MIRAR Y CONTARME (4.11.0)
+- Si la Pesadilla en Implacable se siente más dura sin ser injusta, y si va fluida con tantos duendes.
+- Si «Otra vuelta» con todo lo ganado queda demasiado fácil.
+
+NOVEDADES DE LA 4.10.4 — VOLVER A JUGAR (jugá en el modo Desafío)
+- Habilidades del guardián: ganás un punto por cada noche aguantada y lo gastás en Tiro, Reparar o Aguante (pestaña «Guardián» del cuaderno). El bestiario premia: estudiar a un tipo de
+  duende (derrotarlo 5, 15 y 40 veces) te da su punto débil, por dónde viene y un poco más de daño contra él.
+- Tu base crece: las defensas que aguantan varias noches se curten (llevan una placa) y reciben menos daño; los trofeos de los jefes cuelgan de un tablero y dan bonos chicos; el perro
+  avisa antes y muerde más fuerte cuantas más noches pasa con vos.
+- Entre partidas: ganás semillas del Coihue y, al empezar, una sola pantalla te deja elegir el modo (campaña, corta de 7 noches, pesadilla o sin fin), hasta 2 ventajas y reglas a elección
+  (sólo arco, sin aliados, noches más largas...) que suman puntos al récord. La pesadilla se desbloquea al ganar la campaña. Hay cuatro finales según cómo jugaste.
+- El Coihue camina hacia tu base durante el asedio (se lo retrasa pegándole a sus raíces); la subida a su corazón tiene raíces que barren y duendes en las ramas; y los duendes van
+  tomando lugares del valle (no se pueden talar ni picar ahí) que recuperás quemando su nido de día.
+
+NOVEDAD 4.10.4: PASE DE BUGS (sin contenido nuevo)
+- Vecinos: el vecino con turno en tu negocio ya no va al club de lectura ni a las estrellas (antes quedaba en dos lugares); si le comprás el
+  negocio a un empleado tuyo, el empleo termina con aviso (no cobra dos sueldos); el chico que estudia afuera ya no aparece en el concurso;
+  textos arreglados («del almacen», «Eso ya no es tuyo»...).
+- Desafio: guardar a mitad de noche ya no borra el daño ni las obras perdidas; la brecha de la cadena se cumple; el enjambre y el curandero no
+  se recortan; las semillas del Coihue no se repiten al importar la partida; Anselmo no arregla obras que ya cayeron; la trampa de miel
+  armada desde el menu nace llena; «Manos livianas» ahora arregla mas rapido; «Sin aliados» apaga tambien los pedidos; la E del tablero de
+  trofeos ya no tapa la puerta; y mas. La partida ahora guarda la version del juego.
+- Mundo: el deposito de los puestos de ruta se vacia con Supr; mochila llena: la feria, los rincones y la consigna ya preguntan antes de
+  entregar; el silo guarda las frutillas; el cuchillo de cuero rinde un cuero mas por compra; la consola de codigos respeta las casillas.
+
+NOVEDAD 4.10.4: TERCER PASE DE BUGS (sin contenido nuevo)
+- Construir: ya no se puede fundar una herrería, carpintería, cantería, barraca o local encima de un puesto de ruta, del anden del Riel Sur
+  ni de la veta de la cantera (te encerraba); las piezas grandes ya no pisan edificios del valle ni tus obras; al construir una pieza grande
+  se despejan todos los troncos de la huella; el galpon de herramientas y el cobertizo rural cubren de la lluvia.
+- Desafio: la ruina del bosque cae en sitios llanos; la llama del farol de Herminia tiene su tamaño; las placas de los duendes adaptados son
+  una sola malla (menos dibujos); los nidos de los lugares tomados no quedan pegados a troncos o rocas; las patas del Coihue apoyan en el
+  suelo en las laderas.
+- Sonido: con Musica o Efectos en 0 ya no queda la cola del reverb; despues de una pausa no suena la rafaga de notas de la cantina, el baile y
+  las fiestas; los volumenes de Ajustes se aplican desde el primer segundo.
+- Ajustes y partidas: el Banco de pruebas ya no consume la noche del Desafio ni le suma un dia a la partida; la GPU deja de quedar en modo de
+  respaldo para siempre tras dos caidas; «Empezar de nuevo» escribe la partida nueva antes de borrar la anterior; el aviso «Partida
+  recuperada» se ve.
+
+NOVEDAD 4.10.4: CUARTO PASE DE BUGS (sin contenido nuevo)
+- Rendimiento: guardar la partida vuelve a ser rapido (en la 4.0.2 se habia vuelto de 4 a 7 veces mas lento); los lugares que toman los duendes
+  se arman en tres cuadros en vez de uno.
+- Tu PC: con el juego minimizado o con Alt+Tab a otro juego, Hojarasca deja de dibujar el 3D completo (antes le robaba GPU al otro juego).
+- Proceso principal: el portable vuelve solo tras un fallo grafico; los errores no atrapados quedan anotados y se guarda la partida.
+- Construir: las piezas chicas vuelven a entrar en el establo, el corral grande y el cobertizo de heno; el torreon de piedra tiene alcanzable
+  todo el fondo de la sala; el mouse no queda atrapado con un panel abierto al tocar «Seguir recorriendo».
+- Banco: el mostrador respeta el horario del cartel (Amadeo contesta fuera de horario). Negocio comprado: las cifras de «ayer» son las que
+  entraron a la caja. Cantina: el plato de la mesa anterior se levanta y el pedido pagado sobrevive a guardar y salir. Un solo mate gratis por
+  noche.
+
+PARA MIRAR Y CONTARME (4.10.4)
+- Si da ganas de volver a jugar: si los puntos de habilidad, las ventajas y las reglas se entienden y se sienten bien.
+- Si el Coihue camina demasiado rápido o lento (llega en unas 5 noches) y si los lugares tomados molestan o motivan.
+- Cómo suenan los sonidos nuevos del Coihue y de la subida, y si las huellas y la sombra del Coihue se ven.
+
+NOVEDADES DE LA 4.9.0 — LA ALDEA EN LA NOCHE (jugá en el modo Desafío)
+- Los vecinos te ayudan en las noches grandes: Anselmo arregla las defensas rotas, la abuela Herminia prende fogones que espantan a los viejos, Martín pasa con la trochita
+  y silba para dispersar a los traviesos, y los chicos tiran piedras con hondas desde la empalizada. Con E sobre cada uno elegís dónde se para (su puesto).
+- Durante el día los vecinos te piden cosas (tablas, troncos, piedras, ramitas, frutas, miel): cumplir sus pedidos los hace ayudar más. Se entregan en el tablón de madera cerca de tu base.
+  Al abrir el tablón (E) el cuaderno muestra qué noche viene y por dónde van a entrar los duendes, para que prepares la base.
+- Campana de alarma: mirándola, con E suena y los aliados corren a sus puestos y el perro va al portón.
+- Lo roto se ve (tablas caídas, portón torcido, garras) hasta que lo arreglás. Pasadizo de escape: una salida escondida por atrás de la base.
+- Trampa de miel (los duendes quedan pegados unos segundos), farol de mano (los viejos oscuros no se acercan, pero te ven de lejos) y pala de brasas (espanta en grupo y prende la miel).
+
+PARA MIRAR Y CONTARME (4.9.0)
+- Si los vecinos se ven y se entienden, si el equilibrio de los pedidos (lo que cuestan) está bien y si da ganas de cumplirlos.
+- Cómo suenan la campana, el martillo de Anselmo, las piedras de los chicos y las brasas.
+- Si la trampa de miel, el farol y la pala se sienten útiles, y si el pasadizo es cómodo.
+- Si alguna noche con todo a la vez se pone demasiado fácil o demasiado difícil.
+
+NOVEDADES DE LA 4.8.1 — SIN PLATILLO VOLADOR (jugá en el modo Desafío)
+- Se terminó la nave espacial: ya no baja ningún platillo cada noche. Los duendes salen de un ARO DE HONGOS DE LUZ Y RAÍCES en el suelo del bosque:
+  brota al caer la noche con bruma y esporas, los duendes suben de a uno, queda acechando con hongos que laten y se cierra con tierra y hojas.
+- La cápsula caída, las ruinas de los restos y el nido también dejaron de parecer de ciencia ficción: ahora son cofres entre raíces, ruinas de corteza y piedra con musgo.
+- Sonido nuevo: viento grave, crujido de madera, tierra que se desmorona (nadie lo escuchó todavía).
+
+PARA MIRAR Y CONTARME (4.8.1)
+- Si quedó algo con forma de nave en el cielo, en el valle o en algún menú. Si el aro se ve bien y los duendes salen bien de ahí.
+
+NOVEDADES DE LA 4.8.0 — NOCHES DISTINTAS EN LA NOCHE DE LOS DUENDES (jugá en el modo Desafío)
+- Noches nuevas: de NIEBLA (se ve a pocos metros y se los oye antes de verlos) y de LUNA LLENA (vienen sobre todo los viejos oscuros, más duros; la luna alumbra).
+- A las 2 de la mañana puede pasar algo: baja la niebla, llegan refuerzos o una defensa tuya se rompe sola. Lo que pasa una noche cambia la siguiente:
+  si un duende escapó con lo robado, vuelve con compañía; si ganaste sin bajas, la próxima viene más grande.
+- Cada noche entran por otro lado: el río, el monte o el camino. De tarde el perro mira hacia ese lado. Algunos hacen bulla por un lado para distraer
+  mientras otros entran por el otro, y rodean las defensas en vez de chocar de frente.
+- Duendes nuevos: el CURANDERO (se queda atrás y cura a los demás: conviene ir a buscarlo primero) y el ENJAMBRE (una docena de duendecitos diminutos).
+- Más miedo desde la primera noche: silencio raro antes del ataque, ojos naranjas entre los árboles, música que sube, teros y vacas que avisan y pájaros que se callan.
+
+PARA MIRAR Y CONTARME (4.8.0)
+- Cómo suenan: las ramas que crujen, el tero, la vaca (la que más duda), el golpe de salida, el silencio y las dos músicas nuevas.
+- Si las noches se sienten distintas entre sí, y si el curandero y el enjambre hacen más divertido o más injusto.
+- Si los ojos entre los árboles se ven (de lejos son chicos).
+
+NOVEDADES DE LA 4.7.0 — LA MOCHILA CON CASILLAS (jugá en modo RELAX)
+- La mochila tiene 24 casillas. Los materiales y la comida ocupan casillas (troncos y piedras, 10 por casilla; tablas, arcilla y cuero, 20; el resto,
+  de 30 a 50). Las herramientas no ocupan lugar. Con I se abre la mochila: se ven las casillas, las vacías y cuánto llevás de cada cosa.
+- El caballo con alforjas (Personalizar el caballo → Con alforjas) suma 12 casillas mientras vas montado.
+- Si tu mochila está llena no podés juntar más: el árbol no se tala, la roca no se pica y las compras y trueques te avisan antes de cobrarte.
+  Podés guardar en depósitos, en el acopio y en los puestos de ruta. Las partidas viejas no pierden nada: lo que pasa del límite queda de más
+  (sobrecarga) hasta que lo gastes o lo guardes.
+- Junto a la barra aparece «Mochila 17/24», que se resalta cuando está llena.
+
+PARA MIRAR Y CONTARME (4.7.0)
+- Si 24 casillas se sienten bien o se hacen cortas al construir, y si el tamaño de las pilas (10 de troncos y piedras) está bien.
+- Si el aviso de mochila llena y el panel se entienden. Si los depósitos y el caballo alcanzan para organizarte.
+- Cómo se siente con una partida vieja que traía muchísimos troncos.
+
+NOVEDADES DE LA 4.6.0 — TODO EL MAPA CON VALOR (jugá en modo RELAX)
+- CUATRO PUESTOS DE RUTA ABANDONADOS: el de la Cantera (suroeste), el del Paso (oeste), el de la Estepa (este) y el del Riel Sur (sureste, también es
+  PARADA NUEVA DE LA TROCHITA). Se reparan con E en tres etapas ($3.000 cada una, más 10 tablas y 10 piedras en total). Reparado tiene catre para
+  dormir, fogón (F), depósito y mostrador que compra y vende con precios propios.
+- RECURSOS DE ZONA QUE SE REPONEN: la veta de la cantera (piedra de cantera, con el pico de cantero), el juncal y las hierbas del mallín (con la hoz),
+  la barranca de arcilla de la desembocadura (con la pala) y los pehuenes del mirador, que vuelven a dar piñones cada otoño. Materiales nuevos: junco,
+  hierbas, arcilla, cuero y piedra de cantera.
+- HERRAMIENTAS DE ZONA: hoz de junco (Josefina, $900), pala de arcilla (Nicanor, $1.100), cuchillo de cuero (Fermín, $1.000) y PICO DE CANTERO (Tobías,
+  $4.000, pide picapedrero nivel 3). El pico de siempre ahora se llama «Pico».
+- TABLÓN DE ENCARGOS EN LA PLAZA: 3 encargos por día de cosas de lugares lejanos, se entrega 1 por día, 2 días de plazo, pagan de $750 a $2.200.
+- GENTE NUEVA FUERA DEL PUEBLO: Fermín (pastor, en el galpón de esquila: lana y cuero), Belisario (arriero, junto al Puesto del Paso) y Tobías (cantero).
+  Nicanor (cabaña del pescador) y Josefina (mirador) ahora tienen pedidos y tiendita: en la charla, «Pedidos y compras».
+- ARREGLOS: las rocas de las laderas de todo el valle ya no flotan (apoyan en el suelo); los vecinos ahora invitan a tomar mate con su frase propia.
+
+PARA MIRAR Y CONTARME (4.6.0)
+- Recorrer los cuatro puestos, repararlos y comerciar: si los precios y lo que cuesta repararlos se sienten justos.
+- El tablón de encargos y la gente nueva: si da ganas de salir del pueblo.
+- Las rocas en las laderas y el juncal crecido y cortado.
+- Los fps en la PC de escritorio (no se midieron con esta versión).
+
+PARA MIRAR Y CONTARME (agregado)
+- Si los precios de venta y el aporte adicional se sienten justos.
+- Si los gestos nuevos (mantener E, Supr con confirmación, M) se sienten bien o se confunden.
+- Cómo se siente el ritmo de los gastos en varios días seguidos, y si la reposición y el proveedor alcanzan para sostener el local.
+- Cómo se siente contratar, comprar y asociarte; el equilibrio de plata (los ocho negocios juntos rinden unas tres veces los jornales).
+- Cómo se siente el turno de trabajo y la atención del local (clientes, tiempos, precios y reputación).
+- Cómo suena la gramola y cómo se siente el golpe del pico (no se oyeron).
+- Los fps en la PC de escritorio con tantas piezas nuevas.
+- Los dos sonidos de la radio de madrugada (el tango y el Morse) no se escucharon a oído.
+- El prólogo y las tarjetas del creador de Bruno, que son una propuesta mía de textos.
+
+PARA MIRAR Y CONTARME (versión 4.0.0)
+- Si el juego anda parejo (60 fps) en tu PC con todo esto, sobre todo en la aldea y en el interior de la casa de té. No se midió todavía
+  en la Ryzen 5 4600G desde este paquete.
+- Si te gustan los rayos entre los árboles, el campo de tulipanes y el molino nuevo.
+- Los detalles que quedaron sueltos: zapatos de Dalia que parecen flotar, y el chamamé con la falda abierta.
+
+LO QUE NO ESTÁ
+- Armado sin firmar: el ícono, el nombre y la empresa que muestra Windows en Propiedades son los de Electron.
+- El aplastado del pasto no entró (cuesta fps en la plaza).
