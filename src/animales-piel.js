@@ -544,6 +544,26 @@ export function armarPielPerro(m) {
 // tres figuras que se alternan en el juego —rígida, con huesos e instanciada (la silueta de un árbol: capa 1, con color por instancia)— en ese
 // orden, así cada cambio de tipo ocurre con las luces contadas. Todo en la carga: nada de esto se hace en el juego. Sin la piel (Baja y Mínima)
 // no hace nada.
+// 4.12.2 (shader tardío): la silueta de la sombra del jugador (`cuerpo-jugador-sombra`, personal-personaje-mundo.js) es una malla de sólo `position` con un
+// MeshBasicMaterial sin color ni profundidad; su programa de profundidad (sombra) se compilaba la primera vez que la silueta tenía geometría. Se dibuja un
+// instante, en la carga, una igual (mismo material, mismo atributo) con sombra. En las calidades sin sombras no hace falta.
+export function precalentarSilueta(escena, camara, dibujar) {
+  if (!escena || !camara) return false;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0.02, 0, 0, 0, 0.02, 0]), 3));
+  const mat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+  const malla = new THREE.Mesh(geo, mat);
+  malla.castShadow = true; malla.receiveShadow = false; malla.frustumCulled = false;
+  const dir = new THREE.Vector3(); camara.getWorldDirection(dir);
+  malla.position.set(camara.position.x + dir.x * 3, camara.position.y - 1.2, camara.position.z + dir.z * 3);
+  escena.add(malla);
+  try { dibujar(); } finally {
+    escena.remove(malla);
+    geo.dispose(); mat.dispose();
+  }
+  return true;
+}
+
 export function precalentarPiel(escena, camara, dibujar) {
   if (!pielPermitida() || !escena || !camara) return false;
   const triangulo = () => {
