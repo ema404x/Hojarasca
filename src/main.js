@@ -260,6 +260,8 @@ import { crearPresencia } from './historia-presencia.js';
 import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
 // 4.5: la consola de códigos (Ctrl+Mayús+C) y hasta dónde se puede teletransportar
 import { crearTrucosJuego } from './trucos-juego.js';
+// 4.14.0: las escenas de la Historia (director de escenas: escenas.js; en el juego: escenas-mundo.js)
+import { crearEscenasMundo } from './escenas-mundo.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
@@ -593,6 +595,7 @@ window.addEventListener('resize', () => {
 });
 
 let modo = 'carga';
+let escenasMundo = null;   // 4.14.0: el director de escenas (se arma con el jugador)
 let trucosJuego = null;   // 4.5: la consola de códigos (se arma abajo, con las preguntas del juego)
 let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, gente, perro, tren, pesca, kayak, fotos, linterna;
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
@@ -875,14 +878,14 @@ async function construir() {
   mapa = crearMapa(T, aldeaMundo ? { aldea: { ...planoAldeaMapa(), dentro: (x, z) => distanciaAldea(x, z) < 7 } } : null);
   jugador = crearJugador(camara, T, col, {
     lienzo,
-    activo: () => modo === 'jugando' && !durmiendo,   // 3.8.6: ni durante el fundido de dormir
+    activo: () => modo === 'jugando' && !durmiendo && !escenasMundo?.activa(),   // 3.8.6: ni durante el fundido de dormir
     sensibilidad: () => ajustes.sensibilidad,
     invertirY: () => ajustes.invertirY,
     fov: () => ajustes.fov,
     movimientoCamara: () => ajustes.movimientoCamara,
     invierno: () => U.uInvierno.value,
     otono: () => U.uOtono.value,
-    alSoltar: () => { if (modo === 'jugando' && !creadorAbierto) abrir('pausa'); },   // (4.0.1: soltar el mouse para usar el creador no abre la pausa detrás)
+    alSoltar: () => { if (modo === 'jugando' && !creadorAbierto && !escenasMundo?.activa()) abrir('pausa'); },   // (4.14.0: ni en una escena, que suelta el mouse a propósito)   // (4.0.1: soltar el mouse para usar el creador no abre la pausa detrás)
     alBloquear: () => {},
     capturarMirada: (dx, dy) => (!!charla.menu && !foto.activo ? apuntarRueda(dx, dy) : false),   // 3.7.4: la rueda
     flechasOcupadas: () => !!charla.menu,   // 3.7.4
@@ -893,6 +896,16 @@ async function construir() {
     alSulky: (dt, tecla) => rinconesJuego?.alSulky(dt, tecla),   // 3.7.5 (rincones): el sulky lleva al jugador por el camino
     traducirTecla: codigoCanonico,
   });
+  // 4.14.0: el director de escenas (sólo Relax e Historia). Lo mínimo del juego le llega por `ctx`.
+  if (!esDesafio) {
+    escenasMundo = crearEscenasMundo({
+      doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
+      nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
+      puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && !js.enKayak && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
+      alTerminar: () => { programarGuardadoSuave(); },
+    });
+    document.addEventListener('keyup', (e) => { escenasMundo?.teclaSuelta(e); });   // (soltar Mayús: la escritura vuelve a su velocidad)
+  }
   escena.add(camara);
   huellas = crearHuellas();
   pesca = crearPesca(T, escena, camara, sonido, (t, sub) => nota(t, sub), atrapar);
@@ -2580,6 +2593,7 @@ $('btn-foto').addEventListener('click', () => {
   }, 350);
 });
 $('btn-inicio').addEventListener('click', () => {
+  escenasMundo?.cerrar();   // 4.14.0: una escena en curso se termina (con sus efectos) antes de guardar
   guardar();
   if (calidadPideReinicio()) { location.reload(); return; }   // 4.10.3 (P5)
   for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
@@ -3409,7 +3423,7 @@ $('victoria-copiar').addEventListener('click', async () => {
 });
 $('cerrar-cuaderno').addEventListener('click', () => volverAlJuego(!!panelDelHudAbierto()));   // 4.10.4 (R2-2)
 $('cerrar-mapa').addEventListener('click', () => volverAlJuego(!!panelDelHudAbierto()));   // 4.10.4 (R2-2)
-lienzo.addEventListener('click', () => { if (jugador && modo === 'jugando' && !banco.activa && !jugador.bloqueado()) jugador.pedirBloqueo(); });   // 4.0.5 (G15): durante el banco el clic no bloquea el mouse
+lienzo.addEventListener('click', () => { if (jugador && modo === 'jugando' && !banco.activa && !escenasMundo?.activa() && !jugador.bloqueado()) jugador.pedirBloqueo(); });   // 4.0.5 (G15): durante el banco el clic no bloquea el mouse
 
 // ------------------------------------------------------------------ acciones del jugador
 let pedirFoto = false;
@@ -3431,6 +3445,8 @@ document.addEventListener('keydown', (e) => {
     else if (/^F([1-9]|10|12)$/.test(e.code)) e.preventDefault();
     return;
   }
+  // 4.14.0: durante una escena las teclas son de la escena (seguir, saltar, elegir); sólo F1 (la pausa) pasa
+  if (escenasMundo?.activa() && modo === 'jugando' && escenasMundo.tecla(e)) return;
   // el teclado propio: lo que apretó el jugador se traduce a la tecla de fábrica
   const codigo = codigoCanonico(e.code);
   if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(!!panelDelHudAbierto()); return; }   // 4.10.2: si quedó un panel abierto debajo, el mouse sigue suelto para usarlo
@@ -9641,6 +9657,8 @@ function guardar() {
   // 3.5.1: durante el banco de pruebas el jugador va por el recorrido y la hora es la del tramo:
   // no se guarda (al cerrar la ventana a mitad quedaba la posición y la hora del banco)
   if (banco?.activa) return false;
+  // 4.14.0: tampoco a mitad de una escena (queda pendiente: al recargar se puede volver a ver); al terminar o saltar se guarda
+  if (escenasMundo?.corriendo()) return false;
   // 4.11.3 (E3): sólo lectura: ni autoguardado, ni manual, ni cierre pisan la partida más nueva (el aviso queda a la vista: ver avisarVersionMasNueva)
   if (partidaSoloLectura()) {
     window.dispatchEvent(new CustomEvent('hojarasca:guardado', { detail: { ok: false, soloLectura: true, hora: Date.now() } }));
@@ -10672,6 +10690,8 @@ function cuadroDelJuego(tRaf, manual) {
     // su vía, como siempre
     else if (modo === 'jugando') { leerMando(dt); jugador.actualizar(dt); }
     else jugador.actualizar(jugador.estado.enKayak ? 0 : dt);
+    // 4.14.0: la escena en curso (cámara dirigida, personajes) o el disparo pendiente; justo después de la cámara del jugador
+    if (escenasMundo && modo === 'jugando') { try { escenasMundo.actualizar(dtReal); } catch (e) { fallaSistema('escenas', e); } }
     // 3.9.1: la borrachera: al caminar, el rumbo se te va un poquito para un lado y para el otro (leve; se pasa con el tiempo)
     if (modo === 'jugando' && cantinaJuego && !desafio) { const js = jugador.estado, ef = cantinaJuego.efectoEbrio(performance.now() / 1000); if (ef && !js.sentado && Math.hypot(js.vel.x, js.vel.z) > 0.6) js.yaw += ef.deriva * dt; }
   }
@@ -10895,6 +10915,7 @@ function cuadroDelJuego(tRaf, manual) {
   const tNPC = perfilador.iniciar(medirRendimiento);
   if (modo === 'jugando' || modo === 'inicio') {
     try { gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel); } catch (e) { fallaSistema('gente', e); }
+    try { if (modo === 'jugando') escenasMundo?.despuesDeGente(dt); } catch (e) { fallaSistema('escenas-poses', e); }   // 4.14.0: las poses propias de las escenas, encima de lo que hizo gente.actualizar
     // 4.6 gente: la gente del campo (se arma de a poco al acercarte; lo que hace en cada parada) y el tablón (se cierra si te alejás)
     try { if (modo === 'jugando' && !desafio) { genteCampoMundo?.actualizar(dt, js, charla.npc); tablonJuego?.actualizar(js); } } catch (e) { fallaSistema('gente-campo', e); }
     try { if (modo === 'jugando' && desafio) desafio.baseCrece?.trofeos?.vigilarPanel?.(js.pos); } catch (e) { fallaSistema('trofeos-panel', e); }   // 4.11.1 (U12)
@@ -11368,11 +11389,12 @@ try {
   trucosJuego = crearTrucosJuego({
     esDesafio, progreso: () => progreso, ajustes: () => ajustes, jugador: () => jugador, T: { get lugares() { return T?.lugares; } }, limite: LIMITE,
     obras: () => obras, modo: () => modo, ponerModo: (m) => { modo = m; }, volverAlJuego: (sinMouse) => volverAlJuego(sinMouse), panelHudAbierto: () => panelDelHudAbierto(),
-    ocupado: () => !jugador || foto.activo || durmiendo || banco.activa || creadorAbierto || personalAbierto() || teclasAbiertas() || infoAbierta() || bancoSonidosAbierto() || !!desafio?.caido,   // 4.12.2: ni encima del banco de sonidos
+    ocupado: () => !jugador || !!escenasMundo?.activa() || foto.activo || durmiendo || banco.activa || creadorAbierto || personalAbierto() || teclasAbiertas() || infoAbierta() || bancoSonidosAbierto() || !!desafio?.caido,   // 4.12.2: ni encima del banco de sonidos
     alSaltarElTiempo: (d, h) => { try { empleoJuego?.alSaltarElTiempo(d, h); } catch (e) { fallaSistema('empleo-salto', e); } },   // 4.10.1: el turno de empleo se cierra sin multa si el código lo deja fuera de hora
     alCambiarClima: () => { if (clima?.estado) { clima.estado.t = 0; clima.estado.tramo = undefined; } },
     alCambiarEstacion: () => { const e = estacionObjetivo(); U.uOtono.value = e.oto; U.uInvierno.value = e.inv; },
     refrescar: () => refrescarBarra(true), guardar: () => guardar(),
+    escena: (id) => (escenasMundo ? escenasMundo.pedir(id) : false),   // 4.14.0: «escena demo»
     moverCamara: () => { const js = jugador.estado; camara.position.set(js.pos.x, js.pos.y + js.alturaOjos, js.pos.z); camara.rotation.set(js.pitch, js.yaw, 0, 'YXZ'); },
   });
 } catch (e) { fallaSistema('trucos-armado', e); trucosJuego = null; }

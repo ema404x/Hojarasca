@@ -52,6 +52,7 @@ export const AYUDA = {
   planos: { uso: 'planos todos', linea: 'Abre todos los planos (en el Relax ya están todos abiertos).', detalle: 'En el Relax ningún plano está bloqueado: se construye con lo que tengas. En La noche de los duendes los planos se ganan en las ruinas del bosque (los troncos huecos de los duendes) y no se regalan.' },
   oficios: { uso: 'oficios maximo', linea: 'Sube oficios: oficios maximo, oficios hachero 3.', detalle: 'Sube los oficios (hachero, picapedrero, pescador, cazador, obrero, huertero, navegante). «oficios maximo» los pone todos en nivel 5; «oficios hachero 3» sube uno solo, de 0 a 5; «oficios cero» los vacía.' },
   historia: { uso: 'historia capitulo 5', linea: 'Salta o completa capítulos de la historia (sólo Relax).', detalle: '«historia capitulo 5» te deja al comienzo del capítulo 5 (los anteriores quedan completos); «historia completar» termina los ocho; «historia reiniciar» vuelve al capítulo 1. No se entregan los premios de los capítulos saltados. Sólo en el Relax.' },
+  escena: { uso: 'escena demo', linea: 'Pasa la escena de demostración (Josefina llega al refugio).', detalle: 'Prueba el motor de escenas de la Historia: «escena demo» pasa una escena corta con cámara dirigida, diálogo y una elección (no queda guardada y se puede repetir); durante la escena, Enter sigue y Esc dos veces la salta. Sólo Relax, a pie y sin nada abierto.' },
   amigos: { uso: 'amigos todos', linea: 'Amistad con los vecinos: amigos todos, amigos rosa compadre.', detalle: '«amigos todos» deja a todos los vecinos como compadres; «amigos todos amigo» sólo como amigos; «amigos ercilia» sólo a ella. Sólo sube la amistad: nunca la baja. Sólo en el Relax.' },
   cuaderno: { uso: 'cuaderno completo', linea: 'Completa el cuaderno de campo (sin dar logros).', detalle: 'Anota todo lo que falta en el cuaderno de campo (o sólo una sección: «cuaderno completo flora»). Lo anotado así NO cuenta para los logros. Sólo en el Relax.' },
 
@@ -134,6 +135,9 @@ export const R = {
   historiaCapitulo: (n, nombre) => `Listo: estás al comienzo del capítulo ${n}${nombre ? `, «${nombre}»` : ''}`,
   historiaCompleta: 'Listo: la historia quedó completa',
   historiaReiniciada: 'Listo: la historia vuelve al capítulo 1',
+  escenaDemo: 'Listo: arranca la escena de demostración',
+  escenaNo: 'Ahora no se puede: tenés que estar a pie, sin nada abierto',
+  escenaUso: 'Probá «escena demo»',
   historiaUso: (max) => `Probá «historia capitulo 5» (del 1 al ${max}), «historia completar» o «historia reiniciar»`,
   amigos: (n, nivel) => `Listo: ${n} ${n === 1 ? 'vecino' : 'vecinos'} como ${nivel}`,
   amigosNinguno: (nivel) => `Todos ya eran ${nivel} o más`,

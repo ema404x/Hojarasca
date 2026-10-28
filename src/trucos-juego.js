@@ -70,6 +70,7 @@ export function crearTrucosJuego(ctx) {
     alCambiarEstacion: () => ctx.alCambiarEstacion?.(),
     refrescar: () => ctx.refrescar?.(),
     guardar: () => ctx.guardar?.(),
+    escena: (id) => ctx.escena?.(id) === true,   // 4.14.0: «escena demo»
     limpiar: () => pantalla.limpiar(),
     salir: () => {},
   };

@@ -16,6 +16,8 @@
 import { contadores } from './encargos-temporada.js';
 import { mesaPuesta, recibidas } from './visitas.js';
 import { CUENTOS } from './cuentos.js';
+// 4.14.0: las escenas vistas (progreso.historia.escenas)
+import { sanearEscenas, escenasNuevas } from './escenas.js';
 // 4.13.0 (B): lo que guarda la noche de defensa del final (historia-noche.js)
 import { nocheNueva, sanearNoche } from './historia-noche.js';
 
@@ -322,7 +324,7 @@ export const CAPITULOS_CON_PRESENCIA = ['lago', 'molino'];
 export const hayPresencia = (h) => !!h?.activa && h.fase !== 'fin' && CAPITULOS_CON_PRESENCIA.includes(capituloActual(h).id);
 
 export function historiaNueva() {
-  return { activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {}, duendes: duendesNuevos(), noche: nocheNueva() };
+  return { activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {}, duendes: duendesNuevos(), noche: nocheNueva(), escenas: escenasNuevas() };
 }
 const FASES = ['intro', 'jugando', 'outro', 'fin'];
 const ent = (v, max = 1e6) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
@@ -343,6 +345,7 @@ export function sanearHistoria(v) {
   for (const [k, d] of Object.entries(obj(v.cerrados))) if (Object.hasOwn(CAPITULO, k)) h.cerrados[k] = ent(d);
   h.duendes = sanearDuendes(v.duendes);   // 4.13.0
   h.noche = sanearNoche(v.noche);   // 4.13.0 (B)
+  h.escenas = sanearEscenas(v.escenas);   // 4.14.0: las escenas vistas y las elecciones (escenas.js)
   // una historia terminada no vuelve atrás
   if (h.terminada) { h.capitulo = CAPITULOS.length - 1; h.fase = 'fin'; }
   return h;

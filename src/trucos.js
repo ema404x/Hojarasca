@@ -20,6 +20,8 @@ import { PERSONAS_VECINDAD, NIVELES_AMISTAD, nombreCorto, sumarAmistadDe, nivelD
 import { ENTRADAS, ENTRADA, SECCIONES } from './cuaderno.js';
 import { R, AYUDA, GRUPOS, NOMBRE_ESTACION, NOMBRE_CLIMA, pesos, cantidad } from './trucos-textos.js';
 import { lugarPara, capacidad } from './carga.js';
+// 4.14.0: «escena demo»
+import { ID_ESCENA_DEMO } from './escenas-demo.js';
 
 // ------------------------------------------------------------------ límites
 export const MAX_MATERIAL = 9999;
@@ -517,6 +519,15 @@ function cmdEstado(args, m) {
   if (js?.pos) { let mejor = null, dm = 0; for (const l of lugaresDe(m)) { const d = Math.hypot(Number(l.x) - js.pos.x, Number(l.z) - js.pos.z); if (!mejor || d < dm) { mejor = l; dm = d; } } if (mejor) lugar = `cerca de ${mejor.nombre || mejor.clave}`; }
   return ok(R.estado(diaDe(p), `${hh}:${dosDigitos(mi)}`, !m.desafio && hayEconomia(p) ? pesos(pesosDe(p)) : '', lugar));
 }
+// 4.14.0: «escena demo» (la escena de prueba del motor de escenas: no está en el juego normal)
+function cmdEscena(args, m) {
+  if (!m.escena) return no(R.noHayPartida);
+  const d = relax(m, 'Las escenas'); if (d) return d;
+  const a = normalizar(args[0] || '');
+  if (args.length > 1) return no(R.sobra(args.slice(1).join(' ')));
+  if (a === 'demo') return m.escena(ID_ESCENA_DEMO) ? ok(R.escenaDemo, { cerrar: true }) : no(R.escenaNo);
+  return no(R.escenaUso);
+}
 function cmdGuardar(args, m) { if (!m.guardar) return no(R.noHayPartida); m.guardar(); return ok(R.guardado); }
 function cmdLimpiar(args, m) { m.limpiar?.(); return ok(R.limpia, { limpiar: true }); }
 function cmdSalir(args, m) { m.salir?.(); return ok(R.salio, { cerrar: true }); }
@@ -556,6 +567,7 @@ export const COMANDOS = [
   { nombre: 'planos', alias: [], grupo: 'desbloquear', correr: cmdPlanos, sugerir: arg(['todos']) },
   { nombre: 'oficios', alias: ['oficio'], grupo: 'desbloquear', correr: cmdOficios, sugerir: (i) => (i === 0 ? nombresOficios() : i === 1 ? ['0', '1', '2', '3', '4', '5'] : []) },
   { nombre: 'historia', alias: [], grupo: 'desbloquear', correr: cmdHistoria, sugerir: (i, previos) => (i === 0 ? ['capitulo', 'completar', 'reiniciar'] : i === 1 && normalizar(previos[0]) === 'capitulo' ? CAPITULOS.map((_, k) => String(k + 1)) : []) },
+  { nombre: 'escena', alias: [], grupo: 'desbloquear', correr: cmdEscena, sugerir: arg(['demo']) },
   { nombre: 'amigos', alias: ['amistad'], grupo: 'desbloquear', correr: cmdAmigos, sugerir: (i) => (i === 0 ? ['todos', ...PERSONAS_VECINDAD.map((k) => normalizar(k))] : i === 1 ? ['amigo', 'compadre'] : []) },
   { nombre: 'cuaderno', alias: [], grupo: 'desbloquear', correr: cmdCuaderno, sugerir: (i) => (i === 0 ? ['completo'] : i === 1 ? SECCIONES.map((s) => s.id) : []) },
 
