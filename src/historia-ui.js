@@ -147,7 +147,8 @@ export function crearValleUi(ctx) {
   const noche = crearNocheUi(ctx, tarjetas, { historia });   // 4.13.0 (B)
 
   // la portada muestra la de esta partida: si ya se jugó, lo que tiene su historia
-  if (!ctx.esDesafio && ctx.progreso().pos) ctx.ajustes().relaxTipo = historia().activa ? 'historia' : 'libre';
+  // (4.15.0: y la partida que se reinició, que todavía no tiene lugar guardado: si no, la portada de otra partida en Libre la dejaba en pausa)
+  if (!ctx.esDesafio && (ctx.progreso().pos || historia().avisoReinicio)) ctx.ajustes().relaxTipo = historia().activa ? 'historia' : 'libre';
 
   // ---------------------------------------------------------------- el panel del HUD
   const panel = doc.createElement('div');

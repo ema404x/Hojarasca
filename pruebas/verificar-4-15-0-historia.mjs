@@ -683,6 +683,7 @@ async function chequear(arch = '', sufijo = '') {
     const ui = leer('src/historia-ui.js');
     for (const frag of ['mostrarAvisoReinicio(h)', 'decisionPendiente(h, s)', 'lanzarEscena(h, s, { modo: \'auto\' })', 'aplicarEscenas(h)', 'objetosVisibles(h, s)', 'lazosEnPalabras(h)', 'ramal-', 'COMIENZO.horas', 'marcarVista(h, id, ctx.progreso().dia)']) ok(ui.includes(frag.replace('ramal-', 'class="ramal"')), `historia-ui.js: ${frag}`);
     ok(ui.includes('trece capítulos') && !/Ocho cap/.test(ui), 'la portada habla de los trece capítulos');
+    ok(ui.includes('(ctx.progreso().pos || historia().avisoReinicio)) ctx.ajustes().relaxTipo'), 'la partida reiniciada se abre en modo Historia aunque la portada estuviera en Libre');
     const acto = leer('src/historia-escenas-acto1.js');
     ok(/export const ESCENAS_ACTO1 = /.test(acto), 'el archivo de las escenas del acto I exporta ESCENAS_ACTO1');
     const E1 = await import('../src/historia-escenas-acto1.js');

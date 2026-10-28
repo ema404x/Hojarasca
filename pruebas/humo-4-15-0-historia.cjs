@@ -299,7 +299,7 @@ app.whenReady().then(async () => {
       return JSON.stringify(v);
     })()`);
     await w.loadFile(url, { search: '?debug=1' });
-    await js(ajustes('historia'));
+    await js(ajustes('libre'));   // (la portada en Libre, como si otra partida la hubiera dejado así: la partida vieja en modo Historia igual se abre en Historia)
     await js(`localStorage.setItem('hojarasca-v1', ${JSON.stringify(vieja)}); 1`);
     await cargar();
     const copia = await js(`localStorage.getItem('hojarasca-copia-previa-historia-p1')`);
