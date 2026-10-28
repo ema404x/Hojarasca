@@ -38,6 +38,9 @@ export const nombreVecinoEvento = (k) => (Object.hasOwn(QUIEN, k) ? QUIEN[k] : k
 //   { tipo: 'cosa', id, sino }          una cosa nueva (o, si ya la tenés, `sino`)
 //   { tipo: 'visita', quien }           el vecino viene a tu mesa esa tarde (si hay mesa puesta)
 //   { tipo: 'poblador' }                corre la voz: el próximo poblador viene sin esperar (3.6: a la aldea, ver aldea.js)
+//   { tipo: 'duendes', trato }          4.13.0: lo que elegiste con los duendes del galpón ('trato' | 'pelea'): queda en progreso.historia.duendes
+//   { tipo: 'arma', id }                4.13.0: un arma conseguida ('arco' | 'honda'): queda en progreso.historia.duendes.armas
+// `soloHistoria`: 4.13.0: no sale al azar (nunca entra en `posibles`): sólo lo pide la Historia o una consecuencia.
 // `luego`: consecuencias para días después: [{ dias, id }] (ver SEGUIMIENTOS).
 export const EVENTOS_VALLE = [
   {
@@ -203,12 +206,65 @@ export const EVENTOS_VALLE = [
         diario: 'Iba a helar y dejé la huerta como estaba.' },
     ],
   },
+  // ---------------------------------------------------------------- 4.13.0: los duendes en la Historia
+  // Sin diálogos de los duendes: se ven, se oyen, dejan cosas. Los pide la Historia (capítulo 5, en el galpón, de noche) o una consecuencia.
+  {
+    id: 'duendes-galpon', titulo: 'Luz en el Galpón de Esquila', soloHistoria: true,
+    texto: 'Se hizo de noche y por la puerta del galpón sale una luz de un color que no es de farol: verdosa, quieta, como de un fuego que no quema. Adentro, dos figuras del alto de un chico, con gorros puntudos, te miran sin moverse. Una se tapa la boca para no reírse. No dicen nada. En el umbral dejaron una piedra lisa y una hoja de coihue doblada en cuatro.',
+    cuando: () => false,
+    opciones: [
+      { id: 'comida', texto: 'Dejarles yerba en el umbral y volver despacio', detalle: 'Un cuarto de kilo de yerba; no se acercan, pero se quedan mirando', pide: { cuenta: { yerba: 2 } },
+        efectos: [{ tipo: 'duendes', trato: 'trato' }],
+        diario: 'En el Galpón de Esquila había dos criaturas chicas con gorros puntudos y una luz verde. No dijeron nada. Les dejé yerba en el umbral y me fui despacio; sentí que me miraban hasta la curva.' },
+      { id: 'senal', texto: 'Levantar la mano y seguir la luz cuando se aleja hacia el monte', detalle: 'Dos horas de noche, de a pasos; te dejan algo', efectos: [{ tipo: 'horas', n: 2 }, { tipo: 'duendes', trato: 'trato' }, { tipo: 'dar', premio: { materiales: { piedra: 2 }, texto: 'Dos piedras lisas de río, con una marca que no es de nadie' } }],
+        diario: 'Las criaturas del galpón se fueron por el monte con la luz, de a ratos esperándome. Las seguí un rato largo. En el claro dejaron dos piedras lisas con una marca que no conozco.' },
+      { id: 'espantar', texto: 'Gritarles y agitar un palo para que se vayan', detalle: 'Se van corriendo. Quién sabe si vuelven', efectos: [{ tipo: 'duendes', trato: 'pelea' }],
+        diario: 'Había dos criaturas chicas en el galpón, con una luz verde. Les grité y revoleé un palo. Salieron corriendo, riéndose, y la luz se apagó de golpe. No sé si hice bien.' },
+    ],
+  },
+  {
+    id: 'arco-josefina', titulo: 'Un arco para el valle', quien: 'ema', vecinos: true, soloHistoria: true, repite: 1,
+    texto: 'Josefina llegó con un palo de maqui largo y derecho, y una cara que no es la de siempre. «Anoche volví a oír la risa, del lado del galpón», dijo. «No digo que sean malos. Pero cuando oigo algo que no entiendo, me gusta tener un arco a mano. Si tenés la madera, hoy lo hacemos.»',
+    cuando: () => false,
+    opciones: [
+      { id: 'hacer', texto: 'Hacer el arco con ella esta tarde', detalle: 'Cuatro tablas y un tronco; te lleva dos horas', pide: { materiales: { tabla: 4, tronco: 1 } },
+        efectos: [{ tipo: 'horas', n: 2 }, { tipo: 'gratitud', quien: 'ema', n: 1 }, { tipo: 'arma', id: 'arco' }],
+        diario: 'Josefina me enseñó a hacer un arco con un palo de maqui y unas tablas, y a templar la cuerda. Tira derecho.',
+        luego: [{ dias: 1, id: 's-honda-ramon' }] },
+      { id: 'luego', texto: 'Todavía no: primero juntar la madera', detalle: 'Josefina vuelve mañana', efectos: [],
+        diario: 'Josefina quiso enseñarme a hacer un arco. Le dije que primero iba a juntar la madera.',
+        luego: [{ dias: 1, id: 's-arco-otra-vez' }] },
+    ],
+  },
+  {
+    id: 'honda-ramon', titulo: 'Una honda de campo', quien: 'ramon', vecinos: true, soloHistoria: true, repite: 1,
+    texto: 'Ramón bajó del puesto con un cuero curtido en la mano y la majada sin vigilar, que en él es mucho decir. «Una honda no se le niega a nadie en el campo», dijo. «Sirve para los zorros y sirve para los que no son zorros. Traé piedras de río y fibra para el cordel, y te enseño a hacerla.»',
+    cuando: () => false,
+    opciones: [
+      { id: 'hacer', texto: 'Hacer la honda con Ramón', detalle: 'Cinco piedras y cuatro ramitas para el cordel; una hora', pide: { materiales: { piedra: 5 }, ramitas: 4 },
+        efectos: [{ tipo: 'horas', n: 1 }, { tipo: 'gratitud', quien: 'ramon', n: 1 }, { tipo: 'arma', id: 'honda' }],
+        diario: 'Ramón me enseñó a trenzar una honda con cuero y fibra de coirón. Dice que lo importante no es la fuerza sino soltar a tiempo.' },
+      { id: 'luego', texto: 'Todavía no: primero juntar las piedras', detalle: 'Ramón vuelve mañana', efectos: [],
+        diario: 'Ramón me ofreció enseñarme a hacer una honda. Quedamos en que primero junto las piedras.',
+        luego: [{ dias: 1, id: 's-honda-otra-vez' }] },
+    ],
+  },
 ];
 export const EVENTO_VALLE = Object.fromEntries(EVENTOS_VALLE.map((e) => [e.id, e]));
 
 // "Lo que pasó después": llegan días más tarde, en una tarjeta con un solo botón.
 // `evento`: encadena otro evento del valle (una decisión trae la siguiente).
 export const SEGUIMIENTOS = {
+  // 4.13.0: las armas (capítulo 7): el arco trae la honda; si dijiste «todavía no», vuelven a preguntar
+  's-honda-ramon': { titulo: 'Ramón pasó por la puerta', texto: 'Ramón dejó el caballo atado afuera y pasó a ver el arco. Lo probó con el pulgar, asintió y no dijo nada, que en él es aprobación. «Falta la honda», dijo al irse, «ya vuelvo con el cuero».',
+    efectos: [], evento: 'honda-ramon',
+    sinEvento: { texto: 'Ramón pasó a ver el arco. Lo probó con el pulgar, asintió y se volvió para el puesto sin decir nada.' } },
+  's-arco-otra-vez': { titulo: 'Josefina volvió', texto: 'Josefina volvió con el palo de maqui bajo el brazo, como quien no se olvidó de nada. «¿Hoy sí?», preguntó.',
+    efectos: [], evento: 'arco-josefina',
+    sinEvento: { texto: 'Josefina anduvo por el camino con el palo de maqui bajo el brazo, pero no llegó a pasar.' } },
+  's-honda-otra-vez': { titulo: 'Ramón volvió', texto: 'Ramón volvió a bajar del puesto con el cuero doblado en el bolsillo. No dijo nada: se quedó parado en la puerta, esperando.',
+    efectos: [], evento: 'honda-ramon',
+    sinEvento: { texto: 'Ramón anduvo por el camino con un cuero curtido en el bolsillo, pero no llegó a pasar.' } },
   's-tobillo-cana': { titulo: 'Nicanor ya camina', hora: 15, texto: 'Nicanor ya anda, con un bastón de colihue, y te dejó un paquete: «Para que no digas que no agradezco». Adentro hay moscas atadas a mano, de las suyas, de las que no le da a nadie. Y avisó que esta tarde pasa por tu mesa.',
     efectos: [{ tipo: 'cosa', id: 'mosca', sino: { cuenta: { yerba: 6 }, texto: 'Nicanor te dejó yerba' } }, { tipo: 'visita', quien: 'nicanor' }] },
   's-tobillo-truchas': { titulo: 'Un paquete en la puerta', texto: 'A la mañana encontraste en el escalón un paquete envuelto en hojas de nalca: yerba y un atado de ramitas para el fuego. No hace falta preguntar de quién es.',   // 4.10.2: antes prometía dos truchas y daba yerba y ramitas
@@ -321,6 +377,7 @@ export function tiradaDelDia(ev, dia) {
 // Los que pueden pasar ahora. `s`: { dia, horas, vecinos, viaje, sembrados, lluvia, pronostico: { temporal, helada } }.
 export function posibles(ev, s) {
   return EVENTOS_VALLE.filter((e) => {
+    if (e.soloHistoria) return false;   // 4.13.0: los pide la Historia, nunca salen al azar
     if (e.vecinos && s.vecinos === false) return false;
     const h = ev.hechos[e.id];
     if (h && !(e.repite && s.dia - h.dia >= e.repite)) return false;
@@ -443,7 +500,7 @@ export function sumarGratitud(ev, quien, n, dia) {
 export function resumenEventos(ev) {
   const hechos = Object.keys(ev?.hechos || {}).length;
   const agradecidos = Object.entries(ev?.gratitud || {}).filter(([, n]) => n > 0).map(([k]) => nombreVecinoEvento(k));
-  return `${hechos} ${hechos === 1 ? 'cosa pasó' : 'cosas pasaron'} en el valle de ${EVENTOS_VALLE.length} que pueden pasar`
+  return `${hechos} ${hechos === 1 ? 'cosa pasó' : 'cosas pasaron'} en el valle de ${EVENTOS_VALLE.filter((e) => !e.soloHistoria).length} que pueden pasar`
     + (agradecidos.length ? ` · te están agradecidos: ${agradecidos.join(', ')}` : '')
     + ((ev?.pendientes || []).length ? ' · algo quedó por verse' : '');
 }

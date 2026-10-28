@@ -16,6 +16,8 @@
 import { contadores } from './encargos-temporada.js';
 import { mesaPuesta, recibidas } from './visitas.js';
 import { CUENTOS } from './cuentos.js';
+// 4.13.0 (B): lo que guarda la noche de defensa del final (historia-noche.js)
+import { nocheNueva, sanearNoche } from './historia-noche.js';
 
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia'];
 const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', ercilia: 'Ercilia' };
@@ -62,6 +64,9 @@ export function estadoHistoria(p, extra = {}) {
     visitas: recibidas(p?.visitas),   // 3.8.3: las que vinieron de verdad (no el turno, que también pasa si no pudo venir)
     cuentos: CUENTOS.filter((x) => e[x.id]).length,
     eventos: new Set(Object.keys(ev)),
+    // 4.13.0: lo de los duendes (ver `duendesNuevos`): el trato del encuentro y las armas conseguidas
+    trato: p?.historia?.duendes?.trato === 'trato' || p?.historia?.duendes?.trato === 'pelea' ? p.historia.duendes.trato : null,
+    armas: { arco: p?.historia?.duendes?.armas?.arco === true, honda: p?.historia?.duendes?.armas?.honda === true },
     // 3.8.3: el día en que pasó cada uno (lo último), para lo que tiene que pasar en el capítulo (el temporal)
     eventosDia: Object.fromEntries(Object.entries(ev).map(([k, x]) => [k, Math.max(0, Math.floor(Number(x?.dia) || 0))])),
   };
@@ -161,12 +166,18 @@ export const CAPITULOS = [
     intro: [
       'Nicanor ya camina sin renguear y te espera en el muelle. «El lago no se conoce desde la orilla», dice. «Hay que sacar una trucha y hay que salir al agua, con viento.»',
       '«Un velero se arma en un varadero, con tablas y paciencia. El viento del oeste no para nunca: aprovechalo.»',
+      // 4.13.0: el misterio: se oye algo, no se sabe qué es
+      'Esa semana, al caer la tarde, desde los árboles de la orilla llega una risa finita, como de chicos. Nicanor dice que son zorros. Los zorros no se ríen.',
     ],
     objetivos: [
       { id: 'pez', tecla: 'Q', texto: 'Pescá una trucha con la caña de mosca (Q) y devolvela al agua', hecho: (s, b) => desde(s, b, 'peces') >= 1 },
       { id: 'varadero', tecla: 'O', texto: 'Construí un varadero con su velero en la orilla (O → Exterior)', hecho: tiene('varadero-velero') },
       { id: 'navegar', tecla: 'E', texto: 'Salí a navegar en el velero', hecho: (s) => s.enVela },
+      // 4.13.0: cuando lo demás está hecho, una tarde se ve movimiento en el Galpón de Esquila (ver historia-presencia.js)
+      { id: 'duendes', tecla: '·', delMomento: true, texto: 'Al anochecer, pasá por el Galpón de Esquila: se oyen risas y se ve una luz', hecho: (s) => s.eventos.has('duendes-galpon') },
     ],
+    // el encuentro pasa en el lugar: el evento sale cuando estás cerca del galpón, de noche (`lugar`)
+    momento: { evento: 'duendes-galpon', cuando: 'resto', lugar: 'galpon' },
     outro: [
       'Desde el medio del lago el refugio es una casita de juguete con un hilo de humo. La cordillera se ve entera, y el viento empuja parejo, como si supiera adónde vas.',
       'Nicanor te saludó desde el muelle con la caña en alto. Después te dijo que la vela estaba mal cazada, pero que para ser la primera vez, no estaba mal.',
@@ -197,13 +208,18 @@ export const CAPITULOS = [
     intro: [
       'Una mañana las lengas amanecieron coloradas y el agua del balde tenía una tela de hielo. Ramón lo dijo sin vueltas: «El que no junta leña en otoño la junta en invierno, con la nieve hasta la rodilla».',
       'Hay que llenar la leñera, tener una estufa que tire bien, algo de la huerta guardado y ropa de abrigo. El invierno del sur no avisa dos veces.',
+      // 4.13.0: y lo del galpón sigue dando vueltas: más vale tener con qué
+      'Y hay otra cosa que no es el frío. Desde lo del galpón, Ramón y Josefina hablan bajito: dicen que más vale tener con qué, por si acaso. No por ganas de pelear.',
     ],
     objetivos: [
       { id: 'lena', tecla: 'E', texto: 'Guardá seis troncos secos en una leñera techada', meta: 6, cuenta: (s) => s.lena },
       { id: 'estufa', tecla: 'O', texto: 'Instalá una estufa a leña adentro de tu casa (O → Mobiliario)', hecho: tiene('estufa-hierro') },
       { id: 'cosecha', tecla: 'E', texto: 'Cosechá algo de la huerta', hecho: (s, b) => desde(s, b, 'cosechas') >= 1 },
       { id: 'abrigo', tecla: 'I', texto: 'Conseguí abrigo: una manta del almacén o un poncho del telar', hecho: (s) => s.abrigo },
+      // 4.13.0: las misiones de las armas: Josefina te enseña el arco y Ramón la honda (dos tarjetas seguidas: ver eventos-valle.js)
+      { id: 'armas', tecla: '·', delMomento: true, texto: 'Conseguí un arco (con Josefina) y una honda (con Ramón)', vecinos: true, meta: 2, cuenta: (s) => (s.armas.arco ? 1 : 0) + (s.armas.honda ? 1 : 0) },
     ],
+    momento: { evento: 'arco-josefina', cuando: 'pronto' },
     outro: [
       'La leñera llena da una tranquilidad que no se compra. De noche la estufa tira parejo y la casa cruje de a ratos, acomodándose al frío.',
       'Desde la ventana se ve el valle entero preparándose: humo en lo de Ramón, humo en el almacén, humo en el muelle. Todos juntando calor para lo que viene.',
@@ -238,8 +254,75 @@ export const CAPITULO = Object.fromEntries(CAPITULOS.map((c) => [c.id, c]));
 // ---------------------------------------------------------------- lo guardado
 // `fase`: 'intro' (falta mostrar la tarjeta de entrada), 'jugando', 'outro' (falta la de
 // salida y el premio) y 'fin' (terminada: se sigue jugando libre).
+// 4.13.0: lo de los duendes en la Historia. Esquema (progreso.historia.duendes):
+//   trato:    null | 'trato' | 'pelea'   lo que elegiste en el encuentro del galpón (null: todavía no, o partida vieja)
+//   vistos:   n                          cuántas veces los viste de lejos (siluetas)
+//   regalos:  n                          los regalitos que dejaron (con trato; tope REGALOS_TOPE)
+//   armas:    { arco, honda }           las armas ya conseguidas (las misiones del capítulo 7)
+//   noche:    'ninguna' | 'pendiente' | 'ganada' | 'perdida'   la noche de defensa: 'pendiente' cuando hubo encuentro y están las dos armas
+//   final:    null | 'trato' | 'pelea'   el final que ya se vio (lo escribe la noche)
+//   intentos: n                          las veces que se jugó la noche (reintento sin castigo)
+export const NOCHES_DUENDES = ['ninguna', 'pendiente', 'ganada', 'perdida'];
+export const REGALOS_TOPE = 3;
+export function duendesNuevos() {
+  return { trato: null, vistos: 0, regalos: 0, armas: { arco: false, honda: false }, noche: 'ninguna', final: null, intentos: 0 };
+}
+export function sanearDuendes(v) {
+  const d = duendesNuevos();
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return d;
+  d.trato = v.trato === 'trato' || v.trato === 'pelea' ? v.trato : null;
+  d.vistos = Math.max(0, Math.min(999, Math.floor(Number(v.vistos) || 0)));
+  d.regalos = Math.max(0, Math.min(REGALOS_TOPE, Math.floor(Number(v.regalos) || 0)));
+  const a = v.armas && typeof v.armas === 'object' && !Array.isArray(v.armas) ? v.armas : {};
+  d.armas.arco = a.arco === true; d.armas.honda = a.honda === true;
+  d.noche = NOCHES_DUENDES.includes(v.noche) ? v.noche : 'ninguna';
+  d.final = v.final === 'trato' || v.final === 'pelea' ? v.final : null;
+  d.intentos = Math.max(0, Math.min(99, Math.floor(Number(v.intentos) || 0)));
+  return d;
+}
+// La parte de los duendes de una historia (la crea si falta: una partida vieja no la tiene)
+export function duendesDe(h) {
+  if (!h.duendes || typeof h.duendes !== 'object' || Array.isArray(h.duendes)) h.duendes = duendesNuevos();
+  return h.duendes;
+}
+// El encuentro del galpón: lo elegido queda guardado
+export function hacerTrato(h, trato) {
+  const d = duendesDe(h);
+  if (trato !== 'trato' && trato !== 'pelea') return false;
+  d.trato = trato;
+  return true;
+}
+// Una arma conseguida
+export function ganarArma(h, arma) {
+  const d = duendesDe(h);
+  if (arma !== 'arco' && arma !== 'honda') return false;
+  d.armas[arma] = true;
+  return true;
+}
+// La noche queda pendiente cuando hubo encuentro y están las dos armas (nunca pisa una noche ya jugada). Devuelve true si cambió.
+export function revisarNoche(h) {
+  const d = duendesDe(h);
+  if (d.noche !== 'ninguna' || !d.trato || !d.armas.arco || !d.armas.honda) return false;
+  d.noche = 'pendiente';
+  return true;
+}
+// 4.13.0: si las armas se pierden en el camino (una tarjeta que no salió, o un seguimiento que no llegó), cuál se vuelve a pedir.
+// `pendientes`: los ids de seguimiento agendados. Sólo en el capítulo de las armas, con el momento ya lanzado.
+export function armaPorPedir(h, s, pendientes = []) {
+  if (!h?.activa || h.fase !== 'jugando') return null;
+  const c = capituloActual(h);
+  const o = c.objetivos.find((x) => x.id === 'armas');
+  if (!o || h.momentos[c.id] !== 'lanzado' || h.hechos[`${c.id}:armas`] !== undefined || s?.vecinos === false) return null;
+  if (pendientes.some((id) => ['s-honda-ramon', 's-arco-otra-vez', 's-honda-otra-vez'].includes(id))) return null;
+  if (!s.armas.arco) return 'arco-josefina';
+  return s.armas.honda ? null : 'honda-ramon';
+}
+// Los capítulos con duendes de lejos: el lago y el molino
+export const CAPITULOS_CON_PRESENCIA = ['lago', 'molino'];
+export const hayPresencia = (h) => !!h?.activa && h.fase !== 'fin' && CAPITULOS_CON_PRESENCIA.includes(capituloActual(h).id);
+
 export function historiaNueva() {
-  return { activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {} };
+  return { activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {}, duendes: duendesNuevos(), noche: nocheNueva() };
 }
 const FASES = ['intro', 'jugando', 'outro', 'fin'];
 const ent = (v, max = 1e6) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
@@ -258,6 +341,8 @@ export function sanearHistoria(v) {
   for (const k of Object.keys(obj(v.hablados))) if (VECINOS_HISTORIA.includes(k)) h.hablados[k] = true;
   for (const [k, x] of Object.entries(obj(v.momentos))) if (Object.hasOwn(CAPITULO, k) && x === 'lanzado') h.momentos[k] = 'lanzado';
   for (const [k, d] of Object.entries(obj(v.cerrados))) if (Object.hasOwn(CAPITULO, k)) h.cerrados[k] = ent(d);
+  h.duendes = sanearDuendes(v.duendes);   // 4.13.0
+  h.noche = sanearNoche(v.noche);   // 4.13.0 (B)
   // una historia terminada no vuelve atrás
   if (h.terminada) { h.capitulo = CAPITULOS.length - 1; h.fase = 'fin'; }
   return h;

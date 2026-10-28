@@ -8,8 +8,12 @@
 // `historia.js` y `eventos-valle.js` (puros, se prueban en Node).
 
 import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, momentoPerdido, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
+import { revisarNoche, armaPorPedir } from './historia.js';
+import { enVentana, VENTANAS } from './historia-presencia.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
+// 4.13.0 (B): la noche de defensa y los dos finales (historia-noche*.js)
+import { crearNocheUi, CSS_NOCHE } from './historia-noche-ui.js';
 
 export const CSS_VALLE = `
 .valle-velo { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.42); z-index: 40; padding: 16px; }
@@ -117,7 +121,7 @@ export function crearValleUi(ctx) {
   const $ = (id) => doc.getElementById(id);
   {
     const estilo = doc.createElement('style');
-    estilo.textContent = CSS_VALLE;
+    estilo.textContent = CSS_VALLE + CSS_NOCHE;
     doc.head.appendChild(estilo);
   }
   const tarjetas = crearTarjetas(doc, ctx);
@@ -130,6 +134,7 @@ export function crearValleUi(ctx) {
     return p.historia;
   }
   const estado = () => estadoHistoria(ctx.progreso(), ctx.extra());
+  const noche = crearNocheUi(ctx, tarjetas, { historia });   // 4.13.0 (B)
 
   // la portada muestra la de esta partida: si ya se jugó, lo que tiene su historia
   if (!ctx.esDesafio && ctx.progreso().pos) ctx.ajustes().relaxTipo = historia().activa ? 'historia' : 'libre';
@@ -143,7 +148,7 @@ export function crearValleUi(ctx) {
   let htmlPanel = '';
   const escP = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function dibujarPanel(h, s) {
-    const datos = !ctx.esDesafio && ctx.modo() === 'jugando' ? panelHistoria(h, s) : null;
+    const datos = !ctx.esDesafio && ctx.modo() === 'jugando' && !noche.activa() ? panelHistoria(h, s) : null;   // (4.13.0: y en la noche, el panel es el de la noche)
     panel.classList.toggle('oculto', !datos);
     if (!datos) return;
     const html = `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
@@ -202,6 +207,7 @@ export function crearValleUi(ctx) {
   const MOMENTO_PRONTO = 90;   // segundos jugando el capítulo antes de su momento "pronto"
   function actualizar(dt) {
     if (ctx.esDesafio) return;
+    noche.actualizar(dt);   // 4.13.0 (B): la noche de defensa (cada cuadro) y el panel de la noche
     if (ctx.modo() === 'jugando') { esperaInicio = Math.max(0, esperaInicio - dt); tiempoCapitulo += dt; }
     acum += dt;
     if (acum < 0.5) return;
@@ -216,21 +222,30 @@ export function crearValleUi(ctx) {
       const r = revisarHistoria(h, s);
       for (const o of r.nuevos) { ctx.nota(`✓ ${o.texto}`, `${capituloActual(h).titulo} · la historia del valle`); ctx.sonido?.()?.anotar?.(); }
       if (r.nuevos.length) ctx.guardar();
+      if (revisarNoche(h)) ctx.guardar();   // 4.13.0 (A): con el encuentro y las dos armas, la noche queda pendiente
     }
     dibujarPanel(h, s);
+    // 4.13.0 (A): el encuentro del galpón espera en el lugar mientras su momento esté pendiente
+    if (jugando && h.activa) ctx.presencia?.pedirGalpon?.(momentoPendiente(h, s) === 'duendes-galpon');
+    if (noche.activa()) return false;   // 4.13.0 (B): de noche, ni tarjetas ni eventos
     if (!jugando || tarjetas.abierta() || esperaInicio > 0 || !ctx.libre()) return false;
     if (h.activa && h.fase === 'intro') { mostrarIntro(); return true; }
-    if (h.activa && h.fase === 'outro') { mostrarOutro(); return true; }
+    // 4.13.0 (B): el último capítulo no se cierra ahí: ofrece la noche, y el final sale de ganarla
+    if (h.activa && h.fase === 'outro') { if (noche.interviene(h)) return ctx.enVehiculo() ? false : noche.ofrecer(); mostrarOutro(); return true; }
     if (ctx.enVehiculo()) return false;
     // el momento del capítulo va antes que el azar
     if (h.activa) {
       const m = momentoPendiente(h, s);
       const def = capituloActual(h).momento;
-      if (m && (def?.cuando !== 'pronto' || tiempoCapitulo >= MOMENTO_PRONTO)) { if (eventos.forzar(m)) momentoLanzado(h); }   // con otro abierto, se reintenta después
+      // 4.13.0 (A): un momento con `lugar` sale cuando estás en el lugar, y de noche (el galpón)
+      const lugarOk = !def?.lugar || (def.lugar === 'galpon' && !!ctx.presencia?.cercaDelGalpon?.() && enVentana(s.horas, VENTANAS.galpon));
+      if (m && lugarOk && (def?.cuando !== 'pronto' || tiempoCapitulo >= MOMENTO_PRONTO)) { if (eventos.forzar(m)) momentoLanzado(h); }   // con otro abierto, se reintenta después
       // lanzado pero perdido (una partida retocada): se vuelve a pedir, para que el capítulo nunca se trabe
       // (3.8.3: «pasó» es su objetivo tildado: un temporal al azar de antes del capítulo no cuenta)
       // 3.8.7: ni si ya se decidió en este capítulo (el temporal se tilda al otro día y se repetía cada medio segundo)
-      else if (!m && momentoPerdido(h, s) && !eventos.ev().activo) eventos.forzar(def.evento);
+      else if (!m && momentoPerdido(h, s) && !eventos.ev().activo && lugarOk) eventos.forzar(def.evento);
+      // 4.13.0 (A): las armas se pierden en el camino (la tarjeta que no salió, el seguimiento que no llegó): se vuelve a pedir la que falta
+      else if (!m && !eventos.ev().activo) { const falta = armaPorPedir(h, s, eventos.ev().pendientes.map((x) => x.id)); if (falta) eventos.forzar(falta); }
     }
     return eventos.revisar({ puedeAzar: azarEnPruebas || !ctx.sinAzar?.() });
   }
@@ -242,6 +257,7 @@ export function crearValleUi(ctx) {
     if (h.fase === 'fin') { ctx.nota('La historia ya terminó', 'Podés releerla en tu diario'); return false; }
     ctx.ajustes().relaxTipo = 'historia';
     ctx.guardarAjustes();
+    ctx.alActivarHistoria?.();   // 4.13.0 (A): los duendes de la historia se arman (bajo la pausa o la tarjeta, nunca a mitad de la acción)
     esperaInicio = 1.2;
     ctx.guardar();
     ctx.nota(nueva ? 'Empieza la historia del valle' : 'Seguís la historia del valle', `Capítulo ${numeroCapitulo(h)}: ${capituloActual(h).titulo}`, true);
@@ -250,6 +266,7 @@ export function crearValleUi(ctx) {
   }
   function pausar() {
     const h = historia();
+    if (noche.activa()) noche.abandonar();   // 4.13.0 (B)
     pausarHistoria(h);
     ctx.ajustes().relaxTipo = 'libre';
     ctx.guardarAjustes();
@@ -264,10 +281,11 @@ export function crearValleUi(ctx) {
     const quiere = ctx.ajustes().relaxTipo === 'historia';
     if (quiere && !h.activa && h.fase !== 'fin') {
       empezarHistoria(h, ctx.progreso().dia);
+      ctx.alActivarHistoria?.();   // 4.13.0 (A)
       esperaInicio = 2.5;
       ctx.guardar();
     } else if (!quiere && h.activa) { pausarHistoria(h); ctx.guardar(); }
-    else if (quiere) esperaInicio = 2.5;
+    else if (quiere) { esperaInicio = 2.5; ctx.alActivarHistoria?.(); }   // 4.13.0 (A)
   }
 
   // ---------------------------------------------------------------- portada, pausa y guía
@@ -332,7 +350,7 @@ export function crearValleUi(ctx) {
   }
 
   return {
-    actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas,
+    actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas, noche,
     abierta: () => tarjetas.abierta(),
     azar: (v) => { azarEnPruebas = !!v; return azarEnPruebas; },
     // para las pruebas: revisar ya, sin esperar el medio segundo ni el rato del capítulo

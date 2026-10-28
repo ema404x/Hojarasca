@@ -16,3 +16,11 @@ Sólo teclado y ratón; textos en castellano rioplatense (el inglés se hace al 
 1. **Guion** (agente de redacción): biblia de la historia con capítulos, personajes y arcos, misiones paso a paso, escenas, elecciones y finales, y cómo entran los duendes. Se muestra al usuario para aprobar.
 2. **Motor de escenas** (en paralelo): director de escenas con cámara dirigida, diálogos que avanzan con tecla o clic, saltear escena, pausa que respeta el guardado.
 3. **Contenido:** misiones y escenas capítulo por capítulo, con pruebas por capítulo.
+
+## Guion aprobado en parte (28-10-2026)
+Guion en `GUION_HISTORIA.md` (rama `guion-historia`, 13 capítulos, «El trato del molino»). Respuestas del usuario:
+1. **Premisa y título:** aprobados («El trato del molino»: alguien responde un aviso y hereda el refugio del último molinero).
+2. **Graciela Pugh** (ingeniera del ramal) como personaje nuevo: aprobada.
+3. **Partidas viejas en modo Historia: todo de cero (toda la partida).** Se reinician por completo y se pierde lo construido y ganado en ellas. Mitigación que se agrega por criterio propio (sacable si el usuario no la quiere): copia de la partida vieja antes de reiniciar y una tarjeta de aviso al abrirla.
+4. **Pareja:** escena sugerida la noche antes de la defensa y presencia al amanecer y en el final, solo si el amor está prendido; opcional, nunca explícita ni obligatoria.
+5. **Sin responder (se toma la recomendación del guion):** clima propio de la historia si se llega a destiempo (no más de 2 días de espera); el molino muele habas (el trigo queda para otro momento); Fermín aliado con honda en la noche si cuesta poco; noche perdida con dos salidas («Otra vuelta» sin castigo y «Que amanezca» como final perdido).

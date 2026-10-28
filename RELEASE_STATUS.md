@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.13.0 (sobre main = 4.12.3): DUENDES EN LA HISTORIA (`CAMBIOS_4_13_0.md`) — presencia en los capítulos 5 y 6, encuentro en el galpón con elección trato o pelea, armas con misiones, noche de defensa de ~3 min y dos finales; sólo en Historia
 - 4.12.3 (sobre main = 4.12.2): EL SHADER QUE SE COMPILABA TARDE (`CAMBIOS_4_12_3_SHADER.md`) — era la silueta de la sombra del jugador, ahora se compila en la carga; las partidas reales de bordes, edificios y animales vuelven a dar verde
 - 4.12.1 (sobre main = 4.12.0): MEJORA VISUAL 2 (`CAMBIOS_4_12_1.md`) — agua con reflejo de cielo y orilla, edificios asentados con halos de noche, caballo/ciervo/huemul/perro con huesos y sombras que llegan más lejos (árboles incluidos); pendiente: un programa de shader que se compila tarde (103 → 104) y medir en la 4600G
 - 4.12.0 (sobre main = 4.11.5): MEJORA VISUAL 1 (`CAMBIOS_4_12_0.md`) — bordes suaves FXAA en Media y Alta, cinco modelos de roca y terreno con más variedad de color; sólo Media y Alta gastan rendimiento
