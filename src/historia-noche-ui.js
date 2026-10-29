@@ -64,7 +64,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
     if (!dir || dir.activa() || typeof dir.hay !== 'function' || !dir.hay(id)) { alFin?.(); return false; }
     mundo?.pausar?.(true);
     let ok = false;
-    try { ok = dir.disparar(id) === true; } catch { ok = false; }
+    try { ok = dir.disparar(id, { forzar: true }) === true; } catch { ok = false; }   // (forzar: las de la noche se repiten con cada intento)
     if (!ok) { mundo?.pausar?.(false); alFin?.(); return false; }
     escenaDeNoche = { id, alFin, visto: false };
     return true;
