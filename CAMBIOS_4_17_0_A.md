@@ -115,3 +115,21 @@ ver la escena, no hace falta un efecto. «Condición» y «efecto» sin registra
   Se retiró `verificar-4-13-0-historia-b` (la noche vieja; motivo arriba).
 - Humo de partida real: `pruebas/humo-4-17-0-historia.cjs`. La noche corre **sin depender del foco**: el juego se pausaba por `blur` (main.js, el `abrir('pausa')` del `blur`), así que con `?debug=1` la bandera
   `window.__sinPausaPorBlur = true` lo evita (sólo debug).
+
+## Resultado
+- `npm run verify` de corrido: **321 pasos OK** (con la prueba nueva adentro y sin la de la noche vieja). `verificar-4-17-0-historia-a.mjs`: 227 comprobaciones y 32 mutaciones atrapadas.
+  En el paralelo bajo carga fallan a veces, y pasan solas, `rc6`, `integridad-rc31`, `3-8-5-sonido` y `4-6-0-mate` (de tiempo).
+- **Partida real** `pruebas/humo-4-17-0-historia.cjs` (Electron con WebGL, notebook Ryzen 7 7730U, monitor externo, perfil propio; secciones sueltas con `HUMO_SOLO=2,4`): corrió en verde
+  la puerta de invierno y la helada, el capítulo 9 (Ramón en cama, D5 por la tarjeta de respaldo, las ovejas siguen y llegan al galpón de esquila), el capítulo 10 (la E dice «Golpear», D6),
+  el 11 (cinco blancos de paja con el arco y cinco latas con la honda, por la cámara), el 12 en trato **y** en pelea (la noche empieza sola, ola 1 de 3, defensas prestadas armadas, duendes en escena ≤ 12,
+  perder → «Otra vez» / «Que amanezca», ganar aguantando, amanecer a las 6:24 y su escena) y la última corrida con «Que amanezca». **Sin depender del foco**: `window.__sinPausaPorBlur`
+  (la primera corrida falló porque la ventana perdía el foco y el juego se pausaba por `blur`).
+- Capturas en `pruebas/salidas/historia-4-17-0/` (no van al repositorio). Se vieron a ojo: el capítulo 9 con nieve, la noche de trato (portón con antorchas, estacas y duendes Viejos con ojos verdes) y la práctica de arco.
+  **No se vieron a ojo**: las ovejas siguiendo (capturas tomadas, no revisadas), la noche de pelea, la empalizada, las trampas de miel ni la campana; ningún aliado (no se dibujan); los blancos de paja de cerca.
+- **fps**, sólo en la notebook y sólo antes/después (4600G sin medir): sin la noche 24,0 ms de media (p95 28), con la noche (7+ duendes, defensas armadas) 24,0 ms (p95 27); una corrida anterior dio +2 ms de media
+  y +11 ms de p95: está dentro del ruido de esta máquina. 117 → 118 llamadas de dibujo y +20 mil triángulos.
+- **Programas de shader**: la historia, el arreo, los blancos y las noches suman **0** (113 → 113 en las noches). **No resuelto**: en la corrida larga el conteo pasó de 110 a 111 al llegar al galpón
+  de esquila de día (pasa igual en el Relax libre: 104 → 105, sección D) y de 111 a 113 al llegar de noche a tu galponcito tras ese paseo diurno; en las secciones sueltas (2 sola) se queda en 110 y
+  en el Relax libre de noche en el refugio tampoco sube. Parece el primer cuadro de noche/nieve con algo visto de día, pero no lo aislé.
+- Tiempos aproximados: entender el estado y los módulos del acto II y de la noche, 60 min; capítulos, disparadores y estado, 120 min; noche (simulación, mundo, interfaz), 130 min; arreo, blancos y enganche
+  con `main.js`, 90 min; pruebas (la nueva con mutaciones y el ajuste de las viejas), 110 min; humo (escribirlo y depurarlo, esperando el candado de Electron), 150 min; el gate completo, 9 min.
