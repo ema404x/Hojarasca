@@ -7,6 +7,9 @@
 // Sólo en la versión de escritorio: el navegador no puede escribir en una carpeta. Este
 // módulo es puro (se prueba en Node); el acceso a disco lo hace main.cjs.
 
+// 4.17.1: la partida de la carpeta que la historia nueva reinició (o reiniciaría) se avisa antes de reemplazar la de acá
+import { avisoSyncHistoria } from './historia-reinicio.js';
+
 export const SINCRONIA = {
   cada: 120,          // segundos entre copias mientras jugás
   margen: 90,         // segundos: una copia apenas más nueva no se ofrece (relojes distintos)
@@ -54,7 +57,7 @@ export function textoOferta(local, remota, versionNueva = '') {
   const dia = Math.max(1, Math.floor(Number(remota?.progreso?.dia) || 1));
   const cabeza = `En tu carpeta sincronizada hay una partida más nueva: día ${dia}, guardada el ${cuandoTexto(remota?.progreso?.guardadoEn)}.`;
   const aca = local?.hay ? `\n\nLa de esta computadora es del día ${local.dia}, guardada el ${cuandoTexto(local.guardadoEn)}, y se reemplaza.` : '';
-  return `${cabeza}${aca}${avisoVersionNueva(versionNueva)}\n\n¿Seguimos con la de la carpeta?`;
+  return `${cabeza}${aca}${avisoVersionNueva(versionNueva)}${avisoSyncHistoria(remota?.progreso, local)}\n\n¿Seguimos con la de la carpeta?`;
 }
 // 3.5.1: las dos siguieron. La otra computadora escribió en la carpeta después de la última copia
 // que vio esta, pero la de acá es igual de nueva o más (se siguió jugando acá, o los relojes de
@@ -63,5 +66,5 @@ export function textoDosCambiaron(local, remota, versionNueva = '') {
   const dia = Math.max(1, Math.floor(Number(remota?.progreso?.dia) || 1));
   const cabeza = `Tu otra computadora dejó en la carpeta sincronizada una partida que esta no vio: día ${dia}, guardada el ${cuandoTexto(remota?.progreso?.guardadoEn)}.`;
   const aca = local?.hay ? `\n\nAcá también se siguió jugando: día ${local.dia}, guardada el ${cuandoTexto(local.guardadoEn)}.` : '';
-  return `${cabeza}${aca}${avisoVersionNueva(versionNueva)}\n\n¿Seguimos con la de la carpeta? (Si no, la de acá la reemplaza en la carpeta.)`;
+  return `${cabeza}${aca}${avisoVersionNueva(versionNueva)}${avisoSyncHistoria(remota?.progreso, local)}\n\n¿Seguimos con la de la carpeta? (Si no, la de acá la reemplaza en la carpeta.)`;
 }

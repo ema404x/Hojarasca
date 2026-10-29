@@ -276,6 +276,8 @@ import { resolverColocacion } from './historia-colocacion.js';
 // 4.17 C (sólo para el gancho de depuración __colocarEscena)
 import { COLOCACION_ESCENA } from './historia-disparadores.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
+import { textoPaqueteCopia } from './historia-reinicio.js';   // 4.17.1: la copia previa en el formato de «Exportar»
+import { textoUltimaCarga, cargarFotos } from './guardado.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
 import { crearGracielaMundo } from './historia-graciela.js';
 // 4.17 C: la ficha de Graciela, para armarla de invitada en las escenas del capítulo 7
@@ -370,14 +372,25 @@ let progreso = cargarProgreso();
 // 4.15.0: una partida del Relax con la historia VIEJA (ocho capítulos) en curso se reinicia por completo, pero antes se guarda una copia aparte
 // (el archivo en la carpeta de datos y, de respaldo, una clave del navegador). Si la copia no se puede guardar, no se reinicia nada: sólo se
 // limpia la parte de la historia. Todo vive en historia-reinicio.js (REINICIAR_HISTORIAS_VIEJAS lo apaga).
+// 4.17.1: la copia sale del texto CRUDO del guardado (antes del saneado de la historia nueva), va en el formato de «Exportar» (con las fotos,
+// así «Importar acá» la acepta y no borra el álbum) y la tarjeta nombra el archivo REAL (si el nombre estaba ocupado, `escribir` le suma
+// un número). Sólo cuenta el ARCHIVO: si no se pudo escribir, no se reinicia (la clave del navegador no se ve desde el juego y la pisa el
+// próximo reinicio de la ranura); queda sólo como respaldo extra.
 function guardarCopiaPrevia(vieja) {
   const nombre = nombreCopia(ranuraActual());
-  const texto = textoCopia(vieja);
+  const datos = { crudo: textoUltimaCarga(), vieja, nombre, ranura: ranuraActual(), version: (document.getElementById('version-completa')?.textContent || '').replace('Versión ', '').trim() };
+  let fotos = {};
+  try { fotos = cargarFotos() || {}; } catch { fotos = {}; }
+  const texto = textoPaqueteCopia({ ...datos, fotos }) || textoCopia(vieja);
   if (!texto) return null;
-  let ok = false;
-  try { ok = !!window.hojarasca?.copias?.escribir?.(`hojarasca${ranuraActual() > 1 ? `-p${ranuraActual()}` : ''}`, nombre, texto); } catch { ok = false; }
-  try { localStorage.setItem(`hojarasca-copia-previa-historia-p${ranuraActual()}`, texto); ok = true; } catch { /* sin lugar en el navegador: queda el archivo */ }
-  return ok ? nombre : null;
+  const partida = `hojarasca${ranuraActual() > 1 ? `-p${ranuraActual()}` : ''}`;
+  let escrito = null;
+  try { escrito = window.hojarasca?.copias?.escribir?.(partida, nombre, texto) || null; } catch { escrito = null; }
+  // (con muchísimas fotos puede pasar del tope del archivo: se prueba sin las fotos, que igual siguen en la partida)
+  if (!escrito && Object.keys(fotos).length) { const sinFotos = textoPaqueteCopia(datos); if (sinFotos) { try { escrito = window.hojarasca?.copias?.escribir?.(partida, nombre, sinFotos) || null; } catch { escrito = null; } } }
+  const final = typeof escrito === 'string' && escrito ? escrito : (escrito ? nombre : null);
+  if (final) { try { localStorage.setItem(`hojarasca-copia-previa-historia-p${ranuraActual()}`, textoPaqueteCopia(datos) || texto); } catch { /* sin lugar en el navegador: queda el archivo */ } }
+  return final;
 }
 if (progreso && !esDesafio && historiaVieja(progreso)) {
   if (debeReiniciar(progreso, 'relax')) {
