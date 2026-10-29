@@ -316,7 +316,8 @@ const BRAZOS = [[H.hombroI, H.codoI, 1], [H.hombroD, H.codoD, -1]];
 const _mirada = { dif: 0, distancia: 0, noche: 0, ataca: false };
 let cuentaLooks = {};
 
-export function crearDuende(tipo) {
+// 4.17.0: `opciones.viejo`: la variante Viejo (barbudos, con liquen) para cualquier tipo (los del cerro de la noche de la nevada); sus modelos ya los arma `precalentarDuendes`
+export function crearDuende(tipo, opciones = {}) {
   if (!TIPOS_ALIEN[tipo]) tipo = 'rastreador';
   const look = lookDe(tipo, cuentaLooks[tipo] = (cuentaLooks[tipo] || 0) + 1);
   const g = new THREE.Group();
@@ -353,7 +354,7 @@ export function crearDuende(tipo) {
     uBorde: { value: new THREE.Color(BORDE_LUNA) }, uVena: { value: new THREE.Color('#9aff6a') }, uOjoColor: { value: new THREE.Color('#d8ff6a') },
   };
   const venaNormal = u.uVena.value.clone(), venaMutada = new THREE.Color(VENA_MUTADO);
-  const st = { viejo: tipo === 'bruto' || tipo === 'jefe', etapa: 1, lejos: false };
+  const st = { viejo: tipo === 'bruto' || tipo === 'jefe' || opciones.viejo === true, etapa: 1, lejos: false };
   let mutado = false;
   const pose = { fase: Math.random() * 10, respiro: Math.random() * 6, tic: 0, ticX: 0, ticY: 0, risa: 0, golpeDebil: 0, gorro: 0, faseAla: 0, robaRisa: 0 };
   const modeloActual = () => modelo(tipo, st.viejo, look, st.lejos);

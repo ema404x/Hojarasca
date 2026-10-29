@@ -24,12 +24,13 @@
 //   decision  { d, es }     la decisión d vale es ('a' | 'b' | 'c' | 'ninguna' si todavía no se tomó)
 //   lazo      { quien, min?, max? }
 //   evento    { id }        el evento del valle (tobillo, oveja, derrumbe…) ya pasó
+//   (4.17.0) trato { es: 'trato'|'pelea' } · noche { es: 'ganada'|'perdida' } · convidado { min } · deuda { es: 'pagada'|'debe' } · perdon · prestado { quien } · amor
 
 export const LAZOS_PRINCIPALES = ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'];
 export const LAZOS_SECUNDARIOS = ['rosa', 'herminia', 'nicanor', 'tito', 'tobias', 'belisario'];
-export const DECISIONES = ['bolsa', 'coihue', 'molienda', 'cuaderno', 'majada'];
+export const DECISIONES = ['bolsa', 'coihue', 'molienda', 'cuaderno', 'majada', 'duendes'];   // (4.17.0: D6 `duendes`: a y b = trato, c = pelea)
 export const TIPOS_EFECTO = ['lazo', 'decision', 'ramal', 'raro', 'objeto', 'entrega', 'dar', 'mundo', 'duende', 'optativa', 'hablado', 'quitar', 'prestado'];   // (4.16.0: quitar:<cosa>:<n> gasta algo; prestado:<id> anota lo prestado)
-export const CONDICIONES_HISTORIA = ['decision', 'lazo', 'evento', 'presente'];   // (4.16.0: presente { quien }: esa persona vive ahora en la aldea)
+export const CONDICIONES_HISTORIA = ['decision', 'lazo', 'evento', 'presente', 'trato', 'noche', 'convidado', 'deuda', 'perdon', 'prestado', 'amor'];   // (4.17.0: las del acto III)   // (4.16.0: presente { quien }: esa persona vive ahora en la aldea)
 
 const ID_SUELTO = /^[a-z0-9][a-z0-9_-]{0,47}$/;
 const entero = (s) => /^-?\d{1,3}$/.test(s) ? Number(s) : null;

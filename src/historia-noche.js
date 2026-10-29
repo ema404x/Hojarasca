@@ -15,6 +15,12 @@
 // En las dos, ganar es parar a todos o aguantar hasta el amanecer; perder no cuesta nada (reintento
 // ilimitado, sin castigo, sin tocar la economía ni las obras del Relax).
 //
+// 4.17.0 (Historia nueva, acto III): la noche de la nevada (capítulo 12) adapta esta noche al guion nuevo: el lado de ataque va del arroyo al galpón (tu galponcito);
+// las defensas son PRESTADAS por los vecinos (estacas de Anselmo, trampas de miel de Guido, la campana de Martín, la empalizada de durmientes de Elsa y,
+// con D2 = c, la pirca de Tobías) según `historia.prestado`; hay tres olas y un jefe (el Mandamás) con el lomo débil (daño ×2 si lo pegás por la espalda);
+// los aliados (el perro, Ramón, Josefina, Fermín con la honda) ayudan según los lazos; con el trato los duendecitos avisan y traban al grandote, salvo que
+// quede una deuda sin pagar. Perder no cuesta nada: «Otra vez» (vuelve a las 22:00) o «Que amanezca» (el final perdido).
+//
 // El estado que se guarda es chico (`progreso.historia.noche`, ver `sanearNoche`). Lo que viene del
 // encuentro con los duendes (la elección trato/pelea y las armas conseguidas) lo define el paso 2 (agente
 // A): se lee en UN solo lugar (`eleccionDe` y `armasDe`) para adaptarlo sin tocar nada más.
@@ -23,6 +29,11 @@ import { TIPOS_ALIEN, ARMAS } from './desafio-reglas.js';
 import { factorTension } from './desafio-arsenal.js';
 
 export const MODOS_NOCHE = ['pelea', 'trato'];
+// 4.17.0: los aliados que tiene la noche según los lazos y lo decidido: el perro (si tenés), Ramón (lazo ≥ 1 y no vendiste la majada), Josefina (lazo ≥ 1) y
+// Fermín con la honda (lazo ≥ 2). `lazos`: { ramon, ema, fermin }; `decisiones`: { majada }
+export function aliadosDe({ lazos = {}, decisiones = {}, perro = false } = {}) {
+  return { perro: !!perro, ramon: (lazos.ramon ?? 0) >= 1 && decisiones.majada !== 'c', josefina: (lazos.ema ?? 0) >= 1, fermin: (lazos.fermin ?? 0) >= 2 };
+}
 export const ESTADOS_NOCHE = ['pendiente', 'ganada', 'perdida'];
 
 // ---------------------------------------------------------------- lo guardado
@@ -83,18 +94,23 @@ export function empezarIntento(h, horas) {
   return n;
 }
 // Termina el intento: ganó o perdió. Devuelve el reloj que había que devolver (o null).
+// 4.17.0: ganar cierra la noche; perder la deja pendiente (se repite con «Otra vez» o se deja con `dejarPerdida`: «Que amanezca»)
 export function cerrarIntento(h, gano) {
   const n = h.noche = sanearNoche(h.noche);
-  n.estado = gano ? 'ganada' : 'perdida';
+  if (gano) { n.estado = 'ganada'; espejarEnDuendes(h, { noche: 'ganada', final: n.modo || modoDeNoche(h) }); }
   const horas = n.horasAntes;
   n.horasAntes = null;
-  espejarEnDuendes(h, { noche: gano ? 'ganada' : 'perdida', final: gano ? (n.modo || modoDeNoche(h)) : '' });
   return horas;
+}
+export function dejarPerdida(h) {
+  const n = h.noche = sanearNoche(h.noche);
+  n.estado = 'perdida'; n.horasAntes = null;
+  espejarEnDuendes(h, { noche: 'perdida', final: '' });
 }
 
 // ---------------------------------------------------------------- los números
 export const NOCHE = {
-  duracion: 190,            // segundos hasta el amanecer
+  duracion: 270,            // segundos hasta que para la nevada (4:30: tres olas)
   topeVivos: 10,            // duendes en pie a la vez (el resto espera en la cola)
   vidaJugador: 100,
   vidaPuerta: 100,
@@ -102,8 +118,14 @@ export const NOCHE = {
   aggro: 7,                 // a esta distancia del jugador, el duende va por él y no por la puerta
   puertaRadio: 2.2,         // desde acá se golpea la puerta del refugio
   travesurasMax: 7,         // en el trato, las que se aguantan
+  jefeVida: 380,            // el Mandamás de la noche (el del Desafío tiene 900)
+  espalda: { cos: 0.3, multiplicador: 2 },   // el lomo con hongos: pegado por la espalda, ×2
+  empalizada: 0.5, pirca: 0.2,              // cuánto más aguanta el galpón con cada defensa
+  miel: { radio: 1.7, traba: 3.5, lento: 0.3 },
+  aviso: 2.2,               // segundos antes que avisa la campana (y la lucecita del topo)
+  enjambre: { traba: 5 },
   flechas: 30,              // el carcaj prestado (la honda no se acaba)
-  danoPelea: 0.55,          // lo que pega cada duende (por sobre el número del Desafío)
+  danoPelea: 0.4,          // lo que pega cada duende (por sobre el número del Desafío)
   danoPuerta: 0.3,
   vidaTrato: 0.7,           // en el trato aguantan menos: se caen sentados
   distanciaSpawn: [40, 46],
@@ -114,23 +136,18 @@ export const NOCHE = {
   caida: { sentado: 0.9, huye: 2.0 },
 };
 
-// La oleada guionada: cuándo y qué. Una sola serie por modo.
+// La oleada guionada: cuándo y qué. Tres olas (la campana avisa cada una): 0:00, 1:15 y 2:45; la tercera trae al grandote y al Mandamás.
+const R = (n) => Array(n).fill('rastreador'), S = (n) => Array(n).fill('saltador'), X = (n) => Array(n).fill('excavador'), D = (n) => Array(n).fill('tirador');
 export const GUION = {
   pelea: [
-    { t: 6, tipos: ['rastreador', 'rastreador', 'rastreador'] },
-    { t: 28, tipos: ['rastreador', 'rastreador', 'rastreador', 'rastreador'] },
-    { t: 52, tipos: ['rastreador', 'rastreador', 'tirador'] },
-    { t: 78, tipos: ['saltador', 'rastreador', 'rastreador', 'tirador'] },
-    { t: 105, tipos: ['bruto', 'rastreador', 'rastreador'] },
-    { t: 140, tipos: ['rastreador', 'rastreador', 'rastreador', 'tirador', 'tirador'] },
+    { t: 3, ola: 1, tipos: [...R(8), ...S(4)] },
+    { t: 78, ola: 2, tipos: [...X(3), ...D(4), 'curandero'] },
+    { t: 168, ola: 3, tipos: ['bruto', 'jefe'] },
   ],
   trato: [
-    { t: 6, tipos: ['rastreador', 'rastreador', 'rastreador'] },
-    { t: 26, tipos: ['saltador', 'rastreador', 'rastreador'] },
-    { t: 48, tipos: ['rastreador', 'saltador', 'rastreador', 'saltador'] },
-    { t: 72, tipos: ['rastreador', 'rastreador', 'rastreador', 'saltador', 'saltador'] },
-    { t: 100, tipos: ['bruto', 'rastreador', 'rastreador'] },
-    { t: 130, tipos: ['saltador', 'saltador', 'rastreador', 'rastreador', 'rastreador'] },
+    { t: 3, ola: 1, tipos: [...R(6), ...S(3)] },
+    { t: 78, ola: 2, tipos: [...X(2), ...D(3)] },
+    { t: 168, ola: 3, tipos: ['bruto', 'jefe'] },
   ],
 };
 export const totalGuion = (modo) => GUION[modo].reduce((s, o) => s + o.tipos.length, 0);
@@ -143,7 +160,7 @@ export const ARMAS_NOCHE = {
 
 // El diseño del lugar (en el plano): el centro es la puerta del refugio, (dx, dz) el lado de ataque
 // (vector unitario). Las estacas hacen un arco con un hueco (el portón) en el medio.
-export function disenoNoche(centro, dx, dz) {
+export function disenoNoche(centro, dx, dz, defensas = null) {
   const l = Math.hypot(dx, dz) || 1;
   const ux = dx / l, uz = dz / l;
   const px = -uz, pz = ux;   // el costado
@@ -158,44 +175,54 @@ export function disenoNoche(centro, dx, dz) {
     const b = { x: porton.x + px * (mitad + largo) * s - ux * 3.2, z: porton.z + pz * (mitad + largo) * s - uz * 3.2 };
     tramos.push({ a, b });
   }
-  return { centro: { x: centro.x, z: centro.z }, ux, uz, px, pz, porton, afuera: { x: porton.x + ux * 5, z: porton.z + uz * 5 }, tramos, mitad };
+  // 4.17.0: las trampas de miel de Guido (en el camino, afuera del portón) y la empalizada de durmientes de Elsa (a un costado, del lado del arroyo)
+  const miel = defensas?.miel ? [{ x: porton.x + ux * 7 + px * 2.4, z: porton.z + uz * 7 + pz * 2.4, r: NOCHE.miel.radio }, { x: porton.x + ux * 12 - px * 2.0, z: porton.z + uz * 12 - pz * 2.0, r: NOCHE.miel.radio }] : [];
+  const empalizada = defensas?.empalizada ? { a: { x: porton.x - ux * 2.2 + px * 7, z: porton.z - uz * 2.2 + pz * 7 }, b: { x: porton.x - ux * 2.2 + px * 13, z: porton.z - uz * 2.2 + pz * 13 } } : null;
+  return { centro: { x: centro.x, z: centro.z }, ux, uz, px, pz, porton, afuera: { x: porton.x + ux * 5, z: porton.z + uz * 5 }, tramos: defensas && !defensas.estacas ? [] : tramos, mitad, miel, empalizada, defensas: defensas || null };
 }
 
 // ---------------------------------------------------------------- la simulación
-// `op`: { modo, centro: {x, z}, dx, dz, alt(x, z), azar(), resolver?(p {x, z}, radio) }
+// `op`: { modo, centro: {x, z}, dx, dz, alt(x, z), azar(), resolver?(p {x, z}, radio),
+//          defensas?: { estacas, miel, campana, empalizada, pirca }, aliados?: { perro, ramon, josefina, fermin }, ayudas?: boolean (los duendecitos del trato) }
 export function crearNoche(op) {
   const modo = MODOS_NOCHE.includes(op.modo) ? op.modo : 'trato';
   const azar = op.azar || Math.random;
   const alt = op.alt || (() => 0);
   const pelea = modo === 'pelea';
-  const dis = disenoNoche(op.centro, op.dx, op.dz);
-  const guion = GUION[modo].map((o) => ({ ...o, salio: false }));
+  const DEF = op.defensas || { estacas: true, miel: false, campana: false, empalizada: false, pirca: false };
+  const ALI = op.aliados || {};
+  const ayudas = !pelea && op.ayudas !== false && op.ayudas !== undefined ? !!op.ayudas : false;
+  const dis = disenoNoche(op.centro, op.dx, op.dz, DEF);
+  const guion = GUION[modo].map((o) => ({ ...o, salio: false, avisado: false }));
+  const aguante = NOCHE.vidaPuerta * (1 + (DEF.empalizada ? NOCHE.empalizada : 0) + (DEF.pirca ? NOCHE.pirca : 0));
   const total = totalGuion(modo);
   const S = {
     modo, dis, t: 0, fin: null,
     jugador: { x: op.centro.x, y: 0, z: op.centro.z, vida: NOCHE.vidaJugador, sinGolpe: 99 },
-    puerta: NOCHE.vidaPuerta,
+    puerta: aguante, puertaMax: aguante, ola: 0, defensas: DEF, aliados: ALI, ayudas,
+    jefe: null, jefeCaido: 0, enjambreUsado: false, preaviso: null, acumAliados: { perro: 0, josefina: 0, fermin: 0, ramon: 0, cura: 0 },
     travesuras: 0, detenidos: 0, bajas: 0, golpesRecibidos: 0,
     flechas: NOCHE.flechas, recarga: 0,
     duendes: [], proyectiles: [], cola: [], eventos: [],
     total, nacidos: 0, siguiente: 1,
   };
   const evento = (tipo, d = {}) => S.eventos.push({ tipo, ...d });
-  const vidasDe = (tipo) => Math.max(1, Math.round(TIPOS_ALIEN[tipo].vida * (pelea ? 1 : NOCHE.vidaTrato)));
+  const vidasDe = (tipo) => Math.max(1, Math.round((tipo === 'jefe' ? NOCHE.jefeVida : TIPOS_ALIEN[tipo].vida) * (pelea ? 1 : NOCHE.vidaTrato)));
 
-  function nacer(tipo) {
+  function nacer(tipo, pre = null) {
     const def = TIPOS_ALIEN[tipo] || TIPOS_ALIEN.rastreador;
-    const ang = Math.atan2(dis.uz, dis.ux) + (azar() - 0.5) * NOCHE.abanico;
+    const ang = pre ? pre.ang : Math.atan2(dis.uz, dis.ux) + (azar() - 0.5) * NOCHE.abanico;
     const [r0, r1] = NOCHE.distanciaSpawn;
-    const r = r0 + azar() * (r1 - r0);
+    const r = pre ? pre.r : r0 + azar() * (r1 - r0);
     const x = op.centro.x + Math.cos(ang) * r, z = op.centro.z + Math.sin(ang) * r;
     const d = {
       id: S.siguiente++, tipo, def, x, z, y: alt(x, z), rumbo: Math.atan2(dis.centro.x - x, dis.centro.z - z),
-      vida: vidasDe(tipo), vidaMax: vidasDe(tipo), estado: 'avanza', t: 0, cd: 0.4 + azar() * 0.8, wp: 0,
+      vida: vidasDe(tipo), vidaMax: vidasDe(tipo), estado: 'avanza', t: 0, cd: 0.4 + azar() * 0.8, wp: DEF.estacas ? 0 : 2, pegado: 0, trampas: [],
       velocidad: 0, ataca: false, golpe: 0, sale: 0, objetivo: 'puerta', disparoT: 1 + azar() * 1.5,
     };
     S.duendes.push(d);
     S.nacidos++;
+    if (tipo === 'jefe') S.jefe = d;
     evento('nace', { d });
     return d;
   }
@@ -224,20 +251,29 @@ export function crearNoche(op) {
   };
 
   // ---- golpe a un duende (la flecha, la piedra)
-  function herir(d, dano, cabeza) {
+  // 4.17.0: el Mandamás tiene el lomo con hongos: pegado por la espalda (la flecha viaja hacia donde él mira) recibe el doble
+  const porLaEspalda = (d, p) => {
+    if (!p || d.tipo !== 'jefe') return false;
+    const l = Math.hypot(p.vx, p.vz) || 1;
+    return (p.vx / l) * Math.sin(d.rumbo) + (p.vz / l) * Math.cos(d.rumbo) > NOCHE.espalda.cos;
+  };
+  function herir(d, dano, cabeza, p = null) {
     if (d.estado !== 'avanza' && d.estado !== 'ataca') return;
-    d.vida -= dano * (cabeza ? NOCHE.cabeza.multiplicador : 1);
+    const espalda = porLaEspalda(d, p);
+    d.vida -= dano * (cabeza ? NOCHE.cabeza.multiplicador : 1) * (espalda ? NOCHE.espalda.multiplicador : 1);
     d.golpe = 1;
-    evento('golpe', { d, cabeza, muere: d.vida <= 0 });
+    evento('golpe', { d, cabeza, espalda, muere: d.vida <= 0 });
     if (d.vida <= 0) {
       d.estado = 'cae'; d.t = 0; d.ataca = false; d.velocidad = 0;
       S.detenidos++; S.bajas++;
+      if (d.tipo === 'jefe') { S.jefeCaido = S.t; evento('jefe-cae', { d }); }
       evento('cae', { d });
     }
   }
 
   // ---- mover un duende hacia (tx, tz); devuelve la distancia que le queda
   function ir(d, tx, tz, dt, escala = 1) {
+    if (d.pegado > 0) escala *= NOCHE.miel.lento;
     const dx = tx - d.x, dz = tz - d.z, dist = Math.hypot(dx, dz);
     if (dist > 0.001) {
       const paso = Math.min(dist, d.def.vel * escala * dt);
@@ -253,6 +289,15 @@ export function crearNoche(op) {
   function actualizarDuende(d, dt) {
     const J = S.jugador;
     d.golpe = Math.max(0, d.golpe - dt * 3);
+    if (d.pegado > 0) d.pegado = Math.max(0, d.pegado - dt);
+    // las trampas de miel de Guido: traban un rato a los chicos (no al grandote ni al Mandamás)
+    if (dis.miel.length && !d.def.pesado && (d.estado === 'avanza' || d.estado === 'ataca')) {
+      for (let i = 0; i < dis.miel.length; i++) {
+        if (d.trampas.includes(i)) continue;
+        const m = dis.miel[i];
+        if (Math.hypot(d.x - m.x, d.z - m.z) < m.r) { d.trampas.push(i); d.pegado = NOCHE.miel.traba; evento('miel', { d, i }); break; }
+      }
+    }
     if (d.estado === 'cae') {
       d.t += dt; d.velocidad = 0;
       if (d.t >= NOCHE.caida.sentado) {
@@ -332,7 +377,7 @@ export function crearNoche(op) {
     d.velocidad = 0; d.rumbo = Math.atan2(dis.centro.x - d.x, dis.centro.z - d.z);
     if (!pelea) {
       // la travesura: toca, se ríe y sale corriendo
-      S.travesuras++; d.estado = 'huye'; d.t = 0;
+      S.travesuras += d.tipo === 'jefe' ? 3 : 1; d.estado = 'huye'; d.t = 0;
       evento('travesura', { d });
       return;
     }
@@ -365,7 +410,7 @@ export function crearNoche(op) {
             const r = d.def.radio + 0.06;
             if (Math.hypot(p.x - d.x, p.z - d.z) > r) continue;
             if (p.y < d.y - NOCHE.margen.abajo || p.y > d.y + d.def.altura + NOCHE.margen.arriba) continue;
-            herir(d, p.dano, (p.y - d.y) > d.def.altura * NOCHE.cabeza.desde);
+            herir(d, p.dano, (p.y - d.y) > d.def.altura * NOCHE.cabeza.desde, p);
             quitar = true; break;
           }
         } else if (pelea) {
@@ -380,6 +425,32 @@ export function crearNoche(op) {
     }
   }
 
+  // ---- los aliados (el perro, Josefina, Fermín desde el techo del galpón, Ramón con el martillo) y los duendecitos del trato
+  const enPie = (d) => d.estado === 'avanza' || d.estado === 'ataca';
+  function masCerca(x, z, rango) {
+    let mejor = null, md = rango;
+    for (const d of S.duendes) { if (!enPie(d)) continue; const q = Math.hypot(d.x - x, d.z - z); if (q < md) { md = q; mejor = d; } }
+    return mejor;
+  }
+  function aliadosTick(dt) {
+    const A = S.acumAliados, c = dis.centro;
+    if (ALI.josefina && (A.josefina += dt) >= 2.4) { A.josefina = 0; const b = masCerca(dis.porton.x, dis.porton.z, 34); if (b && azar() < 0.8) { herir(b, 28, false, null); evento('aliado', { quien: 'josefina', d: b }); } }
+    if (ALI.fermin && (A.fermin += dt) >= 1.7) { A.fermin = 0; const b = masCerca(c.x, c.z, 26); if (b && azar() < 0.75) { herir(b, 14, false, null); evento('aliado', { quien: 'fermin', d: b }); } }
+    if (ALI.perro && (A.perro += dt) >= 1.3) { A.perro = 0; const b = masCerca(c.x, c.z, 8); if (b) { herir(b, 12, false, null); evento('aliado', { quien: 'perro', d: b }); } }
+    if (ALI.ramon && (A.ramon += dt) >= 6) { A.ramon = 0; if (S.puerta < S.puertaMax) { S.puerta = Math.min(S.puertaMax, S.puerta + 4); evento('repara'); } }
+    // el yuyero de la pelea cura al más herido de sus compañeros
+    for (const q of S.duendes) {
+      if (q.tipo !== 'curandero' || !enPie(q)) continue;
+      q.cura = (q.cura || 0) + dt;
+      if (q.cura >= 1.4) { q.cura = 0; let mejor = null; for (const d of S.duendes) if (d !== q && enPie(d) && d.vida < d.vidaMax && Math.hypot(d.x - q.x, d.z - q.z) < 5 && (!mejor || d.vida < mejor.vida)) mejor = d; if (mejor) { mejor.vida = Math.min(mejor.vidaMax, mejor.vida + 9); evento('cura', { d: mejor }); } }
+    }
+    // el enjambre de los duendecitos se le tira encima al grandote (una vez por noche, con el trato fuerte y sin deuda)
+    if (ayudas && op.fuerte && op.deuda !== true && !S.enjambreUsado) {
+      const g = S.duendes.find((d) => d.tipo === 'bruto' && enPie(d) && Math.hypot(d.x - c.x, d.z - c.z) < 30);
+      if (g) { S.enjambreUsado = true; g.pegado = NOCHE.enjambre.traba; evento('enjambre', { d: g }); }
+    }
+  }
+
   // ---- un paso
   S.actualizar = (dt, jug) => {
     S.eventos.length = 0;
@@ -390,12 +461,25 @@ export function crearNoche(op) {
     S.recarga = Math.max(0, S.recarga - dt);
     S.jugador.sinGolpe += dt;
     if (pelea && S.jugador.sinGolpe > NOCHE.regenera.espera) S.jugador.vida = Math.min(NOCHE.vidaJugador, S.jugador.vida + NOCHE.regenera.porSegundo * dt);
-    // las oleadas
-    for (const o of guion) if (!o.salio && S.t >= o.t) { o.salio = true; for (const t of o.tipos) S.cola.push(t); evento('oleada', { t: o.t }); }
-    // salen de a uno si hay lugar
+    // las oleadas (la campana de Martín avisa cada una un poco antes)
+    for (const o of guion) {
+      if (DEF.campana && !o.avisado && S.t >= o.t - NOCHE.aviso) { o.avisado = true; evento('campana', { ola: o.ola }); }
+      if (!o.salio && S.t >= o.t) { o.salio = true; S.ola = o.ola; for (const t of o.tipos) S.cola.push(t); evento('oleada', { t: o.t, ola: o.ola }); }
+    }
+    // salen de a uno si hay lugar (con el trato, una lucecita avisa 2 s antes dónde va a salir un topo)
     S.salida = (S.salida || 0) - dt;
-    if (S.cola.length && S.salida <= 0 && activos() < NOCHE.topeVivos) { nacer(S.cola.shift()); S.salida = 0.45; }
+    if (S.preaviso) {
+      S.preaviso.t -= dt;
+      if (S.preaviso.t <= 0) { nacer(S.cola.shift(), S.preaviso); S.preaviso = null; S.salida = 0.45; }
+    } else if (S.cola.length && S.salida <= 0 && activos() < NOCHE.topeVivos) {
+      if (S.cola[0] === 'excavador' && ayudas && op.deuda !== true) {
+        const ang = Math.atan2(dis.uz, dis.ux) + (azar() - 0.5) * NOCHE.abanico, r = NOCHE.distanciaSpawn[0] + azar() * (NOCHE.distanciaSpawn[1] - NOCHE.distanciaSpawn[0]);
+        S.preaviso = { ang, r, t: NOCHE.aviso };
+        evento('aviso-topo', { x: op.centro.x + Math.cos(ang) * r, z: op.centro.z + Math.sin(ang) * r });
+      } else { nacer(S.cola.shift()); S.salida = 0.45; }
+    }
     for (const d of S.duendes) actualizarDuende(d, dt);
+    aliadosTick(dt);
     actualizarProyectiles(dt);
     // los que ya se fueron, afuera (el mundo los devuelve al pozo al verlos 'fuera')
     // el final
@@ -403,6 +487,7 @@ export function crearNoche(op) {
     if (pelea && S.jugador.vida <= 0) S.fin = { gano: false, motivo: 'vida' };
     else if (pelea && S.puerta <= 0) S.fin = { gano: false, motivo: 'puerta' };
     else if (!pelea && S.travesuras >= NOCHE.travesurasMax) S.fin = { gano: false, motivo: 'travesuras' };
+    else if (S.jefeCaido && S.t - S.jefeCaido > 1.6) S.fin = { gano: true, motivo: 'jefe' };   // 4.17.0: el Mandamás se va
     else if (ya) { S.limpio = (S.limpio || 0) + dt; if (S.limpio > 1.8) S.fin = { gano: true, motivo: 'todos' }; }
     else if (S.t >= NOCHE.duracion) {
       for (const d of S.duendes) if (d.estado === 'avanza' || d.estado === 'ataca') { d.estado = 'amanece'; d.t = 0; d.ataca = false; }
@@ -415,9 +500,18 @@ export function crearNoche(op) {
 
   S.restantes = () => vivosTotal();
   S.hud = () => ({
-    modo, restante: Math.max(0, NOCHE.duracion - S.t), vida: Math.max(0, S.jugador.vida) / NOCHE.vidaJugador, puerta: Math.max(0, S.puerta) / NOCHE.vidaPuerta,
-    duendes: vivosTotal(), travesuras: S.travesuras, travesurasMax: NOCHE.travesurasMax, flechas: S.flechas,
+    modo, restante: Math.max(0, NOCHE.duracion - S.t), vida: Math.max(0, S.jugador.vida) / NOCHE.vidaJugador, puerta: Math.max(0, S.puerta) / S.puertaMax,
+    duendes: vivosTotal(), travesuras: S.travesuras, travesurasMax: NOCHE.travesurasMax, flechas: S.flechas, ola: S.ola,
+    jefe: S.jefe && enPie(S.jefe) ? { vida: Math.max(0, S.jefe.vida) / S.jefe.vidaMax, deEspaldas: jefeDeEspaldas() } : null,
   });
+  // ¿el Mandamás está de espaldas a vos? (los hongos del lomo brillan más: la ayuda de los duendecitos del trato)
+  function jefeDeEspaldas() {
+    const j = S.jefe;
+    if (!j || !enPie(j)) return false;
+    const dx = S.jugador.x - j.x, dz = S.jugador.z - j.z, l = Math.hypot(dx, dz) || 1;
+    return (dx / l) * Math.sin(j.rumbo) + (dz / l) * Math.cos(j.rumbo) < -0.2;
+  }
+  S.jefeDeEspaldas = jefeDeEspaldas;
   return S;
 }
 

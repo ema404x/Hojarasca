@@ -18,10 +18,12 @@
 import { capituloActual, marcarTema, marcarObjeto, marcarEntrega, anotarRaro, cambiarLazo, sumarRamal, duendesDe, horaEntre, lazoDe } from './historia.js';
 // 4.16.0: el acto II (capítulos 5 a 8)
 import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2, cuadernoVisible } from './historia-disparadores-acto2.js';
+// 4.17.0: el acto III (capítulos 9 a 13)
+import { DISPARADORES_ACTO3, EFECTOS_ESCENA_ACTO3, OBJETOS_ACTO3, LUGARES_ACTO3 } from './historia-disparadores-acto3.js';
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
-export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'tocon-hacha', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2];
+export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'tocon-hacha', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2, ...LUGARES_ACTO3];
 
 const en = (nombre, radio) => [nombre, radio];
 
@@ -55,6 +57,8 @@ export const DISPARADORES = {
   'te-graciela': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], lugar: en('casa-te', 14), cond: (s) => s.acompanante === 'graciela' },
   // ---- capítulos 5 a 8 (el acto II: historia-disparadores-acto2.js)
   ...DISPARADORES_ACTO2,
+  // ---- capítulos 9 a 13 (el acto III: historia-disparadores-acto3.js)
+  ...DISPARADORES_ACTO3,
 };
 // La lista de los 21 ids de escena que escribe el otro agente (historia-escenas-acto1.js)
 export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela'];
@@ -109,6 +113,8 @@ export const EFECTOS_ESCENA = {
   'te-graciela': T('graciela', 'abuelo'),
   // 4.16.0: el acto II
   ...EFECTOS_ESCENA_ACTO2,
+  // 4.17.0: el acto III
+  ...EFECTOS_ESCENA_ACTO3,
 };
 
 // Los lazos que mueven las respuestas del jugador en una escena. La respuesta se guarda como `elecciones[escena][eleccion] = opcion`; acá se
@@ -175,6 +181,8 @@ export const OBJETOS = {
     aviso: 'Dejar la bolsa de Eusebio en la raíz del coihue', escena: 'bolsa-coihue' },
   // 4.16.0: los del acto II y los props del acto I que antes sólo dejaban una marca
   ...OBJETOS_ACTO2,
+  // 4.17.0: el acto III
+  ...OBJETOS_ACTO3,
 };
 export const RADIO_OBJETO = 2.4;
 
@@ -201,6 +209,8 @@ export function accionDeObjeto(id, h, s) {
   const o = OBJETOS[id];
   if (!o.visible(s, h)) return null;
   if (o.reparacion) return { tipo: 'reparar', id: o.reparacion.id, n: o.reparacion.n, aviso: `${o.aviso} (${Math.min(o.reparacion.n, s.reparaciones[o.reparacion.id] || 0) + 1} de ${o.reparacion.n}) · 1 tabla` };
+  if (o.pago) return { tipo: 'pago', aviso: o.aviso };   // 4.17.0: la deuda del trato
+  if (o.cuidar) return { tipo: 'cuidar', aviso: `${o.aviso} (${Math.min(3, s.cuidados) + 1} de 3)` };   // 4.17.0: la majada de Ramón
   if (o.escena) return { tipo: 'escena', escena: o.escena, aviso: o.aviso };
   if (o.pagina) return { tipo: 'pagina', aviso: `${o.aviso} (página ${Math.min(3, [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`)).length + 1)} de 3)` };
   if (o.marca) return { tipo: 'marca', marca: o.marca, nota: o.nota, aviso: o.aviso, raro: o.raro || null, limpiaAcompanante: !!o.limpiaAcompanante };
