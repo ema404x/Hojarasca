@@ -117,6 +117,17 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   }
   ok(planos > 150 && mirasDesdeLosOjos >= 3, `se revisaron ${planos} planos (${mirasDesdeLosOjos} desde los ojos del jugador)`);
 
+  // un plano «a: jugador» (el espectador está justo en el ancla): la cámara queda detrás de donde mira el jugador, no siempre al sur
+  {
+    const mw = { posicion: (r) => (r === 'jugador' ? { x: 0, y: 0, z: 0 } : null), suelo: () => 0 };
+    for (const yaw of [0, 1, -2]) {
+      const q = EN.compilarPlano({ plano: 'general', a: 'jugador', dist: 5 }, { mundo: mw, base: { x: 0, y: 1.6, z: 0, yaw, pitch: 0, fov: 70 } })(0);
+      ok(Math.abs(q.x - Math.sin(yaw) * 5) < 1e-6 && Math.abs(q.z - Math.cos(yaw) * 5) < 1e-6, `un plano sobre el jugador deja la cámara 5 m detrás de donde mira (yaw ${yaw})`);
+    }
+    const q2 = EN.compilarPlano({ plano: 'medio', a: 'ramon', desde: 'jugador' }, { mundo: { posicion: (r) => (r === 'jugador' ? { x: 0, y: 0, z: 0 } : r === 'ramon' ? { x: 4, y: 0, z: 0 } : null), suelo: () => 0 }, base: { x: 0, y: 1.6, z: 0, yaw: 2, pitch: 0, fov: 70 } })(0);
+    ok(Math.abs(q2.z) < 1e-6 && q2.x < 4 && q2.x > 0, 'y si el espectador no está en el ancla, la cámara sigue quedando del lado del jugador');
+  }
+
   // ---------------------------------------------------------------- 2. la colocación del jugador
   const entradas = Object.entries(COL.COLOCACION_PULIDO);
   ok(entradas.length >= 20, `hay colocación para ${entradas.length} escenas (mínimo 20)`);
@@ -162,6 +173,7 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   ok(/function colocarEnFoco\(c\)[\s\S]{0,1800}resolverColocacion\(c, \{ punto, npc, libre \}\)[\s\S]{0,300}jugador\.ubicar\(r\.x, r\.z, r\.yaw\)/.test(main), 'colocarEnFoco usa el resolvedor y ubica al jugador');
   ok(/const libre = \(x, z\) => \{[\s\S]{0,300}T\.agua\?\.\(x, z\)[\s\S]{0,300}col\.resolver\(_p, 0\.5, 1\.6\)/.test(main), 'un punto libre es sin agua y sin choque (col.resolver)');
   ok(/import \{ resolverColocacion \} from '\.\/historia-colocacion\.js';/.test(main), 'main.js importa el resolvedor');
+  ok(/function camaraAlJugador\(\) \{[\s\S]{0,400}camara\.position\.set\(js\.pos\.x, js\.pos\.y \+ 1\.62, js\.pos\.z\)/.test(main) && /jugador\.estado\.pitch = r\.pitch;\s*camaraAlJugador\(\);/.test(main) && /jugador\.estado\.pitch = -0\.1;\s*camaraAlJugador\(\);/.test(main), 'al colocar al jugador la cámara se lleva con él en el acto (el director toma de ella el punto de partida)');
 
   // ---------------------------------------------------------------- 3. los props nuevos
   const OBJ = await imp('historia-objetos.js').catch(() => null);
@@ -312,6 +324,7 @@ const MUTACIONES = [
   ['escenas-mundo.js', 'la cámara no se despeja', 'try { c = despejarCamara(c, dt, director.idActual?.()); }', 'try { c = c; }'],
   ['escenas-mundo.js', 'capturar no pide a los que faltan', 'if (!n && ctx.armarYa) {', 'if (false && ctx.armarYa) {'],
   ['escenas-mundo.js', 'la cámara despejada no tiene mínimo', 'minimo: 1.3,', 'minimo: 0.05,'],
+  ['escenas.js', 'la cámara sobre el jugador no sigue su mirada', 'return ctx.base.yaw;', 'return 0;'],
   ['escenas.js', 'los planos no llevan foco', 'fov, foco: { x: mira.x, y: mira.y, z: mira.z } };', 'fov };'],
 ];
 {

@@ -2434,7 +2434,18 @@ function colocarParaEscena(c) {
     const a = aMundoRefugio(ref, c.lx, c.lz), b = aMundoRefugio(ref, c.mira[0], c.mira[1]);
     jugador.ubicar(a.x, a.z, Math.atan2(-(b.x - a.x), -(b.z - a.z)));
     jugador.estado.pitch = -0.1;
+    camaraAlJugador();
   } catch (e) { fallaSistema('historia-colocar', e); }
+}
+// 4.17 C: la cámara se lleva al jugador en el mismo momento: el director de escenas toma de ella el punto de partida (y de qué lado está el espectador) en cuanto
+// dispara, y jugador.actualizar todavía no la movió (la cámara seguía donde estabas antes de que te pusieran en tu lugar)
+function camaraAlJugador() {
+  const js = jugador?.estado;
+  if (!js || !camara) return;
+  camara.position.set(js.pos.x, js.pos.y + 1.62, js.pos.z);
+  camara.rotation.order = 'YXZ';
+  camara.rotation.set(js.pitch, js.yaw, 0);
+  camara.updateMatrixWorld?.();
 }
 // 4.17 C: el jugador a «dist» metros de un lugar o una persona, del lado que dice la entrada, mirándolo (historia-colocacion.js: busca un punto libre)
 function colocarEnFoco(c) {
@@ -2453,6 +2464,7 @@ function colocarEnFoco(c) {
   if (!r) return false;
   jugador.ubicar(r.x, r.z, r.yaw);
   jugador.estado.pitch = r.pitch;
+  camaraAlJugador();
   return true;
 }
 function gastarUnaTabla() {

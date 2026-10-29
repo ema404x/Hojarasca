@@ -287,14 +287,14 @@ app.whenReady().then(async () => {
         if (!puesto) { console.log(`  (${id}: no hay dónde pararse: ${JSON.stringify(lugar)})`); continue; }
         await N('N.tick(1.0)');
         // la colocación del juego, si la escena tiene una (4.16.0 y 4.17.0)
-        const colocada = await N(`(() => (H.__colocarEscena ? H.__colocarEscena(${JSON.stringify(id)}) : false))()`);
-        await N('N.tick(0.4)');
+        let colocada = false;
         let lanzo = false, via = '';
         await N('(() => { P.historia.activa = true; return 1 })()');
         const hay = await N(`H.__escenas.director.hay(${JSON.stringify(id)})`);
         if (!hay) { console.log(`  ✗ ${id}: la escena no está registrada`); errores.push(id + ' sin registrar'); continue; }
         if (como === 'puerta') { lanzo = await N('(() => { const a = H.__valle.accionPuerta(); if (!a) return false; a.hacer(); return true })()'); via = 'puerta'; }
-        if (!lanzo) { lanzo = await N(`H.__escenas.disparar(${JSON.stringify(id)})`); via = 'forzada'; }
+        // (la colocación y el disparo en el mismo instante, como hace el juego: lanzarEscena de historia-ui.js)
+        if (!lanzo) { const rr = await N(`(() => { const c = H.__colocarEscena ? H.__colocarEscena(${JSON.stringify(id)}) : false; return { c, l: H.__escenas.disparar(${JSON.stringify(id)}) } })()`); lanzo = rr.l; colocada = rr.c; via = 'forzada'; }
         if (!lanzo) { console.log(`  ✗ ${id}: no se pudo lanzar ${JSON.stringify(await diag())}`); errores.push(id + ' no lanzó'); await N('N.despejar(2)'); continue; }
         await N('(() => { H.__escenas.director.acelerar(true); return 1 })()');
         // la cámara al principio: cuánto está lejos del jugador y si arrancó dentro de algo

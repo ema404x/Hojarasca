@@ -212,6 +212,9 @@ export function compilarPlano(p, ctx) {
   const dir = (A) => { // hacia dónde queda el espectador visto desde A: `desde` si lo hay; si no, la cámara del jugador al empezar
     const d = p.desde !== undefined ? R(p.desde) : (ctx.base ? { x: ctx.base.x, z: ctx.base.z } : null);
     if (!d) return 0;
+    // 4.17.0 (C): si el espectador está justo en el ancla (un plano «a: jugador»: la dirección no se puede sacar de las posiciones), la cámara queda detrás de donde
+    // mira el jugador (antes, siempre al sur del mundo: del otro lado de un muro, de un tronco o del agua según para dónde mirabas)
+    if (Math.hypot(d.x - A.x, d.z - A.z) < 0.05 && ctx.base && Number.isFinite(ctx.base.yaw)) return ctx.base.yaw;
     return Math.atan2(d.x - A.x, d.z - A.z);
   };
   const def = ENCUADRES[tipo === 'fijo' || tipo === 'empuje' || tipo === 'travelling' ? (p.encuadre && ENCUADRES[p.encuadre] ? p.encuadre : tipo === 'empuje' ? 'medio' : 'general') : tipo] || ENCUADRES.general;
