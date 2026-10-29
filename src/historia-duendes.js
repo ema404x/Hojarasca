@@ -48,7 +48,7 @@ import { crearDuende, instalarDuendes, precalentarDuendes } from './desafio-duen
 import { claseDeRisa } from './risa-duende.js';
 import { VARIANTES_RISA } from './risa-duende.js';
 
-export const MAXIMO = 8;                    // duendes sueltos a la vez (la presencia usa 1 o 2; la noche, los suyos aparte)
+export const MAXIMO = 12;                   // duendes sueltos a la vez (la presencia usa 1 o 2; la noche, los suyos aparte)
 export const VEL_CAMINA = 1.5;              // m/s
 export const VEL_CORRE = 4.6;
 const GIRO = 5.5;                           // rad/s

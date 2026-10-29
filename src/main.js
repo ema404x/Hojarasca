@@ -933,6 +933,7 @@ async function construir() {
       doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && (escenaDesdeVehiculo || (!js.enKayak && !js.enVela)) && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
+      parejaClave: () => { const p = progreso.amor?.personas || {}; for (const e of ['casados', 'comprometidos', 'novios', 'saliendo']) { const k = Object.keys(p).find((x) => p[x]?.etapa === e); if (k) return k; } return null; },   // 4.17.0
       alTerminar: () => { try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
     });
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
@@ -2236,7 +2237,7 @@ function presenciaHistoria() {
 let nocheMundo = null;
 function nocheDelMundo() {
   if (esDesafio) return null;
-  if (!nocheMundo) nocheMundo = crearNocheMundo({ T, escena, camara, col, sonido, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
+  if (!nocheMundo) nocheMundo = crearNocheMundo({ alAliados: (al, dis) => aliadosDeNoche(al, dis), sinAliados: () => soltarAliadosDeNoche(), T, escena, camara, col, sonido, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
   return nocheMundo;
 }
 // 4.15.0: dónde están las cosas de la Historia nueva. Los puntos con nombre del mundo (y de la aldea); se recalculan cada medio segundo con la
@@ -2336,7 +2337,10 @@ function darCosaHistoria(cosa, n) { try { cobrarPremio({ premio: { cuenta: { [co
 function gastarCosaHistoria(cosa, n) {
   try {
     n = Math.max(0, Math.floor(Number(n) || 0));
-    if (cosa === 'harina' || cosa === 'yerba') progreso.cosas[cosa] = Math.max(0, (Number(progreso.cosas[cosa]) || 0) - n);   // (4.17.0: y la yerba, para las paces con Fermín)
+    if (cosa === 'vellon') cosa = 'lana';   // 4.17.0: los nombres de las escenas de B
+    else if (cosa === 'tabla-coihue') cosa = 'tabla';
+    if (cosa === 'pluma' || cosa === 'pinon') { const e = progreso.entradas?.[cosa]; if (e) e.cantidad = Math.max(0, (Number(e.cantidad) || 0) - n); }
+    else if (cosa === 'harina' || cosa === 'yerba' || cosa === 'pan-casero') progreso.cosas[cosa] = Math.max(0, (Number(progreso.cosas[cosa]) || 0) - n);   // (4.17.0: y la yerba y el pan, para las paces con Fermín)   // (4.17.0: y la yerba, para las paces con Fermín)
     else {
       let falta = n;
       for (const g of ['materiales', 'acopio']) { const have = Number(progreso[g]?.[cosa]) || 0, q = Math.min(have, falta); if (q > 0) { progreso[g][cosa] = have - q; falta -= q; } }
@@ -2353,6 +2357,44 @@ function conClimaDeHistoria(e) {
   if (f === 'invierno' && e.inv < 1) return { oto: 0, inv: 1 };   // 4.17.0: la helada temprana de la historia (capítulos 9 a 13)
   return e;
 }
+// 4.17.0: Ramón convaleciente (de la escena ramon-cama hasta la noche): camina despacio con un bastón (un palo en la mano; sin modelos nuevos ni programas nuevos)
+const ramonConvaleciente = () => { const h = progreso?.historia; return !!h?.activa && !!h.temas && Object.hasOwn(h.temas, 'mundo:ramon-convaleciente') && h.capitulo >= 8 && h.capitulo <= 11 && !h.escenas?.vistas?.['noche-espera']; };
+let bastonRamon = null, bastonT = 0;
+function bastonDeRamon(dt) {
+  if (esDesafio || !valle) return;
+  bastonT += dt; if (bastonT < 0.5) return; bastonT = 0;
+  const n = genteCampoMundo?.npcDe('ramon') || (gente?.gente || []).find((g) => g.clave === 'ramon') || null;
+  const quiere = !!n?.g && ramonConvaleciente();
+  if (bastonRamon && (!quiere || bastonRamon.parent !== n?.g)) { bastonRamon.parent?.remove(bastonRamon); bastonRamon = null; }
+  if (quiere && !bastonRamon) {
+    bastonRamon = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.95, 5), new THREE.MeshLambertMaterial({ color: '#6b4a2b' }));
+    bastonRamon.position.set(0.36, 0.47, 0.1); bastonRamon.rotation.z = -0.08; bastonRamon.frustumCulled = false; n.g.add(bastonRamon);
+  }
+}
+// 4.17.0: los aliados de la noche, visibles: Ramón, Josefina y Fermín se paran detrás de las defensas (la gente de siempre, sin modelos nuevos); al terminar vuelven a lo suyo
+const aliadosTomados = [];
+function aliadosDeNoche(al, dis) {
+  try {
+    soltarAliadosDeNoche();
+    if (!al || !dis) return;
+    const quienes = [['ramon', al.ramon, -2.2, 3.2], ['ema', al.josefina, -3.2, -2.6], ['fermin', al.fermin, -3.8, 2.4]];
+    for (const [k, va, atras, lado] of quienes) {
+      if (!va) continue;
+      const n = genteCampoMundo?.npcDe(k) || (gente?.gente || []).find((g) => g.clave === k) || null;
+      if (!n?.pos) continue;
+      aliadosTomados.push({ n, g: { camino: n.camino, velocidad: n.velocidad, conVos: n.conVos, enCita: n.enCita, sinFrenar: n.sinFrenar, dormido: n.dormido, x: n.pos.x, z: n.pos.z } });
+      const x = dis.centro.x + dis.ux * atras + dis.px * lado, z = dis.centro.z + dis.uz * atras + dis.pz * lado;
+      n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = [];
+      n.pos.set(x, alturaDePie(T, col, x, z, T.altura(x, z)), z); n.rumboObjetivo = Math.atan2(dis.ux, dis.uz); if (n.g) n.g.visible = true;
+    }
+  } catch (e) { fallaSistema('historia-aliados', e); }
+}
+function soltarAliadosDeNoche() {
+  while (aliadosTomados.length) {
+    const { n, g } = aliadosTomados.pop();
+    try { n.conVos = !!g.conVos; n.enCita = !!g.enCita; n.sinFrenar = !!g.sinFrenar; n.dormido = !!g.dormido; n.camino = g.camino === undefined ? [] : g.camino; if (Number.isFinite(g.velocidad)) n.velocidad = g.velocidad; } catch { /* ya */ }
+  }
+}
 // 4.17.0: la majada de Ramón que se arrea (capítulo 9; ver historia-arreo-mundo.js)
 let arreoMundo = null;
 function arreoDeHistoria() {
@@ -2368,6 +2410,7 @@ function acompananteDeHistoria() {
     historia: () => valle.historia(), jugador: () => ({ pos: jugador.estado.pos, yaw: jugador.estado.yaw }),
     npcDe: (k) => (k === 'graciela' ? gracielaMundo?.npc() : genteCampoMundo?.npcDe(k) || (gente?.gente || []).find((g) => g.clave === k) || null),
     altura: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)), tomada: () => !!escenasMundo?.activa(),
+    factor: (k) => (k === 'ramon' && ramonConvaleciente() ? 0.55 : 1),   // 4.17.0
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.enSulky || js.enCable); },
   });
   return acompananteMundo;
@@ -2389,6 +2432,47 @@ function efectoDuendesActo2(id, args) {
   else if (id === 'siluetas-raiz' || id === 'pillos-bellotas') { const d0 = pos(a.desde); if (!d0) return; for (let i = 0; i < (a.n || 3); i++) setTimeout(() => { const d = crear('rastreador', { x: d0.x + Math.cos(i * 1.3) * 2.5, z: d0.z + Math.sin(i * 1.3) * 2.5 }); d?.mirar(true); if (d && id === 'pillos-bellotas') setTimeout(() => { try { d.reir(0.6); } catch { /* ya */ } }, 900); }, i * 700); }
   else if (id === 'siluetas-saludan') { const d = duendesDeEscena.find((x) => x.estado !== 'fuera'); try { d?.saludar(2); } catch { /* ya */ } }
   else if (id === 'siluetas-corren') quitarTodos();
+  else efectoDuendesActo3(id, a, crear);   // 4.17.0: los del acto III (el galpón, el cerro, la noche, el amanecer)
+}
+// 4.17.0: los duendes del acto III. Las escenas no dan lugares (se anclan al jugador): los ponemos adelante tuyo, en abanico, y los sacamos solos a los 45 s.
+// Once a la vez en el galpón (el tope de historia-duendes.js subió a 12). Ninguno habla.
+function efectoDuendesActo3(id, a, crear) {
+  const j = jugador.estado, yaw = j.yaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), lx = -fz, lz = fx;
+  const en = (adelante, lado) => ({ x: j.pos.x + fx * adelante + lx * lado, z: j.pos.z + fz * adelante + lz * lado });
+  const vivos = () => duendesDeEscena.filter((d) => d.estado !== 'fuera');
+  const sacar = (d, ms) => setTimeout(() => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }, ms);
+  const grupo = (tipo, n, adelante, ancho, o = {}) => {
+    const hechos = [];
+    for (let i = 0; i < Math.min(n || 1, 12); i++) {
+      const p = en(adelante + (i % 3) * 0.9, ((i / Math.max(1, (n || 1) - 1)) - 0.5) * ancho);
+      const d = crear(tipo, p, o);
+      if (d) { hechos.push(d); sacar(d, 45000); }
+    }
+    return hechos;
+  };
+  const rumbo = () => { const r = molinoViejoHist?.raiz; return r || en(25, 0); };
+  const todos = (f, escalona = 250) => vivos().forEach((d, i) => setTimeout(() => { try { f(d, i); } catch { /* ya */ } }, i * escalona));
+  const viejo = a.viejo === true;
+  switch (id) {
+    case 'galpon-pillos': grupo('rastreador', a.n || 4, 5.5, 4.5).forEach((d) => d.mirar(false)); break;
+    case 'galpon-saltarines': grupo('saltador', a.n || 2, 7, 5); break;
+    case 'galpon-lucecitas': grupo('enjambre', a.n || 3, 5, 3); break;
+    case 'galpon-yuyero': grupo('curandero', 1, 6, 2); break;
+    case 'galpon-topo': grupo('excavador', 1, 4.5, -2.5); break;
+    case 'galpon-mandamas': grupo('jefe', 1, 8, 0); break;
+    case 'galpon-se-congelan': todos((d) => d.mirar(true), 60); break;
+    case 'galpon-mandamas-camina': { const d = vivos().find((x) => x.tipo === 'jefe' || x.tipo === undefined); const p = en(1.6, 0); d?.irA(p.x, p.z, {}); break; }
+    case 'galpon-salen-fila': { const r = rumbo(); todos((d) => { d.irA(r.x, r.z, { alLlegar: () => { try { d.quitar(); } catch { /* ya */ } } }); }, 450); break; }
+    case 'galpon-huyen': case 'galpon-huyen-pozo': case 'galpon-huyen-piernas': case 'galpon-yuyero-tira': todos((d) => d.huir(null, { desaparecer: true }), 200); break;
+    case 'mandamas-se-va': case 'mandamas-al-bosque': { const d = vivos()[0] || grupo('jefe', 1, 6, 0)[0]; const p = en(40, -8); d?.irA(p.x, p.z, { alLlegar: () => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } } }); break; }
+    case 'viejos-en-la-nieve': case 'viejos-suben-cerro': case 'suben-todos-al-cerro': { grupo('bruto', a.n || 5, 38, 14, { viejo: true }).forEach((d, i) => { const p = en(60 + i * 2, 12 + i); d.irA(p.x, p.z, {}); }); break; }
+    case 'lucecitas-mirador': case 'lucecitas-rodean-galpon': grupo('enjambre', a.n || 3, 3.5, 3); break;
+    case 'chicos-suben-cerro': case 'chicos-arreglan-galpon': grupo('rastreador', Math.min(8, a.n || 8), 9, 8, viejo ? { viejo: true } : {}).forEach((d) => { if (id === 'chicos-suben-cerro') { const p = en(45, 6); d.irA(p.x, p.z, {}); } }); break;
+    case 'lucecitas-raices': grupo('enjambre', Math.min(8, a.n || 20), 7, 10); break;
+    case 'ojos-verdes': grupo('rastreador', Math.min(12, a.n || 12), 28, 26).forEach((d) => d.mirar(true)); break;
+    case 'gorra-torcida-saluda': { const d = grupo('rastreador', 1, 5, 0)[0]; d?.saludar(2.5); break; }
+    default: break;
+  }
 }
 function efectoDuendeHistoria(id, args) {
   if (id !== 'pillo-cruza') { try { efectoDuendesActo2(id, args); } catch (e) { fallaSistema('historia-duende', e); } return; }
@@ -2441,10 +2525,11 @@ function crearValle() {
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
     libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo') && !escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
-    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
+    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id) => escenasMundo.disparar(id) } : null),
     objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
+    nocheReintentar: () => { /* la elección «Otra vez» de la escena: lo lee la noche (historia-noche-ui.js) */ },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     // 4.17.0: el acto III: pagar, dar materiales y cosas del suelo, el perro, los puntos con nombre y volver al galpón al amanecer
     pagar: (monto, motivo, con) => pagarPesos(progreso, monto, motivo, con).ok, darMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); },
@@ -11046,6 +11131,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (!esDesafio) valle?.actualizar(dt); } catch (e) { fallaSistema('valle', e); }
   try { if (!esDesafio && duendesHist) { if (valle) presenciaHist?.actualizar(dt); duendesHist.actualizar(dt); } } catch (e) { fallaSistema('duendes-historia', e); }
   try { if (!esDesafio && valle) gracielaDeHistoria()?.actualizar(); } catch (e) { fallaSistema('historia-graciela', e); }
+  try { bastonDeRamon(dt); } catch (e) { fallaSistema('historia-baston', e); }   // 4.17.0
   try { if (!esDesafio && valle && modo === 'jugando') arreoDeHistoria()?.actualizar(dt); } catch (e) { fallaSistema('historia-arreo', e); }   // 4.17.0
   try { if (!esDesafio && valle && modo === 'jugando') acompananteDeHistoria()?.actualizar(dt); } catch (e) { fallaSistema('historia-acompanante', e); }   // 4.16.0   // 4.15.0: Graciela Pugh   // 4.13.0 (A)   // 3.1: la historia y los eventos del valle
   try { veg.actualizarCaidas(dt); } catch (e) { fallaSistema('caidas-arboles', e); }

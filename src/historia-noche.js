@@ -479,6 +479,13 @@ export function crearNoche(op) {
       } else { nacer(S.cola.shift()); S.salida = 0.45; }
     }
     for (const d of S.duendes) actualizarDuende(d, dt);
+    // 4.17.0: ola limpia: no queda ninguno de la ola (ni en la cola) y falta la que sigue; se adelanta el reloj para no esperar de balde (las escenas de entre olas: noche-entre-1 y -2)
+    for (const o of guion) {
+      if (!o.salio || o.limpia || o.ola >= guion.length || S.cola.length || S.preaviso || guion[o.ola].salio) continue;
+      if (!S.duendes.every((d) => d.estado === 'fuera' || d.estado === 'amanece')) continue;
+      o.limpia = true; evento('ola-limpia', { ola: o.ola });
+      S.t = Math.max(S.t, guion[o.ola].t - NOCHE.aviso - 1.5);
+    }
     aliadosTick(dt);
     actualizarProyectiles(dt);
     // los que ya se fueron, afuera (el mundo los devuelve al pozo al verlos 'fuera')

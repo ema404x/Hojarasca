@@ -57,8 +57,29 @@ export function crearNocheUi(ctx, tarjetas, util) {
   doc.body.appendChild(flash);
 
   const activa = () => !!mundo?.activa();
+  // 4.17.0: las escenas que rodean la noche (entre olas, al ganar, al perder: las de B). Si la escena no está escrita, se sigue de largo.
+  let escenaDeNoche = null;   // { id, alFin }
+  function lanzarEscena(id, alFin) {
+    const dir = ctx.escenas?.();
+    if (!dir || dir.activa() || typeof dir.hay !== 'function' || !dir.hay(id)) { alFin?.(); return false; }
+    mundo?.pausar?.(true);
+    let ok = false;
+    try { ok = dir.disparar(id) === true; } catch { ok = false; }
+    if (!ok) { mundo?.pausar?.(false); alFin?.(); return false; }
+    escenaDeNoche = { id, alFin, visto: false };
+    return true;
+  }
+  function seguirEscena() {
+    if (!escenaDeNoche) return;
+    const dir = ctx.escenas?.();
+    if (dir && dir.activa()) { escenaDeNoche.visto = true; return; }
+    const { alFin } = escenaDeNoche;
+    escenaDeNoche = null;
+    mundo?.pausar?.(false);
+    try { alFin?.(); } catch (e) { console.error('noche: escena', e); }
+  }
   // 4.17.0: la noche empieza sola al terminar la escena de la espera (capítulo 12, 22:00 en el galpón) y se repite hasta ganar o dejar que amanezca
-  const interviene = (h) => h.activa && h.fase === 'jugando' && capituloActual(h).id === 'nevada' && !!h.escenas?.vistas?.espera && h.duendes?.noche === 'pendiente';
+  const interviene = (h) => h.activa && h.fase === 'jugando' && capituloActual(h).id === 'nevada' && !!h.escenas?.vistas?.['noche-espera'] && h.duendes?.noche === 'pendiente';
 
   function dibujarHud(d) {
     hud.classList.toggle('oculto', !d);
@@ -88,7 +109,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
     empezarIntento(h, horas < 22 || horas > 23.8 ? 22 : horas);
     ctx.guardar();
     htmlHud = '';
-    const ok = mundo.iniciar({ modo, alTerminar: alTerminar, ...(ctx.nocheContexto ? ctx.nocheContexto(h, modo) : {}) });
+    const ok = mundo.iniciar({ modo, alTerminar: alTerminar, alOlaLimpia: (ola) => { if (ola === 1 || ola === 2) lanzarEscena(`noche-entre-${ola}`); }, ...(ctx.nocheContexto ? ctx.nocheContexto(h, modo) : {}) });
     if (!ok) return false;
     ctx.nota('Empieza la noche de la nevada', TEXTOS_NOCHE.ayuda[0], true);
     return true;
@@ -115,8 +136,15 @@ export function crearNocheUi(ctx, tarjetas, util) {
     }
     const horas = cerrarIntento(h, res.gano);
     htmlHud = ''; dibujarHud(null);
-    if (res.gano) { amanecer(h); ctx.guardar(); }
-    else { if (horas !== null) ctx.progreso().horas = horas; ctx.guardar(); mostrarPerdida(res); }
+    if (res.gano) { ctx.guardar(); lanzarEscena('noche-tras-ganar', () => { amanecer(h); ctx.guardar(); }); }
+    else {
+      if (horas !== null) ctx.progreso().horas = horas;
+      ctx.guardar();
+      // la escena de B ofrece «Otra vez» (noche:reintentar) o «Que amanezca» (noche:perdida); sin escena, la tarjeta de siempre
+      const dir = ctx.escenas?.();
+      if (dir && typeof dir.hay === 'function' && dir.hay('noche-tras-perder')) lanzarEscena('noche-tras-perder', () => { if (h.duendes?.noche === 'perdida') { amanecer(h); ctx.guardar(); } else { espera = 0; empezar(); } });
+      else mostrarPerdida(res);
+    }
   }
   // la noche pasó: son las 6:24 del otro día (y la nevada para)
   function amanecer(h) {
@@ -148,6 +176,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
   // ---- cada cuadro
   function actualizar(dt) {
     const h = util.historia();
+    if (escenaDeNoche) seguirEscena();
     if (activa()) {
       // la historia se puso en pausa a mitad de la noche: se deja
       if (!h.activa) { mundo.abandonar(); return; }

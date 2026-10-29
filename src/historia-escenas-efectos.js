@@ -3,6 +3,9 @@
 // con la escena que los pidió, así un efecto que corre dos veces (la escena saltada y después vuelta a ver) no cuenta doble.
 import { cambiarLazo, anotarRaro, marcarObjeto, marcarTema, marcarEntrega, sumarRamal, lazoDe, anotarCharla, PERSONAS_LAZO, ACOMPANANTES, PRESTADOS, DECISIONES, alDecidirDuendes, convidadosDe } from './historia.js';
 import { parsearEfecto } from './historia-escenas-util.js';
+// 4.17.0: los efectos del acto III (duendes:, noche:, armas:, perfil:) y lo que cambian en la partida
+import { parsearEfectoActo3 } from './historia-escenas-acto3-util.js';
+import { hacerTrato, ganarArma, dejarPerdidaDe, duendesDe, esConvidado } from './historia.js';
 
 const clave = (...p) => p.map((x) => String(x ?? '')).join(':').slice(0, 63);
 
@@ -28,10 +31,13 @@ export function registrarEfectosHistoria(reg, ctx) {
   // 4.16.0: esa persona ya vive en la aldea (los pobladores que llegaron con la construcción): Rosa es la panadera
   reg.registrarCondicion('presente', (c) => { const s = ctx.estado?.(); const q = c?.args?.quien; const clave = q === 'rosa' ? 'panadera' : q; return !!s && typeof clave === 'string' && !!s.pobladores?.has(clave); });
   // 4.17.0: el acto III: el trato o la pelea (D6), cómo terminó la noche, los convites, la deuda, el perdón, lo prestado y la pareja
-  reg.registrarCondicion('trato', (c) => { const h = H(); const t = h?.duendes?.trato; return !!h && (c?.args?.es === undefined ? !!t : (t || 'trato') === c.args.es); });
+  reg.registrarCondicion('trato', (c) => { const h = H(); if (!h) return false; const t = h.duendes?.trato || 'trato', e = c?.args?.es; if (e === 'fuerte') return t === 'trato' && h.decisiones?.duendes === 'b'; if (e === 'trato') return t === 'trato'; if (e === 'pelea') return t === 'pelea'; return false; });
   reg.registrarCondicion('noche', (c) => { const h = H(); return !!h && h.duendes?.noche === c?.args?.es; });
-  reg.registrarCondicion('convidado', (c) => { const h = H(); return !!h && convidadosDe(h) >= (Number(c?.args?.min) || 2); });
-  reg.registrarCondicion('deuda', (c) => { const h = H(); if (!h) return false; const debe = (h.duendes?.deuda || 0) > 0; return c?.args?.es === 'debe' ? debe : !debe; });
+  reg.registrarCondicion('convidado', (c) => { const h = H(); return !!h && convidadosDe(h) >= (Number(c?.args?.min) || 2); });   // (sin args: dos o más)
+  reg.registrarCondicion('deuda', (c) => { const h = H(); if (!h) return false; const debe = (h.duendes?.deuda || 0) > 0; return c?.args?.es === 'debe' || c?.args?.es === 'pendiente' ? debe : !debe; });
+  reg.registrarCondicion('ramal-nivel', (c) => { const h = H(); if (!h) return false; const r = Number(h.ramal) || 0, e = c?.args?.es; return e === 'salvado' ? r >= 10 : e === 'prueba' ? r >= 6 && r < 10 : e === 'traslado' ? r < 6 : false; });
+  reg.registrarCondicion('devolver-bolsa', () => { const h = H(); return !!h && (h.decisiones?.bolsa === 'a' || h.decisiones?.molienda === 'c'); });
+  reg.registrarCondicion('perro', () => { const s = ctx.estado?.(); return !!s && s.perro === true; });
   reg.registrarCondicion('perdon', () => { const h = H(); return !!h && h.duendes?.perdon === true; });
   reg.registrarCondicion('prestado', (c) => { const h = H(); const q = c?.args?.quien; return !!h && typeof q === 'string' && Object.hasOwn(h.prestado || {}, q) && h.prestado[q] === true; });
   reg.registrarCondicion('amor', () => { const s = ctx.estado?.(); return !!s && s.amor === true; });
@@ -44,7 +50,7 @@ export function registrarEfectosActo1(reg, ctx, nombres) {
   const H = () => ctx.historia();
   const una = (h, k) => { if (!h.aplicadas || typeof h.aplicadas !== 'object' || Array.isArray(h.aplicadas)) h.aplicadas = {}; if (Object.hasOwn(h.aplicadas, k)) return false; h.aplicadas[k] = Math.max(1, Math.floor(Number(ctx.dia()) || 1)); return true; };
   for (const nombre of nombres) {
-    const p = parsearEfecto(nombre);
+    const p = parsearEfectoActo3(nombre);
     if (!p) continue;
     const clave = (c) => `e:${c?.escena || '?'}:${nombre}`.slice(0, 63);
     reg.registrarEfecto(nombre, (args, c) => {
@@ -66,6 +72,21 @@ export function registrarEfectosActo1(reg, ctx, nombres) {
           ctx.mundo?.(p.id, args, c?.escena);
           break;
         case 'duende': ctx.duende?.(p.id, args); break;
+        // 4.17.0: D6 (trato o pelea) con sus efectos propios: guardan duendes.trato y la decisión `duendes` (a = trato, b = trato fuerte, c = pelea)
+        case 'duendes': {
+          const d = duendesDe(h);
+          if (!h.decisiones || typeof h.decisiones !== 'object') h.decisiones = {};
+          if (p.id === 'trato' || p.id === 'trato-fuerte') { if (!d.trato) hacerTrato(h, 'trato'); if (h.decisiones.duendes == null) h.decisiones.duendes = p.id === 'trato' ? 'a' : 'b'; if (p.id === 'trato-fuerte' && una(h, clave(c))) d.convidado = Math.min(99, d.convidado + 1); }
+          else if (p.id === 'pelea') { if (!d.trato) hacerTrato(h, 'pelea'); if (h.decisiones.duendes == null) h.decisiones.duendes = 'c'; }
+          else if (p.id === 'perdon') d.perdon = true;
+          else if (p.id === 'deuda-bolsa' || p.id === 'deuda-tablas') { if (una(h, clave(c))) d.deuda = Math.min(99, d.deuda + 1); }
+          else if (p.id === 'deuda-pagada') d.deuda = 0;
+          else if (p.id === 'vistos') { if (una(h, clave(c))) d.vistos = Math.min(999, d.vistos + 1); }
+          break;
+        }
+        case 'noche': if (p.id === 'perdida') dejarPerdidaDe(h); else if (p.id === 'reintentar') ctx.nocheReintentar?.(); break;
+        case 'armas': ganarArma(h, p.id); break;
+        case 'perfil': if (p.id === 'del-valle') h.perfil = 'del-valle'; break;
         case 'optativa': marcarTema(h, 'optativa', p.id, ctx.dia()); break;
         case 'hablado': anotarCharla(h, p.id); break;
         default: break;

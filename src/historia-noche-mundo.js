@@ -71,7 +71,7 @@ export function crearNocheMundo(ctx) {
   let campana = null;     // la campana vieja de Martín (el sonido de la aldea del Desafío)
   const lucecitas = [];   // 4.17.0: las lucecitas que avisan dónde va a salir un topo (con el trato): { m, t }
   let listo = false;      // los materiales y los duendes armados
-  let activa = false;
+  let activa = false, pausada = false;   // (4.17.0: `pausada`: una escena de la noche está en pantalla)
   let sim = null, dis = null;
   let opciones = null;
   let relaxAntes = false;
@@ -313,6 +313,7 @@ export function crearNocheMundo(ctx) {
     const js = jugador().estado;
     const ex = centro.x + dis.ux * 6, ez = centro.z + dis.uz * 6;
     jugador().ubicar(ex, ez, Math.atan2(-dis.ux, -dis.uz));
+    try { ctx.alAliados?.(opciones.aliados, dis); } catch (e) { console.warn('noche: aliados', e && e.message); }   // 4.17.0: los aliados, visibles
     js.pitch = 0;
     activa = true;
     cuenta.disparos = 0; cuenta.aciertos = 0;
@@ -320,11 +321,12 @@ export function crearNocheMundo(ctx) {
   }
   function terminar(fin) {
     if (!activa) return;
-    activa = false;
+    activa = false; pausada = false;
     mano.abajo = false;
     for (const [id, a] of asignados) { soltar(a.tipo, a.m, a.viejo); asignados.delete(id); }
     for (const p of proy) p.m.visible = false;
     desarmarEscenario();
+    try { ctx.sinAliados?.(); } catch { /* ya */ }
     sonido.relax = relaxAntes;
     const resultado = { ...(fin || { gano: false, motivo: 'abandono' }), modo: sim?.modo, t: sim?.t || 0, bajas: sim?.bajas || 0, travesuras: sim?.travesuras || 0, disparos: cuenta.disparos, aciertos: cuenta.aciertos };
     const alTerminar = opciones?.alTerminar;
@@ -455,6 +457,7 @@ export function crearNocheMundo(ctx) {
   function actualizar(dt) {
     if (!activa || !sim) return;
     if (ctx.modo() !== 'jugando') return;
+    if (pausada) return;   // 4.17.0: una escena de entre olas la detiene
     const js = jugador().estado;
     // el reloj de la noche: oscuro y sin cruzar la medianoche (la hora de antes se devuelve al terminar)
     ctx.progreso().horas = HORA_INICIO + (HORA_FIN - HORA_INICIO) * Math.min(1, sim.t / NOCHE.duracion);
@@ -491,6 +494,7 @@ export function crearNocheMundo(ctx) {
       case 'tira': S.plasma?.({ x: ev.d.x, y: ev.d.y + 1, z: ev.d.z }); break;
       case 'campana': { campana.sonar(dis.campanaPos || { x: dis.centro.x, y: 2, z: dis.centro.z }); ctx.nota?.(`Ola ${ev.ola} de 3`, 'Ya vienen: la campana avisa'); break; }
       case 'aviso-topo': avisoTopo(ev.x, ev.z); break;
+      case 'ola-limpia': try { opciones?.alOlaLimpia?.(ev.ola); } catch (e) { console.error('noche: alOlaLimpia', e); } break;
       case 'miel': sonido.impacto?.('tierra', { pos: { x: ev.d.x, y: ev.d.y + 0.2, z: ev.d.z }, tamaño: 0.6, dureza: 0.2, fuerza: 0.4, vol: 0.5 }); break;
       case 'enjambre': ctx.nota?.('Los duendecitos de luz', 'Se le tiraron encima al grandote: lo traban unos segundos'); break;
       case 'jefe-cae': ctx.nota?.(sim.modo === 'pelea' ? 'El Mandamás se retira' : 'El Mandamás se sienta en la nieve', sim.modo === 'pelea' ? 'Te mira un rato largo y se va' : 'Asiente una sola vez'); break;
@@ -552,7 +556,7 @@ export function crearNocheMundo(ctx) {
   return {
     paraCompilar, trasCompilar, preparar, iniciar, terminar, abandonar, actualizar, disparar, elegirArma, practicar, cerrarPractica,
     practicaActiva: () => !!prac, get practica() { return prac; },
-    activa: () => activa,
+    activa: () => activa, pausar: (si) => { pausada = !!si; if (si) mano.abajo = false; }, pausada: () => pausada,
     armada: () => listo,
     hud: () => (sim ? { ...sim.hud(), arma: mano.arma, herido: flashHerido, tensando: mano.abajo && mano.arma === 'arco' ? Math.min(1, (performance.now() - mano.desde) / 1100) : 0 } : null),
     get sim() { return sim; },

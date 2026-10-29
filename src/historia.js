@@ -135,7 +135,7 @@ export function estadoHistoria(p, extra = {}) {
     cuidados: Object.keys(obj(hh.temas)).filter((k) => k.startsWith('majada:dia')).length,
     plumas: cantidad('pluma'), cantos: cantidad('canto'), lana: ent(p?.materiales?.lana, 9999) + ent(p?.acopio?.lana, 9999),
     pesos: ent(p?.economia?.pesos, 99999999),
-    amor: extra.amor === true,
+    amor: extra.amor === true, perro: extra.perro === true,
     yerba: ent(p?.cosas?.yerba, 99999), llave79: !!p?.cosas?.['llave-79'],
     prestadoN: prestadosContados(hh.prestado, Array.isArray(p?.aldea?.pobladores) ? p.aldea.pobladores.map((x) => x?.clave) : []),
   };
@@ -169,9 +169,9 @@ export const arreo = (destino) => (s) => s.temas.has(`arreo:${destino}`);
 // La D5: lo que hay que cumplir según lo elegido
 const cumplioMajada = (s) => {
   const d = s.decisiones.majada;
-  if (d === 'a') return s.temas.has('arreo:galpon-esquila');
-  if (d === 'b') return s.cuidados >= 3;
-  if (d === 'c') return s.temas.has('arreo:puesto-paso');
+  if (d === 'a') return s.temas.has('arreo:galpon-esquila') && s.escenas.has('majada-fermin');   // (4.17.0: y la escena de B de cuando llega la majada)
+  if (d === 'b') return s.cuidados >= 3 && s.escenas.has('majada-vos');
+  if (d === 'c') return s.temas.has('arreo:puesto-paso') && s.escenas.has('majada-belisario');
   return false;
 };
 function textoCumplirMajada(s) {
@@ -525,12 +525,12 @@ export const CAPITULOS = [
       'Tu galpón tiene luz adentro, risas bajitas y olor a harina. Es tu galpón. Pero esta noche no está tan claro de quién es.',
     ],
     objetivos: [
-      { id: 'golpe', tecla: 'E', texto: 'Andá al galpón (tiene luz) y golpeá la puerta antes de abrir (E)', hecho: escena('golpe') },
+      { id: 'golpe', tecla: 'E', texto: 'Andá al galpón (tiene luz) y golpeá la puerta antes de abrir (E)', hecho: escena('galpon-golpe') },
       { id: 'duendes', tecla: '·', texto: 'Decidí qué hacés con los que están adentro: ¿trato o pelea?', hecho: decision('duendes') },
-      { id: 'cerro', tecla: 'E', texto: 'A la mañana, subí al mirador del pehuén y mirá el cerro (con Josefina o con Belisario)', hecho: escena('cerro') },
+      { id: 'cerro', tecla: 'E', texto: 'A la mañana, subí al mirador del pehuén y mirá el cerro (con Josefina o con Belisario)', hecho: escena('cerro-mirador') },
       { id: 'mesa', tecla: 'E', texto: 'Juntá a los vecinos en tu mesa (con la mesa puesta, a partir de las 16)', vecinos: true, hecho: escena('mesa-guerra') },
     ],
-    decisiones: [{ id: 'duendes', tras: 'encuentro' }],
+    decisiones: [{ id: 'duendes', tras: 'galpon-encuentro' }],
     outro: ['Afuera nevaba despacio. En la nieve nueva había huellas chiquitas que salían del galpón y se perdían en la noche.'],
     outroVar: [{ trato: true, lineas: {
       trato: 'Las huellas salían del galpón en fila y se perdían en la raíz del coihue. Ninguna volvía. Todas estaban tranquilas, si es que las huellas pueden estar tranquilas.',
@@ -550,13 +550,13 @@ export const CAPITULOS = [
     objetivos: [
       // cadena A · el arco (Tito, Elvira, Anselmo y Josefina)
       { id: 'lenga', tecla: 'H', texto: 'El arco: talá un árbol seco de la ladera para la madera (o, si talaste el coihue, llevale a Tito dos tablas)', hecho: (s, b) => desde(s, b, 'talados') >= 1 || s.entregados.has('tito:tablas') },
-      { id: 'tito', tecla: 'E', texto: 'Dejale la madera a Tito en la carpintería y volvé a la mañana (E sobre él)', vecinos: true, hecho: (s) => s.escenas.has('carpinteria-arco') || !s.pobladores.has('carpintero') },
-      { id: 'cuerda', tecla: 'E', texto: 'La cuerda: llevale dos vellones a Elvira, la tejedora (esquilá en el corral o pedíselos a Fermín)', vecinos: true, hecho: (s) => s.escenas.has('cuerda-elvira') || !s.pobladores.has('tejedora') },
-      { id: 'puntas', tecla: 'E', texto: 'Las puntas: encargale a Anselmo doce puntas de flecha ($400)', vecinos: true, hecho: (s) => s.escenas.has('puntas-anselmo') || !s.pobladores.has('herrero') },
-      { id: 'plumas', tecla: 'E', texto: 'Las plumas: juntá seis en el bosque o pedíselas a Josefina (necesitás su confianza)', hecho: (s) => s.plumas >= 6 || s.escenas.has('plumas-josefina') },
+      { id: 'tito', tecla: 'E', texto: 'Dejale la madera a Tito en la carpintería y volvé a la mañana (E sobre él)', vecinos: true, hecho: (s) => s.escenas.has('tito-arco') || !s.pobladores.has('carpintero') },
+      { id: 'cuerda', tecla: 'E', texto: 'La cuerda: llevale dos vellones a Elvira, la tejedora (esquilá en el corral o pedíselos a Fermín)', vecinos: true, hecho: (s) => s.escenas.has('elvira-cuerda') || !s.pobladores.has('tejedora') },
+      { id: 'puntas', tecla: 'E', texto: 'Las puntas: encargale a Anselmo doce puntas de flecha ($400)', vecinos: true, hecho: (s) => s.escenas.has('anselmo-puntas') || !s.pobladores.has('herrero') },
+      { id: 'plumas', tecla: 'E', texto: 'Las plumas: juntá seis en el bosque o pedíselas a Josefina (necesitás su confianza)', hecho: (s) => s.escenas.has('plumas-bosque') || s.escenas.has('plumas-gallinero') || s.escenas.has('plumas-josefina') || s.plumas >= 6 },
       { id: 'blancos-paso', tecla: 'E', texto: 'Practicá con el arco: cinco blancos de paja en el Puesto del Paso (mantené el clic para tensar)', meta: 5, cuenta: (s) => s.blancos.paso },
       // cadena B · la honda (Fermín y Tobías)
-      { id: 'fermin', tecla: 'E', texto: (s) => (necesitaPaces(s) && !s.escenas.has('paces-fermin') ? 'Hacé las paces con Fermín: llevale un regalo que le guste (harina, yerba o pan)' : 'Pedile a Fermín que te enseñe a tirar con honda (galpón de esquila)'), vecinos: true, hecho: escena('honda-fermin') },
+      { id: 'fermin', tecla: 'E', texto: (s) => (necesitaPaces(s) && !s.escenas.has('fermin-paces') ? 'Hacé las paces con Fermín: llevale un regalo que le guste (harina, yerba o pan)' : 'Pedile a Fermín que te enseñe a tirar con honda (galpón de esquila)'), vecinos: true, hecho: escena('fermin-honda') },
       { id: 'cantos', tecla: 'E', texto: 'Juntá veinte cantos rodados del arroyo para la honda', meta: 20, cuenta: (s, b) => desde(s, b, 'cantos') },
       { id: 'blancos-esquila', tecla: 'E', texto: 'Practicá con la honda: voltea cinco latas de los postes del galpón de esquila', meta: 5, cuenta: (s) => s.blancos.esquila },
       // cadena C · lo prestado
@@ -578,8 +578,8 @@ export const CAPITULOS = [
     ],
     objetivos: [
       { id: 'comer', tecla: 'E', texto: 'Comé algo caliente: un guiso, un locro o trucha con papas (cocinalo en tu casa)', hecho: (s, b) => desde(s, b, 'cocinadas') >= 1 },
-      { id: 'estacion', tecla: 'E', visible: (s) => s.decisiones.cuaderno !== 'a', texto: 'Pasá por la estación: la aldea se junta ahí esta noche (Herminia y los chicos)', hecho: (s) => s.decisiones.cuaderno === 'a' || s.escenas.has('estacion-gente') },
-      { id: 'espera', tecla: 'E', texto: 'Estate en el galpón a las 22 con el arco y la honda', hecho: escena('espera') },
+      { id: 'estacion', tecla: 'E', visible: (s) => s.decisiones.cuaderno !== 'a', texto: 'Pasá por la estación: la aldea se junta ahí esta noche (Herminia y los chicos)', hecho: (s) => s.decisiones.cuaderno === 'a' || s.escenas.has('herminia-estacion') },
+      { id: 'espera', tecla: 'E', texto: 'Estate en el galpón a las 22 con el arco y la honda', hecho: escena('noche-espera') },
       { id: 'noche', tecla: '·', texto: 'La noche: defendé el galpón por el lado del arroyo hasta que pare la nevada', hecho: (s) => s.nocheEstado === 'ganada' || s.nocheEstado === 'perdida' },
       { id: 'amanecer', tecla: 'E', texto: 'Mirá el amanecer desde el galpón', hecho: (s) => AMANECERES.some((x) => s.escenas.has(x)) },
     ],
@@ -604,9 +604,9 @@ export const CAPITULOS = [
       'Graciela llegó en el tren de la mañana. No trae el portafolios: trae una carpeta celeste, cerrada con elástico.',
     ],
     objetivos: [
-      { id: 'carpeta', tecla: 'E', texto: 'Andá al andén de la Estación del Valle a recibir a Graciela (de 9 a 20)', vecinos: true, hecho: escena('carpeta') },
+      { id: 'carpeta', tecla: 'E', texto: 'Andá al andén de la Estación del Valle a recibir a Graciela (de 9 a 20)', vecinos: true, hecho: escena('carpeta-celeste') },
       { id: 'majada', tecla: 'E', texto: 'Visitá a Ramón y a Fermín (el Puesto Alto o el galpón de esquila)', vecinos: true, hecho: escena('majada-fin') },
-      { id: 'fiesta', tecla: '·', texto: 'Andá a la Fiesta de la Nieve, en la plaza de la aldea (de 12 a 22)', hecho: (s) => Number(s.lugares?.plaza) <= 40 && enHora(s.horas, 12, 22) },
+      { id: 'fiesta', tecla: '·', texto: 'Andá a la Fiesta de la Nieve, en el predio de la aldea (de 17 a 23)', hecho: (s) => s.escenas.has('fiesta-nieve') },
       { id: 'josefina', tecla: 'E', texto: 'Pasá la tarde con Josefina junto al coihue (o el tocón)', vecinos: true, hecho: escena('josefina-fin') },
       { id: 'umbral', tecla: 'E', texto: 'Dormí y despertá en tu refugio, el primer día del año', hecho: escena('umbral-fin') },
     ],
@@ -753,6 +753,8 @@ export function alDecidirDuendes(h, opcion) {
   return d.trato;
 }
 // Pagar la deuda del trato (una bolsa de harina o seis tablas, en la raíz): `duendes.deuda = 0`
+// 4.17.0: «Que amanezca» (efecto `noche:perdida` de la escena): la noche queda perdida, sin final de noche
+export function dejarPerdidaDe(h) { const d = duendesDe(h); d.noche = 'perdida'; d.final = null; if (!h.noche || typeof h.noche !== 'object') h.noche = nocheNueva(); h.noche.estado = 'perdida'; h.noche.horasAntes = null; }
 export function pagarDeuda(h) { const d = duendesDe(h); if (d.deuda <= 0) return false; d.deuda = 0; return true; }
 // Una práctica de tiro acertada (arco en el Puesto del Paso, honda en el galpón de esquila): sube la cuenta; con cinco, el arma es tuya
 export const BLANCOS_PARA_ARMA = 5;
@@ -766,7 +768,7 @@ export function sumarBlanco(h, donde) {
 export const blancosNuevos = () => ({ paso: 0, esquila: 0 });
 // Un objetivo recién cumplido puede mover algo más (las plumas del bosque enojan a Josefina). Una sola vez.
 export function alCumplirObjetivo(h, capId, objId, s) {
-  if (capId === 'arco' && objId === 'plumas' && !s?.escenas?.has('plumas-josefina') && (s?.plumas || 0) >= 6) {
+  if (false && capId === 'arco' && objId === 'plumas') {   // (4.17.0: lo hace la escena `plumas-bosque` de B)
     if (!h.aplicadas || typeof h.aplicadas !== 'object' || Array.isArray(h.aplicadas)) h.aplicadas = {};
     if (!Object.hasOwn(h.aplicadas, 'plumas-bosque')) { h.aplicadas['plumas-bosque'] = Math.max(1, ent(s?.dia, 1e6)); cambiarLazo(h, 'ema', -1); return 'plumas-bosque'; }
   }
@@ -937,7 +939,7 @@ export function historiaNueva() {
     duendes: duendesNuevos(), noche: nocheNueva(), escenas: escenasNuevas(),
     // 4.15.0
     version: VERSION_HISTORIA, lazos: lazosNuevos(), decisiones: decisionesNuevas(), ramal: 0, fletes: 0, entregasVistas: null, molido: 0, fletesHarina: 0, fletesBase: null,
-    prestado: prestadosNuevos(), blancos: blancosNuevos(), raro: [], temas: {}, objetos: {}, entregados: {}, reparaciones: {}, acompanante: null, aplicadas: {}, avisoReinicio: false, copiaPrevia: '',
+    prestado: prestadosNuevos(), perfil: '', blancos: blancosNuevos(), raro: [], temas: {}, objetos: {}, entregados: {}, reparaciones: {}, acompanante: null, aplicadas: {}, avisoReinicio: false, copiaPrevia: '',
   };
 }
 const FASES = ['intro', 'jugando', 'outro', 'fin'];
@@ -972,6 +974,9 @@ export function sanearHistoria(v) {
   h.fletesBase = v.fletesBase === null || v.fletesBase === undefined ? null : ent(v.fletesBase, 1e6);
   for (const k of PRESTADOS) h.prestado[k] = obj(v.prestado)[k] === true;
   h.blancos = { paso: ent(obj(v.blancos).paso, 99), esquila: ent(obj(v.blancos).esquila, 99) };   // 4.17.0
+  h.perfil = v.perfil === 'del-valle' ? 'del-valle' : '';   // el título de perfil del epílogo
+  h.costumbre = (v.costumbre && typeof v.costumbre === 'object' && !Array.isArray(v.costumbre)) ? { bolsa: ['vacia', 'llena'].includes(v.costumbre.bolsa) ? v.costumbre.bolsa : null, cosechas: ent(v.costumbre.cosechas, 9999), regalos: ent(v.costumbre.regalos, 9999), dia: Math.max(1, ent(v.costumbre.dia, 1e6)) } : undefined;
+  if (h.costumbre === undefined) delete h.costumbre;
   if (Array.isArray(v.raro)) {
     const vistos = new Set();
     for (const x of v.raro) {

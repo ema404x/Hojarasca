@@ -72,7 +72,7 @@ export function crearAcompanante(ctx) {
     if (p.accion === 'quieto') { npc.camino = []; npc.rumboObjetivo = Math.atan2(j.pos.x - npc.pos.x, j.pos.z - npc.pos.z); return; }
     const meta = puntoDeSeguimiento(j.pos, j.yaw);
     npc.camino = [{ x: meta.x, z: meta.z, cerca: 0.9 }];
-    npc.velocidad = p.velocidad;
+    npc.velocidad = p.velocidad * (Number(ctx.factor?.(q)) || 1);   // (4.17.0: Ramón convaleciente camina despacio)
   }
   return { actualizar, soltar, clave: () => clave, npc: () => npc, esperando: () => esperando };
 }

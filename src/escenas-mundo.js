@@ -91,6 +91,7 @@ export function crearEscenasMundo(ctx) {
     const g = ctx.gente?.();
     const lista = g?.gente;
     if (!lista || typeof clave !== 'string') return null;
+    if (clave === 'pareja') clave = ctx.parejaClave?.() || clave;   // 4.17.0: «tu pareja» es la persona real con la que estás (o saliendo)
     for (const n of lista) if (n.clave === clave) return n;
     return null;
   };
