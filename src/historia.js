@@ -556,9 +556,9 @@ export const CAPITULOS = [
       { id: 'plumas', tecla: 'E', texto: 'Las plumas: juntá seis en el bosque, en tu gallinero (de día) o pedíselas a Josefina (necesitás su confianza)', hecho: (s) => s.escenas.has('plumas-bosque') || s.escenas.has('plumas-gallinero') || s.escenas.has('plumas-josefina') || s.plumas >= 6 },
       { id: 'blancos-paso', tecla: 'E', texto: 'Practicá con el arco: cinco blancos de paja en el Puesto del Paso (mantené el clic para tensar)', meta: 5, cuenta: (s) => s.blancos.paso },
       // cadena B · la honda (Fermín y Tobías)
-      { id: 'fermin', tecla: 'E', texto: (s) => (necesitaPaces(s) && !s.escenas.has('fermin-paces') ? 'Hacé las paces con Fermín: llevale un regalo que le guste (harina, yerba o pan)' : 'Pedile a Fermín que te enseñe a tirar con honda (galpón de esquila)'), vecinos: true, hecho: escena('fermin-honda') },
+      { id: 'fermin', tecla: 'E', texto: (s) => (necesitaPaces(s) && !s.escenas.has('fermin-paces') ? 'Hacé las paces con Fermín: llevale un regalo que le guste (harina o yerba)' : 'Pedile a Fermín que te enseñe a tirar con honda (galpón de esquila)'), vecinos: true, hecho: escena('fermin-honda') },
       { id: 'cantos', tecla: 'E', texto: 'Juntá veinte cantos rodados del arroyo para la honda', meta: 20, cuenta: (s, b) => desde(s, b, 'cantos') },
-      { id: 'blancos-esquila', tecla: 'E', texto: 'Practicá con la honda: voltea cinco latas de los postes del galpón de esquila', meta: 5, cuenta: (s) => s.blancos.esquila },
+      { id: 'blancos-esquila', tecla: 'E', texto: 'Practicá con la honda: volteá cinco latas de los postes del galpón de esquila', meta: 5, cuenta: (s) => s.blancos.esquila },
       // cadena C · lo prestado
       { id: 'prestado', tecla: 'E', texto: 'Pedí defensas prestadas: Anselmo (estacas), Guido (miel), Martín (la campana) y Elsa (durmientes); alcanzan tres', vecinos: true, meta: 3, cuenta: (s) => s.prestadoN },
       { id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá lo que debés del trato: una bolsa de harina o seis tablas, en la raíz del coihue (o el tocón)', hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },

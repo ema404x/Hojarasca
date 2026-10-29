@@ -8,6 +8,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { funcion } from './ayuda-codigo.mjs';
+import { registrarThree } from './ayuda-three.mjs';
+
+registrarThree();   // (historia-objetos.js usa three: el objeto más cercano)
 
 const raiz = new URL('..', import.meta.url);
 const leer = (f) => readFileSync(new URL(f, raiz), 'utf8');
@@ -244,6 +247,36 @@ const S = await import('../src/sincronia.js');
     ok(/ajustes\.relaxTipo === 'historia' && !progreso\.pos\) \{[^\n]*prologoVisto: true/.test(bloque) && bloque.indexOf("relaxTipo === 'historia'") < bloque.indexOf('abrirPrologo('), 'con Historia, el prólogo queda visto sin mostrarse; en Libre, como siempre');
     ok(main.includes("else if (!esDesafio && ajustes.relaxTipo === 'historia' && (!habiaGuardado || !progreso.pos) && !entroAlJuego) {"), 'y la nota «Salí a caminar» no sale con la Historia');
   }
+}
+
+// ---------------------------------------------------------------- 5. los bajos: la consola, los textos y el objeto más cercano
+{
+  const TR = await import('../src/trucos.js');
+  const TT = await import('../src/trucos-textos.js');
+  const p = G.progresoNuevo(); p.dia = 30;
+  const aj = { relaxTipo: 'libre' };
+  const m = { desafio: false, progreso: () => p, ajustes: () => aj, jugador: () => ({ pos: { x: 0, y: 0, z: 0 }, yaw: 0 }), reloj: {}, guardar() {}, refrescar() {}, limpiar() {}, lugares: () => [] };
+  ok(TR.ejecutar('historia capitulo 4', m).ok, 'historia capitulo 4');
+  p.historia.acompanante = 'graciela';
+  TR.ejecutar('historia capitulo 6', m);
+  ok(p.historia.acompanante === null, 'saltar de capítulo suelta al acompañante');
+  TR.ejecutar('historia completar', m);
+  Object.assign(p.historia, { decisiones: { ...p.historia.decisiones, bolsa: 'b' }, lazos: { ...p.historia.lazos, ema: -2 }, escenas: { vistas: { 'nota-eusebio': 3 }, elecciones: {} }, acompanante: 'ramon', costumbre: { bolsa: 'vacia', cosechas: 0, regalos: 0, dia: 1 }, hablados: { ramon: true } });
+  p.historia.duendes.final = 'trato';
+  ok(TR.ejecutar('historia reiniciar', m).ok, 'historia reiniciar');
+  const h = p.historia;
+  ok(h.capitulo === 0 && h.fase === 'intro' && h.activa && h.terminada === 0 && h.decisiones.bolsa === null && h.lazos.ema === 0 && !Object.keys(h.escenas.vistas).length && h.acompanante === null && !h.costumbre && h.duendes.final == null, 'reiniciar vuelve de verdad al capítulo 1 (sin escenas, decisiones, lazos, final ni acompañante)');
+  ok(h.hablados.ramon === true && aj.relaxTipo === 'historia', 'y conserva a los vecinos que conocías');
+  ok(/los trece/.test(TT.AYUDA.historia.detalle) && !/los ocho/.test(TT.AYUDA.historia.detalle), 'la ayuda dice trece capítulos');
+  const textos = H.CAPITULOS.flatMap((c) => c.objetivos.map((o) => H.textoObjetivo(o, { escenas: new Set(), decisiones: {}, lazos: {} })));
+  ok(textos.some((t) => /volteá cinco latas/.test(t)) && !textos.some((t) => /voltea cinco/.test(t)), 'voseo: «volteá»');
+  ok(!textos.some((t) => /yerba o pan/.test(t)), 'las paces con Fermín no prometen el pan que el disparador no acepta');
+  // el objeto más cercano: la acción (cara) sólo para los que están a mano
+  const O = await import('../src/historia-objetos.js');
+  const pedidos = [];
+  const pos = { 'foto-movida': { x: 0, z: 1 }, 'cantos-veta': { x: 300, z: 0 }, llavecita: { x: 0, z: 2 } };
+  const id = O.objetoCercano({ x: 0, z: 0 }, Object.keys(pos), pos, (k) => { pedidos.push(k); return k !== 'foto-movida'; });
+  ok(id === 'llavecita' && !pedidos.includes('cantos-veta'), `el más cercano con algo para hacer, sin armar la acción de los lejanos (${pedidos.join(', ')})`);
 }
 
 console.log(`verificar-4-17-1-progreso: ${pasos} pasos en verde`);

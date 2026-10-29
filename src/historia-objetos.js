@@ -59,10 +59,11 @@ export function objetoCercano(pos, visibles, posiciones, accion) {
   let mejor = null, dm = Infinity;
   for (const id of visibles) {
     const q = posiciones[id];
-    if (!q || !accion(id)) continue;
+    if (!q) continue;
     const d = Math.hypot(pos.x - q.x, pos.z - q.z);
     const radio = Object.hasOwn(OBJETOS, id) && (OBJETOS[id].forma === 'raiz' || OBJETOS[id].lugar === 'molino-viejo') ? 3.4 : RADIO_OBJETO;
-    if (d <= radio && d < dm) { dm = d; mejor = id; }
+    // 4.17.1: primero la distancia y después la acción (que arma el estado entero de la historia): antes se armaba para los ~40 objetos cada 250 ms
+    if (d <= radio && d < dm && accion(id)) { dm = d; mejor = id; }
   }
   return mejor;
 }
