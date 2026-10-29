@@ -2441,10 +2441,12 @@ function efectoDuendesActo3(id, a, crear) {
   const en = (adelante, lado) => ({ x: j.pos.x + fx * adelante + lx * lado, z: j.pos.z + fz * adelante + lz * lado });
   const vivos = () => duendesDeEscena.filter((d) => d.estado !== 'fuera');
   const sacar = (d, ms) => setTimeout(() => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }, ms);
+  const galpon = id.startsWith('galpon-') ? puntosCacheadosDeHistoria()['galpon-noche'] : null;   // los del encuentro se sientan dentro de tu galponcito (si lo hay)
   const grupo = (tipo, n, adelante, ancho, o = {}) => {
     const hechos = [];
     for (let i = 0; i < Math.min(n || 1, 12); i++) {
-      const p = en(adelante + (i % 3) * 0.9, ((i / Math.max(1, (n || 1) - 1)) - 0.5) * ancho);
+      let p = en(adelante + (i % 3) * 0.9, ((i / Math.max(1, (n || 1) - 1)) - 0.5) * ancho);
+      if (galpon) { const ang = (i / Math.max(1, n || 1)) * 6.28 + 0.4, r = tipo === 'jefe' ? 0.2 : 1.1 + (i % 2) * 0.7; p = { x: galpon.x + Math.cos(ang) * r, z: galpon.z + Math.sin(ang) * r }; }
       const d = crear(tipo, p, o);
       if (d) { hechos.push(d); sacar(d, 45000); }
     }

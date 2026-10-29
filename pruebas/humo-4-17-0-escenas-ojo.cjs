@@ -180,6 +180,7 @@ app.whenReady().then(async () => {
 
   try {
     // Mira a ojo una muestra de escenas del acto III: las dispara con el director, saca un cuadro cada tanto y avanza con Enter. Capturas en la carpeta de salida.
+    const cerrarT = async () => { for (let k = 0; k < 3 && (await N('!!N.tarjeta()')); k++) { await N('(() => { const b = document.querySelector("#valle-tarjeta button[data-valle-opcion]"); if (b) b.click(); return 1 })()'); await N('N.tick(0.6)'); } };
     const ESCENAS = (process.env.OJO_ESCENAS || 'galpon-encuentro,noche-espera,noche-tras-ganar,umbral-fin').split(',');
     const PREP = {
       'galpon-encuentro': { cap: 9, horas: 23.2, lugar: 'galpon-noche', decisiones: { bolsa: 'a', molienda: 'c', coihue: 'a' }, duendes: {} },

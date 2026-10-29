@@ -155,7 +155,7 @@ app.whenReady().then(async () => {
     await abrir('historia', extra);
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
-    await js(PAGINA);
+    await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
     await N('N.tick(2.5)');
     await N('N.hasta(() => N.tarjeta(), 12)');
     await N('N.elegir("empezar")'); await N('N.tick(1.5)');
@@ -308,14 +308,16 @@ app.whenReady().then(async () => {
       const ar = await N('(() => { H.__historiaObjetos(); const m = H.__puntosHistoria(); return { c: m.coihue, r: m["molino-viejo"] } })()');
       ok(ar && ar.c, 'hay un coihue grande elegido junto a las piedras del molino viejo');
       await N(`(() => { const a = { x: ${ar.c.x}, z: ${ar.c.z} }; const t = H.veg.arboles.find((q) => Math.abs(q.x - a.x) < 0.01 && Math.abs(q.z - a.z) < 0.01); window.__arbol = t; N.ir(a.x + (t.r || 1) + 1.3, a.z, 0); return 1 })()`);
-      await N('N.tick(0.8)');
+      await N('N.tick(0.8)'); await N('N.despejar(40)');   // (4.17.0: la escena de las piedras del molino arranca al llegar; se la salta)
       ok((await N('window.__arbol.grande === true')) === true, 'el árbol está marcado como el coihue grande');
       const antes = await N('H.veg.arboles.length');
       for (let i = 1; i <= 5; i++) { await N('N.tecla("KeyH")'); await N('N.tick(0.5)'); }
       ok((await N('window.__arbol.sacado !== true')) === true && (await N('P.historia.temas["mundo:coihue-talado"]')) === undefined, 'con cinco hachazos todavía está en pie');
       ok(/Hachazo 5 de 6/.test(await N('document.getElementById("notas") ? document.getElementById("notas").textContent : ""')) || true, 'el aviso cuenta hasta seis');
+      console.log('  [diag hacha]', JSON.stringify(await N('({ obj: H.__objetivo ? H.__objetivo() : null, aviso: N.aviso(), tarjeta: N.tarjeta() && N.tarjeta().titulo, escena: H.__escenas.activa(), modo: H.modo && H.modo(), golpes: window.__arbol.golpes })')));
       await N('N.tecla("KeyH")'); await N('N.tick(1.2)');
       ok((await N('window.__arbol.sacado === true')) === true, 'el sexto hachazo lo tira');
+      console.log('  [diag hacha 2]', JSON.stringify(await N('({ sacado: window.__arbol.sacado, aviso: N.aviso(), tarjeta: N.tarjeta() && N.tarjeta().titulo })')));
       ok((await N('P.historia.temas["mundo:coihue-talado"] > 0 && P.historia.decisiones.coihue === "b" && P.historia.lazos.ema === -2')) === true, 'la historia se entera: quedó talado, la decisión pasa a «talarlo» y Josefina lo toma mal');
       ok((await N('H.veg.arboles.length')) === antes, 'no se movió ni se sumó ningún árbol');
       await foto('2-tocon-del-coihue');
@@ -511,7 +513,7 @@ app.whenReady().then(async () => {
       await N('N.elegir("seguir")'); await N('N.tick(1)');
       ok((await N('!!P.cosas.poncho && !!P.cosas["pluma-condor"]')) === true, 'el premio: el poncho de Ramón y la pluma de cóndor');
       const t9 = await N('N.tarjeta()');
-      ok(t9 && t9.titulo === 'Los primeros fríos' && /continuará|todavía se está escribiendo/.test(t9.texto), 'el acto III sigue con su «continuará» hasta la próxima versión');
+      ok(t9 && t9.titulo === 'Los primeros fríos' && !/continuará|todavía se está escribiendo/.test(t9.texto), 'el acto III ya no tiene «continuará» (4.17.0)');
     }
 
     // ================================================================ V. mirar a ojo las escenas del acto I (hojas de contacto)
@@ -611,7 +613,7 @@ app.whenReady().then(async () => {
       donde = 'diagnóstico';
       console.log('— D. los mismos lugares en el Relax libre (sin historia): cuántos programas de shader');
       await abrir('libre', { estacion: 'otono' });
-      await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(3000); await js(PAGINA);
+      await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(3000); await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
       await N('N.tick(2)');
       await N('(() => { P.dia = 7; P.horas = 10; return 1 })()');
       let prev = await N('N.programas()');

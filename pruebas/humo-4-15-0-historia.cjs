@@ -114,7 +114,7 @@ app.whenReady().then(async () => {
   const entrar = async () => {
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
-    await js(PAGINA);
+    await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
     await N('N.tick(2.5)');
     await N('N.hasta(() => N.tarjeta(), 12)');
   };
@@ -337,7 +337,7 @@ app.whenReady().then(async () => {
     ok(archivos.length >= 1 && JSON.parse(fs.readFileSync(path.join(dirCopias, archivos[archivos.length - 1]), 'utf8')).dia === 9, 'con la partida vieja entera adentro');
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
-    await js(PAGINA);
+    await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
     await N('N.hasta(() => N.tarjeta(), 12)');
     ok((await N('P.dia === 1 && !P.obras.length && (P.ramitas || 0) === 0 && (P.materiales.tabla || 0) === 0')) === true, 'la partida vieja volvió a empezar de cero (día 1, sin obras ni mochila)');
     ok((await N('P.historia.version === 2 && P.historia.activa && P.historia.capitulo === 0 && /^copia-previa-historia-/.test(P.historia.copiaPrevia)')) === true, 'con la historia nueva, ya en curso');
@@ -367,7 +367,7 @@ app.whenReady().then(async () => {
     ok(libre === 9, `una partida de Relax libre (sin historia) sigue en el día ${libre}`);
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
-    await js(PAGINA);
+    await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
     await N('N.tick(1.5)');
     ok((await N('P.dia >= 9 && (P.ramitas || 0) === 33')) === true, 'con su mochila y sus días');
     // una historia vieja en pausa: se limpia sólo la parte de la historia
@@ -378,7 +378,7 @@ app.whenReady().then(async () => {
     await cargar();
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
-    await js(PAGINA);
+    await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
     await N('N.tick(1.5)');
     ok((await N('P.dia >= 9 && P.historia.version === 2 && !P.historia.activa && P.historia.capitulo === 0')) === true, 'una historia vieja en pausa: el mundo queda y sólo la historia empieza de nuevo (en pausa)');
   } catch (err) {
