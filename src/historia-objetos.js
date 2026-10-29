@@ -191,6 +191,13 @@ const FORMAS = {
       esfera(c, 0.15, [k * 0.28 - 0.56, 0.1 + capa * 0.2, capa * 0.02], '#f3f0e8', [1, 0.78, 0.9], 0.02);
     }
   },
+  // el fogón de la Noche de la Leyenda, en el predio de la aldea: un círculo de piedras, leños cruzados y brasas (sin luz ni fuego animado: la aldea ya tiene sus faroles)
+  fogon: (c) => {
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; esfera(c, 0.2, [Math.cos(a) * 0.95, 0.1, Math.sin(a) * 0.95], i % 2 ? '#77746d' : '#66635c', [1, 0.7, 1], 0.1); }
+    for (let i = 0; i < 5; i++) caja(c, [1.25, 0.15, 0.15], [0, 0.17 + (i % 2) * 0.12, 0], '#4a3322', [0, (i / 5) * Math.PI, 0.05 * (i - 2)], 0.1);
+    for (const [x, z] of [[0.1, 0.05], [-0.2, 0.1], [0.05, -0.25], [0.25, 0.2]]) esfera(c, 0.12, [x, 0.3, z], '#e2571f', [1, 0.55, 1], 0.1);
+    esfera(c, 0.2, [0, 0.12, 0], '#2a1c14', [1.6, 0.35, 1.6], 0.05);
+  },
   // la tropa de mulas de Belisario: siete en fila, con la carga atada (cada una: cuerpo, cuello, cabeza, orejas, cuatro patas, cola y bulto)
   mulas: (c) => {
     const pelos = ['#7a6650', '#5d4b3a', '#8a7a68', '#4d4036', '#6e5d4a', '#85705a', '#5a4a3c'];

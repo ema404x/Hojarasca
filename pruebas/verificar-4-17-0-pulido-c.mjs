@@ -178,7 +178,7 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   // ---------------------------------------------------------------- 3. los props nuevos
   const OBJ = await imp('historia-objetos.js').catch(() => null);
   const objetosTxt = leer('src/historia-objetos.js');
-  for (const forma of ['foto-movida', 'llavecita', 'cantos-veta', 'mulas']) ok(new RegExp(`^\\s*'?${forma}'?: \\(c\\) => \\{`, 'm').test(objetosTxt), `la forma «${forma}» está dibujada en historia-objetos.js`);
+  for (const forma of ['foto-movida', 'llavecita', 'cantos-veta', 'mulas', 'fogon']) ok(new RegExp(`^\\s*'?${forma}'?: \\(c\\) => \\{`, 'm').test(objetosTxt), `la forma «${forma}» está dibujada en historia-objetos.js`);
   ok(/for \(let i = 0; i < 7; i\+\+\) \{\s*\n\s*const bx = i \* 1\.7/.test(objetosTxt), 'la tropa son siete mulas');
   ok(/for \(let i = 0; i < 10; i\+\+\) \{\s*\n\s*const capa/.test(objetosTxt), 'los cantos blancos son diez');
   ok(!/ShaderMaterial|new THREE\.Mesh(?:Standard|Phong|Lambert)Material|PointLight|SpotLight|DirectionalLight/.test(objetosTxt), 'sin materiales ni luces nuevos (0 programas de shader nuevos)');
@@ -215,8 +215,16 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
     const r0 = armar(0, { temas: [['mundo', 'ronda-ramitas']] });
     ok(DIS.objetosVisibles(r0.h, r0.s()).includes('ronda') && DIS.objetosVisibles(r0.h, r0.s()).includes('canto-blanco'), 'la ronda de ramitas se ve ya durante la escena (antes sólo al terminarla)');
     ok(!DIS.objetosVisibles(armar(0).h, armar(0).s()).includes('ronda'), 'y no antes');
+    // el fogón de la Noche de la Leyenda: se ve de noche, desde que la escena lo pone, y no antes ni de día
+    const fg = armar(7, { temas: [['mundo', 'fogon-leyenda']] });
+    fg.p.horas = 22;
+    ok(DIS.objetosVisibles(fg.h, fg.s()).includes('fogon-leyenda'), 'el fogón de la leyenda se ve de noche cuando la escena lo pone');
+    fg.p.horas = 12;
+    ok(!DIS.objetosVisibles(fg.h, fg.s()).includes('fogon-leyenda'), 'y de día no');
+    const fg0 = armar(7); fg0.p.horas = 22;
+    ok(!DIS.objetosVisibles(fg0.h, fg0.s()).includes('fogon-leyenda'), 'ni antes de que la escena lo ponga');
   }
-  for (const id of ['foto-movida', 'llavecita', 'cantos-veta', 'mulas-paso', 'mulas-mallin']) ok(Object.hasOwn(DIS.OBJETOS, id), `${id}: es un objeto de historia`);
+  for (const id of ['foto-movida', 'llavecita', 'cantos-veta', 'mulas-paso', 'mulas-mallin', 'fogon-leyenda']) ok(Object.hasOwn(DIS.OBJETOS, id), `${id}: es un objeto de historia`);
 
   // ---------------------------------------------------------------- 4. los disparadores nuevos
   {

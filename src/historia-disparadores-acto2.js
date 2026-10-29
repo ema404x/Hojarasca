@@ -165,6 +165,8 @@ export const OBJETOS_ACTO2 = {
     aviso: 'Mirar la llavecita de Herminia', nota: ['La llavecita', 'De bronce, con el ojo en forma de hoja. Herminia la encontró de nena en una raíz. No se sabe a qué puerta abre'] },
   'cantos-veta': { forma: 'cantos-veta', punto: 'cantera', dx: 0, dz: 0, visible: (s) => s.temas.has('mundo:cantos-veta'),
     aviso: 'Mirar los cantos blancos de la veta', nota: ['Cantos blancos', 'Redondos, lisos como huevos, acomodados de a uno. Los mismos que el de tu umbral. Quien los puso no dejó ni una huella'] },
+  // el fogón de la Noche de la Leyenda (el efecto mundo:fogon-leyenda de la escena): se ve de noche en el predio, al costado de la plaza
+  'fogon-leyenda': { forma: 'fogon', punto: 'predio', dx: 6, dz: 3.5, visible: (s, h) => enCap(h, 'cuaderno') && s.temas.has('mundo:fogon-leyenda') && deNoche(s) },
   'mulas-paso': { forma: 'mulas', punto: 'puesto-paso', dx: -7, dz: 6, visible: (s, h) => enCap(h, 'cuaderno') && !s.temas.has('mundo:tropa-mulas') },
   'mulas-mallin': { forma: 'mulas', punto: 'mallin', dx: -3, dz: 2, visible: (s) => s.temas.has('mundo:tropa-mulas') },
   // los props del acto I que antes sólo dejaban una marca
