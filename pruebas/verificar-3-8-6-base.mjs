@@ -141,7 +141,7 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
   }
   ok(rotas === 0, `ningún campo con un número roto deja la partida sin cargar (${rotas})`);
   const g = leer('src/guardado.js');
-  ok(g.includes('try { limpio = sanearProgreso(p); } catch { limpio = null; }') && g.includes("if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true; }"), 'si sanear tira igual, se prueba la copia de seguridad');
+  ok(g.includes('try { limpio = sanearProgreso(p); } catch { limpio = null; }') && g.includes("if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true;"), 'si sanear tira igual, se prueba la copia de seguridad');   // 4.17.1: la misma línea guarda además el texto crudo de la copia (para la copia previa de la historia)
   ok(g.includes('if (!anteriorTexto && !principalRoto) {'), 'y el principal roto no pisa la copia en el próximo guardado');
   const paquete = JSON.stringify(TR.empaquetar({ progreso: { dia: 3, entradas: {} } })).replace('"dia":3', '"dia":{"toString":1}');
   let r = null;
