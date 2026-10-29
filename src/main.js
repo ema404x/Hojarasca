@@ -274,7 +274,7 @@ import { resolverColocacion } from './historia-colocacion.js';
 import { COLOCACION_ESCENA } from './historia-disparadores.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
-import { crearGracielaMundo } from './historia-graciela.js';
+import { crearGracielaMundo, DEF_GRACIELA } from './historia-graciela.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
@@ -937,7 +937,7 @@ async function construir() {
       armarYa: (k) => genteCampoMundo?.armarYa?.(k) || invitadoDeHistoria(k),   // 4.17 C: Fermín, Belisario y Tobías se arman al pedirlos una escena, aunque estés lejos de su lugar
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && (escenaDesdeVehiculo || (!js.enKayak && !js.enVela)) && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
-      alTerminar: () => { quitarInvitadosHistoria(); try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
+      alTerminar: () => { quitarInvitadosHistoria(); despedirDuendesDeEscena(); try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
     });
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
     try {
@@ -2406,13 +2406,13 @@ function efectoDuendeHistoria(id, args) {
 // o lejos): si una escena los pide y no hay nadie con esa clave, se arma una figura con la ficha de la aldea (POBLADORES_ALDEA o VECINOS_ALDEA) sólo mientras dura la
 // escena; si ya viven ahí, es la de siempre.
 // (sólo los que una escena necesita ver y no está: Tito, Sofía, Herminia y Rosa; los que sólo se miran de pasada, como Nélida en el almacén, no se arman: taparían la cámara)
-const INVITABLES_HIST = new Set(['carpintero', 'fotografa', 'abuela', 'panadera']);
+const INVITABLES_HIST = new Set(['carpintero', 'fotografa', 'abuela', 'panadera', 'graciela']);   // (Graciela: sólo existe en el capítulo 4 y vuelve en las escenas del capítulo 7)
 const invitadosHist = new Map();
 function invitadoDeHistoria(clave) {
   try {
     if (typeof clave !== 'string' || !INVITABLES_HIST.has(clave)) return null;
     if (invitadosHist.has(clave)) return invitadosHist.get(clave);
-    const P = Object.hasOwn(POBLADORES_ALDEA, clave) ? POBLADORES_ALDEA[clave] : Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : null;
+    const P = clave === 'graciela' ? DEF_GRACIELA : Object.hasOwn(POBLADORES_ALDEA, clave) ? POBLADORES_ALDEA[clave] : Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : null;
     if (!P || !gente?.agregarPoblador || !jugador) return null;
     const j = jugador.estado.pos, yaw = jugador.estado.yaw || 0;
     const q = { x: j.x - Math.sin(yaw) * 3, z: j.z - Math.cos(yaw) * 3 };   // (3 m delante de donde mirás)
@@ -2422,6 +2422,10 @@ function invitadoDeHistoria(clave) {
     invitadosHist.set(clave, n);
     return n;
   } catch (e) { fallaSistema('historia-invitado', e); return null; }
+}
+// 4.17 C: los duendes que puso una escena (las siluetas de la guardia, los pillos de las bellotas) se van al terminar: antes se quedaban «mirando» para siempre
+function despedirDuendesDeEscena() {
+  while (duendesDeEscena.length) { const d = duendesDeEscena.pop(); try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }
 }
 function quitarInvitadosHistoria() {
   for (const n of invitadosHist.values()) { try { gente?.quitar(n); } catch { /* ya */ } }

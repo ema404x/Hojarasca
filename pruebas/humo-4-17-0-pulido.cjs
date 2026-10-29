@@ -115,6 +115,12 @@ const PAGINA = String.raw`(() => {
     await N.tick(0.5);
     return !!H.__genteCampo().npcDe(clave);
   };
+  // el jugador en un punto local del refugio (x a la derecha, z hacia donde mira la puerta), mirando a otro (como la colocación de 4.16.0)
+  N.enRefugio = (lx, lz, mx, mz) => {
+    const r = T.lugares.refugio, c = Math.cos(r.rot || 0), s = Math.sin(r.rot || 0);
+    const a = { x: r.x + lx * c + lz * s, z: r.z - lx * s + lz * c }, b = { x: r.x + mx * c + mz * s, z: r.z - mx * s + mz * c };
+    N.ir(a.x, a.z, Math.atan2(-(b.x - a.x), -(b.z - a.z))); H.jugador.estado.pitch = -0.2; return true;
+  };
   // el jugador a (dx, dz) de un punto o una persona, mirando hacia ella (o hacia donde dice el yaw)
   N.parar = (q, dx = 0, dz = 0, mirar = true) => {
     const l = N.donde(q); if (!l) return false;
@@ -129,6 +135,7 @@ const PAGINA = String.raw`(() => {
 // dónde: { p: punto, dx, dz } o { npc: clave, dx, dz }. El jugador empieza ahí (en la prueba «antes»: donde lo dejaría el disparador; en la «después»,
 // además, pasa por la colocación del juego). cómo: 'auto' | 'forzar' | 'hablar:<clave>' | 'obj:<id>'
 const E = (p, dx = 0, dz = 0) => ({ p, dx, dz });
+const L = (lx, lz, mx, mz) => ({ loc: [lx, lz, mx, mz] });   // un punto local del refugio y hacia dónde mira (para las del cuaderno, que se leen en la mesa)
 const FB = { panadera: E('panaderia', 4, 4), carpintero: E('carpinteria', 4, 3), fotografa: E('estudio-fotos', 4, 3), abuela: E('plaza', 3, 3), tobias: E('cantera', 6, 6), ramon: E('puesto', 4, 0), ema: E('refugio-puerta', 0, 8), belisario: E('puesto-paso', 4, 4), nicanor: E('muelle', 0, 3), fermin: E('galpon', 4, 4), ercilia: E('ramos', 0, 3) };
 const Q = (npc, dx = 2.2, dz = 0) => ({ npc, dx, dz, fb: FB[npc] || null });
 const ESCENAS = [
@@ -180,9 +187,9 @@ const ESCENAS = [
   ['minga-aldea', 6, E('plaza', 3, 3), 11, '', 'forzar'],
   ['fermin-mulas', 6, Q('fermin'), 11, "h.escenas.vistas['minga-aldea'] = 1", 'forzar'],
   ['galpon-ronda', 6, E('galpon-propio', 3, 4), 6.5, "h.escenas.vistas['minga-aldea'] = 1", 'forzar'],
-  ['cuaderno-1', 7, E('refugio-puerta', 0, 0), 11, '', 'forzar'],
-  ['cuaderno-2', 7, E('refugio-puerta', 0, 0), 11, '', 'forzar'],
-  ['cuaderno-3', 7, E('refugio-puerta', 0, 0), 11, '', 'forzar'],
+  ['cuaderno-1', 7, L(0.2, 0.4, 1.1, -0.98), 11, '', 'forzar'],
+  ['cuaderno-2', 7, L(0.2, 0.4, 1.1, -0.98), 11, '', 'forzar'],
+  ['cuaderno-3', 7, L(0.2, 0.4, 1.1, -0.98), 11, '', 'forzar'],
   ['libreta-fiado', 7, Q('ercilia'), 11, '', 'forzar'],
   ['cuaderno-abuelo', 7, Q('ema'), 11, '', 'forzar'],
   ['los-del-cerro', 7, Q('belisario'), 11, '', 'forzar'],
@@ -280,9 +287,9 @@ app.whenReady().then(async () => {
         await N('(() => { if (H.volverAlJuego) H.volverAlJuego(); return 1 })()');
         await N(`(() => { const h = P.historia; N.preparar(${cap}); h.fase = 'jugando'; h.base = { dia: 1 }; h.hechos['mesa:nicanor'] = 1; h.hechos['ramal:derrumbe'] = 1; h.hechos['rueda:puente'] = 1; P.dia = Math.max(P.dia, 3); P.horas = ${hora}; h.decisiones.coihue = h.decisiones.coihue || 'a'; ${previo}; delete h.escenas.vistas[${JSON.stringify(id)}]; delete h.aplicadas[${JSON.stringify(id)}]; h.activa = false; return 1 })()`);   // (activa = false: que el juego no dispare solo otra escena mientras se acomoda)
         // dónde empieza el jugador
-        const q = lugar.npc ? `{ npc: ${JSON.stringify(lugar.npc)} }` : `{ p: ${JSON.stringify(lugar.p)} }`;
+        const q = lugar.loc ? '{}' : lugar.npc ? `{ npc: ${JSON.stringify(lugar.npc)} }` : `{ p: ${JSON.stringify(lugar.p)} }`;
         if (lugar.npc && ['fermin', 'belisario', 'tobias'].includes(lugar.npc)) await N(`N.armarCerca(${JSON.stringify(lugar.npc)})`);
-        let puesto = await N(`N.parar(${q}, ${lugar.dx}, ${lugar.dz}, true)`);
+        let puesto = lugar.loc ? await N(`N.enRefugio(${lugar.loc.join(', ')})`) : await N(`N.parar(${q}, ${lugar.dx}, ${lugar.dz}, true)`);
         if (!puesto && lugar.fb) puesto = await N(`N.parar({ p: ${JSON.stringify(lugar.fb.p)} }, ${lugar.fb.dx}, ${lugar.fb.dz}, true)`);
         if (!puesto) { console.log(`  (${id}: no hay dónde pararse: ${JSON.stringify(lugar)})`); continue; }
         await N('N.tick(1.0)');
