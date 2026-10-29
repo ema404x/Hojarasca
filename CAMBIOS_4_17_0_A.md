@@ -160,3 +160,10 @@ ver la escena, no hace falta un efecto. «Condición» y «efecto» sin registra
 - **noche-tras-ganar**: la cámara queda mirando un campo de nieve oscuro; sin las defensas (se desarman al terminar) la escena queda desnuda. Aceptable, sin arreglar.
 - **umbral-fin**: el picado sobre el umbral del primer capítulo; la ronda y el cartel «Refugio» se ven; no se miraron las variantes de pareja ni del final B.
 - **Sin ver**: el resto de las 52 escenas; la pareja; las escenas entre olas.
+
+## Resultado final (con la junta)
+- `npm run verify` de corrido: **322 pasos OK**. `verificar-4-17-0-historia-a.mjs`: 237 comprobaciones y 32 mutaciones atrapadas; `verificar-4-17-0-escenas-acto3.mjs` (de B): 22830 comprobaciones.
+- Humos de partida real (notebook, monitor externo): `humo-4-17-0-historia.cjs`, `humo-4-15-0-historia.cjs` y `humo-4-16-0-historia.cjs` en verde.
+- Programas de shader: 0 nuevos por la historia, el arreo, los blancos, las noches y los duendes del acto III (113 → 113 en las noches). Sigue **sin resolver** el 110 → 111 (galpón de esquila de día, igual que en el Relax libre) y el 111 → 113 al llegar de noche a tu galponcito después de ese paseo; en las secciones sueltas se queda en 110.
+- fps (sólo notebook, antes/después): sin la noche 32,6 ms de media (p95 43,9) y con la noche 33,7 (p95 42,7) en la última corrida, con la máquina cargada; otras corridas dieron 22–24 ms y la misma diferencia. 4600G sin medir.
+- Tiempos del tramo de la junta: ids, efectos y noche con escenas, 150 min; duendes, aliados, Ramón y el bastón, 70 min; humo y mirada a ojo (con el candado de Electron ocupado por C buena parte del tiempo), 200 min; el gate, 10 min.
