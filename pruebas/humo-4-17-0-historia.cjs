@@ -143,11 +143,14 @@ app.whenReady().then(async () => {
     } catch (e) { if (intento === 2) console.log(`  (captura ${nombre} no se pudo: ${e && e.message})`); }
   };
   // una partida de Historia nueva, ya adentro y con la tarjeta del capítulo 1 cerrada
+  let entrado = false, progTrasObra = 0;
   const entrar = async (extra) => {
+    entrado = true;
     await abrir('historia', extra);
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
     await js(PAGINA);
+    await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo
     await N('N.tick(2.5)');
     await N('N.hasta(() => N.tarjeta(), 12)');
     await N('N.elegir("empezar")'); await N('N.tick(1.5)');
@@ -181,9 +184,10 @@ app.whenReady().then(async () => {
   try {
     // pone la historia en el capítulo `cap` (0..12) con lo anterior cerrado; fase 'jugando' y base del día actual
     const IDS = ['llave', 'bolsa', 'mesa', 'ramal', 'rueda', 'perdido', 'cosecha', 'cuaderno', 'frios', 'golpea', 'arco', 'nevada', 'deshielo'];
+    const cerrarTarjetas = async () => { for (let k = 0; k < 3 && (await N('!!N.tarjeta()')); k++) { await N('(() => { const b = document.querySelector("#valle-tarjeta button[data-valle-opcion]"); if (b) b.click(); return 1 })()'); await N('N.tick(0.6)'); } };
     const prep = (cap, o = {}) => N(`(() => {
       const h = P.historia, ids = ${JSON.stringify(IDS)};
-      h.activa = true; h.empezada = 1; h.version = 2; h.capitulo = ${cap}; h.fase = '${o.fase || 'jugando'}'; h.base = { dia: P.dia, talados: 0, cocinadas: 0, cantos: 0 }; h.hechos = {}; h.momentos = {}; h.cerrados = {};
+      h.activa = true; h.empezada = 1; h.version = 2; h.acompanante = ${JSON.stringify(o.acompanante || null)}; h.capitulo = ${cap}; h.fase = '${o.fase || 'jugando'}'; h.base = { dia: P.dia, talados: 0, cocinadas: 0, cantos: 0 }; h.hechos = {}; h.momentos = {}; h.cerrados = {};
       ids.slice(0, ${cap}).forEach((k) => { h.cerrados[k] = P.dia - 1; });
       Object.assign(h.decisiones, ${JSON.stringify(o.decisiones || {})}); Object.assign(h.duendes, ${JSON.stringify(o.duendes || {})});
       for (const e of ${JSON.stringify(o.vistas || [])}) h.escenas.vistas[e] = P.dia;
@@ -219,11 +223,13 @@ app.whenReady().then(async () => {
     if (toca(1)) {
       donde = 'capítulo 9';
       console.log('— 1. capítulo 9: Ramón en cama, la majada (D5) y el arreo');
-      if (!(await N('P.historia.activa'))) await entrar({ estacion: 'invierno' });
+      if (!entrado) await entrar({ estacion: 'invierno' });
       await prep(8, { horas: 10 });
       await N('(() => { P.cosas.hacha = 1; return 1 })()');
       const pu = await N('H.__puntosHistoria().puesto'); ok(!!pu, 'el Puesto Alto tiene lugar');
+      console.log('  [prog] antes del Puesto Alto', await N('N.programas()'));
       await N(`N.ir(${pu.x + 4}, ${pu.z + 4}, 0)`); await N('N.tick(1.2)');
+      console.log('  [prog] en el Puesto Alto', await N('N.programas()'));
       await N('N.hasta(() => P.historia.escenas.vistas["ramon-cama"], 14)');
       ok(await N('!!P.historia.escenas.vistas["ramon-cama"]'), 'ramon-cama se dispara en el Puesto Alto');
       ok((await N('P.historia.acompanante')) === 'ramon', 'Ramón queda de acompañante');
@@ -232,17 +238,20 @@ app.whenReady().then(async () => {
       ok((await N('P.historia.decisiones.majada')) === 'a', 'D5 = que se la lleve Fermín');
       await N('N.hasta(() => H.__arreo() && H.__arreo().activo(), 10)');
       ok(await N('!!(H.__arreo() && H.__arreo().activo())'), 'aparecen las ovejas en el corral');
+      console.log('  [prog] con las ovejas en el corral', await N('N.programas()'));
       await foto('1b-ovejas-corral');
       const gx = await N('H.__puntosHistoria().galpon');
       // vamos delante, hacia el galpón de esquila, de a pasos; las ovejas siguen
-      for (let i = 1; i <= 40 && !(await N('P.historia.temas["arreo:galpon-esquila"] !== undefined')); i++) {
-        const x = pu.x + (gx.x - pu.x) * (i / 40), z = pu.z + (gx.z - pu.z) * (i / 40);
+      const pasos = Math.ceil(Math.hypot(gx.x - pu.x, gx.z - pu.z) / 3.4);
+      for (let i = 1; i <= pasos + 6 && !(await N('P.historia.temas["arreo:galpon-esquila"] !== undefined')); i++) {
+        const k = Math.min(1, i / pasos), x = pu.x + (gx.x - pu.x) * k, z = pu.z + (gx.z - pu.z) * k;
         await N(`N.ir(${x}, ${z}, Math.atan2(${-(gx.x - pu.x)}, ${-(gx.z - pu.z)}))`); await N('N.tick(0.9)');
-        if (i === 20) await foto('1c-arreo-camino');
+        if (i === Math.floor(pasos / 2)) await foto('1c-arreo-camino');
       }
       await N('N.tick(2)');
       ok(await N('P.historia.temas["arreo:galpon-esquila"] !== undefined'), 'la majada llegó al galpón de esquila');
       ok(await hecho('frios:cumplir'), 'el objetivo del arreo se tilda');
+      console.log('  [prog] llegó la majada', await N('N.programas()'));
       await foto('1d-majada-llego');
       await vigilar('capítulo 9');
     }
@@ -251,18 +260,22 @@ app.whenReady().then(async () => {
     if (toca(2)) {
       donde = 'capítulo 10';
       console.log('— 2. capítulo 10: golpear la puerta del galpón y decidir (D6)');
-      if (!(await N('P.historia.activa'))) await entrar({ estacion: 'invierno' });
+      if (!entrado) await entrar({ estacion: 'invierno' });
       await N('(() => { P.cosas.hacha = 1; return 1 })()');
       await prep(9, { horas: 23.2, decisiones: { bolsa: 'a', molienda: 'c', coihue: 'a' } });
       await N('(() => { const O = H.obras; return 1 })()');
       await N('N.hasta(() => N.tarjeta(), 8)'); await N('N.elegir("empezar")'); await N('N.tick(1)');
+      { const ref = await N('H.__puntosHistoria().refugio'); const pAntes = await N('N.programas()'); const r = await N(`N.levantar('galponcito', N.alrededor(${ref.x}, ${ref.z}, [16, 20, 24], 12))`); console.log('  [galponcito]', JSON.stringify(r), `programas ${pAntes} → ${await N('N.programas()')} al construirlo (pasa igual en el Relax libre)`); await N('N.tick(1.5)'); progVisto = progTrasObra = await N('N.programas()'); }
       const g = await N('H.__puntosHistoria()["galpon-noche"]'); ok(!!g, 'hay un galpón de la noche (el tuyo o la puerta del refugio)');
-      await N(`N.ir(${g.x + 2.5}, ${g.z + 2.5}, 0)`); await N('N.tick(1)');
+      console.log('  [prog]', 'antes de ir al galpón', await N('N.programas()'));
+      await N(`N.ir(${g.x + 1.2}, ${g.z + 1.2}, 0)`); await N('N.tick(1)');
+      console.log('  [prog]', 'en el galpón de noche', await N('N.programas()'));
       await N('N.hasta(() => { const c = H.__objetoHistoriaCerca(); return c && /Golpear/.test(c.aviso); }, 8)');
       const av = await N('(() => { const c = H.__objetoHistoriaCerca(); return c ? c.aviso : null })()');
       ok(av && /Golpear/.test(av), `la E dice «${av}» (no «Abrir»)`);
       await foto('2a-golpear');
       await N('N.tecla("KeyE")'); await N('N.tick(0.8)'); await N('N.despejar(6)');
+      console.log('  [prog]', 'tras golpear', await N('N.programas()'));
       ok(await N('!!P.historia.escenas.vistas.golpe'), 'golpe: hecho');
       await N('N.hasta(() => P.historia.escenas.vistas.encuentro, 10)'); await N('N.despejar(70, { avanzar: true, eleccion: { duendes: "Digit1" } })');
       if (!(await N('P.historia.decisiones.duendes'))) {
@@ -270,6 +283,7 @@ app.whenReady().then(async () => {
         ok(dec && dec.opciones.length === 3, `sale la decisión D6 (${dec && dec.titulo})`);
         await foto('2b-decision-duendes'); await N('N.tecla("Digit1")'); await N('N.tick(1)');
       }
+      console.log('  [prog] tras D6', await N('N.programas()'));
       ok((await N('P.historia.decisiones.duendes')) === 'a' && (await N('P.historia.duendes.trato')) === 'trato', 'D6 = trato');
       await vigilar('capítulo 10');
     }
@@ -278,7 +292,7 @@ app.whenReady().then(async () => {
     if (toca(3)) {
       donde = 'capítulo 11';
       console.log('— 3. capítulo 11: blancos de paja (arco) y latas (honda)');
-      if (!(await N('P.historia.activa'))) await entrar({ estacion: 'invierno' });
+      if (!entrado) await entrar({ estacion: 'invierno' });
       await N('(() => { window.__sinPausaPorBlur = true; return 1 })()');
       await prep(10, { horas: 12, decisiones: { majada: 'a' }, hechos: ['arco:tito', 'arco:cuerda', 'arco:puntas', 'arco:plumas', 'arco:fermin', 'arco:cantos'] });
       await N('N.hasta(() => N.tarjeta(), 8)'); if (await N('N.tarjeta()')) { await N('N.elegir("empezar")'); await N('N.tick(1)'); }
@@ -305,6 +319,7 @@ app.whenReady().then(async () => {
       ok(await N('P.historia.duendes.armas.arco === true'), 'con cinco blancos el arco es tuyo');
       await tirar('esquila', 'galpon');
       ok(await N('P.historia.duendes.armas.honda === true'), 'con cinco latas la honda es tuya');
+      await N('N.tick(1.2)');
       ok(await hecho('arco:blancos-paso') && await hecho('arco:blancos-esquila'), 'los dos objetivos se tildan');
       await vigilar('capítulo 11');
     }
@@ -313,11 +328,12 @@ app.whenReady().then(async () => {
     if (toca(4)) {
       donde = 'capítulo 12';
       console.log('— 4. capítulo 12: la noche de la nevada (trato: los del cerro, y pelea)');
-      if (!(await N('P.historia.activa'))) await entrar({ estacion: 'invierno' });
+      if (!entrado) await entrar({ estacion: 'invierno' });
       await N('(() => { window.__sinPausaPorBlur = true; P.cosas.hacha = 1; return 1 })()');
       const antes = await N('N.programas()');
       for (const modo of ['trato', 'pelea']) {
         console.log(`  · modo ${modo}`);
+        for (let k = 0; k < 3 && (await N('!!N.tarjeta()')); k++) { await N('(() => { const t = N.tarjeta(); const b = document.querySelector("#valle-tarjeta button[data-valle-opcion]"); if (b) b.click(); return 1 })()'); await N('N.tick(0.6)'); }   // (cierra la tarjeta del capítulo que quedó de la vuelta anterior)
         await prep(11, { horas: 22.1, decisiones: { bolsa: 'a', molienda: 'c', coihue: 'c', cuaderno: 'a', majada: 'a', duendes: modo === 'trato' ? 'b' : 'c' },
           duendes: { trato: modo, noche: 'pendiente', armas: { arco: true, honda: true } }, vistas: ['espera'], hechos: ['nevada:comer', 'nevada:estacion'] });
         await N('(() => { const h = P.historia; for (const k of ["herrero","apicultor","maquinista","guarda"]) h.prestado[k] = true; h.lazos.ema = 2; h.lazos.fermin = 2; h.lazos.ramon = 2; return 1 })()');
@@ -325,6 +341,7 @@ app.whenReady().then(async () => {
         await N(`N.ir(${g.x + 1}, ${g.z + 1}, 0)`);
         await N('N.hasta(() => H.__noche() && H.__noche().activa(), 14)');
         ok(await N('!!(H.__noche() && H.__noche().activa())'), 'la noche empieza sola al terminar la escena de la espera');
+        if (!(await N('!!(H.__noche() && H.__noche().activa())'))) console.log('  [diag noche]', JSON.stringify(await N('({ fase: P.historia.fase, cap: P.historia.capitulo, noche: P.historia.duendes.noche, tarjeta: N.tarjeta() && N.tarjeta().titulo, escena: H.__escenas.activa(), horas: P.horas, activa: P.historia.activa, lug: H.__valle.estado().lugares["galpon-noche"], vehiculo: !!(H.jugador.estado.enTren || H.jugador.estado.enKayak || H.jugador.estado.enVela || H.jugador.estado.montado), modo: H.modo && H.modo() })')));
         await N('N.tick(4)');
         const hud = await N('H.__noche().hud()'); ok(hud && hud.ola === 1, `ola ${hud && hud.ola} de 3 en el panel`);
         const dis = await N('(() => { const d = H.__noche().dis; return { miel: d.miel.length, emp: !!d.empalizada, tramos: d.tramos.length, ux: d.ux, uz: d.uz } })()');
@@ -352,6 +369,7 @@ app.whenReady().then(async () => {
         await foto(`4c-amanecer-${modo}`);
       }
       // «Que amanezca»
+      await cerrarTarjetas();
       await prep(11, { horas: 22.1, decisiones: { cuaderno: 'a' }, duendes: { trato: 'pelea', noche: 'pendiente' }, vistas: ['espera'] });
       const g2 = await N('H.__puntosHistoria()["galpon-noche"]'); await N(`N.ir(${g2.x + 1}, ${g2.z + 1}, 0)`);
       await N('N.hasta(() => H.__noche() && H.__noche().activa(), 14)'); await N('N.tick(3)');
@@ -368,8 +386,8 @@ app.whenReady().then(async () => {
     if (toca(5)) {
       donde = 'capítulo 13';
       console.log('— 5. capítulo 13: el último día, el final A (trato) y la costumbre de la bolsa');
-      if (!(await N('P.historia.activa'))) await entrar({ estacion: 'invierno' });
-      await prep(12, { horas: 7.5, decisiones: { majada: 'a', cuaderno: 'a' }, duendes: { trato: 'trato', noche: 'ganada' }, vistas: ['carpeta', 'majada-fin', 'josefina-fin'] });
+      if (!entrado) await entrar({ estacion: 'invierno' });
+      await prep(12, { horas: 7.5, decisiones: { majada: 'a', cuaderno: 'a' }, duendes: { trato: 'trato', noche: 'ganada' }, vistas: ['carpeta', 'majada-fin', 'josefina-fin'], hechos: ['deshielo:fiesta'] });
       await N('(() => { P.historia.ramal = 10; P.dia += 1; return 1 })()');
       const rp = await N('H.__puntosHistoria()["refugio-puerta"]'); await N(`N.ir(${rp.x}, ${rp.z + 1}, 0)`);
       await N('N.hasta(() => P.historia.escenas.vistas["umbral-fin"], 14)'); await N('N.despejar(8)');
@@ -390,7 +408,7 @@ app.whenReady().then(async () => {
     if (toca(6)) {
       donde = 'fps';
       console.log('— 6. cuadros de la noche (notebook: sólo antes/después)');
-      if (!(await N('P.historia.activa'))) await entrar({ estacion: 'invierno' });
+      if (!entrado) await entrar({ estacion: 'invierno' });
       await N('(() => { window.__sinPausaPorBlur = true; return 1 })()');
       const medir = (seg) => N(`(async () => { const t = []; const t0 = performance.now(); let u = performance.now(); while (performance.now() - t0 < ${seg * 1000}) { H.__bucle(); const a = performance.now(); t.push(a - u); u = a; await new Promise((r) => requestAnimationFrame(r)); } t.shift(); t.sort((a, b) => a - b); return { n: t.length, media: t.reduce((s, x) => s + x, 0) / t.length, p95: t[Math.floor(t.length * 0.95)], llamadas: H.renderer.info.render.calls, tri: H.renderer.info.render.triangles } })()`);
       await prep(11, { horas: 22.1, decisiones: { cuaderno: 'a', coihue: 'c' }, duendes: { trato: 'trato', noche: 'pendiente', armas: { arco: true, honda: true } }, vistas: ['espera'] });
@@ -404,10 +422,25 @@ app.whenReady().then(async () => {
       ok(noche.p95 - base.p95 < 6, `la noche no se nota de más en el p95 (${(noche.p95 - base.p95).toFixed(1)} ms)`);
     }
 
+    // ================================================================ D. el control: los mismos lugares, de día y de noche, en el Relax libre (sin historia)
+    if (toca('D')) {
+      donde = 'diagnóstico';
+      console.log('— D. control: el Relax libre en invierno, de día por el puesto y el galpón de esquila, y de noche en el refugio');
+      await abrir('libre', { estacion: 'invierno' });
+      await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(3000); await js(PAGINA);
+      await js('window.__sinPausaPorBlur = true; 1'); await N('N.tick(2)');
+      await N('(() => { P.dia = 7; P.horas = 11; return 1 })()');
+      console.log('  [libre] al empezar:', await N('N.programas()'));
+      for (const k of ['puesto', 'galpon', 'molino-viejo', 'puesto-paso']) { const p = await N(`H.__puntosHistoria()["${k}"]`); if (!p) continue; await N(`N.ir(${p.x + 4}, ${p.z + 4}, 0)`); await N('N.tick(1.5)'); console.log(`  [libre, día] ${k}:`, await N('N.programas()')); }
+      await N('(() => { P.horas = 23.2; return 1 })()');
+      const g = await N('H.__puntosHistoria()["refugio-puerta"]'); await N(`N.ir(${g.x + 1}, ${g.z + 3}, 0)`); await N('N.tick(2)');
+      console.log('  [libre, noche] refugio:', await N('N.programas()'));
+    }
+
     // ================================================================ 7. los shaders y la consola
     donde = 'cierre';
     const prog = await N('N.programas()');
-    if (!SOLO.length) ok(prog <= 111, `programas de shader: ${prog} (110 de base; el molino viejo de día suma uno en cualquier partida)`);
+    if (!SOLO.length) ok(prog <= (progTrasObra || 111), `programas de shader: ${prog} (110 de base; +1 el molino viejo de día y lo que suma construir el galponcito: pasan igual en el Relax libre; la historia, el arreo, los blancos y las noches suman 0)`);
   } catch (err) {
     console.log('ERROR:', err && err.stack || err);
     errores.push(String(err && err.message || err));

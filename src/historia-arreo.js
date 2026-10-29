@@ -1,7 +1,7 @@
 // 4.17.0: el arreo de la majada de Ramón (capítulo 9, D5 = a o c). Reglas PURAS (se prueban en Node): las ovejas siguen al que va adelante (vos, a caballo o a pie) si no se
 // alejó mucho; no hay física: cada oveja camina derecho hacia un punto detrás tuyo, con una separación mínima entre ellas. La majada llega cuando vos y la mayoría están
 // cerca del destino (el galpón de esquila con D5 = a; el Puesto del Paso con D5 = c). Sin corral que se rompa, sin ovejas que se pierdan: si te alejás, esperan.
-export const ARREO = { ovejas: 7, radioLlegada: 16, cerca: 22, sigue: 26, vel: 2.7, velCaballo: 4.2, separacion: 1.5, detras: 3.2, minimas: 5 };
+export const ARREO = { ovejas: 7, radioLlegada: 16, cerca: 22, sigue: 26, vel: 4.6, velCaballo: 6.5, separacion: 1.5, detras: 3.2, minimas: 5 };
 export const DESTINOS_ARREO = { a: { destino: 'galpon-esquila', punto: 'galpon' }, c: { destino: 'puesto-paso', punto: 'puesto-paso' } };
 
 export function crearArreo({ origen, destino, n = ARREO.ovejas, azar = Math.random }) {

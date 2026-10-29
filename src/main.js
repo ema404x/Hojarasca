@@ -2236,7 +2236,7 @@ function presenciaHistoria() {
 let nocheMundo = null;
 function nocheDelMundo() {
   if (esDesafio) return null;
-  if (!nocheMundo) nocheMundo = crearNocheMundo({ T, escena, camara, col, sonido, jugador: () => jugador, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
+  if (!nocheMundo) nocheMundo = crearNocheMundo({ T, escena, camara, col, sonido, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
   return nocheMundo;
 }
 // 4.15.0: dónde están las cosas de la Historia nueva. Los puntos con nombre del mundo (y de la aldea); se recalculan cada medio segundo con la
