@@ -236,7 +236,7 @@ app.whenReady().then(async () => {
     const conEscena = await N('H.__escenas.director.hay("bolsa-alero")');
     if (conEscena) {
       const eleccion = await N('(async () => { await N.hasta(() => { const d = H.__escenas.director.datos(); if (d && d.dialogo) { N.tecla("Enter"); } return d && d.eleccion; }, 60); const d = H.__escenas.director.datos(); return d && d.eleccion ? { opciones: d.eleccion.opciones.map((o) => o.texto), pregunta: d.eleccion.pregunta } : null })()');
-      ok(eleccion && eleccion.opciones.length === 3, 'sale la pregunta de la bolsa con tres opciones: ' + (eleccion && eleccion.opciones.join(' / ')));
+      ok(eleccion && eleccion.opciones.length === 2 && !/Rosa/.test(eleccion.opciones.join(' ')), 'sale la pregunta de la bolsa con dos opciones, sin la de Rosa (todavía no vive en la aldea): ' + (eleccion && eleccion.opciones.join(' / ')));   // (4.16.0: antes tenía tres)
       await foto('7-decision-bolsa');
       await N('N.tecla("Digit1")');
       await N('N.tick(1)');

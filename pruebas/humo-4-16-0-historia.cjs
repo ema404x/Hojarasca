@@ -44,13 +44,15 @@ const PAGINA = String.raw`(() => {
   };
   N.elegir = (id) => { const b = document.querySelector('#valle-tarjeta button[data-valle-opcion="' + id + '"]'); if (b) b.click(); return !!b; };
   // saltea las escenas que haya (si el otro agente ya las escribió): la primera opción de cada pregunta y Esc dos veces
-  N.despejar = async (maxSeg = 6) => {
+  // o.avanzar: no se saltea la escena, se la lee con Enter hasta el final (para las que toman una decisión); o.eleccion: { id de la pregunta: tecla }
+  N.despejar = async (maxSeg = 6, o = {}) => {
     const t0 = performance.now();
     while (performance.now() - t0 < maxSeg * 1000) {
       const es = H.__escenas;
       if (es && es.activa()) {
         const d = es.director.datos && es.director.datos();
-        if (d && d.eleccion) { N.tecla('Digit1'); await N.tick(0.3); }
+        if (d && d.eleccion) { N.tecla((o.eleccion && o.eleccion[d.eleccion.id]) || 'Digit1'); await N.tick(0.3); continue; }
+        if (o.avanzar) { N.tecla('Enter'); await N.tick(0.25); continue; }
         if (es.director.fase() === 'corriendo') N.tecla('Escape');
         await dormir(120);
         if (es.activa() && es.director.fase() === 'corriendo') N.tecla('Escape');
@@ -165,6 +167,19 @@ app.whenReady().then(async () => {
     await N('N.hasta(() => N.tarjeta(), 12)');
     if (!(await N('N.tarjeta()'))) console.log('  [preparar sin tarjeta]', JSON.stringify(await N('N.diag()')), JSON.stringify(await N('N.diagEscena()')));
   };
+  // una decisión grande: con la escena de B, sale de la escena (se la lee y se contesta la pregunta); sin escena, sale la tarjeta de respaldo
+  const decidir = async (id, digito, titulo, nombreFoto) => {
+    await N(`N.despejar(70, { avanzar: true, eleccion: { ${id}: 'Digit${digito}' } })`);
+    let por = 'la escena';
+    if (!(await N(`P.historia.decisiones.${id}`))) {
+      por = 'la tarjeta de respaldo';
+      const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
+      ok(dec && dec.titulo === titulo && dec.opciones.length === 3, `sale la decisión «${titulo}» (${dec && dec.titulo})`);
+      if (nombreFoto) await foto(nombreFoto);
+      await N(`N.tecla("Digit${digito}")`); await N('N.tick(1)');
+    }
+    console.log(`  (la decisión ${id} salió de ${por})`);
+  };
   const empezar = async () => { await N('N.elegir("empezar")'); await N('N.tick(1)'); };
   const hecho = (obj) => N(`P.historia.hechos[${JSON.stringify(obj)}] !== undefined`);
   const decirTarjeta = async () => { const t = await N('N.tarjeta()'); return t ? `${t.titulo} · ${t.arriba}` : 'sin tarjeta'; };
@@ -231,11 +246,8 @@ app.whenReady().then(async () => {
       await N('N.tick(1.5)');
       ok(await hecho('rueda:molino'), 'el molino terminado tilda el objetivo');
       // la decisión del coihue (Tito, respaldo con tarjeta): Pirca con Tobías (C)
-      await N(`N.ir(${mv.x + 5}, ${mv.z + 5}, 0)`); await N('N.tick(1.5)'); await N('N.despejar(8)');
-      const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
-      ok(dec && dec.titulo === 'El coihue de las puertitas' && dec.opciones.length === 3, `sale la decisión del coihue (${dec && dec.titulo})`);
-      await foto('1b-decision-coihue');
-      await N('N.tecla("Digit3")'); await N('N.tick(1)');
+      await N(`N.ir(${mv.x + 5}, ${mv.z + 5}, 0)`); await N('N.tick(1.5)');
+      await decidir('coihue', 3, 'El coihue de las puertitas', '1b-decision-coihue');
       ok((await N('P.historia.decisiones.coihue')) === 'c' && (await N('P.historia.lazos.ema')) === 1, 'elegir la pirca: queda guardada y Josefina +1');
       ok((await N('N.panel().texto')).includes('Tobías'), 'el panel dice lo que hay que cumplir: llevarle piedras a Tobías');
       // Tobías: diez piedras, y te sigue a pie
@@ -385,7 +397,7 @@ app.whenReady().then(async () => {
       await N('(() => { H.jugador.estado.sentado = false; return 1 })()');
       await vigilar('guardia');
       // la mañana: las huellas en la escarcha
-      await N('(() => { P.horas = 6.2; return 1 })()'); await N('N.tick(1.2)');
+      await N('(() => { P.horas = 8.3; return 1 })()'); await N('N.tick(1.2)');
       const hv = await N('(() => { const o = H.__historiaObjetos(); return { huellas: !!o.mallas.huellas && o.mallas.huellas.visible, yerba: !!o.mallas["yerba-raiz"] && o.mallas["yerba-raiz"].visible, n: o.mallas.huellas ? o.mallas.huellas.geometry.getAttribute("position").count : 0 } })()');
       ok(hv.huellas && hv.yerba, `a la mañana se ven las huellas en la escarcha (${hv.n} vértices) y el puñado de yerba ${JSON.stringify(hv)}`);
       await N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones.huellas; const p = H.__puntosHistoria()["raiz-ramon"]; const a = Math.atan2(p.x - q.x, p.z - q.z); N.ir(q.x - Math.sin(a) * 4, q.z - Math.cos(a) * 4, a + Math.PI); return 1 })()`);
@@ -436,11 +448,8 @@ app.whenReady().then(async () => {
       ok(await hecho('cosecha:galpon'), 'el galponcito tilda el objetivo');
       // D3: la primera molienda (tarjeta de respaldo): el fiado de invierno
       await N(`(() => { P.horas = 11; const q = ${JSON.stringify(mol)}; N.ir(q.x + 2.5, q.z + 2.5, 0); return 1 })()`);
-      await N('N.tick(1.5)'); await N('N.despejar(8)');
-      const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
-      ok(dec && dec.titulo === 'La primera molienda' && dec.opciones.length === 3, `sale la decisión de la primera molienda (${dec && dec.titulo})`);
-      await foto('4a-decision-molienda');
-      await N('N.tecla("Digit2")'); await N('N.tick(1)');
+      await N('N.tick(1.5)');
+      await decidir('molienda', 2, 'La primera molienda', '4a-decision-molienda');
       ok((await N('P.historia.decisiones.molienda')) === 'b' && (await N('P.historia.lazos.ercilia')) === 2, 'el fiado: queda guardado y Ercilia +2');
       ok((await N('N.panel().texto')).includes('seis medidas'), 'el panel pide llevar seis medidas de harina a Ercilia');
       // la harina a Ercilia
@@ -499,11 +508,8 @@ app.whenReady().then(async () => {
       ok(await hecho('cuaderno:ramon'), 'Ramón al atardecer, en el banco de su puerta');
       // el fogón de la aldea: contar o callar
       await N('(() => { P.horas = 21; const q = H.__puntosHistoria().plaza; N.ir(q.x + 2, q.z + 2, 0); return 1 })()');
-      await N('N.tick(1.5)'); await N('N.despejar(8)');
-      const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
-      ok(dec && dec.titulo === 'Contar o callar' && dec.opciones.length === 3, `en el fogón sale la decisión (${dec && dec.titulo})`);
-      await foto('5a-decision-cuaderno');
-      await N('N.tecla("Digit2")'); await N('N.tick(1)');
+      await N('N.tick(1.5)');
+      await decidir('cuaderno', 2, 'Contar o callar', '5a-decision-cuaderno');
       ok((await N('P.historia.decisiones.cuaderno')) === 'b' && (await N('P.historia.lazos.ema')) === 2 && (await N('P.historia.lazos.ramon')) === 1, 'callar: Josefina +2 y Ramón +1');
       const out = await N('(async () => { await N.hasta(() => N.tarjeta() && /terminado/.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
       ok(out && out.titulo === 'El cuaderno de Eusebio' && /primera nieve/.test(out.texto) && /poncho viejo/.test(out.premio || out.texto || ''), `la tarjeta de cierre con el premio de lo decidido (${out && out.titulo})`);
