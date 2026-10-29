@@ -11838,7 +11838,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.5.4: jugando sin el mouse bloqueado (el bloqueo falló al volver con Esc, o el modo de
     // arrastrar para mirar) no llegaba la pausa de "soltaste el mouse": con Alt+Tab, la tecla de
     // Windows u otra ventana encima, la noche del Desafío seguía sin vos. Ahora se pausa igual.
-    if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa) abrir('pausa');
+    // 4.17.0 (A): con ?debug=1 las partidas de prueba pueden pedir `window.__sinPausaPorBlur`: la ventana de Electron pierde el foco y la noche se pausaba sola
+    if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa && !(HOJARASCA_DEBUG && window.__sinPausaPorBlur)) abrir('pausa');
   });
   // 3.5.4: la compu se suspende o se bloquea la pantalla (lo avisa main.cjs): pausa
   window.hojarasca?.alPedirPausa?.(() => { if (modo === 'jugando' && jugador && !banco.activa) abrir('pausa'); });
@@ -11975,6 +11976,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__escenas = escenasMundo;   // 4.14.0 (QA): el director de escenas
   if (HOJARASCA_DEBUG) Object.assign(window.__hojarasca, { __historiaObjetos: () => objetosHist, __distanciasHistoria: () => ({ ...distanciasHistoria() }), __puntosHistoria: () => ({ ...puntosDeHistoria() }), __objetoHistoriaCerca: () => historiaObjetoCerca(), __puertaHistoria: () => historiaPuertaCerca(), __graciela: () => gracielaMundo });   // 4.15.0 (QA): los objetos de la Historia nueva
   if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__arreo = () => arreoMundo;   // 4.17.0
   if (HOJARASCA_DEBUG) { window.__hojarasca.__duendesHist = () => duendesHist; window.__hojarasca.__presencia = () => presenciaHist; }   // 4.13.0 (A)   // 4.13.0 (B)
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__preguntaLento = preguntaLento;   // 3.8.4
