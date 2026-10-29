@@ -196,5 +196,8 @@ export function crearNocheUi(ctx, tarjetas, util) {
 
   // 4.17.0: los blancos de práctica del capítulo 11 (los maneja el mundo de la noche: historia-noche-mundo.js)
   const practicar = (dt, donde) => (mundo?.practicar ? mundo.practicar(dt, donde) : 0);
-  return { practicar, actualizar, ofrecer, empezar, interviene, activa, hud, dibujarHud, mostrarPerdida, amanecer, esperar: (s) => { espera = s; }, get espera() { return espera; } };
+  // 4.17.1: dejar la noche a medias («Dejar la historia en pausa»): historia-ui.js la llamaba y no existía (TypeError: el botón no hacía nada).
+  // El mundo termina la noche como abandono: suelta duendes y aliados y alTerminar devuelve la hora de antes
+  const abandonar = () => { if (activa()) mundo.abandonar(); };
+  return { practicar, actualizar, ofrecer, empezar, interviene, activa, abandonar, hud, dibujarHud, mostrarPerdida, amanecer, esperar: (s) => { espera = s; }, get espera() { return espera; } };
 }
