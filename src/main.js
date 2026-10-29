@@ -274,7 +274,9 @@ import { resolverColocacion } from './historia-colocacion.js';
 import { COLOCACION_ESCENA } from './historia-disparadores.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
-import { crearGracielaMundo, DEF_GRACIELA } from './historia-graciela.js';
+import { crearGracielaMundo } from './historia-graciela.js';
+// 4.17 C: la ficha de Graciela, para armarla de invitada en las escenas del capítulo 7
+import { DEF_GRACIELA } from './historia-graciela.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
