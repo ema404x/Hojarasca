@@ -2405,10 +2405,12 @@ function efectoDuendeHistoria(id, args) {
 // 4.17 C: los invitados de la Historia. Tito (el carpintero), Sofía (la fotógrafa), Herminia, Rosa… no siempre están en la aldea (llegan de a poco, o están durmiendo
 // o lejos): si una escena los pide y no hay nadie con esa clave, se arma una figura con la ficha de la aldea (POBLADORES_ALDEA o VECINOS_ALDEA) sólo mientras dura la
 // escena; si ya viven ahí, es la de siempre.
+// (sólo los que una escena necesita ver y no está: Tito, Sofía, Herminia y Rosa; los que sólo se miran de pasada, como Nélida en el almacén, no se arman: taparían la cámara)
+const INVITABLES_HIST = new Set(['carpintero', 'fotografa', 'abuela', 'panadera']);
 const invitadosHist = new Map();
 function invitadoDeHistoria(clave) {
   try {
-    if (typeof clave !== 'string') return null;
+    if (typeof clave !== 'string' || !INVITABLES_HIST.has(clave)) return null;
     if (invitadosHist.has(clave)) return invitadosHist.get(clave);
     const P = Object.hasOwn(POBLADORES_ALDEA, clave) ? POBLADORES_ALDEA[clave] : Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : null;
     if (!P || !gente?.agregarPoblador || !jugador) return null;

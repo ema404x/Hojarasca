@@ -19,7 +19,7 @@ const lucesNicanor = {
   personajes: pj('nicanor', 'narra'),
   disparador: { hora: [19.5, 21.5] },
   pasos: [
-    plano('general', { lugar: 'muelle' }, { dist: 15, alto: 3.4, dur: 3.2, mezcla: 0.9 }),
+    plano('general', { lugar: 'muelle' }, { dist: 13, alto: 4, dur: 3.2, mezcla: 0.9 }),
     narra('El sol se va por el lado de la cordillera y el faro, lejos, es un puntito. El agua está tan quieta que parece una segunda tarde puesta cabeza abajo.'),
     aparece('nicanor', { lugar: 'muelle', dx: -2.5, dz: 1.2 }),
     plano('medio', 'nicanor', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
@@ -245,7 +245,7 @@ const fotoSofia = {
       linea('Dejame ver eso.', { gesto: gs('mirar', 1.6) }),
       'Está movida. Muy movida. Bien movida: no hay una sola cosa nítida.',
     ]),
-    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 0.8, alto: 1.2, dur: 3.2, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.3, alto: 1.6, miraY: 1.15, dur: 3.2, mezcla: 0.8 }),   // (4.17.0: a 1,2 m del suelo el pasto tapaba la foto)
     narra('Sofía acerca la foto a la luz de la ventana, la aleja, la acerca otra vez. Con una lupa señala una de las manchas doradas.'),
     dlg('sofia', [
       linea('Esto no es una mancha.', { gesto: gs('senalar', 2) }),

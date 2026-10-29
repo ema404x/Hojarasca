@@ -256,6 +256,7 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   ok(/col\.resolver\(bola, DESPEJE\.radio, 0\.7\)/.test(em) && /minimo: 1\.3/.test(em) && /bajo: 0\.45/.test(em), 'con una bolita contra las colisiones del juego, un mínimo de 1,3 m y sin bajar del suelo');
   ok(/if \(!n && ctx\.armarYa\)/.test(em), 'capturar pide a Fermín, Belisario, Tobías y los invitados si no están armados');
   ok(/armarYa: \(k\) => genteCampoMundo\?\.armarYa\?\.\(k\) \|\| invitadoDeHistoria\(k\)/.test(main) && /alTerminar: \(\) => \{ quitarInvitadosHistoria\(\);/.test(main), 'main.js los pasa y quita a los invitados al terminar la escena');
+  ok(/const INVITABLES_HIST = new Set\(\['carpintero', 'fotografa', 'abuela', 'panadera'\]\);[\s\S]{0,200}!INVITABLES_HIST\.has\(clave\)\) return null/.test(main), 'sólo se arman invitados para Tito, Sofía, Herminia y Rosa (los que una escena necesita ver; Nélida de pasada taparía la cámara)');
   ok(/function armarYa\(k\)/.test(leer('src/gente-campo-mundo.js')) && /return \{ actualizar, npcDe, armarYa,/.test(leer('src/gente-campo-mundo.js')), 'gente-campo-mundo.js sabe armar a uno ya');
   {
     // por conducta: crearEscenasMundo con un mundo de mentira cuya colisión empieza a 3 m de la cámara
@@ -292,6 +293,18 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
     const dMin = Math.hypot(camara.position.x, camara.position.z);
     ok(dMin >= 1.2, `con el obstáculo pegado a lo que mira la cámara no se pega al foco (${dMin.toFixed(2)} m)`);
     em2.saltar();
+    for (let i = 0; i < 90; i++) em2.actualizar(1 / 30);
+    // a ras del suelo: lejos del foco (8 m) la cámara sube a 1,3 m (el pasto alto tapa la lente); cerca (2 m) sólo a 0,45 m
+    choque = null;
+    em2.registrar({ id: 'prueba-suelo-lejos', repetible: true, pasos: [{ tipo: 'plano', plano: 'libre', pos: { x: 0, z: 8, dy: 0.1 }, mira: { x: 0, z: 0 }, dur: 30, sinEsperar: true }, { tipo: 'espera', dur: 30 }] });
+    em2.registrar({ id: 'prueba-suelo-cerca', repetible: true, pasos: [{ tipo: 'plano', plano: 'libre', pos: { x: 0, z: 2, dy: 0.1 }, mira: { x: 0, z: 0 }, dur: 30, sinEsperar: true }, { tipo: 'espera', dur: 30 }] });
+    for (const [idp, minimo, maximo] of [['prueba-suelo-lejos', 1.25, 1.6], ['prueba-suelo-cerca', 0.4, 0.6]]) {
+      ok(em2.disparar(idp) === true, `${idp}: arranca`);
+      for (let i = 0; i < 90; i++) em2.actualizar(1 / 30);
+      ok(camara.position.y >= minimo && camara.position.y <= maximo, `${idp}: la cámara a ras del suelo queda a ${camara.position.y.toFixed(2)} m (entre ${minimo} y ${maximo})`);
+      em2.saltar();
+      for (let i = 0; i < 90; i++) em2.actualizar(1 / 30);
+    }
   }
 
   return fallas - f0;
@@ -324,6 +337,7 @@ const MUTACIONES = [
   ['escenas-mundo.js', 'la cámara no se despeja', 'try { c = despejarCamara(c, dt, director.idActual?.()); }', 'try { c = c; }'],
   ['escenas-mundo.js', 'capturar no pide a los que faltan', 'if (!n && ctx.armarYa) {', 'if (false && ctx.armarYa) {'],
   ['escenas-mundo.js', 'la cámara despejada no tiene mínimo', 'minimo: 1.3,', 'minimo: 0.05,'],
+  ['escenas-mundo.js', 'la cámara lejos puede ir a ras del suelo', 'bajoLejos: 1.3,', 'bajoLejos: 0.45,'],
   ['escenas.js', 'la cámara sobre el jugador no sigue su mirada', 'return ctx.base.yaw;', 'return 0;'],
   ['escenas.js', 'los planos no llevan foco', 'fov, foco: { x: mira.x, y: mira.y, z: mira.z } };', 'fov };'],
 ];

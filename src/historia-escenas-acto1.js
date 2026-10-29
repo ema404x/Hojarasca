@@ -78,9 +78,10 @@ const algoCruza = {
   disparador: { hora: [18, 21.5] },
   pasos: [
     // la mirada dirigida de la escena: la cámara sale de tu cabeza y mira sola hacia el helecho
-    plano('hombro', FRENTE(15, 4), { desde: 'jugador', atras: 0, costado: 0, miraY: 0.4, alto: 1.65, mezcla: 0.9, dur: 3.9, sinEsperar: true }),
+    // 4.17.0: el cruce a 9 m y no a 15 (a quince pasos el pillo, de medio metro, quedaba tapado por el pasto y los helechos: no se veía)
+    plano('hombro', FRENTE(9, 1.5), { desde: 'jugador', atras: 0, costado: 0, miraY: 0.45, alto: 1.65, mezcla: 0.9, dur: 3.9, sinEsperar: true }),
     espera(1),
-    efecto('duende:pillo-cruza', { tipo: 'rastreador', desde: FRENTE(15, 5), hasta: FRENTE(14, -1), deEspaldas: true, rie: true }),
+    efecto('duende:pillo-cruza', { tipo: 'rastreador', desde: FRENTE(9, 5), hasta: FRENTE(8.5, -2.5), deEspaldas: true, rie: true }),
     espera(2.9),
     sonido('anotar'),
     efecto('raro:algo-cruzo'),
@@ -229,9 +230,9 @@ const bolsaAlero = {
   pasos: [
     sonido('juntar'),
     // 4.17.0: el jugador queda a 2,3 m del alero (COLOCACION_ESCENA): la bolsa está ahí, no a un metro (la cámara miraba el pasto y después se pegaba al muro)
-    plano('detalle', FRENTE(2.3), { dist: 1.7, alto: 1.7, miraY: 1.6, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(2.3), { dist: 1.9, alto: 1.7, miraY: 1.55, dur: 3, mezcla: 0.8 }),
     narra('Entre la chapa y la viga, envuelta en arpillera, hay una bolsa de harina atada con un piolín colorado. Y una nota, doblada en cuatro.'),
-    plano('primer', FRENTE(2.3), { dist: 1.9, alto: 1.7, miraY: 1.6, dur: 2.2, mezcla: 0.6 }),
+    plano('primer', FRENTE(2.3), { dist: 2.8, alto: 1.7, miraY: 1.55, dur: 2.2, mezcla: 0.6 }),
     efecto('objeto:bolsa-eusebio'),
     dlg('nota', [
       'Para la raíz del coihue grande del molino viejo, antes del primer frío.',
@@ -561,7 +562,8 @@ const derrumbePuertita = {
   resumen: 'Había piedras sobre la vía. Entre las últimas, enterrada en el ripio, una puertita de coihue del tamaño de una mano. Elsa te la dio a vos.',
   personajes: personajesDe('elsa', 'graciela', 'narra'),
   pasos: [
-    plano('general', FRENTE(8), { desde: 'jugador', dist: 12, alto: 3.4, dur: 3, mezcla: 0.9 }),
+    // 4.17.0: más alto y más cerca: entre los arbustos de la ladera Elsa y Graciela quedaban chicas y tapadas
+    plano('general', FRENTE(5), { desde: 'jugador', dist: 9, alto: 4.2, miraY: 1.0, dur: 3, mezcla: 0.9 }),
     aparece('elsa', FRENTE(3, 1.2)),
     aparece('graciela', FRENTE(3.4, -1.2)),
     narra('Hay piedras sobre la vía. Bajaron de la ladera con la última lluvia. Graciela mira el reloj; Elsa ya se arremangó.'),
@@ -577,7 +579,7 @@ const derrumbePuertita = {
     { tipo: 'salto', a: 'fin' },
     // rama 2: ayudás y la encontrás en la vía
     { ...narra('Piedra por piedra, entre los tres, la vía queda limpia. Elsa levanta la última, grande, y debajo, en el ripio, hay algo que no es una piedra.'), etiqueta: 'ayuda' },
-    plano('detalle', FRENTE(3.4, -0.4), { desde: 'jugador', dist: 0.9, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(3.4, -0.4), { desde: 'jugador', dist: 1.5, alto: 1.6, miraY: 0.3, dur: 3, mezcla: 0.8 }),
     narra('Una puertita de madera de coihue, del tamaño de una mano. Con bisagra de cuero y una manijita de hueso. Está tibia.'),
     plano('medio', 'graciela', { desde: 'jugador', mezcla: 0.7, dur: 30, sinEsperar: true }),
     dlg('graciela', [

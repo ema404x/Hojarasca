@@ -184,7 +184,8 @@ const tobiasPirca = {
   personajes: pj('tobias', 'josefina', 'narra'),
   pasos: [
     efecto('decision:coihue:c'),
-    plano('medio', 'tobias', { desde: 'jugador', dist: 3.6, dur: 3, mezcla: 0.9 }),
+    // 4.17.0: la cámara delante de Tobías (pica de espaldas al camino: se lo veía por la nuca)
+    plano('medio', 'tobias', { desde: { frente: 'tobias', dist: 4 }, dist: 3.6, dur: 3, mezcla: 0.9 }),
     mira('tobias', 'jugador'),
     dlg('tobias', [
       linea('¿Una pirca para una raíz?', { gesto: gs('martillar', 1.8) }),
@@ -310,7 +311,7 @@ const truchasNicanor = {
   resumen: 'Con Nicanor pescaste las primeras truchas del otoño: gordas, lentas y de buen humor. Nicanor dice que el lago anda contento.',
   personajes: pj('nicanor', 'narra'),
   pasos: [
-    plano('general', { lugar: 'muelle' }, { dist: 14, alto: 3.4, dur: 3, mezcla: 0.9 }),
+    plano('general', { lugar: 'muelle' }, { dist: 12, alto: 4, dur: 3, mezcla: 0.9 }),
     aparece('nicanor', { lugar: 'muelle', dx: -2, dz: 1.4 }),
     plano('medio', 'nicanor', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
     dlg('nicanor', [

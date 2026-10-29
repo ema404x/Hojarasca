@@ -243,10 +243,12 @@ export function crearObjetosHistoria(ctx) {
   function huellas(c, desdeP, hastaP) {
     const dx = hastaP.x - desdeP.x, dz = hastaP.z - desdeP.z, dist = Math.hypot(dx, dz) || 1;
     const n = Math.max(8, Math.min(44, Math.round(dist / 2.4))), ang = Math.atan2(dx, dz);
+    // 4.17.0: más grandes y más claras (a 0,05 m de radio no se veían ni de cerca), y más seguidas en los primeros diez metros, que es donde se las mira
+    const pie = (x, z, lado) => c.agregar(new THREE.SphereGeometry(0.085, 7, 5), { color: '#f4f8ff', tipo: 0, variar: 0.02, matriz: matriz([x, alt(x, z) + 0.04, z], [0, ang + lado * 0.12, 0], [1, 0.16, 1.9]) });
+    for (let k = 1; k <= 9 && k * 1.1 < dist; k++) { const lado = k % 2 ? 1 : -1, d = k * 1.1; pie(desdeP.x + (dx / dist) * d + Math.cos(ang) * 0.13 * lado, desdeP.z + (dz / dist) * d - Math.sin(ang) * 0.13 * lado, lado); }
     for (let i = 1; i < n; i++) {
       const u = i / n, lado = i % 2 ? 1 : -1, ondula = Math.sin(u * 9) * 1.1;
-      const x = desdeP.x + dx * u + Math.cos(ang) * (0.13 * lado + ondula), z = desdeP.z + dz * u - Math.sin(ang) * (0.13 * lado + ondula);
-      c.agregar(new THREE.SphereGeometry(0.05, 7, 5), { color: '#e6eef5', tipo: 0, variar: 0.02, matriz: matriz([x, alt(x, z) + 0.035, z], [0, ang, 0], [1, 0.14, 1.8]) });
+      pie(desdeP.x + dx * u + Math.cos(ang) * (0.13 * lado + ondula), desdeP.z + dz * u - Math.sin(ang) * (0.13 * lado + ondula), lado);
     }
   }
   function armarMalla(id, q) {

@@ -52,7 +52,9 @@ app.whenReady().then(async () => {
   await ir('molino-viejo-dia-2', 'molino-viejo', 5, 5, 12);
   console.log('CULPABLES: ' + JSON.stringify(await js('window.__culpables'), null, 1));
   // las claves de los programas de profundidad (sombras): qué parámetro distingue al último de los demás
-  console.log('PROFUNDIDAD: ' + JSON.stringify(await js(`(() => { const R = ${H}.renderer; return R.info.programs.filter((p) => /depth/i.test(p.name || '')).map((p) => String(p.cacheKey).slice(0, 1500)) })()`), null, 1));
-  console.log('PRIMER-ALAMOS: ' + JSON.stringify(await js(`(() => { let r = null; ${H}.escena && ${H}.escena.traverse((o) => { if (!r && o.name === 'estructura:aldea-alamos') r = { instanciado: !!o.isInstancedMesh, conColor: !!o.instanceColor, capas: o.layers.mask, sombra: o.castShadow, cantidad: o.count, tieneCustomDepth: !!o.customDepthMaterial, mat: o.material && o.material.type, atrib: Object.keys(o.geometry.attributes), indexado: !!o.geometry.index }; }); return r })()`), null, 1));
+  console.log('PROGRAMAS: ' + JSON.stringify(await js(`(() => { const R = ${H}.renderer; const c = {}; for (const p of R.info.programs) c[p.name] = (c[p.name] || 0) + 1; return c })()`)));
+  console.log('ULTIMOS-3: ' + JSON.stringify(await js(`(() => { const R = ${H}.renderer; return R.info.programs.slice(-3).map((p) => ({ nombre: p.name, clave: String(p.cacheKey).slice(0, 900) })) })()`), null, 1));
+  console.log('PROFUNDIDAD-OTRAS: ' + JSON.stringify(await js(`(() => { const R = ${H}.renderer; return R.info.programs.filter((p) => /depth/i.test(String(p.name)) || /depth/i.test(String(p.cacheKey).slice(0, 200))).map((p) => String(p.cacheKey).slice(0, 900)) })()`), null, 1));
+  console.log('ALAMOS: ' + JSON.stringify(await js(`(() => { let r = null; ${H}.escena.traverse((o) => { if (!r && o.name === 'estructura:aldea-alamos') r = o.children.map((m) => ({ instanciado: !!m.isInstancedMesh, conColorInstancia: !!m.instanceColor, capas: m.layers.mask, sombra: m.castShadow, cantidad: m.count, customDepth: !!m.customDepthMaterial, mat: m.material && m.material.type, atrib: Object.keys(m.geometry.attributes), indexado: !!m.geometry.index })); }); return r })()`), null, 1));
   app.exit(0);
 });

@@ -311,7 +311,7 @@ export function crearEscenasMundo(ctx) {
   // 4.17.0 (C): la cámara dirigida no se mete adentro de un árbol, un muro o una roca. Del foco (a lo que mira) hacia la cámara se camina de a 0,3 m con
   // una bolita de 0,3 m de radio; en el primer choque la cámara se queda un poco antes (nunca a menos de 1,3 m del foco). Si el paso libre se achica la cámara
   // se acerca de golpe (para no ver el interior del tronco); si se agranda, vuelve despacio. Y nunca por debajo del suelo.
-  const DESPEJE = { paso: 0.3, radio: 0.3, minimo: 1.3, margen: 0.25, bajo: 0.45 };
+  const DESPEJE = { paso: 0.3, radio: 0.3, minimo: 1.3, margen: 0.25, bajo: 0.45, bajoLejos: 1.3, lejos: 5 };   // (bajoLejos: los planos a 5 m o más no van por debajo de 1,3 m del suelo: el pasto alto y los helechos tapaban la lente)
   const bola = { x: 0, y: 0, z: 0 };
   let brazo = { id: null, k: 1 };
   function despejarCamara(c, dt, id) {
@@ -334,7 +334,8 @@ export function crearEscenasMundo(ctx) {
     const r = { ...c };
     if (brazo.k < 0.999) { r.x = f.x + dx * brazo.k; r.y = f.y + dy * brazo.k; r.z = f.z + dz * brazo.k; }
     const suelo = ctx.T?.altura ? ctx.T.altura(r.x, r.z) : null;
-    if (Number.isFinite(suelo) && r.y < suelo + DESPEJE.bajo) r.y = suelo + DESPEJE.bajo;
+    const piso = (L >= DESPEJE.lejos ? DESPEJE.bajoLejos : DESPEJE.bajo);
+    if (Number.isFinite(suelo) && r.y < suelo + piso) r.y = suelo + piso;
     if (r.x !== c.x || r.y !== c.y || r.z !== c.z) {
       dx = f.x - r.x; dy = f.y - r.y; dz = f.z - r.z;
       r.yaw = Math.atan2(-dx, -dz); r.pitch = Math.atan2(dy, Math.hypot(dx, dz));
