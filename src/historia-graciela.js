@@ -58,6 +58,8 @@ export function crearGracielaMundo(ctx) {
       return;
     }
     if (ctx.tomada?.()) return;   // una escena la tiene: ni se mueve ni se esconde
+    // 4.16.0: con la ingeniera de acompañante, el acompañante (historia-acompanante.js) la lleva: se la pone una sola vez en el andén y de ahí te sigue
+    if (h.acompanante === CLAVE_GRACIELA) { if (debeVerse(h) && !puesta && poner()) { npc.dormido = false; puesta = true; } return; }
     if (debeVerse(h)) {
       if (!puesta || npc.dormido) { if (poner()) { npc.dormido = false; puesta = true; } }
     } else if (!npc.dormido) { npc.dormido = true; puesta = false; }

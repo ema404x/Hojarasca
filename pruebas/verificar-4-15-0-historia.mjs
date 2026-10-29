@@ -50,6 +50,7 @@ async function chequear(arch = '', sufijo = '') {
   const R = await imp('historia-reinicio.js');
   const X = await imp('historia-escenas-efectos.js');
   const O = await imp('historia-objetos.js');
+  const A2D = await imp('historia-disparadores-acto2.js');
   const EN = await import('../src/escenas.js');
   const G = await import('../src/guardado.js');
   const f0 = fallas;
@@ -69,9 +70,9 @@ async function chequear(arch = '', sufijo = '') {
       ok(new Set(c.objetivos.map((o) => o.id)).size === c.objetivos.length, `${c.id}: objetivos únicos`);
       if (c.momento) ok(c.objetivos.some((o) => o.delMomento), `${c.id}: un objetivo espera su momento`);
     }
-    // el acto I está completo; del 5 al 13, un «continuará»
-    for (let i = 0; i < 4; i++) ok(H.CAPITULOS[i].objetivos.length >= 5 && !H.esContinuara(H.CAPITULOS[i]), `capítulo ${i + 1}: objetivos de verdad`);
-    for (let i = 4; i < 13; i++) ok(H.esContinuara(H.CAPITULOS[i]), `capítulo ${i + 1}: continuará`);
+    // 4.16.0: el acto I y el II están completos; del 9 al 13, un «continuará»
+    for (let i = 0; i < 8; i++) ok(H.CAPITULOS[i].objetivos.length >= 5 && !H.esContinuara(H.CAPITULOS[i]), `capítulo ${i + 1}: objetivos de verdad`);
+    for (let i = 8; i < 13; i++) ok(H.esContinuara(H.CAPITULOS[i]), `capítulo ${i + 1}: continuará`);
     igual(H.CAPITULOS[0].objetivos.map((o) => o.id), ['refugio', 'puerta', 'fuego', 'anotar', 'noche', 'canto'], 'los seis objetivos del capítulo 1');
     ok(H.CAPITULOS[1].decisiones?.[0]?.id === 'bolsa', 'la decisión de la bolsa cuelga del capítulo 2');
     ok(H.CAPITULOS[2].momento.evento === 'tobillo' && H.CAPITULOS[3].momento.evento === 'derrumbe', 'los momentos: el tobillo de Nicanor y el derrumbe');
@@ -92,7 +93,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(h.version === 2 && h.ramal === 0 && h.molido === 0 && h.acompanante === null && h.raro.length === 0, 'defaults de la historia nueva');
     igual(h.lazos, { ramon: 0, ema: 0, ercilia: 0, guarda: 0, fermin: 0, graciela: 0 }, 'lazos en cero');
     igual(h.decisiones, { bolsa: null, coihue: null, molienda: null, cuaderno: null, majada: null }, 'decisiones sin tomar');
-    igual(h.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: false }, 'nada prestado');
+    igual(h.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: false, zaino: false }, 'nada prestado');
     ok(h.duendes.deuda === 0 && h.duendes.perdon === false && h.duendes.convidado === 0 && h.duendes.trato === null, 'los duendes: trato, deuda, perdón y convidado');
     ok(h.noche.estado === 'pendiente' && h.escenas.vistas && h.escenas.elecciones, 'lo de la noche (4.13.0) y las escenas (4.14.0) siguen con su forma');
     igual(H.sanearHistoria(JSON.parse(JSON.stringify(h))), h, 'ida y vuelta por JSON');
@@ -116,7 +117,7 @@ async function chequear(arch = '', sufijo = '') {
     igual(b.lazos, { ramon: 3, ema: -2, ercilia: 0, guarda: 1, fermin: 0, graciela: 0 }, 'lazos acotados a −2…+3');
     igual(b.decisiones, { bolsa: null, coihue: 'b', molienda: null, cuaderno: null, majada: null }, 'decisiones sólo a, b o c');
     ok(b.ramal === 0 && b.fletes === 8 && b.entregasVistas === 0 && b.molido === 9999, 'ramal, fletes y molido acotados');
-    igual(b.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: true }, 'prestado sólo con true');
+    igual(b.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: true, zaino: false }, 'prestado sólo con true');
     igual(b.raro, [{ id: 'ronda-ramitas', dia: 3 }, { id: 'hacha-tocon', dia: 0 }].map((x) => ({ ...x, dia: Math.max(1, x.dia) })), 'lo raro: sin repetidos ni inventados');
     igual(Object.keys(b.temas), ['ramon:alero'], 'temas sin claves peligrosas ni largas');
     igual(Object.keys(b.objetos), ['canto-blanco'], 'objetos sin claves peligrosas');
@@ -293,8 +294,8 @@ async function chequear(arch = '', sufijo = '') {
     ok(po.find((o) => o.id === 'anden').hecho && po.find((o) => o.id === 'aldea').hecho && !po.find((o) => o.id === 'puertita').hecho, 'los hechos del panel hasta ahora');
     H.sumarRamal(hh, 2); D.alCerrarCapitulo(hh, 'ramal', 5);
     ok(hh.acompanante === null, 'al cerrar el capítulo Graciela se queda en el hospedaje');
-    // ---- del 5 al 13: el continuará pasa de largo hasta el final
-    const hf = H.historiaNueva(); H.empezarHistoria(hf, 1); hf.capitulo = 4; hf.fase = 'intro';
+    // ---- del 9 al 13: el continuará pasa de largo hasta el final (4.16.0: los capítulos 5 a 8 tienen su recorrido en verificar-4-16-0-historia-a.mjs)
+    const hf = H.historiaNueva(); H.empezarHistoria(hf, 1); hf.capitulo = 8; hf.fase = 'intro';
     const z = progresoBase(H); z.historia = hf; z.dia = 5;
     let pasos = 0;
     while (hf.fase !== 'fin' && pasos < 40) {
@@ -303,7 +304,7 @@ async function chequear(arch = '', sufijo = '') {
       else if (hf.fase === 'jugando') { z.dia += 1; H.revisarHistoria(hf, H.estadoHistoria(z, {})); }
       else if (hf.fase === 'outro') H.cerrarCapitulo(hf, z.dia);
     }
-    ok(hf.fase === 'fin' && hf.terminada > 0 && pasos < 40, 'los capítulos 5 a 13 pasan sin trabar hasta el final');
+    ok(hf.fase === 'fin' && hf.terminada > 0 && pasos < 40, 'los capítulos 9 a 13 pasan sin trabar hasta el final');
     ok(H.panelHistoria(hf, H.estadoHistoria(z, {})) === null && /Terminaste la historia/.test(H.resumenHistoria(hf)), 'terminada: sin panel y con su resumen');
     igual(H.sanearHistoria(JSON.parse(JSON.stringify(hf))).fase, 'fin', 'terminada vuelve terminada');
   }
@@ -330,14 +331,15 @@ async function chequear(arch = '', sufijo = '') {
     const base = () => { const p = progresoBase(H); const h = p.historia; H.empezarHistoria(h, 1); h.fase = 'jugando'; h.base = { dia: 1 }; return { p, h }; };
     const quien = (h, p, extra, ctx) => D.escenaPendiente(h, H.estadoHistoria(p, extra), ctx);
     // cada una de las 21 escenas tiene su disparador, y cada disparador una escena conocida
-    const ids = D.ESCENAS_ACTO1_IDS;
-    ok(ids.length === 21 && new Set(ids).size === 21, 'son 21 escenas');
+    const ids1 = D.ESCENAS_ACTO1_IDS;
+    ok(ids1.length === 21 && new Set(ids1).size === 21, 'son 21 escenas');
+    const ids = [...ids1, ...A2D.ESCENAS_ACTO2_IDS];   // (4.16.0: y las del acto II)
     const conDisp = new Set(Object.entries(D.DISPARADORES).map(([k, d]) => d.escena || k));
-    for (const id of ids) ok(conDisp.has(id), `${id}: tiene su disparador`);
+    for (const id of ids1) ok(conDisp.has(id), `${id}: tiene su disparador`);
     for (const id of conDisp) ok(ids.includes(id), `${id}: el disparador es de una escena conocida`);
     for (const [k, d] of Object.entries(D.DISPARADORES)) {
       ok(Object.hasOwn(H.CAPITULO, d.cap), `${k}: el capítulo existe`);
-      ok(H.CAPITULOS.indexOf(H.CAPITULO[d.cap]) < 4, `${k}: es del acto I`);
+      ok(H.CAPITULOS.indexOf(H.CAPITULO[d.cap]) < 8, `${k}: es del acto I o del II`);
       ok(['auto', 'hablar', 'interaccion'].includes(d.modo), `${k}: modo`);
       if (d.modo !== 'auto') ok(typeof d.clave === 'string', `${k}: la clave`);
       for (const r of d.requiere || []) ok(ids.includes(r), `${k}: requiere una escena conocida`);
@@ -491,7 +493,7 @@ async function chequear(arch = '', sufijo = '') {
     const p = progresoBase(H); const h = p.historia; H.empezarHistoria(h, 1); h.fase = 'jugando';
     const e = (x = {}) => H.estadoHistoria(p, x);
     const vis = () => D.objetosVisibles(h, e()).sort();
-    igual(vis(), ['alero', 'nota-mesa'].filter((x) => x === 'alero'), 'al empezar: sólo el alero roto (el resto espera a la historia)');
+    igual(vis(), ['alero', 'puertitas-raiz'], 'al empezar: el alero roto y las puertitas del coihue (el resto espera a la historia)');
     EN.marcarVista(h, 'nota-eusebio', 1);
     ok(vis().includes('nota-mesa'), 'la nota de Eusebio, después de abrir la puerta');
     ok(D.accionDeObjeto('nota-mesa', h, e()).tipo === 'nota' && D.accionDeObjeto('nota-mesa', h, e()).aviso === 'Releer la nota de Eusebio', 'releer la nota');
@@ -688,7 +690,7 @@ async function chequear(arch = '', sufijo = '') {
       'if (progreso && !esDesafio && historiaVieja(progreso)) {',
       'if (debeReiniciar(progreso, \'relax\')) {',
       'registrarEfectosHistoria(escenasMundo,',
-      'for (const e of Object.values(ESCENAS_ACTO1))',
+      'for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2)])',
       "if (!desafio && valle?.alHablarCon?.(npc.clave)) return;",
       'valle?.hablo(npc.clave);',
       'historiaPuerta: () => historiaPuertaCerca(),',
@@ -754,7 +756,7 @@ const MUT = [
   ['historia-graciela.js', 'if (ctx.tomada?.()) return;', '', 'Graciela se reubica aunque una escena la tenga'],
   ['historia-graciela.js', "export const CAPITULOS_GRACIELA = ['ramal'];", "export const CAPITULOS_GRACIELA = ['ramal', 'mesa'];", 'Graciela en el capítulo 3'],
   ['historia-objetos.js', "if (a.especie !== 'coihue') continue;", "if (a.especie === 'coihue') continue;", 'el coihue grande no es coihue'],
-  ['historia-objetos.js', "const radio = Object.hasOwn(OBJETOS, id) && OBJETOS[id].forma === 'raiz' ? 3.4 : RADIO_OBJETO;", "const radio = 100;", 'el objeto se alcanza desde cualquier lado'],
+  ['historia-objetos.js', "const radio = Object.hasOwn(OBJETOS, id) && (OBJETOS[id].forma === 'raiz' || OBJETOS[id].lugar === 'molino-viejo') ? 3.4 : RADIO_OBJETO;", "const radio = 100;", 'el objeto se alcanza desde cualquier lado'],
   ['historia-escenas-efectos.js', "if (h && PERSONAS_LAZO.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n);", "if (h && PERSONAS_LAZO.includes(a?.quien)) cambiarLazo(h, a.quien, a.n);", 'los efectos de lazo no son idempotentes'],
 ];
 let atrapadas = 0;

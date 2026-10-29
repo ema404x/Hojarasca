@@ -9,7 +9,7 @@
 //    La lista exacta que usa cada escena sale de `efectosDe(escena)`; `EFECTOS_ACTO1` es la de todas juntas.
 //  · lo que tiene que valer aunque el jugador salte la escena va en pasos (no en el gesto o el plano de una línea): los efectos están en pasos.
 //  · cada elección: o lleva `efecto`, o la opción dice `sabor: true` (cambia sólo el tono).
-import { personajesDe, efectosDe, dlg, narra, linea, gs, hombro, plano, pose, aparece, camina, mira, desaparece, espera, sonido, efecto, opcion, eleccion, siEleg, siDecision, siEvento } from './historia-escenas-util.js';
+import { personajesDe, efectosDe, dlg, narra, linea, gs, hombro, plano, pose, aparece, camina, mira, desaparece, espera, sonido, efecto, opcion, eleccion, siEleg, siDecision, siEvento, siPresente } from './historia-escenas-util.js';
 
 const FRENTE = (dist, lado = 0) => ({ frente: 'jugador', dist, lado });
 
@@ -237,11 +237,16 @@ const bolsaAlero = {
       'No te olvides, que ellos no se olvidan. Y gracias. E. M.',
     ]),
     narra('¿Ellos? La bolsa pesa lo que pesan diez kilos de harina buena. Tirarla no se puede. Guardarla en la despensa, tampoco: tiene un destino y una fecha.'),
-    eleccion('bolsa', '¿Qué hacés con la bolsa de Eusebio?', [
+    // 4.16.0: la opción de Rosa sólo se ofrece si Rosa ya vive en la aldea (si no, la pregunta tiene dos opciones)
+    { ...eleccion('bolsa', '¿Qué hacés con la bolsa de Eusebio?', [
       opcion('a', 'Hacerle caso a la nota: llevarla a la raíz del coihue grande.', { efecto: 'decision:bolsa:a' }),
       opcion('b', 'Llevarla a Rosa, la panadera: pan para toda la aldea.', { efecto: 'decision:bolsa:b' }),
       opcion('c', 'Mostrarle la nota a Josefina: ella conoce la letra del valle.', { efecto: 'decision:bolsa:c' }),
-    ]),
+    ]), si: siPresente('rosa') },
+    { ...eleccion('bolsa', '¿Qué hacés con la bolsa de Eusebio?', [
+      opcion('a', 'Hacerle caso a la nota: llevarla a la raíz del coihue grande.', { efecto: 'decision:bolsa:a' }),
+      opcion('c', 'Mostrarle la nota a Josefina: ella conoce la letra del valle.', { efecto: 'decision:bolsa:c' }),
+    ]), si: siPresente('rosa', true) },
     narra('Lo pensás un rato largo, con la bolsa en las manos. Cualquier cosa que hagas, la vas a tener que explicar.'),
   ],
 };

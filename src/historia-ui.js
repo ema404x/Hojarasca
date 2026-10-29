@@ -14,6 +14,9 @@ import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objet
 import { tarjetaAviso } from './historia-reinicio.js';
 import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
+// 4.16.0: el acto II: la puerta de estación, el clima de la historia, el premio con variantes, el cuaderno de Eusebio y la espera sentado
+import { puertaDeEstacion, estacionForzada, premioDeCapitulo, aceleracionDeEspera, anotarRaro } from './historia.js';
+import { leerPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2 } from './historia-disparadores-acto2.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
@@ -190,13 +193,21 @@ export function crearValleUi(ctx) {
       },
     });
   }
+  let puertaAvisada = -1;
+  function mostrarPuerta(pu) {
+    tarjetas.mostrar({
+      clase: 'despues', arriba: 'La historia del valle', titulo: pu.titulo, texto: pu.lineas,
+      opciones: [{ id: 'seguir', texto: 'Seguir con mi vida en el valle', detalle: 'El capítulo empieza solo cuando cambie la estación' }],
+      alElegir: () => { tarjetas.cerrar(); return true; },
+    });
+  }
   function mostrarOutro() {
     const h = historia();
     const c = capituloActual(h);
     const ultimo = h.capitulo >= CAPITULOS.length - 1;
     tarjetas.mostrar({
       clase: 'capitulo', arriba: `Capítulo ${numeroCapitulo(h)} · terminado`,
-      titulo: c.titulo, texto: lineasCarta(c, h, 'outro'), premio: c.premio?.texto ? `Te queda: ${c.premio.texto}` : '',
+      titulo: c.titulo, texto: lineasCarta(c, h, 'outro'), premio: premioDeCapitulo(c, h)?.texto ? `Te queda: ${premioDeCapitulo(c, h).texto}` : '',
       opciones: [{ id: 'seguir', texto: ultimo ? 'Seguir en el valle' : 'Seguir', detalle: ultimo ? 'La historia termina; el juego no' : `Sigue: «${CAPITULOS[h.capitulo + 1].titulo}»` }],
       alElegir: () => {
         const r = cerrarCapitulo(h, ctx.progreso().dia);
@@ -253,9 +264,12 @@ export function crearValleUi(ctx) {
   function aplicarEscenas(h) {
     const p = ctx.progreso();
     const antes = (h.raro || []).length;
-    const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos });
+    const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos, dar: (c, n) => ctx.darCosa?.(c, n), tieneCaballo: () => !!p.cosas?.caballo, gastar: (c, n) => ctx.gastar?.(c, n) });
     if (hechos.length) {
       for (const x of (h.raro || []).slice(antes)) { ctx.nota('El cuaderno anota algo raro', textoRaro(x.id)); ctx.diario?.('evento', textoRaro(x.id)); }
+      // 4.16.0: lo que cambió la mecánica sola (el zaino, la harina, las cosas devueltas): se avisa también si la escena no estaba escrita
+      for (const id of hechos) if (Object.hasOwn(NOTAS_ESCENA_ACTO2, id)) { const n = NOTAS_ESCENA_ACTO2[id]; ctx.nota(n[0], n[1], true); }
+      ctx.refrescarBarra?.();
       ctx.guardar();
     }
     return hechos;
@@ -284,7 +298,17 @@ export function crearValleUi(ctx) {
     const p = ctx.progreso();
     if (a.tipo === 'nota') { ctx.nota(a.nota[0], a.nota[1], true); return true; }
     if (a.tipo === 'marca') {
-      if (marcarObjeto(h, a.marca, p.dia)) { ctx.nota(a.nota[0], a.nota[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); }
+      if (marcarObjeto(h, a.marca, p.dia)) {
+        ctx.nota(a.nota[0], a.nota[1], true); ctx.sonido?.()?.anotar?.();
+        if (a.raro && anotarRaro(h, a.raro, p.dia)) ctx.nota('El cuaderno anota algo raro', textoRaro(a.raro));
+        if (a.limpiaAcompanante) h.acompanante = null;   // (4.16.0: la pirca la levantás con Tobías y él se vuelve a la cantera)
+        ctx.guardar(); revisarAhora();
+      }
+      return true;
+    }
+    if (a.tipo === 'pagina') {
+      const pag = leerPagina(h, estado(), p.dia);
+      if (pag) { ctx.nota(pag[0], pag[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); }
       return true;
     }
     if (a.tipo === 'reparar') {
@@ -309,8 +333,12 @@ export function crearValleUi(ctx) {
     return { aviso: 'Abrir con la llave de Eusebio', hacer: () => lanzarEscena(h, estado(), { modo: 'interaccion', clave: 'puerta-refugio' }) };
   }
 
+  // 4.16.0: el hachazo número 6 al coihue grande, y la harina que se saca de la muela
+  function coihueTalado() { const h = historia(); if (!h.activa) return; alTalarCoihue(h, ctx.progreso().dia); ctx.guardar(); revisarAhora(); }
+  function harinaMolida(n) { const h = historia(); if (!h.activa) return; h.molido = Math.min(9999, (Number(h.molido) || 0) + Math.max(0, Math.floor(Number(n) || 0))); }
+
   // ---------------------------------------------------------------- cada medio segundo
-  let acum = 0, esperaInicio = 0, tiempoCapitulo = 0, azarEnPruebas = false;
+  let acum = 0, esperaInicio = 0, tiempoCapitulo = 0, azarEnPruebas = false, aceleracion = 1, forzada = null;
   const MOMENTO_PRONTO = 90;   // segundos jugando el capítulo antes de su momento "pronto"
   function actualizar(dt) {
     if (ctx.esDesafio) return;
@@ -333,6 +361,9 @@ export function crearValleUi(ctx) {
     }
     // 4.15.0: lo que cambia al ver una escena (una sola vez), lo raro que se anota y los objetos que se ven en el mundo
     if (jugando && h.activa) aplicarEscenas(h);
+    // 4.16.0: esperar sentado un objetivo de hora acelera el reloj (×8, no ×40: que no se pase de largo la escena) y el clima propio de la historia
+    aceleracion = jugando && h.activa ? aceleracionDeEspera(h, s) : 1;
+    forzada = h.activa && s ? estacionForzada(h, s) : null;
     if (ctx.objetos) ctx.objetos.mostrar(h.activa && s ? objetosVisibles(h, s) : []);
     dibujarPanel(h, s);
     // 4.13.0 (A): el encuentro del galpón espera en el lugar mientras su momento esté pendiente
@@ -340,7 +371,12 @@ export function crearValleUi(ctx) {
     if (noche.activa()) return false;   // 4.13.0 (B): de noche, ni tarjetas ni eventos
     if (!jugando || tarjetas.abierta() || esperaInicio > 0 || !ctx.libre()) return false;
     if (h.activa && h.avisoReinicio) { mostrarAvisoReinicio(h); return true; }   // 4.15.0: la partida vieja se reinició
-    if (h.activa && h.fase === 'intro') { mostrarIntro(); return true; }
+    if (h.activa && h.fase === 'intro') {
+      // 4.16.0: la puerta de estación: espera (no más de 2 días) a que cambie la estación; después la historia trae su propio clima
+      const pu = puertaDeEstacion(h, s);
+      if (pu) { if (puertaAvisada !== h.capitulo) { puertaAvisada = h.capitulo; mostrarPuerta(pu); return true; } return false; }
+      mostrarIntro(); return true;
+    }
     // 4.13.0 (B): el último capítulo no se cierra ahí: ofrece la noche, y el final sale de ganarla
     if (h.activa && h.fase === 'outro') { if (noche.interviene(h)) return ctx.enVehiculo() ? false : noche.ofrecer(); mostrarOutro(); return true; }
     if (ctx.enVehiculo()) return false;
@@ -482,6 +518,7 @@ export function crearValleUi(ctx) {
   return {
     actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas, noche,
     alHablarCon, accionObjeto, accionPuerta, aplicarEscenas,
+    aceleracion: () => aceleracion, estacionForzada: () => forzada, coihueTalado, harinaMolida,   // 4.16.0
     abierta: () => tarjetas.abierta(),
     azar: (v) => { azarEnPruebas = !!v; return azarEnPruebas; },
     // para las pruebas: revisar ya, sin esperar el medio segundo ni el rato del capítulo

@@ -28,8 +28,8 @@
 export const LAZOS_PRINCIPALES = ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'];
 export const LAZOS_SECUNDARIOS = ['rosa', 'herminia', 'nicanor', 'tito', 'tobias', 'belisario'];
 export const DECISIONES = ['bolsa', 'coihue', 'molienda', 'cuaderno', 'majada'];
-export const TIPOS_EFECTO = ['lazo', 'decision', 'ramal', 'raro', 'objeto', 'entrega', 'dar', 'mundo', 'duende', 'optativa', 'hablado'];
-export const CONDICIONES_HISTORIA = ['decision', 'lazo', 'evento'];
+export const TIPOS_EFECTO = ['lazo', 'decision', 'ramal', 'raro', 'objeto', 'entrega', 'dar', 'mundo', 'duende', 'optativa', 'hablado', 'quitar', 'prestado'];   // (4.16.0: quitar:<cosa>:<n> gasta algo; prestado:<id> anota lo prestado)
+export const CONDICIONES_HISTORIA = ['decision', 'lazo', 'evento', 'presente'];   // (4.16.0: presente { quien }: esa persona vive ahora en la aldea)
 
 const ID_SUELTO = /^[a-z0-9][a-z0-9_-]{0,47}$/;
 const entero = (s) => /^-?\d{1,3}$/.test(s) ? Number(s) : null;
@@ -52,7 +52,7 @@ export function parsearEfecto(nombre) {
       const n = entero(p[1]);
       return p.length === 2 && n !== null && n > 0 && n <= 10 ? { tipo, n } : null;
     }
-    case 'dar': {
+    case 'dar': case 'quitar': {
       const n = entero(p[2]);
       return p.length === 3 && ID_SUELTO.test(p[1] || '') && n !== null && n > 0 && n <= 99 ? { tipo, cosa: p[1], n } : null;
     }
@@ -136,3 +136,5 @@ export const siEleg = (id, es) => ({ eleccion: id, es });
 export const siDecision = (d, es) => ({ cond: 'decision', args: { d, es } });
 export const siLazo = (quien, min, max) => ({ cond: 'lazo', args: { quien, min, max } });
 export const siEvento = (id) => ({ cond: 'evento', args: { id } });
+// 4.16.0: esa persona ya vive en la aldea (`ausente: true`: todavía no llegó)
+export const siPresente = (quien, ausente = false) => (ausente ? { cond: 'presente', args: { quien }, no: true } : { cond: 'presente', args: { quien } });

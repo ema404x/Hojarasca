@@ -23,6 +23,8 @@ import { sanearEscenas, escenasNuevas } from './escenas.js';
 import { nocheNueva, sanearNoche } from './historia-noche.js';
 // 4.15.0: los textos del acto I (el cuaderno de lo raro)
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
+// 4.16.0: y los del acto II (los escribe otro agente; mismo formato)
+import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 
 // 4.15.0: Fermín (el galpón de esquila) se suma a los que se conocen
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia', 'fermin'];
@@ -34,8 +36,10 @@ export const VERSION_HISTORIA = 2;
 // Los que tienen un lazo con vos (−2 frío … +3 de la casa)
 export const PERSONAS_LAZO = ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'];
 export const LAZO_MIN = -2, LAZO_MAX = 3;
+// 4.16.0: quién puede ir con vos a pie (Graciela desde el capítulo 4; Tobías en el 5)
+export const ACOMPANANTES = [...PERSONAS_LAZO, 'tobias'];
 export const DECISIONES = ['bolsa', 'coihue', 'molienda', 'cuaderno', 'majada'];
-export const PRESTADOS = ['herrero', 'apicultor', 'maquinista', 'guarda', 'tobias'];
+export const PRESTADOS = ['herrero', 'apicultor', 'maquinista', 'guarda', 'tobias', 'zaino'];
 export const RAMAL_SALVADO = 10, RAMAL_A_PRUEBA = 6, RAMAL_MAX_FLETES = 8, RAMAL_BARRA = 10;
 const TOPE_RARO = 60, TOPE_MARCAS = 200;
 
@@ -103,13 +107,36 @@ export function estadoHistoria(p, extra = {}) {
     acompanante: typeof extra.acompanante === 'string' ? extra.acompanante : (typeof hh.acompanante === 'string' ? hh.acompanante : null),
     ramal: ent(hh.ramal, 99),
     molido: ent(hh.molido, 9999),
+    fletesHarina: ent(hh.fletesHarina, 9),
+    // 4.16.0: el acto II (otoño)
+    estacionNatural: ['verano', 'otono', 'invierno'].includes(extra.estacionNatural) ? extra.estacionNatural : (['verano', 'otono', 'invierno'].includes(extra.estacion) ? extra.estacion : 'verano'),
+    caballo: !!p?.cosas?.caballo,
+    harina: ent(p?.cosas?.harina, 9999),
+    piedra: ent(p?.materiales?.piedra, 9999) + ent(p?.acopio?.piedra, 9999),
+    cocinadas: Object.values(obj(p?.cocina?.hechas)).reduce((a, n) => a + ent(n, 1e6), 0),
+    enKayak: !!extra.enKayak,
+    // los aserraderos terminados respecto del coihue grande (`extra.coihue`: { x, z }): alguno a más de 25 m / alguno cerca
+    aserradero: aserraderosDe(terminadas, extra.coihue),
     lazos: Object.fromEntries(PERSONAS_LAZO.map((k) => [k, lazoDe(hh, k)])),
     pobladores: new Set((Array.isArray(p?.aldea?.pobladores) ? p.aldea.pobladores : []).map((x) => x?.clave).filter((x) => typeof x === 'string')),
   };
 }
 
+// 4.16.0: dónde quedaron los aserraderos respecto del coihue grande: `lejos` (alguno a más de 25 m) y `cerca` (alguno a 25 m o menos)
+export const DISTANCIA_ASERRADERO = 25;
+export function aserraderosDe(terminadas, coihue) {
+  const r = { hay: false, lejos: false, cerca: false };
+  for (const o of Array.isArray(terminadas) ? terminadas : []) {
+    if (o?.id !== 'aserradero') continue;
+    r.hay = true;
+    const d = coihue && Number.isFinite(coihue.x) && Number.isFinite(o.x) ? Math.hypot(o.x - coihue.x, o.z - coihue.z) : Infinity;
+    if (d > DISTANCIA_ASERRADERO) r.lejos = true; else r.cerca = true;
+  }
+  return r;
+}
+
 // Lo que se cuenta desde que empieza cada capítulo.
-export const CONTADORES_HISTORIA = ['anotaciones', 'dia', 'talados', 'peces', 'aceptados', 'encargosHechos', 'entregas', 'cosechas', 'visitas', 'cuentos'];
+export const CONTADORES_HISTORIA = ['anotaciones', 'dia', 'talados', 'peces', 'aceptados', 'encargosHechos', 'entregas', 'cosechas', 'visitas', 'cuentos', 'molido', 'cocinadas'];
 export function baseDe(s) {
   const b = {};
   for (const k of CONTADORES_HISTORIA) b[k] = Math.max(0, Math.floor(Number(s?.[k]) || 0));
@@ -168,6 +195,48 @@ const continuara = {
   hecho: (s, b) => s.dia > (b?.dia || 1),
 };
 const PREMIO_CONTINUARA = { ramitas: 4, texto: 'Unas ramitas secas para el fuego' };
+
+// ---------------------------------------------------------------- 4.16.0: ayudas de los capítulos del acto II
+export const PERDIDAS = ['dedal', 'pipa', 'cuchara'];
+// quién recibe cada cosa perdida (clave de la charla) y cómo se llama la entrega: «<quien>:<cosa>»
+export const DUENOS_PERDIDAS = { ercilia: 'dedal', belisario: 'pipa', panadera: 'cuchara' };
+export const paginasLeidas = (s) => [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`)).length;
+// el coihue grande talado (la marca la pone el hachazo número 6: ver main.js)
+export const talado = (id) => (s) => s.temas.has(`mundo:${id}-talado`);
+// D2: lo que hay que cumplir según lo elegido
+const cumplioCoihue = (s) => {
+  const d = s.decisiones.coihue, ase = s.terminadas.has('aserradero');
+  if (d === 'a') return ase && s.aserradero.lejos;
+  if (d === 'b') return ase && s.temas.has('mundo:coihue-talado');
+  if (d === 'c') return ase && s.objetos.has('pirca');
+  return false;
+};
+function textoCumplirCoihue(s) {
+  const d = s.decisiones.coihue;
+  if (d === 'a') return 'Dejá el coihue en pie: construí el aserradero aguas abajo, a más de 25 metros del árbol (O → Trabajo)';
+  if (d === 'b') return !s.temas.has('mundo:coihue-talado') ? 'Talá el coihue grande: seis hachazos (H); después construí el aserradero en lo plano' : 'Construí el aserradero en lo plano, junto al molino (O → Trabajo)';
+  if (d === 'c') {
+    if (!s.entregados.has('tobias:piedra')) return 'Llevale diez piedras a Tobías, en la cantera (trochita al Puesto de la Cantera)';
+    if (!s.objetos.has('pirca')) return 'Volvé con Tobías al coihue grande y levantá la pirca (E en la raíz)';
+    return 'Construí el aserradero junto al molino (O → Trabajo)';
+  }
+  return 'Cumplí lo que elegiste con el coihue';
+}
+// D3: lo que hay que cumplir con la harina según lo elegido
+const cumplioMolienda = (s) => {
+  const d = s.decisiones.molienda;
+  if (d === 'a') return s.fletesHarina >= 3;
+  if (d === 'b') return s.entregados.has('ercilia:harina');
+  if (d === 'c') return s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && s.entregados.has('raiz:harina');
+  return false;
+};
+function textoCumplirMolienda(s) {
+  const d = s.decisiones.molienda;
+  if (d === 'a') return `Llevá la harina a Esquel: tres fletes por la trochita desde la Estación del Valle (${Math.min(3, s.fletesHarina)}/3)`;
+  if (d === 'b') return 'Llevá seis medidas de harina al almacén de Ercilia, para el fiado de invierno (E sobre ella)';
+  if (d === 'c') return `Partí la harina: dos fletes (${Math.min(2, s.fletesHarina)}/2), tres medidas al almacén de Ercilia${s.entregados.has('ercilia:harina-3') ? ' ✓' : ''} y una a la raíz del coihue${s.entregados.has('raiz:harina') ? ' ✓' : ''}`;
+  return 'Cumplí lo que elegiste con la harina';
+}
 
 export const CAPITULOS = [
   // ---------------------------------------------------------------- ACTO I · VERANO: QUEDARSE
@@ -263,59 +332,103 @@ export const CAPITULOS = [
     premio: { cuenta: { yerba: 8 }, materiales: { tabla: 4 }, texto: 'Yerba y cuatro tablas de durmiente; desde ahora manejás la trochita sin pedir permiso' },
   },
 
-  // ---------------------------------------------------------------- ACTO II · OTOÑO: EL MOLINO (continuará)
+  // ---------------------------------------------------------------- ACTO II · OTOÑO: EL MOLINO (4.16.0)
   {
     id: 'rueda', titulo: 'La rueda', acto: 2,
+    // la puerta de estación: arranca en otoño; si es verano todavía espera, pero no más de 2 días (después la historia trae su propio otoño)
+    puerta: { estacion: 'otono', tope: 2, titulo: 'Las lengas todavía están verdes', lineas: ['Ramón dice que el molino se arma con el agua del deshielo de otoño: esperá a que se pongan coloradas.', 'Mientras tanto el valle sigue abierto: se puede dormir, pescar, cosechar o ayudar a los vecinos. La historia sigue sola cuando cambie la estación.'] },
     intro: [
       'Una mañana las lengas amanecieron coloradas. Josefina golpeó tu puerta temprano, sin el sombrero y con la tablilla abajo del brazo. «Vení», dijo. «Te quiero mostrar algo. Traé el hacha, pero no la uses.»',
-      CONTINUARA,
     ],
-    objetivos: [continuara],
+    objetivos: [
+      { id: 'piedras', tecla: '·', texto: 'Andá a las piedras del molino viejo, arroyo arriba, junto al coihue grande: Josefina te espera', hecho: escena('piedras-molino') },
+      { id: 'zaino', tecla: 'E', texto: 'Pedile el zaino a Don Ramón, en el Puesto Alto (E sobre él)', vecinos: true, hecho: escena('zaino-ramon') },
+      { id: 'molino', tecla: 'O', texto: 'Construí un molino de agua sobre el arroyo (O → Trabajo); con el zaino acarreás los troncos y las piedras', hecho: tiene('molino-agua') },
+      { id: 'coihue', tecla: '·', texto: 'Decidí qué hacer con el coihue grande de las puertitas', hecho: decision('coihue') },
+      { id: 'cumplir', tecla: 'E', visible: (s) => s.decisiones.coihue != null, texto: (s) => textoCumplirCoihue(s), hecho: (s) => cumplioCoihue(s) },
+      { id: 'habas', tecla: 'E', texto: 'Sembrá habas en un cantero', hecho: (s) => s.sembrados >= 1 },
+      { id: 'puente', tecla: '·', delMomento: true, texto: 'La crecida aflojó el puente del arroyo: decidí qué hacer', vecinos: true, hecho: (s) => s.eventos.has('puente') },
+    ],
+    decisiones: [{ id: 'coihue', tras: 'tito-coihue' }],
+    momento: { evento: 'puente', cuando: 'resto' },
     outro: ['La rueda agarró el ritmo del arroyo. Adentro, la muela hace un ruido hondo que se siente en los pies.'],
-    premio: PREMIO_CONTINUARA,
+    outroVar: [{ decision: 'coihue', lineas: {
+      a: 'El coihue quedó en pie, mirando el molino como si lo hubiera estado esperando.',
+      b: 'Donde estaba el coihue quedó un tocón ancho como una mesa. Esa noche no se oyeron risas. Se oyó otra cosa.',
+      c: 'La pirca de Tobías abraza la raíz del coihue. Josefina pasó la mano por las piedras y no dijo nada, que en ella es mucho.',
+    } }],
+    premio: { cuenta: { harina: 4, 'semillas-habas': 6 }, texto: 'Cuatro medidas de harina y semillas de habas; el zaino queda prestado («Devolvémelo cuando te devuelva el invierno», dijo Ramón)' },
   },
   {
     id: 'perdido', titulo: 'Lo que se pierde, aparece', acto: 2,
     intro: [
       'Desde que el molino muele, en el valle se pierden cosas. No muchas: un dedal de Ercilia, la pipa de Belisario, la cuchara de palo de Rosa. Y aparecen, días después, en lugares imposibles: arriba de un poste, adentro de una bota, en el medio de la vía.',
       'Nicanor dice que de noche hay luces sobre el lago. Nadie le cree. Vos sí.',
-      CONTINUARA,
     ],
-    objetivos: [continuara],
+    objetivos: [
+      { id: 'preguntar', tecla: 'E', texto: 'Preguntá en la aldea por las cosas perdidas: hablá con Ercilia y con Rosa (E)', vecinos: true, meta: 2, cuenta: (s) => (s.temas.has('ercilia:perdidas') ? 1 : 0) + (s.temas.has('panadera:perdidas') ? 1 : 0) },
+      { id: 'nicanor', tecla: 'E', texto: 'Escuchá a Nicanor: dice que de noche hay luces sobre el lago (E en el muelle)', vecinos: true, hecho: escena('luces-lago') },
+      { id: 'buscar', tecla: 'E', texto: 'Encontrá las tres cosas perdidas: el dedal, la pipa y la cuchara de palo (E): están en lugares imposibles', meta: 3, cuenta: (s) => PERDIDAS.filter((x) => s.objetos.has(x)).length },
+      { id: 'devolver', tecla: 'E', texto: 'Devolvé cada una a su dueño: el dedal a Ercilia, la cuchara a Rosa y la pipa a Belisario', vecinos: true, meta: 3, cuenta: (s) => Object.keys(DUENOS_PERDIDAS).filter((q) => s.entregados.has(`${q}:${DUENOS_PERDIDAS[q]}`)).length },
+      { id: 'faro', tecla: '·', texto: 'Salí al lago de noche, en el kayak o en el velero, y acercate al faro (entre las 23 y la 1)', hecho: (s) => (s.enKayak || s.enVela) && Number(s.lugares?.faro) <= 40 && enHora(s.horas, 23, 1) },
+      { id: 'guardia', tecla: 'E', espera: true, texto: 'Hacé guardia en el molino viejo de noche: sentate cerca del coihue (con un banco, O) entre las 22 y las 2', hecho: escena('guardia-molino') },
+      { id: 'huellas', tecla: '·', texto: 'A la mañana, seguí las huellas chiquitas de la escarcha', hecho: escena('raiz-ramon') },
+    ],
     outro: [
       'Ramón no te dijo nada y vos no le preguntaste. Hay cosas que en el valle se saben de costado.',
       'Las cosas perdidas volvieron a sus dueños. Ercilia guardó el dedal en el bolsillo del delantal y dijo «gracias» mirando para el lado del bosque. No a vos: para el bosque.',
     ],
-    premio: PREMIO_CONTINUARA,
+    premio: { cosas: ['farol', 'lampara-eusebio'], cuenta: { yerba: 4 }, texto: 'La lámpara de aceite de Eusebio, el farol para las noches y yerba' },
   },
   {
     id: 'cosecha', titulo: 'La cosecha', acto: 2,
     intro: [
       'Las habas están gordas, la muela está caliente y en la aldea se habla de la Fiesta de la Cosecha y de la minga. Graciela volvió en el tren de la mañana, con el portafolios y botas nuevas: alguien le avisó del barro.',
       '«Vengo a contar», dijo. Elsa le contestó: «Cuente, cuente. Hoy hay mucho».',
-      CONTINUARA,
     ],
-    objetivos: [continuara],
+    objetivos: [
+      { id: 'cosechar', tecla: 'E', texto: 'Cosechá seis veces de la huerta', meta: 6, cuenta: (s, b) => desde(s, b, 'cosechas') },
+      { id: 'moler', tecla: 'E', texto: 'Molé diez medidas de harina en tu molino (habas en la muela, E)', meta: 10, cuenta: (s, b) => desde(s, b, 'molido') },
+      { id: 'galpon', tecla: 'O', texto: 'Construí un galpón para guardar las bolsas (O → Trabajo → Galpón de herramientas)', hecho: tiene('galponcito') },
+      { id: 'molienda', tecla: '·', texto: 'Decidí qué hacer con la primera molienda', hecho: decision('molienda') },
+      { id: 'cumplir', tecla: 'E', visible: (s) => s.decisiones.molienda != null, texto: (s) => textoCumplirMolienda(s), hecho: (s) => cumplioMolienda(s) },
+      { id: 'minga', tecla: 'E', texto: 'Cociná algo (pan casero, tortas fritas o empanadas) y llevalo a la minga, en la plaza de la aldea (de 9 a 17)', vecinos: true, hecho: escena('minga-vecinos') },
+      { id: 'ronda', tecla: 'E', texto: 'A la mañana siguiente, entrá a tu galpón', hecho: escena('galpon-ronda') },
+      { id: 'cuaderno', tecla: 'E', texto: 'Agarrá el cuaderno que quedó en el pozo del galpón (E)', hecho: objeto('cuaderno-eusebio') },
+    ],
+    decisiones: [{ id: 'molienda', tras: 'primera-molienda' }],
     outro: [
       'No faltaba nada. Ni una medida. Estaba todo en el piso, en ronda, como si alguien hubiera querido mostrarte cuánto era.',
       'Y abajo, enterrado, el cuaderno del molinero. Alguien sabía que estaba ahí. Alguien quiso que lo tuvieras.',
       'Cerraste el galpón. Después lo volviste a abrir y dejaste la puerta entornada. No sabés bien por qué.',
     ],
-    premio: PREMIO_CONTINUARA,
+    premio: { cuenta: { yerba: 2 }, texto: 'Dos puñados de yerba de la minga y el cuaderno de Eusebio, que se lee en la mesa del refugio, página por página' },
   },
   {
     id: 'cuaderno', titulo: 'El cuaderno de Eusebio', acto: 2,
     intro: [
       'El cuaderno tiene cuarenta años de cuentas: bolsas, maquilas, nombres de vecinos que ya no están. Y entre las cuentas, otras cosas. Dibujos de puertitas. Una lista que dice «lo que dejaron»: un canto blanco, piñones, una pluma de cóndor, «la llave que perdí en el 79». Y una frase subrayada dos veces:',
       '«Cuando la nieve tapa el paso, los del cerro bajan. Los de abajo les tienen más miedo que nosotros.»',
-      CONTINUARA,
     ],
-    objetivos: [continuara],
+    objetivos: [
+      { id: 'leer', tecla: 'E', texto: 'Leé el cuaderno de Eusebio: tres páginas (E en la mesa del refugio)', meta: 3, cuenta: (s) => paginasLeidas(s) },
+      { id: 'ercilia', tecla: 'E', texto: 'Mostrale el cuaderno a Ercilia en el almacén', vecinos: true, hecho: escena('libreta-ercilia') },
+      { id: 'josefina', tecla: 'E', texto: 'Mostrale el cuaderno a Josefina', vecinos: true, hecho: escena('cuaderno-josefina') },
+      { id: 'belisario', tecla: 'E', texto: 'Andá al Puesto del Paso y preguntale a Belisario por «los del cerro» (trochita o caballo)', vecinos: true, hecho: escena('los-del-cerro') },
+      { id: 'ramon', tecla: 'E', texto: 'Subí al Puesto Alto a ver a Ramón al atardecer (entre las 17 y las 20)', vecinos: true, hecho: (s) => s.escenas.has('secreto-ramon') || (s.lazos.ramon < 0 && enHora(s.horas, 17, 20) && Number(s.lugares?.puesto) <= 30) },
+      { id: 'fogon', tecla: '·', texto: 'En el fogón de la aldea, de noche: contar lo del cuaderno o callar', hecho: decision('cuaderno') },
+    ],
+    decisiones: [{ id: 'cuaderno', tras: 'fogon-leyenda' }],
     outro: [
       'Esa noche, de vuelta del fogón, el valle estaba lleno de ruidos chiquitos: hojas, agua, algo que corría. Ya no te dieron miedo. Te dieron otra cosa, más difícil de nombrar: la sensación de que el valle te estaba mirando para ver qué hacías.',
       'En la cordillera, arriba de todo, cayó la primera nieve.',
     ],
-    premio: PREMIO_CONTINUARA,
+    premio: { cuenta: { yerba: 4 }, cosas: ['pluma-condor'], texto: 'Yerba y una pluma de cóndor, de las de la lista de Eusebio' },
+    premioVar: { decision: 'cuaderno', opciones: {
+      a: { materiales: { tronco: 6 }, texto: 'la aldea te trae leña para el invierno: seis troncos secos' },
+      b: { cosas: ['poncho'], texto: 'Ramón te regala su poncho viejo' },
+      c: { texto: 'Graciela te consigue un flete de «material de estudio»: suma al ramal' },
+    } },
   },
 
   // ---------------------------------------------------------------- ACTO III · INVIERNO: LA NOCHE (continuará)
@@ -392,7 +505,7 @@ export const CAPITULOS = [
 export const CAPITULO = Object.fromEntries(CAPITULOS.map((c) => [c.id, c]));
 
 // Los capítulos del acto I están completos; el resto es el «continuará»
-export const CAPITULOS_COMPLETOS = 4;
+export const CAPITULOS_COMPLETOS = 8;
 export const esContinuara = (c) => c.objetivos.length === 1 && c.objetivos[0].id === 'continuara';
 
 // ---------------------------------------------------------------- la bolsa del molinero (D1, capítulo 2)
@@ -421,6 +534,43 @@ export const DEFINICION_DECISIONES = {
       { id: 'c', texto: 'Llevársela a Josefina', detalle: 'Ella reconoce la letra de la nota.', lazos: { ema: 2 }, diario: 'Elegí llevarle la bolsa de Eusebio a Josefina, que reconoció la letra.' },
     ],
   },
+  // 4.16.0: las del acto II. Las toma la escena (con `decision:<d>:<a|b|c>`); esta tarjeta es el respaldo si la escena no está escrita.
+  coihue: {
+    titulo: 'El coihue de las puertitas',
+    texto: [
+      'El mejor lugar para el aserradero, junto al molino, tiene un coihue enorme con las raíces talladas: puertitas chicas, todas cerradas. Tito te pagaría bien la madera. Josefina te mira con los brazos cruzados.',
+      '¿Qué hacés con el coihue?',
+    ],
+    opciones: [
+      { id: 'a', texto: 'Dejarlo en pie y armar el aserradero aguas abajo', detalle: 'Caminás más. Josefina lo va a agradecer.', lazos: { ema: 1 }, diario: 'Dejé el coihue de las puertitas en pie y armé el aserradero aguas abajo.' },
+      { id: 'b', texto: 'Talarlo: Tito paga y hace tablas finas', detalle: 'Seis hachazos. Josefina no te lo va a perdonar fácil.', lazos: { ema: -2 }, diario: 'Decidí talar el coihue de las puertitas. Tito va a pagar bien las tablas.' },
+      { id: 'c', texto: 'Pedirle a Tobías una pirca que proteja la raíz', detalle: 'Diez piedras para Tobías, en la cantera.', lazos: { ema: 1 }, diario: 'Decidí pedirle a Tobías una pirca para proteger la raíz del coihue.' },
+    ],
+  },
+  molienda: {
+    titulo: 'La primera molienda',
+    texto: [
+      'Diez bolsas de la primera molienda. Ercilia las quiere para el fiado de la aldea, Graciela las cuenta en toneladas y Josefina mira el coihue: «Mi abuelo dejaba una aparte. Siempre una aparte».',
+      '¿Adónde va la harina?',
+    ],
+    opciones: [
+      { id: 'a', texto: 'Fletes a Esquel, por la trochita', detalle: 'El ramal gana puntos. A Ercilia no le gusta.', lazos: { guarda: 1, graciela: 2, ercilia: -1 }, ramal: 4, diario: 'Decidí mandar la primera harina a Esquel por la trochita, para sumarle cargas al ramal.' },
+      { id: 'b', texto: 'El fiado de invierno de la aldea, en el almacén', detalle: 'El invierno no pasa hambre.', lazos: { ercilia: 2 }, diario: 'Decidí dejar la primera harina en el almacén, para el fiado de invierno de la aldea.' },
+      { id: 'c', texto: 'Partirla: un poco de cada cosa y una a la raíz', detalle: 'Más viajes. El valle queda tranquilo.', lazos: {}, ramal: 2, diario: 'Decidí partir la harina: dos fletes, tres medidas al almacén y una a la raíz del coihue.' },
+    ],
+  },
+  cuaderno: {
+    titulo: 'Contar o callar',
+    texto: [
+      'El cuaderno de Eusebio, la cuenta de Ercilia y el cuaderno del abuelo de Josefina dicen lo mismo: hubo un trato. En el fogón de la aldea hay media aldea esperando una leyenda.',
+      '¿Qué hacés con lo que sabés?',
+    ],
+    opciones: [
+      { id: 'a', texto: 'Contarlo en el fogón, a toda la aldea', detalle: 'Ercilia y Herminia lo celebran. Josefina se va antes del final.', lazos: { ercilia: 2, ema: -1 }, diario: 'En el fogón leí en voz alta la primera página del cuaderno de Eusebio.' },
+      { id: 'b', texto: 'Guardarlo entre los que ya saben', detalle: 'Contás otra leyenda. Ramón te pasa el mate.', lazos: { ema: 2, ramon: 1 }, diario: 'En el fogón conté otra leyenda y me guardé lo del cuaderno entre los que ya saben.' },
+      { id: 'c', texto: 'Que Josefina lo mande a la universidad', detalle: 'Un árbol notable, un sitio registrado.', lazos: { ema: 1, graciela: 1 }, diario: 'En el fogón hablamos de registrar el sitio del coihue como árbol notable.' },
+    ],
+  },
 };
 
 // Una decisión pendiente en el capítulo en curso: el objetivo `decision(D)` sin hacer y con su escena de antes vista
@@ -445,6 +595,7 @@ export function tomarDecision(h, id, opcion, s = null) {
   if (d[id] != null) return null;   // una sola vez
   d[id] = o.id;
   for (const [q, n] of Object.entries(o.lazos || {})) cambiarLazo(h, q, n);
+  if (o.ramal) sumarRamal(h, o.ramal);   // (4.16.0: la molienda a Esquel o partida suma a la cuenta del ramal)
   return o;
 }
 
@@ -548,7 +699,7 @@ export function decisionesDe(h) {
   return h.decisiones;
 }
 // el cuaderno de lo raro: indicios con fecha. Cada uno se anota una vez.
-export const RAROS = Object.fromEntries(Object.entries(TEXTO_ACTO1.raro).map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
+export const RAROS = Object.fromEntries([...Object.entries(TEXTO_ACTO1.raro), ...Object.entries(TEXTO_ACTO2.raro || {})].map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
 export function anotarRaro(h, id, dia = 1) {
   if (!Object.hasOwn(RAROS, id)) return false;
   if (!Array.isArray(h.raro)) h.raro = [];
@@ -585,11 +736,19 @@ export function sumarFletes(h, s) {
   if (!h?.activa || (h.capitulo || 0) < 3) return 0;   // desde el capítulo 4
   const total = Math.max(0, Math.floor(Number(s?.entregas) || 0));
   if (h.entregasVistas === null || h.entregasVistas === undefined) { h.entregasVistas = total; return 0; }
-  let nuevos = Math.max(0, total - ent(h.entregasVistas, 1e6));
+  const previas = ent(h.entregasVistas, 1e6);
+  let nuevos = Math.max(0, total - previas);
   h.entregasVistas = total;
   const cabe = Math.max(0, RAMAL_MAX_FLETES - ent(h.fletes, 99));
   nuevos = Math.min(nuevos, cabe);
   if (nuevos) { h.fletes = ent(h.fletes, 99) + nuevos; sumarRamal(h, nuevos); }
+  // 4.16.0: con la primera molienda decidida a Esquel (a) o partida (c), cada flete desde la decisión cuenta también para cumplirla
+  // (los que entregaste antes no). `fletesBase` es el total de entregas que había cuando se tomó la decisión.
+  const dm = h.decisiones?.molienda;
+  if (dm === 'a' || dm === 'c') {
+    if (h.fletesBase === null || h.fletesBase === undefined) h.fletesBase = previas;
+    h.fletesHarina = Math.max(0, Math.min(9, total - ent(h.fletesBase, 1e6)));
+  }
   return nuevos;
 }
 // Cómo va el ramal, en palabras (no números)
@@ -603,7 +762,7 @@ export function historiaNueva() {
     activa: false, capitulo: 0, fase: 'intro', hechos: {}, base: {}, empezada: 0, terminada: 0, hablados: {}, momentos: {}, cerrados: {},
     duendes: duendesNuevos(), noche: nocheNueva(), escenas: escenasNuevas(),
     // 4.15.0
-    version: VERSION_HISTORIA, lazos: lazosNuevos(), decisiones: decisionesNuevas(), ramal: 0, fletes: 0, entregasVistas: null, molido: 0,
+    version: VERSION_HISTORIA, lazos: lazosNuevos(), decisiones: decisionesNuevas(), ramal: 0, fletes: 0, entregasVistas: null, molido: 0, fletesHarina: 0, fletesBase: null,
     prestado: prestadosNuevos(), raro: [], temas: {}, objetos: {}, entregados: {}, reparaciones: {}, acompanante: null, aplicadas: {}, avisoReinicio: false, copiaPrevia: '',
   };
 }
@@ -635,6 +794,8 @@ export function sanearHistoria(v) {
   h.fletes = ent(v.fletes, RAMAL_MAX_FLETES);
   h.entregasVistas = v.entregasVistas === null || v.entregasVistas === undefined ? null : ent(v.entregasVistas, 1e6);
   h.molido = ent(v.molido, 9999);
+  h.fletesHarina = ent(v.fletesHarina, 9);
+  h.fletesBase = v.fletesBase === null || v.fletesBase === undefined ? null : ent(v.fletesBase, 1e6);
   for (const k of PRESTADOS) h.prestado[k] = obj(v.prestado)[k] === true;
   if (Array.isArray(v.raro)) {
     const vistos = new Set();
@@ -650,7 +811,7 @@ export function sanearHistoria(v) {
     for (const [k, d] of Object.entries(obj(v[g]))) { if (n >= TOPE_MARCAS) break; if (idSeguro(k)) { h[g][k] = Math.max(1, ent(d)); n++; } }
   }
   for (const [k, n] of Object.entries(obj(v.reparaciones))) if (idSeguro(k)) h.reparaciones[k] = ent(n, 99);
-  h.acompanante = typeof v.acompanante === 'string' && PERSONAS_LAZO.includes(v.acompanante) ? v.acompanante : null;
+  h.acompanante = typeof v.acompanante === 'string' && ACOMPANANTES.includes(v.acompanante) ? v.acompanante : null;
   h.avisoReinicio = v.avisoReinicio === true;
   h.copiaPrevia = typeof v.copiaPrevia === 'string' && /^[a-z0-9][a-z0-9._-]{0,90}$/i.test(v.copiaPrevia) ? v.copiaPrevia : '';
   // una historia terminada no vuelve atrás
@@ -677,6 +838,42 @@ export function lineasCarta(c, h, cual = 'outro') {
     if (linea) base.push(linea);
   }
   return base;
+}
+
+// ---------------------------------------------------------------- 4.16.0: la puerta de estación y el clima de la historia
+// Cuántos días pasaron desde que terminó el acto I (el capítulo 4): lo que espera la historia por la estación
+export function diasEsperados(h, s) {
+  const base = ent(h?.cerrados?.ramal) || ent(h?.empezada);
+  return Math.max(0, ent(s?.dia, 1e6) - base);
+}
+// La tarjeta corta de la puerta de estación mientras falta la estación y no pasaron los 2 días (la historia no espera más: después trae su propia estación). Sólo con la tarjeta de entrada pendiente.
+export function puertaDeEstacion(h, s) {
+  if (!h?.activa || h.fase !== 'intro' || !s) return null;
+  const c = capituloActual(h);
+  if (!c.puerta) return null;
+  if ((ORDEN_ESTACION[s.estacionNatural] ?? 0) >= (ORDEN_ESTACION[c.puerta.estacion] ?? 0)) return null;
+  if (diasEsperados(h, s) >= c.puerta.tope) return null;
+  return c.puerta;
+}
+// El clima propio de la historia: si el verano sigue después de los 2 días de espera, el acto II se hace en otoño. 'otono' | null
+export function estacionForzada(h, s) {
+  if (!h?.activa || h.fase === 'fin' || !s || capituloActual(h).acto !== 2) return null;
+  if (s.estacionNatural !== 'verano') return null;
+  return diasEsperados(h, s) >= (CAPITULOS[4].puerta?.tope ?? 2) ? 'otono' : null;
+}
+// El premio de un capítulo con lo que suma lo decidido (el capítulo 8: leña, poncho o flete)
+export function premioDeCapitulo(c, h) {
+  const base = c?.premio || null;
+  const v = c?.premioVar;
+  if (!v || !base) return base;
+  const d = obj(h?.decisiones)[v.decision];
+  const x = d && Object.hasOwn(v.opciones, d) ? v.opciones[d] : null;
+  if (!x) return base;
+  const r = { ...base, materiales: { ...(base.materiales || {}) }, cosas: [...(base.cosas || [])] };
+  for (const [k, n] of Object.entries(x.materiales || {})) r.materiales[k] = (r.materiales[k] || 0) + n;
+  r.cosas.push(...(x.cosas || []));
+  r.texto = `${base.texto}. Y además: ${x.texto}`;
+  return r;
 }
 
 // Empezar (o retomar) la historia. Desde una partida ya empezada no se borra nada: se
@@ -725,11 +922,11 @@ export function cerrarCapitulo(h, dia) {
   if (h.fase !== 'outro') return null;
   const c = capituloActual(h);
   h.cerrados[c.id] = Math.max(1, ent(dia));
-  if (h.capitulo >= CAPITULOS.length - 1) { h.fase = 'fin'; h.terminada = Math.max(1, ent(dia)); return { capitulo: c, premio: c.premio, fin: true }; }
+  if (h.capitulo >= CAPITULOS.length - 1) { h.fase = 'fin'; h.terminada = Math.max(1, ent(dia)); return { capitulo: c, premio: premioDeCapitulo(c, h), fin: true }; }
   h.capitulo += 1;
   h.fase = 'intro';
   h.base = {};
-  return { capitulo: c, premio: c.premio, fin: false, siguiente: capituloActual(h) };
+  return { capitulo: c, premio: premioDeCapitulo(c, h), fin: false, siguiente: capituloActual(h) };
 }
 
 // ¿Toca el momento del capítulo (un evento del valle que es parte de la historia)?

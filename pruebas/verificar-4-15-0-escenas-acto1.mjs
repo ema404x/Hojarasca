@@ -144,7 +144,7 @@ function mundoFalso() {
 
 // Arma un director con los efectos y las condiciones de la convención (recordando qué corrió) y corre una escena con un guion de elecciones.
 // `decisiones`: la historia (D1…). Devuelve { log, efectos, lineas, planos, errores, vista, terminó… }
-function correrEscena(escena, { script = [], decisiones = {}, eventos = [], saltarAl = -1, extras = [] } = {}) {
+function correrEscena(escena, { script = [], decisiones = {}, eventos = [], saltarAl = -1, extras = [], ausentes = [] } = {}) {
   const mundo = mundoFalso();
   const est = { vistas: {}, elecciones: {} };
   const corridos = [];
@@ -162,6 +162,7 @@ function correrEscena(escena, { script = [], decisiones = {}, eventos = [], salt
     decision: (c) => (dec[c.args.d] ?? 'ninguna') === c.args.es,
     lazo: () => true,
     evento: (c) => eventos.includes(c.args.id),
+    presente: (c) => !ausentes.includes(c.args.quien),   // (4.16.0)
   };
   const dir = crearDirector({ mundo, estado: () => est, dia: () => 2, efectos, condiciones, alTerminar: (r) => resultados.push(r) });
   for (const e of extras) dir.registrar(e);
@@ -366,6 +367,15 @@ const fuentes = { claves: CLAVES, lugares: LUGARES, disparo: DISPARO_ACTO1, text
 const reales = suite(ESCENAS_ACTO1, TEXTO_ACTO1, fuentes);
 ok(reales.length === 0, 'la suite de datos pasa: ' + reales.slice(0, 12).join(' | ') + (reales.length > 12 ? ` (+${reales.length - 12})` : ''));
 ok(IDS_ACTO1.length === 21, '21 escenas');
+// 4.16.0: la opción de Rosa sólo se ofrece si Rosa ya vive en la aldea
+{
+  const con = correrEscena(ESCENAS_ACTO1['bolsa-alero'], { script: [1] });
+  ok(con.elecciones.length === 1 && con.elecciones[0].n === 3 && con.dec.bolsa === 'b', 'con Rosa en la aldea, la bolsa tiene tres opciones y la B es llevarla a Rosa');
+  const sin = correrEscena(ESCENAS_ACTO1['bolsa-alero'], { script: [1], ausentes: ['rosa'] });
+  ok(sin.elecciones.length === 1 && sin.elecciones[0].n === 2 && sin.dec.bolsa === 'c', 'sin Rosa, la bolsa tiene dos opciones (convidar o Josefina) y ninguna es Rosa');
+  const saltada = correrEscena(ESCENAS_ACTO1['bolsa-alero'], { ausentes: ['rosa'], saltarAl: 3 });
+  ok(saltada.dec.bolsa === 'a', 'sin Rosa, saltar la escena toma la opción por defecto (convidar)');
+}
 
 // ---------------------------------------------------------------- las escenas corren (todos los caminos) y se saltan
 let totalCaminos = 0, totalLineas = 0;
@@ -503,9 +513,10 @@ const quienes = (r) => r.corridos.map((x) => x.nombre);
 {
   const cambios = existsSync(join(raiz, 'CAMBIOS_4_15_0_B.md')) ? leer('CAMBIOS_4_15_0_B.md') : '';
   ok(cambios.length > 500, 'existe CAMBIOS_4_15_0_B.md');
+  const cambiosA = existsSync(join(raiz, 'CAMBIOS_4_16_0_A.md')) ? leer('CAMBIOS_4_16_0_A.md') : '';   // (4.16.0: las condiciones y efectos que sumó el acto II se documentan ahí)
   for (const k of CLAVES_PEDIDAS) ok(new RegExp(k, 'i').test(cambios), `los pedidos para A nombran a «${k}»`);
   for (const nombre of EFECTOS_ACTO1.map((x) => x.split(':')[0]).filter((x, i, a) => a.indexOf(x) === i)) ok(cambios.includes(`${nombre}:`), `CAMBIOS_4_15_0_B.md documenta la convención «${nombre}:»`);
-  for (const cond of CONDICIONES_HISTORIA) ok(cambios.includes(cond), `CAMBIOS_4_15_0_B.md documenta la condición «${cond}»`);
+  for (const cond of CONDICIONES_HISTORIA) ok(cambios.includes(cond) || cambiosA.includes(`«${cond}»`), `CAMBIOS_4_15_0_B.md documenta la condición «${cond}»`);
   ok(!/scratch/i.test(cambios), 'los cambios no mencionan lo que no se menciona');
   for (const a of ['src/historia-escenas-acto1.js', 'src/historia-texto-acto1.js', 'src/historia-escenas-util.js']) {
     const t = leer(a);

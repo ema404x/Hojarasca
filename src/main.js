@@ -264,6 +264,9 @@ import { crearTrucosJuego } from './trucos-juego.js';
 import { crearEscenasMundo } from './escenas-mundo.js';
 // 4.15.0: la Historia nueva: las escenas del acto I, sus objetos en el mundo y el reinicio de las partidas viejas
 import { ESCENAS_ACTO1, EFECTOS_ACTO1 } from './historia-escenas-acto1.js';
+// 4.16.0: el acto II (capítulos 5 a 8) y el acompañante que te sigue a pie
+import { ESCENAS_ACTO2, EFECTOS_ACTO2 } from './historia-escenas-acto2.js';
+import { crearAcompanante } from './historia-acompanante.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
@@ -931,10 +934,10 @@ async function construir() {
     });
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
     try {
-      for (const e of Object.values(ESCENAS_ACTO1)) { const r = escenasMundo.registrar(e); if (!r.ok) console.warn('escena de la historia mal armada', e?.id, r.errores); }
+      for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2)]) { const r = escenasMundo.registrar(e); if (!r.ok) console.warn('escena de la historia mal armada', e?.id, r.errores); }
       const ctxEfectos = { historia: () => (valle ? valle.historia() : null), dia: () => progreso.dia, estado: () => (valle ? valle.estado() : null), opcionDeEvento: (id) => progreso.eventosValle?.hechos?.[id]?.opcion };
       registrarEfectosHistoria(escenasMundo, ctxEfectos);
-      registrarEfectosActo1(escenasMundo, { ...ctxEfectos, dar: (cosa, n) => darCosaHistoria(cosa, n), mundo: (id, args, escena) => efectoMundoHistoria(id, args, escena), duende: (id, args) => efectoDuendeHistoria(id, args) }, EFECTOS_ACTO1);
+      registrarEfectosActo1(escenasMundo, { ...ctxEfectos, dar: (cosa, n) => darCosaHistoria(cosa, n), mundo: (id, args, escena) => efectoMundoHistoria(id, args, escena), duende: (id, args) => efectoDuendeHistoria(id, args), quitar: (cosa, n) => gastarCosaHistoria(cosa, n) }, [...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2])]);   // (4.16.0: y los del acto II)
     } catch (e) { fallaSistema('historia-escenas', e); }
     document.addEventListener('keyup', (e) => { escenasMundo?.teclaSuelta(e); });   // (soltar Mayús: la escritura vuelve a su velocidad)
   }
@@ -2250,6 +2253,16 @@ function puntosDeHistoria() {
   try { ponr('plaza', edificioEnMundo('plaza')); ponr('ramos', edificioEnMundo('almacen')); } catch { /* sin aldea */ }
   for (const k of ['casa-te', 'molino', 'galpon', 'faro', 'mirador', 'puesto']) ponr(k, L[k]);
   ponr('molino-viejo', molinoViejoHist?.raiz);
+  // 4.16.0: el acto II: tu molino y tu galponcito (las obras terminadas), el coihue y la raíz de la ladera de Ramón
+  const obraPunto = (k, id) => { const o = obras?.obras ? obrasTerminadas(id)[0] : null; if (o) ponr(k, { x: o.datos.x, z: o.datos.z }); else delete P[k]; };
+  obraPunto('molino-propio', 'molino-agua');
+  obraPunto('galpon-propio', 'galponcito');
+  ponr('coihue', molinoViejoHist?.arbol);
+  const pu = L.puesto, mv = molinoViejoHist?.raiz;
+  if (pu && mv && Number.isFinite(pu.x)) {
+    const d = Math.hypot(mv.x - pu.x, mv.z - pu.z) || 1;
+    ponr('raiz-ramon', { x: pu.x + ((mv.x - pu.x) / d) * 16, z: pu.z + ((mv.z - pu.z) / d) * 16 });
+  }
   return P;
 }
 const distanciasHist = {};
@@ -2263,7 +2276,8 @@ function objetosHistoriaMundo() {
   if (!objetosHist) {
     const agua = (x, z) => { const k = T.indice(x, z); return T.distRio[k] - T.anchoRio[k] <= 1.5 && T.altura(x, z) > -1; };
     molinoViejoHist = molinoViejo(T.lugares.refugio, agua, veg.arboles);
-    objetosHist = crearObjetosHistoria({ T, escena, refugio: () => T.lugares.refugio, molino: () => molinoViejoHist });
+    if (molinoViejoHist?.arbol) molinoViejoHist.arbol.grande = true;   // 4.16.0: el coihue grande de las puertitas se talla con seis hachazos
+    objetosHist = crearObjetosHistoria({ T, escena, refugio: () => T.lugares.refugio, molino: () => molinoViejoHist, puntos: () => puntosDeHistoria(), alturaDePie: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)) });
   }
   return objetosHist;
 }
@@ -2277,8 +2291,8 @@ function historiaObjetoCerca() {
   cacheObjetoHist.v = null;
   const h = valle.historia();
   if (!h.activa || h.fase !== 'jugando') return null;
-  const visibles = Object.entries(objetosHist.mallas).filter(([, m]) => m.visible).map(([k]) => k).concat(objetosHist.posiciones['nota-mesa'] ? ['nota-mesa'] : [], objetosHist.posiciones['raiz-coihue'] ? ['raiz-coihue'] : []);
-  const id = objetosHist.cercano(jugador.estado.pos, [...new Set(visibles)], (k) => valle.accionObjeto(k));
+  const visibles = Object.keys(objetosHist.posiciones);   // (4.16.0: todos los que tienen lugar; `accionObjeto` filtra los que se ven y tienen qué hacer)
+  const id = objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
   const a = id ? valle.accionObjeto(id) : null;
   cacheObjetoHist.v = a ? { id, ...a } : null;
   return cacheObjetoHist.v;
@@ -2307,6 +2321,33 @@ function gracielaDeHistoria() {
 }
 // 4.15.0: lo que piden los efectos de las escenas del acto I: dar algo, cambiar algo del mundo (los props ya los dibuja historia-objetos.js según el estado) y el pillo que cruza el sendero
 function darCosaHistoria(cosa, n) { try { cobrarPremio({ premio: { cuenta: { [cosa]: n }, texto: '' } }); refrescarBarra(true); } catch (e) { fallaSistema('historia-dar', e); } }
+// 4.16.0: gastar harina o un material (la primera molienda, las piedras de Tobías); y el estado natural de la estación (sin el clima que fuerza la historia)
+function gastarCosaHistoria(cosa, n) {
+  try {
+    n = Math.max(0, Math.floor(Number(n) || 0));
+    if (cosa === 'harina') progreso.cosas.harina = Math.max(0, (Number(progreso.cosas.harina) || 0) - n);
+    else {
+      let falta = n;
+      for (const g of ['materiales', 'acopio']) { const have = Number(progreso[g]?.[cosa]) || 0, q = Math.min(have, falta); if (q > 0) { progreso[g][cosa] = have - q; falta -= q; } }
+    }
+    refrescarBarra(true);
+  } catch (e) { fallaSistema('historia-gastar', e); }
+}
+function estacionNaturalDeHistoria() { const e = estacionObjetivo(); return estacionDe({ invierno: e.inv, otono: e.oto }); }
+// la estación que forza la historia (el acto II es en otoño, a lo sumo dos días de espera): sólo con la estación en «auto»
+function conClimaDeHistoria(e) { return ajustes.estacion === 'auto' && !desafio && valle?.estacionForzada?.() === 'otono' && e.oto < 1 ? { oto: 1, inv: 0 } : e; }
+// El acompañante de la Historia (Graciela, Tobías): te sigue a pie (ver historia-acompanante.js)
+let acompananteMundo = null;
+function acompananteDeHistoria() {
+  if (esDesafio || !valle) return null;
+  if (!acompananteMundo) acompananteMundo = crearAcompanante({
+    historia: () => valle.historia(), jugador: () => ({ pos: jugador.estado.pos, yaw: jugador.estado.yaw }),
+    npcDe: (k) => (k === 'graciela' ? gracielaMundo?.npc() : (gente?.gente || []).find((g) => g.clave === k) || null),
+    altura: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)), tomada: () => !!escenasMundo?.activa(),
+    enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.enSulky || js.enCable); },
+  });
+  return acompananteMundo;
+}
 function efectoMundoHistoria() { dibujarObjetosHistoriaYa(); }
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
 function efectoDuendeHistoria(id, args) {
@@ -2348,10 +2389,10 @@ function crearValle() {
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
     libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo') && !escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
-    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), sentado: !!js.sentado, apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
+    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id) => escenasMundo.disparar(id) } : null),
-    objetos: objetosHistoriaMundo(), gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(),
+    objetos: objetosHistoriaMundo(), gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()), taparHuerta: () => { taparHuerta(huerta(), progreso.dia); },
     obras: () => obras, altura: (x, z) => T.altura(x, z), sincronizarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); },
@@ -4847,6 +4888,7 @@ function caerEnDesafio() {
 // Las rocas decorativas (`decorativo:true`, los grupos de rocas del paisaje) se siguen picando como siempre, pero ahora con el pico: se ven igual que las demás y
 // distinguirlas haría que una roca sí y otra no (decisión 4.2).
 const GOLPES_TALA = 3, TRONCOS_TALA = 4, TRONCOS_MATA = 3, PIEDRA_MATA = 4;
+const GOLPES_COIHUE = 6;   // 4.16.0: el coihue grande del molino viejo (el de las puertitas) lleva seis hachazos
 const scratchMatasHacha = [], scratchArbolesHacha = [];
 const golpesTala = new WeakMap();
 const golpesPico = new WeakMap();   // 4.2: lo picado de cada pedrero (como la tala: se recuerda mientras no lo termines; no se guarda)
@@ -4875,7 +4917,7 @@ function objetivoHacha() {
   }
   if (!arbol) return deMata;
   if (arbol.caido) return { tipo: 'tronco', arbol, caido: true };
-  return { tipo: 'tronco', arbol, talar: true, protegido: arbol.especie === 'pehuen', golpes: golpesTala.get(arbol) || 0 };
+  return { tipo: 'tronco', arbol, talar: true, protegido: arbol.especie === 'pehuen', golpes: golpesTala.get(arbol) || 0, grande: arbol.grande === true };   // (4.16.0: el coihue grande del molino viejo, de la historia: seis hachazos; lo marca objetosHistoriaMundo)
 }
 // 4.10 coihue: en un lugar que tomaron los duendes no se corta ni se pica (hasta sacar su nido, de día)
 function lugarTomado(o, avisar = true) {
@@ -4890,6 +4932,8 @@ function textoHacha(o) {
   if (o.tipo === 'piedra') return o.sinPico ? 'Para picar piedra hace falta el pico' : o.golpes ? `Picar piedra (${o.golpes}/${golpesParaPicarAhora(o.mata)})` : 'Picar piedra';
   if (!o.talar) return 'Hacer troncos';
   if (o.protegido) return 'El pehuén no se tala';
+  if (o.grande) return o.golpes ? `Talar el coihue grande (${o.golpes}/${GOLPES_COIHUE})` : 'Talar el coihue grande';
+  talaGrande = false;
   return o.golpes ? `Talar el árbol (${o.golpes}/${golpesParaTalarAhora()})` : 'Talar el árbol';
 }
 function usarHacha() {
@@ -4914,6 +4958,7 @@ function usarHacha() {
     const troncosTala = troncosAlTalar(TRONCOS_TALA, nivelDe('hachero'));   // 3.1
     if (!cabeJuntar('tronco', troncosTala)) return;
     const golpes = (golpesTala.get(o.arbol) || 0) + 1;
+    talaGrande = !!o.grande;
     const hacen = golpesParaTalarAhora();   // 3.1: el oficio y el filo del herrero
     const dondeSuena = { x: o.arbol.x, y: (o.arbol.y ?? jugador.estado.pos.y) + 1.2, z: o.arbol.z };
     // cada hachazo suena más hondo que el anterior: la muesca se abre y el tronco
@@ -4931,6 +4976,7 @@ function usarHacha() {
     veg.talar(o.arbol, { x: o.arbol.x - js2.pos.x, z: o.arbol.z - js2.pos.z });
     sonido.arbolCae(dondeSuena);
     anotarTalado(o.arbol);
+    if (o.grande) { try { valle?.coihueTalado?.(); } catch (e) { fallaSistema('historia-coihue', e); } }   // 4.16.0: la historia se entera
     const troncosM = materialesDeMeta(troncosTala);   // 4.10 partidas
     sumarMaterial('tronco', troncosM);
     gastarFilo(progreso.aldea);   // 3.6: el filo que te dio el herrero de la aldea
@@ -6290,7 +6336,8 @@ function actualizarAldea(dt) {
 // 4.2: con tu herrería propia y el hacha y el pico templados, el filo saca un golpe más (dos en vez de uno: ver herreriaTemplada)
 const conTemple = (g) => (herreriaTemplada() ? Math.max(1, g - (TEMPLE.golpesMenos - 1)) : g);
 const golpesParaPicarAhora = (mata) => conTemple(golpesConFilo(golpesParaPicar(nivelDe('picapedrero'), mata?.esc), progreso?.aldea));
-const golpesParaTalarAhora = () => conTemple(golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea));
+let talaGrande = false;   // 4.16.0: el árbol que se está talando es el coihue grande de la historia (seis hachazos, sin oficio ni filo que valgan)
+const golpesParaTalarAhora = () => (talaGrande ? GOLPES_COIHUE : conTemple(golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea)));
 // Lo que sobra de una etapa de obra, según el oficio (va a la mochila), y la experiencia
 function conOficioDeObra(r, m) {
   if (!r?.ok || !r.etapa) return r;
@@ -8332,6 +8379,7 @@ function usarMaquina(o) {
     const r = usarMolino(datosDe(o, 'muela', sanearMuela), cuantoHay('haba'), fuerza);
     if (r.accion === 'sacar') {
       progreso.cosas.harina = (progreso.cosas.harina || 0) + r.harina;
+      try { valle?.harinaMolida?.(r.harina); } catch (e) { fallaSistema('historia-molido', e); }   // 4.16.0
       sonido.juntar();
       nota(`Sacaste ${r.harina} ${r.harina === 1 ? 'medida' : 'medidas'} de harina`, `Llevás ${progreso.cosas.harina}. Para el pan, la torta frita o las empanadas`, true);
     } else if (r.accion === 'cargar') {
@@ -10634,9 +10682,11 @@ function actualizarTiempo(dt) {
     // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras;
     // ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
     const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !teJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;
+    // 4.16.0: esperando una hora de la historia, sentado el reloj corre ×8 (no ×40: que no se pase de largo la escena)
+    const limEspera = escala > 1 && !desafio && valle ? valle.aceleracion?.() || 1 : 1;
     // 4.10 partidas: con «noches más largas» (regla o ventaja) la hora corre más despacio entre la hora del ataque y el alba
     const largaNoche = esDesafio && efectosPartida()?.nochesLargas && (progreso.horas >= 20.5 || progreso.horas < 6) ? FACTOR_NOCHE_LARGA : 1;
-    progreso.horas += (dt * 24 * escala * largaNoche) / (ajustes.duracion * 60);
+    progreso.horas += (dt * 24 * (limEspera > 1 ? Math.min(escala, limEspera) : escala) * largaNoche) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   }
 }
@@ -10804,10 +10854,11 @@ function cuadroDelJuego(tRaf, manual) {
 
   // estaciones con transición suave; en modo automático avanzan con los días
   const { oto, inv } = estacionObjetivo();
-  U.uOtono.value = lerp(U.uOtono.value, oto, 1 - Math.exp(-dt * 1.5));
-  U.uInvierno.value = lerp(U.uInvierno.value, inv, 1 - Math.exp(-dt * 1.5));
-  if (Math.abs(U.uOtono.value - oto) < 0.01) U.uOtono.value = oto;
-  if (Math.abs(U.uInvierno.value - inv) < 0.01) U.uInvierno.value = inv;
+  const { oto: otoH, inv: invH } = conClimaDeHistoria({ oto, inv });   // (4.16.0)
+  U.uOtono.value = lerp(U.uOtono.value, otoH, 1 - Math.exp(-dt * 1.5));
+  U.uInvierno.value = lerp(U.uInvierno.value, invH, 1 - Math.exp(-dt * 1.5));
+  if (Math.abs(U.uOtono.value - otoH) < 0.01) U.uOtono.value = otoH;
+  if (Math.abs(U.uInvierno.value - invH) < 0.01) U.uInvierno.value = invH;
   gente?.abrigar?.(U.uInvierno.value > 0.5);   // 3.7.0: la ropa de abrigo, con el invierno
   gente?.ropaDeEstacion?.(U.uInvierno.value > 0.5 ? null : U.uOtono.value > 0.5 ? 'otono' : 'verano');   // 3.7.5 (rincones): y la del verano y el otoño
 
@@ -10934,7 +10985,8 @@ function cuadroDelJuego(tRaf, manual) {
   if (!esDesafio) revisarGuiaRelax(dt);
   try { if (!esDesafio) valle?.actualizar(dt); } catch (e) { fallaSistema('valle', e); }
   try { if (!esDesafio && duendesHist) { if (valle) presenciaHist?.actualizar(dt); duendesHist.actualizar(dt); } } catch (e) { fallaSistema('duendes-historia', e); }
-  try { if (!esDesafio && valle) gracielaDeHistoria()?.actualizar(); } catch (e) { fallaSistema('historia-graciela', e); }   // 4.15.0: Graciela Pugh   // 4.13.0 (A)   // 3.1: la historia y los eventos del valle
+  try { if (!esDesafio && valle) gracielaDeHistoria()?.actualizar(); } catch (e) { fallaSistema('historia-graciela', e); }
+  try { if (!esDesafio && valle && modo === 'jugando') acompananteDeHistoria()?.actualizar(dt); } catch (e) { fallaSistema('historia-acompanante', e); }   // 4.16.0   // 4.15.0: Graciela Pugh   // 4.13.0 (A)   // 3.1: la historia y los eventos del valle
   try { veg.actualizarCaidas(dt); } catch (e) { fallaSistema('caidas-arboles', e); }
   try { if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); } } catch (e) { fallaSistema('majada/casa', e); }
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }

@@ -61,7 +61,7 @@ export function objetoCercano(pos, visibles, posiciones, accion) {
     const q = posiciones[id];
     if (!q || !accion(id)) continue;
     const d = Math.hypot(pos.x - q.x, pos.z - q.z);
-    const radio = Object.hasOwn(OBJETOS, id) && OBJETOS[id].forma === 'raiz' ? 3.4 : RADIO_OBJETO;
+    const radio = Object.hasOwn(OBJETOS, id) && (OBJETOS[id].forma === 'raiz' || OBJETOS[id].lugar === 'molino-viejo') ? 3.4 : RADIO_OBJETO;
     if (d <= radio && d < dm) { dm = d; mejor = id; }
   }
   return mejor;
@@ -100,6 +100,64 @@ const FORMAS = {
     caja(c, [0.05, 0.62, 0.05], [0.05, 0.72, 0.02], '#7a5a38', [0, 0, 0.18], 0.06);
     caja(c, [0.2, 0.15, 0.05], [0.12, 0.99, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
   },
+  // 4.16.0: los props del acto II y los del acto I que antes sólo dejaban una marca
+  'dedal-poste': (c) => {
+    palo(c, 0.06, 1.3, [0, 0.65, 0], [0, 0, 0], '#6b5030');
+    palo(c, 0.05, 0.07, [0, 1.34, 0], [0, 0, 0], '#cfd3d8');
+    esfera(c, 0.05, [0, 1.38, 0], '#d9dde2', [1, 0.6, 1], 0.02);
+  },
+  pipa: (c) => {
+    esfera(c, 0.18, [0, 0.05, 0], '#8a877f', [1, 0.35, 1], 0.08);
+    palo(c, 0.018, 0.22, [0, 0.14, 0], [0, 0, 1.45], '#4a3220');
+    palo(c, 0.03, 0.08, [0.11, 0.18, 0], [0, 0, 0], '#3d2a1a');
+  },
+  'bota-cuchara': (c) => {
+    caja(c, [0.16, 0.3, 0.11], [0, 0.15, 0], '#4a3828', [0, 0, 0], 0.08);
+    caja(c, [0.22, 0.09, 0.11], [0.05, 0.045, 0], '#3d2e20', [0, 0, 0], 0.06);
+    palo(c, 0.012, 0.4, [0.02, 0.45, 0], [0, 0, 0.15], '#b89462');
+    esfera(c, 0.05, [0.07, 0.66, 0], '#b89462', [1, 0.5, 1.3], 0.04);
+  },
+  yerba: (c) => {
+    esfera(c, 0.34, [0, 0.03, 0], '#5d7d3a', [1, 0.12, 1.25], 0.1);
+    esfera(c, 0.12, [0, 0.1, 0], '#8f9a4b', [1, 0.7, 1], 0.06);
+  },
+  'ronda-harina': (c) => {
+    for (let i = 0; i < 11; i++) {
+      const a = (i / 11) * Math.PI * 2;
+      esfera(c, 0.13, [Math.cos(a) * 1.15, 0.05, Math.sin(a) * 1.15], '#efe9dc', [1, 0.5, 1], 0.03);
+      caja(c, [0.05, 0.01, 0.09], [Math.cos(a + 0.28) * 1.15, 0.012, Math.sin(a + 0.28) * 1.15], '#d9d2c0', [0, -a, 0], 0.04);
+    }
+    palo(c, 0.45, 0.03, [0, 0.016, 0], [0, 0, 0], '#2a1f16');
+  },
+  'cuaderno-hule': (c) => {
+    caja(c, [0.26, 0.06, 0.19], [0, 0.06, 0], '#2d4a3a', [0, 0.3, 0], 0.05);
+    caja(c, [0.03, 0.062, 0.2], [0, 0.062, 0], '#b8432f', [0, 0.3, 0], 0.03);
+  },
+  pinones: (c) => {
+    for (let i = 0; i < 5; i++) esfera(c, 0.035, [Math.cos(i * 1.7) * 0.12, 0.47, Math.sin(i * 1.7) * 0.12], '#5a3a22', [1, 1.6, 1], 0.1);
+  },
+  'cuchara-techo': (c) => {
+    palo(c, 0.012, 0.36, [0, 0.03, 0], [0, 0, 1.25], '#b89462');
+    esfera(c, 0.05, [0.2, 0.05, 0], '#b89462', [1.3, 0.5, 1], 0.04);
+  },
+  'puertita-noche': (c) => {
+    caja(c, [0.26, 0.4, 0.03], [0, 0.2, 0.06], '#8a5a34', [-0.28, 0, 0.1], 0.1);
+    esfera(c, 0.022, [0.07, 0.2, 0.09], '#e7ddc6', [1, 1, 1], 0.02);
+  },
+  // las puertitas talladas en la raíz del coihue grande (decoración): cuatro, al pie del tronco
+  puertitas: (c, info) => {
+    const r = Math.max(0.8, Number(info?.r) || 1.4);
+    [0.5, 1.9, 3.4, 4.9].forEach((a, i) => {
+      caja(c, [0.22, 0.34 - i * 0.03, 0.04], [Math.cos(a) * (r + 0.03), 0.2, Math.sin(a) * (r + 0.03)], '#6e4a2a', [0, Math.PI / 2 - a, 0], 0.1);
+      esfera(c, 0.016, [Math.cos(a) * (r + 0.06), 0.2, Math.sin(a) * (r + 0.06)], '#e7ddc6', [1, 1, 1], 0.02);
+    });
+  },
+  // la pirca de Tobías: dos vueltas de piedras redondas alrededor del tronco
+  pirca: (c, info) => {
+    const r = Math.max(0.8, Number(info?.r) || 1.4) + 0.95;
+    for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2; esfera(c, 0.27, [Math.cos(a) * r, 0.17, Math.sin(a) * r], i % 3 ? '#8d8a82' : '#76736b', [1, 0.65, 1], 0.12); }
+    for (let i = 0; i < 17; i++) { const a = ((i + 0.5) / 17) * Math.PI * 2; esfera(c, 0.22, [Math.cos(a) * (r - 0.05), 0.4, Math.sin(a) * (r - 0.05)], '#8d8a82', [1, 0.7, 1], 0.12); }
+  },
   raiz: (c) => {
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2 + 0.3;
@@ -109,54 +167,87 @@ const FORMAS = {
   },
 };
 
-// `ctx`: { T, escena, grupo?, refugio: () => ref, molino: () => { raiz } | null, jugador: () => ({x, z}) }
+// `ctx`: { T, escena, grupo?, refugio: () => ref, molino: () => { raiz, arbol } | null, puntos: () => ({ nombre: {x, z} }), alturaDePie?: (x, z) => y }
+// 4.16.0: los puntos con nombre (el galponcito de tu obra, la estación, el faro…) pueden cambiar o aparecer más tarde: la posición se recalcula en cada
+// `mostrar` (cada medio segundo) y el objeto se mueve si hace falta.
 export function crearObjetosHistoria(ctx) {
   const mat = materialVegetal({ flex: 0 });
-  const mallas = {}, posiciones = {};
-  let listo = false;
+  const mallas = {}, posiciones = {}, claves = {};
   const grupo = new THREE.Group();
   grupo.name = 'historia-objetos';
   (ctx.grupo || ctx.escena).add(grupo);
-  const alt = (x, z) => ctx.T.altura(x, z);
+  const alt = (x, z) => (ctx.alturaDePie ? ctx.alturaDePie(x, z) : ctx.T.altura(x, z));
 
+  // dónde va el objeto en el mundo: { x, z } o null si todavía no se sabe
   function lugarDe(id) {
     const o = OBJETOS[id];
     if (o.lugar === 'molino-viejo') { const m = ctx.molino?.(); return m ? { x: m.raiz.x, z: m.raiz.z } : null; }
-    const ref = ctx.refugio();
-    return ref ? aMundoRefugio(ref, o.lx, o.lz) : null;
+    if (o.lugar === 'coihue') { const m = ctx.molino?.(); return m?.arbol ? { x: m.arbol.x, z: m.arbol.z } : null; }
+    if (o.punto) { const p = ctx.puntos?.()?.[o.punto]; return p ? { x: p.x + (o.dx || 0), z: p.z + (o.dz || 0) } : null; }
+    if (Number.isFinite(o.lx)) { const ref = ctx.refugio(); return ref ? aMundoRefugio(ref, o.lx, o.lz) : null; }
+    return null;
   }
-  function armar() {
-    if (listo) return;
-    for (const id of Object.keys(OBJETOS)) {
-      const forma = OBJETOS[id].forma;
-      const q = lugarDe(id);
-      if (!q) continue;
-      posiciones[id] = { x: q.x, z: q.z };
-      if (!Object.hasOwn(FORMAS, forma)) continue;   // (la nota de la mesa no tiene malla: se lee con la E)
-      const c = new Constructor();
-      FORMAS[forma](c);
-      const m = new THREE.Mesh(c.geometria(), mat);
-      m.name = `historia-objeto:${id}`;
-      m.position.set(q.x, alt(q.x, q.z), q.z);
-      m.rotation.y = (Number(ctx.refugio()?.rot) || 0) + (id === 'puertita' ? 0.4 : 0);
-      m.castShadow = false; m.receiveShadow = true;   // (sin sombra propia: un dibujo menos en el mapa de sombras y ningún programa de profundidad nuevo cuando sale a la luz de día)
-      grupo.add(m);
-      mallas[id] = m;
+  const claveHuellas = (q, hasta) => (hasta ? `${q.x.toFixed(1)},${q.z.toFixed(1)}>${hasta.x.toFixed(1)},${hasta.z.toFixed(1)}` : '');
+  // el rastro de huellas: de la raíz del coihue a la raíz de la ladera de Ramón (cada pie, un óvalo chico y plano pegado al suelo)
+  function huellas(c, desdeP, hastaP) {
+    const dx = hastaP.x - desdeP.x, dz = hastaP.z - desdeP.z, dist = Math.hypot(dx, dz) || 1;
+    const n = Math.max(8, Math.min(44, Math.round(dist / 2.4))), ang = Math.atan2(dx, dz);
+    for (let i = 1; i < n; i++) {
+      const u = i / n, lado = i % 2 ? 1 : -1, ondula = Math.sin(u * 9) * 1.1;
+      const x = desdeP.x + dx * u + Math.cos(ang) * (0.13 * lado + ondula), z = desdeP.z + dz * u - Math.sin(ang) * (0.13 * lado + ondula);
+      c.agregar(new THREE.SphereGeometry(0.05, 7, 5), { color: '#e6eef5', tipo: 0, variar: 0.02, matriz: matriz([x, alt(x, z) + 0.035, z], [0, ang, 0], [1, 0.14, 1.8]) });
     }
-    listo = true;
   }
+  function armarMalla(id, q) {
+    const o = OBJETOS[id];
+    if (!o.forma || !Object.hasOwn(FORMAS, o.forma)) return;   // (la nota de la mesa, el cuaderno de la mesa y las raíces sin malla se usan con la E)
+    const c = new Constructor();
+    if (o.forma === 'huellas') {
+      const hasta = ctx.puntos?.()?.[o.hasta];
+      if (!hasta) return;
+      huellas(c, q, hasta);
+      claves[id] = claveHuellas(q, hasta);
+    } else FORMAS[o.forma](c, { r: ctx.molino?.()?.arbol?.r });
+    const m = new THREE.Mesh(c.geometria(), mat);
+    m.name = `historia-objeto:${id}`;
+    m.castShadow = false; m.receiveShadow = true;   // (sin sombra propia: un dibujo menos en el mapa de sombras y ningún programa de profundidad nuevo cuando sale a la luz de día)
+    m.visible = false;
+    grupo.add(m);
+    mallas[id] = m;
+  }
+  function colocar(id) {
+    const q = lugarDe(id);
+    if (!q) { delete posiciones[id]; if (mallas[id]) mallas[id].visible = false; return null; }
+    const antes = posiciones[id];
+    posiciones[id] = { x: q.x, z: q.z };
+    const o = OBJETOS[id];
+    if (o.forma === 'huellas') {
+      const k = claveHuellas(q, ctx.puntos?.()?.[o.hasta]);
+      if (mallas[id] && claves[id] !== k) { grupo.remove(mallas[id]); mallas[id].geometry.dispose(); delete mallas[id]; }
+      if (!mallas[id] && k) armarMalla(id, q);
+      return q;
+    }
+    if (!mallas[id]) armarMalla(id, q);
+    const m = mallas[id];
+    if (m && (!antes || antes.x !== q.x || antes.z !== q.z || m.userData.puesto !== true)) {
+      m.position.set(q.x, alt(q.x, q.z) + (Number(o.y) || 0), q.z);
+      m.rotation.y = Number.isFinite(o.lx) ? (Number(ctx.refugio()?.rot) || 0) + (id === 'puertita' ? 0.4 : 0) : 0;
+      m.userData.puesto = true;
+    }
+    return q;
+  }
+  function armar() { for (const id of Object.keys(OBJETOS)) colocar(id); }
   armar();
   // Qué se ve: lo que dice la historia (los demás se esconden)
   function mostrar(ids) {
-    armar();
     const set = new Set(ids);
-    for (const [id, m] of Object.entries(mallas)) m.visible = set.has(id);
+    for (const id of Object.keys(OBJETOS)) { colocar(id); if (mallas[id]) mallas[id].visible = set.has(id) && !!posiciones[id]; }
   }
   // el molino viejo se calcula después (necesita el terreno y los árboles): se vuelve a ubicar la raíz
   function reubicar() {
-    listo = false;
-    for (const m of Object.values(mallas)) grupo.remove(m);
+    for (const m of Object.values(mallas)) { grupo.remove(m); m.geometry?.dispose?.(); }
     for (const k of Object.keys(mallas)) delete mallas[k];
+    for (const k of Object.keys(claves)) delete claves[k];
     armar();
   }
   return { mostrar, reubicar, posiciones, mallas, grupo, cercano: (pos, visibles, accion) => objetoCercano(pos, visibles, posiciones, accion) };

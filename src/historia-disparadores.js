@@ -16,10 +16,12 @@
 // Que una escena nunca trabe un capítulo: las que son objetivo tienen un disparo que se alcanza siempre (la tecla E sobre el vecino o el objeto).
 
 import { capituloActual, marcarTema, marcarObjeto, marcarEntrega, anotarRaro, cambiarLazo, sumarRamal, duendesDe, horaEntre, lazoDe } from './historia.js';
+// 4.16.0: el acto II (capítulos 5 a 8)
+import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2, cuadernoVisible } from './historia-disparadores-acto2.js';
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
-export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto'];
+export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2];
 
 const en = (nombre, radio) => [nombre, radio];
 
@@ -51,6 +53,8 @@ export const DISPARADORES = {
   'cabina-elsa': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], cond: (s) => s.conduciendo },
   'derrumbe-puertita': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], cond: (s) => s.eventos.has('derrumbe') },
   'te-graciela': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], lugar: en('casa-te', 14), cond: (s) => s.acompanante === 'graciela' },
+  // ---- capítulos 5 a 8 (el acto II: historia-disparadores-acto2.js)
+  ...DISPARADORES_ACTO2,
 };
 // La lista de los 21 ids de escena que escribe el otro agente (historia-escenas-acto1.js)
 export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela'];
@@ -103,6 +107,8 @@ export const EFECTOS_ESCENA = {
   'anden-graciela': (h) => { h.acompanante = 'graciela'; },
   'cabina-elsa': T('guarda', 'cabina'),
   'te-graciela': T('graciela', 'abuelo'),
+  // 4.16.0: el acto II
+  ...EFECTOS_ESCENA_ACTO2,
 };
 
 // Los lazos que mueven las respuestas del jugador en una escena. La respuesta se guarda como `elecciones[escena][eleccion] = opcion`; acá se
@@ -155,7 +161,7 @@ export const OBJETOS = {
   'ronda': { forma: 'ronda', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco') },
   'canto-blanco': { forma: 'canto', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco'),
     aviso: 'Mirar el canto blanco del umbral', marca: 'canto-blanco', nota: ['Un canto blanco', 'Liso como un huevo. Lo dejás en la repisa, al lado de la ventana'] },
-  'nota-mesa': { forma: 'nota', lx: -1.4, lz: 0.9, visible: (s) => s.escenas.has('nota-eusebio'),
+  'nota-mesa': { forma: 'nota', lx: -1.4, lz: 0.9, visible: (s, h) => s.escenas.has('nota-eusebio') && !cuadernoVisible(h, s),
     aviso: 'Releer la nota de Eusebio', nota: ['La nota de Eusebio', 'No toques el frasco de la repisa, que es masa madre de 1987. Y gracias. E. M.'] },
   'bolsa-eusebio': { forma: 'bolsa', lx: 2.6, lz: 3.3, visible: (s) => s.escenas.has('bolsa-alero') && s.decisiones.bolsa == null,
     aviso: 'Releer la nota de la bolsa', nota: ['La nota de la bolsa', 'Para la raíz del coihue grande del molino viejo, antes del primer frío. No te olvides, que ellos no se olvidan. Y gracias. E. M.'] },
@@ -167,6 +173,8 @@ export const OBJETOS = {
   // la raíz del coihue grande: el lugar lo elige el juego (el coihue más grande cerca del molino viejo)
   'raiz-coihue': { forma: 'raiz', lugar: 'molino-viejo', visible: (s) => s.decisiones.bolsa === 'a' && !s.escenas.has('bolsa-coihue'),
     aviso: 'Dejar la bolsa de Eusebio en la raíz del coihue', escena: 'bolsa-coihue' },
+  // 4.16.0: los del acto II y los props del acto I que antes sólo dejaban una marca
+  ...OBJETOS_ACTO2,
 };
 export const RADIO_OBJETO = 2.4;
 
@@ -184,7 +192,8 @@ export function accionDeObjeto(id, h, s) {
   if (!o.visible(s, h)) return null;
   if (o.reparacion) return { tipo: 'reparar', id: o.reparacion.id, n: o.reparacion.n, aviso: `${o.aviso} (${Math.min(o.reparacion.n, s.reparaciones[o.reparacion.id] || 0) + 1} de ${o.reparacion.n}) · 1 tabla` };
   if (o.escena) return { tipo: 'escena', escena: o.escena, aviso: o.aviso };
-  if (o.marca) return { tipo: 'marca', marca: o.marca, nota: o.nota, aviso: o.aviso };
+  if (o.pagina) return { tipo: 'pagina', aviso: `${o.aviso} (página ${Math.min(3, [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`)).length + 1)} de 3)` };
+  if (o.marca) return { tipo: 'marca', marca: o.marca, nota: o.nota, aviso: o.aviso, raro: o.raro || null, limpiaAcompanante: !!o.limpiaAcompanante };
   if (o.nota) return { tipo: 'nota', nota: o.nota, aviso: o.aviso };
   return null;
 }
