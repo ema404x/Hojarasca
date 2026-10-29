@@ -120,6 +120,8 @@ Todos idempotentes. Condiciones (`si: { cond, args }`) las mismas del acto I: `d
 ### Importante para el aplicador: los apagones
 El director descarta, al saltear una escena, los pasos que iban a correr a mitad de un fundido **cruzado**. Por eso el acto II no usa `fundido: cruzado`: un cambio de hora, un prop nuevo o una aparición se escriben como `...apagon([pasos])` (`fundido` a negro, los pasos como pasos comunes, `fundido` a claro). Al saltear, todos esos pasos se aplican como cualquier otro.
 
+Condición nueva del acto I, agregada por A: la condición «presente» dice si un vecino (por ejemplo Rosa) ya vive en la aldea; la escena bolsa-alero la usa para ofrecer o no llevarle la bolsa a Rosa.
+
 ## Pedidos para el agente A (lo que el guion usa y todavía no existe)
 Las escenas corren igual sin ellos (el motor ignora al personaje o al lugar que no está), pero lo que dependa de ellos no se ve.
 1. **Lugares con nombre**: las escenas se anclan al jugador salvo donde existe el lugar (`estacion`, `muelle`, `faro`, `galpon`, `mallin`); `T.lugares` **no** tiene `molino-viejo` (con el coihue marcado), `molino-historia` (el molino de agua de la historia; `T.lugares.molino` es el de viento), `puesto-alto`, `puesto-paso`, `cantera`, `seccional`, `panaderia`, `casa-te`, `predio-fogon` ni `casa-abuela`. Los dispara A con el jugador parado ahí (`DISPARO_ACTO2[id].jugadorEn`).
