@@ -367,9 +367,9 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   const path = await import('node:path');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chk-'));
   const malos = [];
-  for (const f of fs.readdirSync(new URL('../src/', import.meta.url)).filter((x) => x.endsWith('.js'))) {
+  for (const f of fs.readdirSync(new URL('../src/', import.meta.url)).filter((x) => x.endsWith('.js') && !/[.-][a-z]?mut[a-z0-9-]*\.js$/i.test(x))) {   // 4.17.1: sin las copias temporales de las pruebas de mutación
     const tmp = path.join(dir, f.slice(0, -3) + '.mjs');
-    fs.copyFileSync(new URL('../src/' + f, import.meta.url), tmp);
+    try { fs.copyFileSync(new URL('../src/' + f, import.meta.url), tmp); } catch (e) { if (e.code === 'ENOENT') continue; throw e; }   // 4.17.1: un archivo que desapareció en medio
     const r = spawnSync(process.execPath, ['--check', tmp], { encoding: 'utf8' });
     if (r.status !== 0) malos.push(f + ': ' + (r.stderr || '').split(String.fromCharCode(10)).find((l) => /Error/.test(l)));
   }
