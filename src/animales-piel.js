@@ -553,11 +553,11 @@ function instanciadaDeArboles(pos) {
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0.02, 0, 0, 0, 0.02, 0]), 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]), 3));
   geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9).fill(0.5), 3));
-  const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), 1);
-  m.setMatrixAt(0, new THREE.Matrix4());
-  m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false;
-  m.position.copy(pos);
-  return m;
+  const inst = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), 1);
+  inst.setMatrixAt(0, new THREE.Matrix4());
+  inst.castShadow = true; inst.receiveShadow = false; inst.frustumCulled = false;
+  inst.position.copy(pos);
+  return inst;
 }
 // 4.12.2 (shader tardío): la silueta de la sombra del jugador (`cuerpo-jugador-sombra`, personal-personaje-mundo.js) es una malla de sólo `position` con un
 // MeshBasicMaterial sin color ni profundidad; su programa de profundidad (sombra) se compilaba la primera vez que la silueta tenía geometría. Se dibuja un
