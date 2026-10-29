@@ -99,9 +99,10 @@ export function crearEscenasMundo(ctx) {
     const n = actor(clave);
     if (!n) { captura.set(clave, { n: null }); return; }
     const guardado = {};
-    for (const k of ['conVos', 'enCita', 'pose', 'asiento', 'soloCerca', 'dormido', 'charlaVecinos', 'sinFrenar', 'camino', 'velocidad', 'miraFinal', '__quietud', 'alAmor']) guardado[k] = { tiene: Object.hasOwn(n, k), v: n[k] };
+    for (const k of ['conVos', 'enCita', 'pose', 'asiento', 'soloCerca', 'dormido', 'charlaVecinos', 'sinFrenar', 'camino', 'velocidad', 'miraFinal', '__quietud', 'alAmor', 'aBordo', 'enViaje']) guardado[k] = { tiene: Object.hasOwn(n, k), v: n[k] };
     captura.set(clave, { n, guardado, propia: null, pose: null });
     n.conVos = true; n.enCita = true; n.pose = null; n.asiento = undefined; n.soloCerca = 0; n.dormido = false; n.charlaVecinos = false; n.sinFrenar = true;
+    n.aBordo = false; n.enViaje = false;   // 4.16.0: Elsa (la guarda) vive «a bordo» de la trochita y no se dibuja fuera de ella: en una escena sí
     n.camino = []; n.__quietud = null; n.alAmor = false;
     delete n.miraFinal;
   }

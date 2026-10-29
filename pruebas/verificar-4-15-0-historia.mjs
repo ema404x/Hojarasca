@@ -363,9 +363,9 @@ async function chequear(arch = '', sufijo = '') {
       EN.marcarVista(h, 'nota-eusebio', 1);
       ok(D.avisoPuerta(h, H.estadoHistoria(p, {})) === null, 'y después ya no');
       p.horas = 7; p.dia = 1;
-      ok(quien(h, p, { lugares: { refugio: 5 } }) === null, 'la ronda de ramitas pide haber dormido (otro día)');
+      ok(quien(h, p, { lugares: { 'refugio-puerta': 5 } }) === null, 'la ronda de ramitas pide haber dormido (otro día)');
       p.dia = 2;
-      ok(quien(h, p, { lugares: { refugio: 5 } }) === 'ronda-umbral', 'la ronda de ramitas, al despertar');
+      ok(quien(h, p, { lugares: { 'refugio-puerta': 5 } }) === 'ronda-umbral', 'la ronda de ramitas, al despertar (cerca de la puerta, donde está la ronda)');
       p.horas = 15; ok(quien(h, p, { lugares: { refugio: 5 } }) === null, 'a la mañana, no a la tarde');
     }
     // capítulo 2
@@ -396,7 +396,7 @@ async function chequear(arch = '', sufijo = '') {
     // capítulo 3
     {
       const { p, h } = base(); h.capitulo = 2; h.base = { dia: 3 }; p.dia = 3; p.horas = 9;
-      ok(quien(h, p, { lugares: { refugio: 20 } }) === 'hacha-tocon', 'el hacha clavada en el tocón, a la mañana');
+      ok(quien(h, p, { lugares: { 'tocon-hacha': 8 } }) === 'hacha-tocon', 'el hacha clavada en el tocón, a la mañana (al acercarte al tocón)');
       EN.marcarVista(h, 'hacha-tocon', 3);
       ok(quien(h, p, { lugares: { plaza: 6 } }) === 'placa-herminia', 'la placa del duende en la plaza');
       EN.marcarVista(h, 'placa-herminia', 3);

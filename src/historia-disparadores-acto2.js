@@ -48,6 +48,8 @@ export const DISPARADORES_ACTO2 = {
   'secreto-ramon': { cap: 'cuaderno', modo: 'hablar', clave: 'ramon', hora: [17, 20], cond: (s) => s.lazos.ramon >= 0 },
   'fogon-leyenda': { cap: 'cuaderno', modo: 'auto', requiere: ['libreta-ercilia', 'cuaderno-josefina'], lugar: en('plaza', 25), hora: [20.5, 23.5] },
 };
+// escenas que arrancan con el jugador sentado (la guardia): el juego lo levanta antes, porque una escena no empieza sentado
+export const ESCENAS_DESDE_SENTADO = ['guardia-molino'];
 export const ESCENAS_ACTO2_IDS = ['piedras-molino', 'zaino-ramon', 'tito-coihue', 'tobias-cantera', 'rueda-gira', 'perdidas-ercilia', 'perdidas-rosa', 'devuelve-dedal', 'devuelve-pipa', 'devuelve-cuchara', 'luces-lago', 'el-que-vuela', 'guardia-molino', 'raiz-ramon', 'primera-molienda', 'minga-vecinos', 'galpon-ronda', 'fiado-ercilia', 'harina-raiz', 'libreta-ercilia', 'cuaderno-josefina', 'los-del-cerro', 'secreto-ramon', 'fogon-leyenda'];
 
 // ---------------------------------------------------------------- lo que cambia al ver una escena

@@ -77,7 +77,7 @@ const FORMAS = {
   ronda: (c) => {
     for (let i = 0; i < 11; i++) {
       const a = (i / 11) * Math.PI * 2;
-      caja(c, [0.4, 0.045, 0.045], [Math.cos(a) * 0.55, 0.05, Math.sin(a) * 0.55], '#8a6a45', [0, -a + Math.PI / 2, 0], 0.14);
+      caja(c, [0.55, 0.07, 0.07], [Math.cos(a) * 0.75, 0.06, Math.sin(a) * 0.75], '#8a6a45', [0, -a + Math.PI / 2, 0], 0.14);   // (4.16.0: más grande: de lejos, en la escena, no se veía)
     }
   },
   bolsa: (c) => {
@@ -200,7 +200,7 @@ export function crearObjetosHistoria(ctx) {
   }
   function armarMalla(id, q) {
     const o = OBJETOS[id];
-    if (!o.forma || !Object.hasOwn(FORMAS, o.forma)) return;   // (la nota de la mesa, el cuaderno de la mesa y las raíces sin malla se usan con la E)
+    if (!o.forma || (o.forma !== 'huellas' && !Object.hasOwn(FORMAS, o.forma))) return;   // (la nota de la mesa, el cuaderno de la mesa y las raíces sin malla se usan con la E)
     const c = new Constructor();
     if (o.forma === 'huellas') {
       const hasta = ctx.puntos?.()?.[o.hasta];

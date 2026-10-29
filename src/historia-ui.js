@@ -10,13 +10,13 @@
 import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, momentoPerdido, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
 // 4.15.0: la Historia nueva: decisiones, lazos, lo raro, escenas y objetos del acto I
 import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, sumarReparacion } from './historia.js';
-import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO } from './historia-disparadores.js';
+import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO, COLOCACION_ESCENA } from './historia-disparadores.js';
 import { tarjetaAviso } from './historia-reinicio.js';
 import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
 // 4.16.0: el acto II: la puerta de estación, el clima de la historia, el premio con variantes, el cuaderno de Eusebio y la espera sentado
 import { puertaDeEstacion, estacionForzada, premioDeCapitulo, aceleracionDeEspera, anotarRaro } from './historia.js';
-import { leerPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2 } from './historia-disparadores-acto2.js';
+import { leerPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO } from './historia-disparadores-acto2.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
@@ -258,6 +258,8 @@ export function crearValleUi(ctx) {
     if (!id) return false;
     // una escena que todavía no está escrita (o no se pudo registrar) se da por vista: la historia nunca se traba por una escena que falta
     if (typeof dir.hay === 'function' && !dir.hay(id)) { marcarVista(h, id, ctx.progreso().dia); aplicarEscenas(h); return true; }
+    if (Object.hasOwn(COLOCACION_ESCENA, id)) ctx.colocar?.(COLOCACION_ESCENA[id]);   // 4.16.0: el jugador, donde la escena lo necesita
+    if (s.sentado && ESCENAS_DESDE_SENTADO.includes(id)) ctx.levantar?.();   // 4.16.0: la guardia empieza con vos de pie (una escena no empieza sentado)
     return dir.disparar(id) === true;
   }
   // Aplica lo que falte de las escenas vistas y anota en pantalla lo raro nuevo

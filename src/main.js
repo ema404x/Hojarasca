@@ -2246,6 +2246,7 @@ function puntosDeHistoria() {
   const ponr = (k, q) => { if (q && Number.isFinite(q.x) && Number.isFinite(q.z)) P[k] = { x: q.x, z: q.z }; };
   ponr('refugio', ref);
   if (ref) ponr('refugio-puerta', aMundoRefugio(ref, 0, 3.4));
+  if (ref) ponr('tocon-hacha', aMundoRefugio(ref, -5.5, 6.0));   // (4.16.0: el tocón del hacha: ver OBJETOS)
   const e = est?.espera || est;
   ponr('estacion', e);
   if (ref && e) ponr('sendero', { x: (ref.x + e.x) / 2, z: (ref.z + e.z) / 2 });
@@ -2265,6 +2266,9 @@ function puntosDeHistoria() {
   }
   return P;
 }
+// los puntos se vuelven a armar a lo sumo cada 0,4 s (los objetos de historia los piden uno por uno)
+let puntosHistT = -1;
+function puntosCacheadosDeHistoria() { const t = performance.now(); if (puntosHistT < 0 || t - puntosHistT > 400) { puntosHistT = t; puntosDeHistoria(); } return puntosHist || {}; }
 const distanciasHist = {};
 function distanciasHistoria() {
   if (!jugador || esDesafio) return distanciasHist;
@@ -2277,7 +2281,7 @@ function objetosHistoriaMundo() {
     const agua = (x, z) => { const k = T.indice(x, z); return T.distRio[k] - T.anchoRio[k] <= 1.5 && T.altura(x, z) > -1; };
     molinoViejoHist = molinoViejo(T.lugares.refugio, agua, veg.arboles);
     if (molinoViejoHist?.arbol) molinoViejoHist.arbol.grande = true;   // 4.16.0: el coihue grande de las puertitas se talla con seis hachazos
-    objetosHist = crearObjetosHistoria({ T, escena, refugio: () => T.lugares.refugio, molino: () => molinoViejoHist, puntos: () => puntosDeHistoria(), alturaDePie: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)) });
+    objetosHist = crearObjetosHistoria({ T, escena, refugio: () => T.lugares.refugio, molino: () => molinoViejoHist, puntos: () => puntosCacheadosDeHistoria(), alturaDePie: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)) });
   }
   return objetosHist;
 }
@@ -2342,7 +2346,7 @@ function acompananteDeHistoria() {
   if (esDesafio || !valle) return null;
   if (!acompananteMundo) acompananteMundo = crearAcompanante({
     historia: () => valle.historia(), jugador: () => ({ pos: jugador.estado.pos, yaw: jugador.estado.yaw }),
-    npcDe: (k) => (k === 'graciela' ? gracielaMundo?.npc() : (gente?.gente || []).find((g) => g.clave === k) || null),
+    npcDe: (k) => (k === 'graciela' ? gracielaMundo?.npc() : genteCampoMundo?.npcDe(k) || (gente?.gente || []).find((g) => g.clave === k) || null),
     altura: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)), tomada: () => !!escenasMundo?.activa(),
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.enSulky || js.enCable); },
   });
@@ -2362,6 +2366,16 @@ function efectoDuendeHistoria(id, args) {
     if (!s) return;
     s.irA(h.x, h.z, { correr: true, alLlegar: () => { try { if (args.rie) dh.reir({ x: h.x, y: T.altura(h.x, h.z) + 0.4, z: h.z }); s.huir(null, { desaparecer: true }); } catch { /* ya */ } } });
   } catch (e) { fallaSistema('historia-duende', e); }
+}
+// 4.16.0: poner al jugador en un punto local del refugio mirando a otro (ver COLOCACION_ESCENA en historia-disparadores.js)
+function colocarParaEscena(c) {
+  try {
+    const ref = T.lugares.refugio;
+    if (!ref || !jugador || !c) return;
+    const a = aMundoRefugio(ref, c.lx, c.lz), b = aMundoRefugio(ref, c.mira[0], c.mira[1]);
+    jugador.ubicar(a.x, a.z, Math.atan2(-(b.x - a.x), -(b.z - a.z)));
+    jugador.estado.pitch = -0.1;
+  } catch (e) { fallaSistema('historia-colocar', e); }
 }
 function gastarUnaTabla() {
   if ((Number(progreso.materiales?.tabla) || 0) > 0) { progreso.materiales.tabla -= 1; refrescarBarra(true); return true; }
@@ -2392,7 +2406,7 @@ function crearValle() {
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id) => escenasMundo.disparar(id) } : null),
-    objetos: objetosHistoriaMundo(), gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
+    objetos: objetosHistoriaMundo(), colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()), taparHuerta: () => { taparHuerta(huerta(), progreso.dia); },
     obras: () => obras, altura: (x, z) => T.altura(x, z), sincronizarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); },

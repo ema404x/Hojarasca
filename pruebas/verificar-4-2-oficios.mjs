@@ -338,7 +338,7 @@ const AHORA = 24 * 10 + 8;   // día 10, ocho de la mañana
   tiene('if (Object.hasOwn(OFICIOS_PROPIOS_QUE_SE_USAN, o.plano.id)) return avisoOficioPropio(o);', 'el aviso');
   tiene('if (Object.hasOwn(OFICIOS_PROPIOS_QUE_SE_USAN, o.plano.id) && usarOficioPropio(o))', 'y la tecla E');
   tiene("const a = ahorroDeObra(r.etapa.pide, nivelDe('obrero'), of.resto.obra, carpinteriaExtra());", 'la carpintería suma al ahorro de obra');
-  tiene("const golpesParaTalarAhora = () => conTemple(golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea));", 'el temple cuenta al talar');
+  tiene("conTemple(golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea))", 'el temple cuenta al talar');   // (4.16.0: la línea ahora también lleva el coihue grande de la historia, seis hachazos: `talaGrande ? GOLPES_COIHUE : …`)
   tiene("const golpesParaPicarAhora = (mata) => conTemple(golpesConFilo(golpesParaPicar(nivelDe('picapedrero'), mata?.esc), progreso?.aldea));", 'y al picar');
   tiene("if (!(progreso?.aldea?.afilado > 0)) return false;", 'el temple sólo se mira si hay filo (nada nuevo por cuadro)');
   tiene("datosDe(o, 'taller'", 'el estado vive en la obra');

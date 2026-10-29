@@ -21,7 +21,7 @@ import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2,
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
-export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2];
+export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'tocon-hacha', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2];
 
 const en = (nombre, radio) => [nombre, radio];
 
@@ -31,7 +31,7 @@ export const DISPARADORES = {
   'estacion-llegada': { cap: 'llave', modo: 'auto', requiere: ['trochita-boleto'] },
   'algo-cruza': { cap: 'llave', modo: 'auto', requiere: ['estacion-llegada'], lugar: en('sendero', 14), hora: [16, 22] },
   'nota-eusebio': { cap: 'llave', modo: 'interaccion', clave: 'puerta-refugio', requiere: ['estacion-llegada'] },
-  'ronda-umbral': { cap: 'llave', modo: 'auto', requiere: ['nota-eusebio'], despues: true, lugar: en('refugio', 30), hora: [5.5, 12] },
+  'ronda-umbral': { cap: 'llave', modo: 'auto', requiere: ['nota-eusebio'], despues: true, lugar: en('refugio-puerta', 14), hora: [5.5, 12] },   // (4.16.0: cerca de la puerta, donde está la ronda: la escena se pone ahí)
   // ---- capítulo 2 · La bolsa del molinero
   'ramon-tranquera': { cap: 'bolsa', modo: 'auto', lugar: en('refugio', 30), hora: [7.5, 13] },
   'ramon-tranquera:hablar': { escena: 'ramon-tranquera', cap: 'bolsa', modo: 'hablar', clave: 'ramon' },
@@ -43,7 +43,7 @@ export const DISPARADORES = {
   'bolsa-rosa': { cap: 'bolsa', modo: 'hablar', clave: 'panadera', requiere: ['bolsa-alero'], cond: (s) => s.decisiones.bolsa === 'b' },
   'bolsa-josefina': { cap: 'bolsa', modo: 'hablar', clave: 'ema', requiere: ['bolsa-alero'], cond: (s) => s.decisiones.bolsa === 'c' },
   // ---- capítulo 3 · La mesa larga
-  'hacha-tocon': { cap: 'mesa', modo: 'auto', lugar: en('refugio', 40), hora: [6, 13] },
+  'hacha-tocon': { cap: 'mesa', modo: 'auto', lugar: en('tocon-hacha', 14), hora: [6, 13] },   // (4.16.0: al acercarte al tocón, donde está el hacha)
   'placa-herminia': { cap: 'mesa', modo: 'auto', lugar: en('plaza', 14), hora: [8, 20] },
   'mesa-visita-nicanor': { cap: 'mesa', modo: 'auto', hora: [15.5, 20], cond: (s, h, ctx) => ctx?.visitaActiva === 'nicanor' },
   'mesa-visita-ramon': { cap: 'mesa', modo: 'auto', hora: [15.5, 20], cond: (s, h, ctx) => ctx?.visitaActiva === 'ramon' },
@@ -177,6 +177,16 @@ export const OBJETOS = {
   ...OBJETOS_ACTO2,
 };
 export const RADIO_OBJETO = 2.4;
+
+// 4.16.0: dónde se pone al jugador antes de empezar una escena anclada a algo del refugio (la nota adentro, la ronda de ramitas en el umbral, el hacha
+// en el tocón, el alero), en coordenadas locales del refugio (x a la derecha, z hacia donde mira la puerta); `mira`: hacia qué punto local mira. Las escenas
+// anclan sus planos al jugador (`FRENTE(…)`): si empezaban con vos mirando para cualquier lado, la cámara miraba el pasto.
+export const COLOCACION_ESCENA = {
+  'nota-eusebio': { lx: -0.3, lz: 0.4, mira: [-1.4, 0.9] },
+  'ronda-umbral': { lx: 0.1, lz: 5.4, mira: [0.1, 3.7] },
+  'hacha-tocon': { lx: -2.2, lz: 9.0, mira: [-5.5, 6.0] },
+  'bolsa-alero': { lx: 2.6, lz: 4.6, mira: [2.6, 3.3] },
+};
 
 // Los objetos que se ven ahora
 export function objetosVisibles(h, s) {
