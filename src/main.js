@@ -941,7 +941,7 @@ async function construir() {
       puntos: () => puntosCacheadosDeHistoria(),   // 4.17 C: los lugares de la historia sirven de ancla ({ lugar: 'raiz-ramon' })
       armarYa: (k) => genteCampoMundo?.armarYa?.(k) || invitadoDeHistoria(k),   // 4.17 C: Fermín, Belisario y Tobías se arman al pedirlos una escena, aunque estés lejos de su lugar
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
-      puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && (escenaDesdeVehiculo || (!js.enKayak && !js.enVela)) && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
+      puedeEmpezar: () => puedeEmpezarEscena(),   // (4.17.1: la regla, en una función: historia-ui.js la pregunta antes de mover al jugador)
       parejaClave: () => { const p = progreso.amor?.personas || {}; for (const e of ['casados', 'comprometidos', 'novios', 'saliendo']) { const k = Object.keys(p).find((x) => p[x]?.etapa === e); if (k) return k; } return null; },   // 4.17.0
       alTerminar: () => { quitarInvitadosHistoria(); despedirDuendesDeEscena(); try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
     });
@@ -2242,6 +2242,12 @@ function presenciaHistoria() {
   }
   return presenciaHist;
 }
+// 4.14.0: ¿puede empezar una escena ahora? (4.17.1: en una función; `deSentado`: la escena que empieza levantándote —la guardia— no mira
+// si estás sentado, porque historia-ui.js te levanta justo antes)
+function puedeEmpezarEscena(deSentado = false) {
+  const js = jugador.estado;
+  return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && (escenaDesdeVehiculo || (!js.enKayak && !js.enVela)) && !js.enSulky && !js.enCable && (deSentado || !js.sentado) && !js.montado && !js.nadando;
+}
 // 4.13.0 (B): la noche de la Historia en el mundo (se arma de a poco: ver historia-noche-mundo.js)
 let nocheMundo = null;
 function nocheDelMundo() {
@@ -2408,10 +2414,11 @@ function aliadosDeNoche(al, dis) {
     }
   } catch (e) { fallaSistema('historia-aliados', e); }
 }
+// (4.17.1: los de `ruta` —Ramón, Josefina, Fermín— vuelven a su ruta: con `camino = []` gente.js los dejaba quietos donde los paró la noche)
 function soltarAliadosDeNoche() {
   while (aliadosTomados.length) {
     const { n, g } = aliadosTomados.pop();
-    try { n.conVos = !!g.conVos; n.enCita = !!g.enCita; n.sinFrenar = !!g.sinFrenar; n.dormido = !!g.dormido; n.camino = g.camino === undefined ? [] : g.camino; if (Number.isFinite(g.velocidad)) n.velocidad = g.velocidad; } catch { /* ya */ }
+    try { n.conVos = !!g.conVos; n.enCita = !!g.enCita; n.sinFrenar = !!g.sinFrenar; n.dormido = !!g.dormido; n.camino = g.camino === undefined ? (Array.isArray(n.ruta) ? undefined : []) : g.camino; if (Number.isFinite(g.velocidad)) n.velocidad = g.velocidad; } catch { /* ya */ }
   }
 }
 // 4.17.0: la majada de Ramón que se arrea (capítulo 9; ver historia-arreo-mundo.js)
@@ -2438,17 +2445,28 @@ function efectoMundoHistoria() { dibujarObjetosHistoriaYa(); }
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
 // 4.16.0: los duendes del acto II (siluetas en las raíces, el lechucero, las lucecitas del lago, los pillos con bellotas): se ven y se mueven (historia-duendes.js)
 const duendesDeEscena = [];
+// 4.17.1: los que aparecen de a uno (cada 0,5 o 0,7 s) se anotan: si la escena se saltea o termina antes, los que faltaban ya no nacen
+// (antes nacían después de la despedida y quedaban quietos «mirando» para siempre)
+const nacimientosDeEscena = new Set();
+function nacerLuego(fn, ms) {
+  const t = setTimeout(() => { nacimientosDeEscena.delete(t); fn(); }, ms);
+  nacimientosDeEscena.add(t);
+}
+function cancelarNacimientos() {
+  for (const t of nacimientosDeEscena) clearTimeout(t);
+  nacimientosDeEscena.clear();
+}
 function efectoDuendesActo2(id, args) {
   const dh = duendesHistoria();
   if (!dh || !escenasMundo) return;
   dh.asegurar();
   const pos = (ref) => escenasMundo.mundo.posicion(ref);
   const crear = (tipo, p, o = {}) => { let d = null; try { d = dh.aparecer(tipo, { x: p.x, z: p.z, ...o }); } catch { d = null; } if (!d && tipo !== 'rastreador') { try { d = dh.aparecer('rastreador', { x: p.x, z: p.z, ...o }); } catch { d = null; } } if (d) duendesDeEscena.push(d); return d; };
-  const quitarTodos = () => { while (duendesDeEscena.length) { const d = duendesDeEscena.pop(); try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } } };
+  const quitarTodos = () => { cancelarNacimientos(); while (duendesDeEscena.length) { const d = duendesDeEscena.pop(); try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } } };
   const a = args || {};
   if (id === 'lechucero-vuela') { const d0 = pos(a.desde), h0 = pos(a.hasta); if (!d0 || !h0) return; const d = crear(a.tipo || 'volador', d0); d?.irA(h0.x, h0.z, { correr: true, alLlegar: () => { try { d.quitar(); } catch { /* ya */ } } }); }
-  else if (id === 'enjambre-lago') { const s0 = pos(a.sobre); if (!s0) return; for (let i = 0; i < (a.n || 3); i++) setTimeout(() => { const d = crear(a.tipo || 'enjambre', { x: s0.x + (i - 1) * 2.2, z: s0.z + i }); if (d && a.seApagan) setTimeout(() => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }, 2200 + i * 1400); }, i * 500); }
-  else if (id === 'siluetas-raiz' || id === 'pillos-bellotas') { const d0 = pos(a.desde); if (!d0) return; for (let i = 0; i < (a.n || 3); i++) setTimeout(() => { const d = crear('rastreador', { x: d0.x + Math.cos(i * 1.3) * 2.5, z: d0.z + Math.sin(i * 1.3) * 2.5 }); d?.mirar(true); if (d && id === 'pillos-bellotas') setTimeout(() => { try { d.reir(0.6); } catch { /* ya */ } }, 900); }, i * 700); }
+  else if (id === 'enjambre-lago') { const s0 = pos(a.sobre); if (!s0) return; for (let i = 0; i < (a.n || 3); i++) nacerLuego(() => { const d = crear(a.tipo || 'enjambre', { x: s0.x + (i - 1) * 2.2, z: s0.z + i }); if (d && a.seApagan) setTimeout(() => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }, 2200 + i * 1400); }, i * 500); }
+  else if (id === 'siluetas-raiz' || id === 'pillos-bellotas') { const d0 = pos(a.desde); if (!d0) return; for (let i = 0; i < (a.n || 3); i++) nacerLuego(() => { const d = crear('rastreador', { x: d0.x + Math.cos(i * 1.3) * 2.5, z: d0.z + Math.sin(i * 1.3) * 2.5 }); d?.mirar(true); if (d && id === 'pillos-bellotas') setTimeout(() => { try { d.reir(0.6); } catch { /* ya */ } }, 900); }, i * 700); }
   else if (id === 'siluetas-saludan') { const d = duendesDeEscena.find((x) => x.estado !== 'fuera'); try { d?.saludar(2); } catch { /* ya */ } }
   else if (id === 'siluetas-corren') quitarTodos();
   else efectoDuendesActo3(id, a, crear);   // 4.17.0: los del acto III (el galpón, el cerro, la noche, el amanecer)
@@ -2533,6 +2551,7 @@ function invitadoDeHistoria(clave) {
 // 4.17 C: los duendes que puso una escena (las siluetas de la guardia, los pillos de las bellotas) se van al terminar: antes se quedaban «mirando» para siempre
 function despedirDuendesDeEscena() {
   while (duendesDeEscena.length) { const d = duendesDeEscena.pop(); try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }
+  cancelarNacimientos();   // 4.17.1: y los que faltaban nacer, ya no nacen
 }
 function quitarInvitadosHistoria() {
   for (const n of invitadosHist.values()) { try { gente?.quitar(n); } catch { /* ya */ } }
@@ -2595,7 +2614,7 @@ function comenzarEnLaEstacion() {
 function crearValle() {
   valle = crearValleUi({
     esDesafio, nota, guardar, sumarMaterial, traducir: traducirPanel,
-    presencia: presenciaHistoria(), alActivarHistoria: () => { try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } }, alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
+    presencia: presenciaHistoria(), alActivarHistoria: () => { try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } try { nocheDelMundo()?.preparar(); } catch (e) { console.warn('noche de la historia', e); } },   // (4.17.1: y la noche, como en la carga: sin ella los blancos de práctica del capítulo 11 no salían nunca en esta sesión) alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
     noche: nocheDelMundo(), creditos: () => { abrir('pausa'); abrirInfo('creditos', 'pausa'); },   // 4.13.0 (B)
     teclaVisible: (t) => teclaVisible(t, teclasPropias),   // 3.8.4: el panel de la historia, con las teclas del jugador
     // con ?debug=1 los eventos al azar quedan quietos (las pruebas los prenden con __valle.azar(true))
@@ -2610,7 +2629,7 @@ function crearValle() {
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id, o) => escenasMundo.disparar(id, o) } : null),
-    objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
+    objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, puedeEscena: (deSentado) => puedeEmpezarEscena(deSentado), enAgua: () => !!(jugador.estado.enKayak || jugador.estado.enVela),   // (4.17.1) colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
     nocheReintentar: () => { /* la elección «Otra vez» de la escena: lo lee la noche (historia-noche-ui.js) */ },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     // 4.17.0: el acto III: pagar, dar materiales y cosas del suelo, el perro, los puntos con nombre y volver al galpón al amanecer
@@ -3866,7 +3885,8 @@ document.addEventListener('keydown', (e) => {
   // tarjeta del valle, F2 prendía el modo foto con ese panel encima y, al salir, el juego corría detrás de la portada (lo
   // mismo con los logros o el desafío del día abiertos desde la pausa: el modo foto no los cierra)
   // 4.10.2: ni con el banco, el local o la carta de la cantina o la casa de té abiertos (están fuera del HUD y taparían la escena y los controles de la foto)
-  const puedeFoto = fotoPosible({ fotoActiva: foto.activo, modo, logrosOculto: $('logros').classList.contains('oculto'), modosAbierto: !!modos?.panelAbierto(), panelFueraDelHud: panelFueraDelHudAbierto() });
+  // 4.17.1: ni con una escena en curso (desde su pausa, F2 la dejaba corriendo bajo la cámara libre, y F2 y Esc quedaban tomados por la escena)
+  const puedeFoto = !escenasMundo?.activa() && fotoPosible({ fotoActiva: foto.activo, modo, logrosOculto: $('logros').classList.contains('oculto'), modosAbierto: !!modos?.panelAbierto(), panelFueraDelHud: panelFueraDelHudAbierto() });
   if (e.code === 'F2' && jugador && puedeFoto && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
   if (codigo === 'F1') {
@@ -10883,8 +10903,21 @@ function contarAcercamientos() {
   }
 }
 
+// 4.17.1: defensa general del calendario. Entre dos medianoches automáticas (las de actualizarTiempo) tienen que correr al menos
+// 15 s de juego: el día más corto (20 minutos, sentado ×40) dura 30 s. Si algo pisa la hora en cada cuadro (como la noche de la
+// nevada con la hora de tu reloj, que sumaba un día por cuadro), se suma uno solo y no miles: la partida no se arruina.
+const topeMedianoche = { t: 0, ultima: -Infinity, avisada: false };
+function medianochePermitida() {
+  if (topeMedianoche.t - topeMedianoche.ultima < 15) {
+    if (!topeMedianoche.avisada) { topeMedianoche.avisada = true; console.warn('4.17.1: una medianoche detrás de otra: no se suma otro día'); }
+    return false;
+  }
+  topeMedianoche.ultima = topeMedianoche.t;
+  return true;
+}
 function actualizarTiempo(dt) {
   if (trucosJuego?.reloj.congelado) return;   // 4.5: «congelar» (consola de códigos): la hora y el día no corren
+  topeMedianoche.t += Math.max(0, Number(dt) || 0);   // 4.17.1
   const js = jugador.estado;
   // 3.5.1: en el modo foto manda el deslizador; "En movimiento" corre la hora pero no cambia el día
   // (se sumaban días sin fin poniendo 23.9 y esperando). Al salir vuelve la hora de antes.
@@ -10894,6 +10927,9 @@ function actualizarTiempo(dt) {
   }
   if (ajustes.duracion === 'reloj') {
     if (banco.activa) return;   // 4.10.3 (P2): en el banco manda la hora de cada tramo (si no, se medía a la hora de la PC y «Noche» le sumaba un día a la partida)
+    // 4.17.1: la noche de la nevada maneja su propio reloj (de 22 a 23:42) y al terminar devuelve la hora de antes: mientras dura, la hora
+    // de la PC no la pisa. Antes, pasada la medianoche real, cada cuadro veía «22 → 0:30» y sumaba un día (unos 3600 por minuto)
+    if (nocheMundo?.activa?.()) return;
     const d = new Date();
     const antes = progreso.horas;
     progreso.horas = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
@@ -10901,7 +10937,7 @@ function actualizarTiempo(dt) {
     // la huerta, el correo y los encargos quedaban quietos. Si esa noche ya se durmió, el día ya pasó.
     // 3.8.3: también en La noche de los duendes: sin el día nuevo, a la medianoche `claveNoche` volvía a la noche
     // anterior y salía otra oleada entera (dos por noche: el jefe y la noche final llegaban al doble de rápido)
-    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
+    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d) && medianochePermitida()) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
@@ -10914,7 +10950,7 @@ function actualizarTiempo(dt) {
     // 4.10 partidas: con «noches más largas» (regla o ventaja) la hora corre más despacio entre la hora del ataque y el alba
     const largaNoche = esDesafio && efectosPartida()?.nochesLargas && (progreso.horas >= 20.5 || progreso.horas < 6) ? FACTOR_NOCHE_LARGA : 1;
     progreso.horas += (dt * 24 * (limEspera > 1 ? Math.min(escala, limEspera) : escala) * largaNoche) / (ajustes.duracion * 60);
-    if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
+    if (progreso.horas >= 24) { progreso.horas -= 24; if (medianochePermitida()) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); } }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)   (4.17.1: con el tope)
   }
 }
 
@@ -11115,6 +11151,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   if (!mandoUsado) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
   mandoLeido = false; mandoUsado = false;
+  if (escenasMundo) escenasMundo.tapar(modo !== 'jugando');   // 4.17.1: la pausa, la guía y la portada, por encima de la escena (y sin que un clic la avance)
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)
