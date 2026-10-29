@@ -12,7 +12,9 @@ const desde = (s, h, k) => Math.max(0, (Number(s[k]) || 0) - (Number(h?.base?.[k
 const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
 
 // Los lugares nuevos de los que el juego pasa la distancia (los arma `puntosDeHistoria` de main.js)
-export const LUGARES_ACTO2 = ['molino-propio', 'galpon-propio', 'aserradero-propio', 'raiz-ramon', 'coihue'];
+export const LUGARES_ACTO2 = ['molino-propio', 'galpon-propio', 'aserradero-propio', 'raiz-ramon', 'coihue',
+  // 4.17.0 (C): los que nombran las escenas y los objetivos (main.js los arma en puntosDeHistoria)
+  'cantera', 'puesto-paso', 'puesto-alto', 'seccional', 'panaderia', 'carpinteria', 'casa-herminia', 'estudio-fotos', 'predio', 'molino-historia', 'mallin', 'muelle', 'rueda-molino', 'puerta-molino'];
 export const PERDIDAS_ACTO2 = ['dedal', 'pipa', 'cuchara'];
 
 // Cuánta harina cuesta cada entrega de la primera molienda (D3): 6 en b, 3 en c
@@ -30,6 +32,10 @@ export const DISPARADORES_ACTO2 = {
   'coihue-talado': { cap: 'rueda', modo: 'auto', requiere: ['tito-coihue'], lugar: en('coihue', 12), hora: [7, 20], cond: (s) => s.decisiones.coihue === 'b' && s.temas.has('mundo:coihue-talado') },
   'trigo-abuelo': { cap: 'rueda', modo: 'hablar', clave: 'ema', requiere: ['piedras-molino'], cond: (s) => s.decisiones.bolsa === 'c' },
   'truchas-nicanor': { cap: 'rueda', modo: 'hablar', clave: 'nicanor', requiere: ['piedras-molino'] },
+  // 4.17.0 (C): Tito (el carpintero) no es un vecino al que se le hable siempre: si está en la aldea, la E lo trae; y si pasás por su carpintería de día, sale solo
+  // (la escena lo hace aparecer ahí). Sólo si D2 = talarlo y con tabla de coihue en la mano
+  'tablas-tito': { cap: 'rueda', modo: 'auto', requiere: ['piedras-molino'], lugar: en('carpinteria', 12), hora: [8, 19], cond: (s) => s.decisiones.coihue === 'b' },
+  'tablas-tito:hablar': { escena: 'tablas-tito', cap: 'rueda', modo: 'hablar', clave: 'carpintero', requiere: ['piedras-molino'], cond: (s) => s.decisiones.coihue === 'b' },
   // ---- capítulo 6 · Lo que se pierde, aparece
   'luces-lago-nicanor': { cap: 'perdido', modo: 'hablar', clave: 'nicanor' },
   'perdidas-devueltas': { cap: 'perdido', modo: 'hablar', clave: 'ercilia', cond: (s) => PERDIDAS_ACTO2.every((x) => s.objetos.has(x)) },
@@ -38,6 +44,9 @@ export const DISPARADORES_ACTO2 = {
   'huellas-escarcha': { cap: 'perdido', modo: 'auto', requiere: ['guardia-molino'], no: ['ramon-raiz'], lugar: en('molino-viejo', 25), hora: [6, 8.5] },
   'ramon-raiz': { cap: 'perdido', modo: 'auto', requiere: ['guardia-molino'], lugar: en('raiz-ramon', 10), hora: [5.5, 10] },
   'masa-crece': { cap: 'perdido', modo: 'hablar', clave: 'panadera', cond: (s) => s.decisiones.bolsa === 'b' },
+  // 4.17.0 (C): la foto movida (sólo si la sacaste) se le lleva a Sofía al estudio de fotos, a la hora en que está abierto; igual que Tito, o la E sobre ella
+  'foto-sofia': { cap: ['perdido', 'cosecha', 'cuaderno'], modo: 'auto', lugar: en('estudio-fotos', 12), hora: [9, 19], cond: (s) => s.temas.has('obj:foto-movida') },
+  'foto-sofia:hablar': { escena: 'foto-sofia', cap: ['perdido', 'cosecha', 'cuaderno'], modo: 'hablar', clave: 'fotografa', cond: (s) => s.temas.has('obj:foto-movida') },
   // ---- capítulo 7 · La cosecha
   'primera-molienda': { cap: 'cosecha', modo: 'auto', lugar: en('molino-propio', 25), hora: [6, 20], cond: (s, h) => desde(s, h, 'molido') >= 10 },
   'molienda-fletes': { cap: 'cosecha', modo: 'auto', lugar: en('estacion', 30), cond: (s) => s.decisiones.molienda === 'a' && s.fletesHarina >= 3 },
@@ -56,6 +65,8 @@ export const DISPARADORES_ACTO2 = {
   'pluma-umbral': { cap: 'cuaderno', modo: 'auto', requiere: ['fogon-leyenda'], lugar: en('refugio-puerta', 14), hora: [20, 6] },
   'veta-vuelve': { cap: 'cuaderno', modo: 'hablar', clave: 'tobias', hora: [20, 5], cond: (s) => s.decisiones.coihue === 'c' },
   'herminia-noventa': { cap: 'cuaderno', modo: 'hablar', clave: 'abuela' },
+  // 4.17.0 (C): las mulas de Belisario: la E sobre él, ya contado lo de los del cerro (la escena te pone en el zaino, sin hacerte montar de verdad)
+  'mulas-belisario': { cap: 'cuaderno', modo: 'hablar', clave: 'belisario', requiere: ['los-del-cerro'] },
 };
 // escenas que arrancan con el jugador sentado (la guardia): el juego lo levanta antes, porque una escena no empieza sentado
 export const ESCENAS_DESDE_SENTADO = ['guardia-molino'];
@@ -145,6 +156,21 @@ export const OBJETOS_ACTO2 = {
   // capítulo 8: el cuaderno, en la mesa del refugio
   'cuaderno-mesa': { forma: null, lx: 1.1, lz: -0.6, visible: (s, h) => cuadernoVisible(h, s),
     pagina: true, aviso: 'Leer el cuaderno de Eusebio' },
+  // 4.17.0 (C): lo que faltaba dibujar. La foto movida del lago y la llavecita de Herminia quedan sobre la mesa del refugio (se miran con E); los diez cantos
+  // blancos son el montoncito de la veta de la cantera (aparece cuando la escena de Tobías lo muestra); la tropa de mulas de Belisario está atada junto al
+  // puesto del paso y, después de acompañarla, en el mallín.
+  'foto-movida': { forma: 'foto-movida', lx: 1.3, lz: 3.55, y: 0.05,   // (con las otras cosas del umbral —el canto, la puertita, la pluma—: sobre la mesa el tocadiscos le ganaba la E, que le gana a todo lo que estés mirando)
+     visible: (s) => s.temas.has('obj:foto-movida'),
+    aviso: 'Mirar la foto movida', nota: ['La foto movida', 'Tres manchas doradas sobre un fondo negro, y algo que parece, si uno quiere, la punta de un ala. Salió como sale todo lo que importa: movida'] },
+  'llavecita': { forma: 'llavecita', lx: 1.65, lz: 3.55, y: 0.05,
+     visible: (s) => s.temas.has('obj:llavecita'),
+    aviso: 'Mirar la llavecita de Herminia', nota: ['La llavecita', 'De bronce, con el ojo en forma de hoja. Herminia la encontró de nena en una raíz. No se sabe a qué puerta abre'] },
+  'cantos-veta': { forma: 'cantos-veta', punto: 'cantera', dx: 0, dz: 0, visible: (s) => s.temas.has('mundo:cantos-veta'),
+    aviso: 'Mirar los cantos blancos de la veta', nota: ['Cantos blancos', 'Redondos, lisos como huevos, acomodados de a uno. Los mismos que el de tu umbral. Quien los puso no dejó ni una huella'] },
+  // el fogón de la Noche de la Leyenda (el efecto mundo:fogon-leyenda de la escena): se ve de noche en el predio, al costado de la plaza
+  'fogon-leyenda': { forma: 'fogon', punto: 'predio', dx: 3.4, dz: 0.8, visible: (s, h) => enCap(h, 'cuaderno') && s.temas.has('mundo:fogon-leyenda') && deNoche(s) },
+  'mulas-paso': { forma: 'mulas', punto: 'puesto-paso', dx: -7, dz: 6, visible: (s, h) => enCap(h, 'cuaderno') && !s.temas.has('mundo:tropa-mulas') },
+  'mulas-mallin': { forma: 'mulas', punto: 'mallin', dx: -3, dz: 2, visible: (s) => s.temas.has('mundo:tropa-mulas') },
   // los props del acto I que antes sólo dejaban una marca
   'pinones': { forma: 'pinones', lx: -5.2, lz: 6.0, visible: (s, h) => s.temas.has('mundo:pinones-en-tocon') && enCap(h, 'mesa') && !s.objetos.has('pinones'),
     aviso: 'Juntar los piñones del tocón', marca: 'pinones', nota: ['Un puñado de piñones', 'Alguien los dejó en el tocón. Los guardás: son de los que nadie sabe quién trae'] },

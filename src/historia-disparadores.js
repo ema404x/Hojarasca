@@ -20,6 +20,8 @@ import { capituloActual, marcarTema, marcarObjeto, marcarEntrega, anotarRaro, ca
 import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2, cuadernoVisible } from './historia-disparadores-acto2.js';
 // 4.17.0: el acto III (capítulos 9 a 13)
 import { DISPARADORES_ACTO3, EFECTOS_ESCENA_ACTO3, OBJETOS_ACTO3, LUGARES_ACTO3, accionBolsaUmbral } from './historia-disparadores-acto3.js';
+// 4.17.0 (C): dónde se pone al jugador antes de las escenas de los actos I y II (historia-colocacion.js)
+import { COLOCACION_PULIDO } from './historia-colocacion.js';
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
@@ -164,12 +166,13 @@ export function alCerrarCapitulo(h, capId, dia = 1) {
 // Cada uno: dónde (en coordenadas locales del refugio: x a la derecha, z hacia donde mira la puerta), cuándo se ve, y qué hace la E.
 // `clave` es el id del objeto en `interaccion` de los disparadores y en `h.objetos` (lo levantado).
 export const OBJETOS = {
-  'ronda': { forma: 'ronda', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco') },
-  'canto-blanco': { forma: 'canto', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco'),
+  'ronda': { forma: 'ronda', lx: 0.1, lz: 3.7, visible: (s) => (s.escenas.has('ronda-umbral') || s.temas.has('mundo:ronda-ramitas')) && !s.objetos.has('canto-blanco') },   // (4.17.0: también mientras corre la escena, que la pone con un efecto)
+  'canto-blanco': { forma: 'canto', lx: 0.1, lz: 3.7, visible: (s) => (s.escenas.has('ronda-umbral') || s.temas.has('mundo:ronda-ramitas')) && !s.objetos.has('canto-blanco'),
     aviso: 'Mirar el canto blanco del umbral', marca: 'canto-blanco', nota: ['Un canto blanco', 'Liso como un huevo. Lo dejás en la repisa, al lado de la ventana'] },
   'nota-mesa': { forma: 'nota', lx: 1.1, lz: -0.6, visible: (s, h) => s.escenas.has('nota-eusebio') && !cuadernoVisible(h, s),
     aviso: 'Releer la nota de Eusebio', nota: ['La nota de Eusebio', 'No toques el frasco de la repisa, que es masa madre de 1987. Y gracias. E. M.'] },
-  'bolsa-eusebio': { forma: 'bolsa', lx: 2.6, lz: 3.3, visible: (s) => s.escenas.has('bolsa-alero') && s.decisiones.bolsa == null,
+  // (4.17.0: la bolsa está atada bajo el alero desde que la última tabla lo arregla, no recién al terminar la escena que la encuentra; colgada, no en el piso)
+  'bolsa-eusebio': { forma: 'bolsa', lx: 2.6, lz: 3.3, y: 1.45, visible: (s) => ((s.reparaciones.alero || 0) >= 4 || s.escenas.has('bolsa-alero')) && s.decisiones.bolsa == null,
     aviso: 'Releer la nota de la bolsa', nota: ['La nota de la bolsa', 'Para la raíz del coihue grande del molino viejo, antes del primer frío. No te olvides, que ellos no se olvidan. Y gracias. E. M.'] },
   'alero': { forma: 'alero', lx: 2.6, lz: 3.3, visible: (s) => (s.reparaciones.alero || 0) < 4,
     aviso: 'Cambiar una tabla del alero', reparacion: { id: 'alero', n: 4 } },
@@ -192,8 +195,9 @@ export const RADIO_OBJETO = 2.4;
 export const COLOCACION_ESCENA = {
   'nota-eusebio': { lx: 0.1, lz: 0.5, mira: [1.1, -0.98] },   // (la mesa del refugio está en (1,1; −0,98) de su estructura)
   'ronda-umbral': { lx: 0.1, lz: 5.4, mira: [0.1, 3.7] },
-  'hacha-tocon': { lx: -2.2, lz: 9.0, mira: [-5.5, 6.0] },
+  'hacha-tocon': { lx: -1.8, lz: 9.4, mira: [-5.5, 6.0] },   // (4.17.0: a 5 m del tocón, como pide la escena)
   'bolsa-alero': { lx: 2.6, lz: 5.6, mira: [2.6, 3.3] },
+  ...COLOCACION_PULIDO,   // (4.17.0: las de un lugar o una persona, no del refugio)
 };
 
 // Los objetos que se ven ahora

@@ -7,8 +7,11 @@ import { pj, FRENTE, apagon, hora, horaMas, con, no } from './historia-escenas-a
 const primerDe = (a, o = {}) => ({ plano: 'primer', a, desde: 'jugador', mezcla: 0.7, dur: 30, sinEsperar: true, ...o });
 const tocon = siDecision('coihue', 'b');
 const hayRaiz = no(siDecision('coihue', 'b'));
-// donde está el coihue (o su tocón) mirando desde el banco del molino
-const RAIZ = FRENTE(22, -5);
+// donde está el coihue (o su tocón) mirando desde el banco del molino. 4.17.0: el de verdad (el punto «coihue» de la historia), no 22 pasos adelante de donde te sientes
+const RAIZ = { lugar: 'coihue' };
+// 4.17.0: el comienzo y el final del rastro de huellas de verdad (de la raíz del coihue a la raíz de la ladera de Ramón)
+const HUELLAS_DESDE = { lugar: 'molino-viejo' };
+const HUELLAS_HASTA = { lugar: 'raiz-ramon' };
 
 const lucesNicanor = {
   id: 'luces-lago-nicanor', titulo: 'Las luces del lago', acto: 2, capitulo: 6,
@@ -16,7 +19,7 @@ const lucesNicanor = {
   personajes: pj('nicanor', 'narra'),
   disparador: { hora: [19.5, 21.5] },
   pasos: [
-    plano('general', { lugar: 'muelle' }, { dist: 15, alto: 3.4, dur: 3.2, mezcla: 0.9 }),
+    plano('general', { lugar: 'muelle' }, { dist: 13, alto: 4, dur: 3.2, mezcla: 0.9 }),
     narra('El sol se va por el lado de la cordillera y el faro, lejos, es un puntito. El agua está tan quieta que parece una segunda tarde puesta cabeza abajo.'),
     aparece('nicanor', { lugar: 'muelle', dx: -2.5, dz: 1.2 }),
     plano('medio', 'nicanor', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
@@ -114,8 +117,8 @@ const huellasEscarcha = {
   personajes: pj('narra'),
   disparador: { hora: [6, 8.5] },
   pasos: [
-    ...apagon([hora(6.9, { dur: 0 }), efecto('mundo:huellas-escarcha', { desde: FRENTE(3), hasta: FRENTE(26, 11) })], { dur: 2 }),
-    plano('detalle', FRENTE(3), { desde: 'jugador', dist: 0.9, alto: 1.1, dur: 3, mezcla: 0.9 }),
+    ...apagon([hora(6.9, { dur: 0 }), efecto('mundo:huellas-escarcha', { desde: HUELLAS_DESDE, hasta: HUELLAS_HASTA })], { dur: 2 }),
+    plano('detalle', FRENTE(3), { desde: 'jugador', dist: 1.4, alto: 1.5, miraY: 0.15, dur: 3, mezcla: 0.9 }),
     narra('La escarcha cubre el pasto como azúcar. Y en la escarcha, huellas. Chiquitas, de pie descalzo, apenas más grandes que una moneda. Brillan un poco más que lo de alrededor.'),
     plano('paneo', FRENTE(3), { hasta: FRENTE(26, 11), dist: 8, alto: 3, dur: 4.4, mezcla: 0.9 }),
     narra('Se alejan del molino, suben por la ladera y se pierden hacia los árboles del Puesto Alto. Las seguís. No corren: caminan, como quien vuelve a casa de una fiesta.'),
@@ -125,8 +128,8 @@ const huellasEscarcha = {
     ]),
     con(narra('Alguien que no siente el frío. O que no es de acá, o que es más de acá que cualquiera. No te animás a elegir.'), siEleg('huellas-resp', 'quien')),
     con(narra('El único ruido es tu respiración haciendo nubes. A veces es mejor no preguntar nada para que algo conteste.'), siEleg('huellas-resp', 'callar')),
-    efecto('mundo:yerba-en-raiz', { donde: FRENTE(26, 11) }),
-    plano('primer', FRENTE(26, 11), { desde: 'jugador', dist: 1.8, alto: 1.2, miraY: 0.5, dur: 3.4, mezcla: 0.9 }),
+    efecto('mundo:yerba-en-raiz', { donde: HUELLAS_HASTA }),
+    plano('primer', HUELLAS_HASTA, { desde: 'jugador', dist: 1.8, alto: 1.2, miraY: 0.3, dur: 3.4, mezcla: 0.9 }),
     narra('Las huellas terminan en una raíz gruesa, de pehuén. Sobre la raíz, una hoja de nalca, y sobre la hoja, un puñado de yerba puesto con prolijidad de almacenero. Todavía no tiene escarcha.'),
     efecto('raro:huellas-escarcha'),
     efecto('raro:yerba-en-raiz'),
@@ -139,11 +142,11 @@ const ramonRaiz = {
   personajes: pj('ramon', 'narra'),
   disparador: { hora: [7, 8.5] },
   pasos: [
-    plano('general', FRENTE(16, -4), { desde: 'jugador', dist: 16, alto: 2.4, miraY: 1.2, dur: 3, mezcla: 0.9 }),
+    plano('general', HUELLAS_HASTA, { desde: 'jugador', dist: 14, alto: 2.4, miraY: 1.2, dur: 3, mezcla: 0.9 }),
     narra('Te quedás detrás de un pehuén, a quince pasos. Desde ahí se ve la raíz, y por el camino de la ladera baja alguien con boina y poncho.'),
     aparece('ramon', FRENTE(22, 5)),
-    camina('ramon', FRENTE(16.5, -3.5), { vel: 1.0 }),
-    plano('medio', 'ramon', { desde: 'jugador', dist: 9, alto: 1.4, miraY: 1.2, fov: 40, mezcla: 0.9, dur: 1, sinEsperar: true }),
+    camina('ramon', { lugar: 'raiz-ramon', dx: 0.6, dz: 0.4 }, { vel: 1.0 }),
+    plano('medio', 'ramon', { desde: 'jugador', dist: 6, alto: 1.5, miraY: 1.15, fov: 34, mezcla: 0.9, dur: 1, sinEsperar: true }),
     pose('ramon', 'tocar', { dur: 2.6, sinEsperar: false }),
     narra('Don Ramón se agacha, despacio, con el trabajo que le cuestan ahora las rodillas. Deja un puñado de yerba en la raíz. Lo acomoda con dos dedos.'),
     pose('ramon', 'gorro', { dur: 2.4, sinEsperar: false }),
@@ -242,7 +245,7 @@ const fotoSofia = {
       linea('Dejame ver eso.', { gesto: gs('mirar', 1.6) }),
       'Está movida. Muy movida. Bien movida: no hay una sola cosa nítida.',
     ]),
-    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 0.8, alto: 1.2, dur: 3.2, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.3, alto: 1.6, miraY: 1.15, dur: 3.2, mezcla: 0.8 }),   // (4.17.0: a 1,2 m del suelo el pasto tapaba la foto)
     narra('Sofía acerca la foto a la luz de la ventana, la aleja, la acerca otra vez. Con una lupa señala una de las manchas doradas.'),
     dlg('sofia', [
       linea('Esto no es una mancha.', { gesto: gs('senalar', 2) }),

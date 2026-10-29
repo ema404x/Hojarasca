@@ -84,6 +84,7 @@ const FORMAS = {
     caja(c, [0.46, 0.62, 0.3], [0, 0.31, 0], '#cdbfa0', [0, 0.2, 0.05], 0.1);
     caja(c, [0.48, 0.05, 0.32], [0, 0.46, 0], '#b8432f', [0, 0.2, 0.05], 0.05);
     esfera(c, 0.1, [0, 0.64, 0], '#bfae8a', [1.5, 0.7, 1], 0.08);
+    caja(c, [0.03, 0.8, 0.03], [0, 1.04, 0], '#b8432f', [0, 0, 0], 0.04);   // 4.17.0: el piolín colorado de que cuelga bajo el alero (la bolsa se ve desde que se arregla el alero)
   },
   alero: (c) => {
     for (let i = 0; i < 4; i++) caja(c, [0.92, 0.035, 0.17], [0, 0.04 + i * 0.04, i * 0.02], '#a98558', [0, 0.08 * i, 0], 0.1);
@@ -94,11 +95,12 @@ const FORMAS = {
     esfera(c, 0.022, [0.07, 0.2, 0.025], '#e7ddc6', [1, 1, 1], 0.02);
     caja(c, [0.04, 0.05, 0.02], [-0.12, 0.2, 0.02], '#4a3624', [0.1, 0, 0.12], 0.05);
   },
+  // 4.17.0: el tocón más alto (se perdía entre los lupinos, que le llegan a la rodilla)
   'hacha-tocon': (c) => {
-    palo(c, 0.4, 0.42, [0, 0.21, 0], [0, 0, 0], '#6b4f35');
-    palo(c, 0.4, 0.04, [0, 0.43, 0], [0, 0, 0], '#c9ac80');
-    caja(c, [0.05, 0.62, 0.05], [0.05, 0.72, 0.02], '#7a5a38', [0, 0, 0.18], 0.06);
-    caja(c, [0.2, 0.15, 0.05], [0.12, 0.99, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
+    palo(c, 0.42, 0.95, [0, 0.475, 0], [0, 0, 0], '#6b4f35');
+    palo(c, 0.42, 0.04, [0, 0.96, 0], [0, 0, 0], '#c9ac80');
+    caja(c, [0.05, 0.62, 0.05], [0.05, 1.25, 0.02], '#7a5a38', [0, 0, 0.18], 0.06);
+    caja(c, [0.2, 0.15, 0.05], [0.12, 1.52, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
   },
   // 4.16.0: los props del acto II y los del acto I que antes sólo dejaban una marca
   'dedal-poste': (c) => {
@@ -134,7 +136,7 @@ const FORMAS = {
     caja(c, [0.03, 0.062, 0.2], [0, 0.062, 0], '#b8432f', [0, 0.3, 0], 0.03);
   },
   pinones: (c) => {
-    for (let i = 0; i < 5; i++) esfera(c, 0.035, [Math.cos(i * 1.7) * 0.12, 0.47, Math.sin(i * 1.7) * 0.12], '#5a3a22', [1, 1.6, 1], 0.1);
+    for (let i = 0; i < 5; i++) esfera(c, 0.035, [Math.cos(i * 1.7) * 0.12, 1.0, Math.sin(i * 1.7) * 0.12], '#5a3a22', [1, 1.6, 1], 0.1);
   },
   'cuchara-techo': (c) => {
     palo(c, 0.012, 0.36, [0, 0.03, 0], [0, 0, 1.25], '#b89462');
@@ -171,6 +173,49 @@ const FORMAS = {
     for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2; esfera(c, 0.27, [Math.cos(a) * r, 0.17, Math.sin(a) * r], i % 3 ? '#8d8a82' : '#76736b', [1, 0.65, 1], 0.12); }
     for (let i = 0; i < 17; i++) { const a = ((i + 0.5) / 17) * Math.PI * 2; esfera(c, 0.22, [Math.cos(a) * (r - 0.05), 0.4, Math.sin(a) * (r - 0.05)], '#8d8a82', [1, 0.7, 1], 0.12); }
   },
+  // 4.17.0 (C): los que faltaban. Una foto sobre la mesa con tres manchas doradas (la foto movida del lago) y la llavecita de bronce de Herminia
+  'foto-movida': (c) => {
+    caja(c, [0.23, 0.012, 0.17], [0, 0.006, 0], '#e9e2d0', [0, 0.3, 0], 0.03);
+    caja(c, [0.2, 0.004, 0.14], [0, 0.014, 0], '#26221e', [0, 0.3, 0], 0.02);
+    [[-0.05, 0.025], [0.015, -0.03], [0.06, 0.03]].forEach(([x, z]) => esfera(c, 0.017, [x, 0.018, z], '#e6b04a', [1, 0.3, 1], 0.05));
+  },
+  llavecita: (c) => {
+    esfera(c, 0.028, [0, 0.012, 0], '#c9a24a', [1.2, 0.3, 1.2], 0.04);
+    caja(c, [0.11, 0.008, 0.014], [0.07, 0.008, 0], '#c9a24a', [0, 0, 0], 0.04);
+    caja(c, [0.012, 0.008, 0.03], [0.115, 0.008, 0.012], '#c9a24a', [0, 0, 0], 0.04);
+  },
+  // los diez cantos blancos que alguien rellenó en la veta de la cantera: un montoncito contra la pared de piedra
+  'cantos-veta': (c) => {
+    for (let i = 0; i < 10; i++) {
+      const capa = i < 5 ? 0 : i < 8 ? 1 : 2, k = i < 5 ? i : i < 8 ? i - 5 + 0.5 : 1.5;
+      esfera(c, 0.15, [k * 0.28 - 0.56, 0.1 + capa * 0.2, capa * 0.02], '#f3f0e8', [1, 0.78, 0.9], 0.02);
+    }
+  },
+  // el fogón de la Noche de la Leyenda, en el predio de la aldea: un círculo de piedras, leños cruzados y brasas (sin luz ni fuego animado: la aldea ya tiene sus faroles)
+  fogon: (c) => {
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; esfera(c, 0.2, [Math.cos(a) * 0.95, 0.1, Math.sin(a) * 0.95], i % 2 ? '#77746d' : '#66635c', [1, 0.7, 1], 0.1); }
+    for (let i = 0; i < 5; i++) caja(c, [1.25, 0.15, 0.15], [0, 0.17 + (i % 2) * 0.12, 0], '#4a3322', [0, (i / 5) * Math.PI, 0.05 * (i - 2)], 0.1);
+    for (const [x, z] of [[0.1, 0.05], [-0.2, 0.1], [0.05, -0.25], [0.25, 0.2]]) esfera(c, 0.12, [x, 0.3, z], '#e2571f', [1, 0.55, 1], 0.1);
+    esfera(c, 0.2, [0, 0.12, 0], '#2a1c14', [1.6, 0.35, 1.6], 0.05);
+  },
+  // la tropa de mulas de Belisario: siete en fila, con la carga atada (cada una: cuerpo, cuello, cabeza, orejas, cuatro patas, cola y bulto)
+  mulas: (c) => {
+    const pelos = ['#7a6650', '#5d4b3a', '#8a7a68', '#4d4036', '#6e5d4a', '#85705a', '#5a4a3c'];
+    for (let i = 0; i < 7; i++) {
+      const bx = i * 1.7, bz = Math.sin(i * 1.3) * 0.3, giro = Math.sin(i * 2.1) * 0.12, cg = Math.cos(giro), sg = Math.sin(giro);
+      const loc = (x, y, z) => [bx + x * cg + z * sg, y, bz - x * sg + z * cg];
+      const pelo = pelos[i];
+      caja(c, [0.55, 0.52, 1.25], loc(0, 1.0, 0), pelo, [0, giro, 0], 0.08);
+      caja(c, [0.24, 0.55, 0.26], loc(0, 1.25, 0.72), pelo, [0.5, giro, 0], 0.08);
+      caja(c, [0.22, 0.24, 0.46], loc(0, 1.45, 1.0), pelo, [0.2, giro, 0], 0.08);
+      caja(c, [0.07, 0.22, 0.05], loc(-0.07, 1.67, 0.9), pelo, [0, giro, -0.1], 0.06);
+      caja(c, [0.07, 0.22, 0.05], loc(0.07, 1.67, 0.9), pelo, [0, giro, 0.1], 0.06);
+      for (const [px, pz] of [[-0.18, -0.48], [0.18, -0.48], [-0.18, 0.48], [0.18, 0.48]]) caja(c, [0.12, 0.76, 0.12], loc(px, 0.38, pz), '#3d3228', [0, giro, 0], 0.06);
+      caja(c, [0.06, 0.5, 0.06], loc(0, 0.95, -0.68), '#3d3228', [-0.25, giro, 0], 0.06);
+      caja(c, [0.78, 0.34, 0.8], loc(0, 1.46, -0.05), i % 2 ? '#cdbfa0' : '#a98558', [0, giro, 0], 0.08);
+      caja(c, [0.8, 0.05, 0.12], loc(0, 1.45, -0.05), '#b8432f', [0, giro, 0], 0.05);
+    }
+  },
   raiz: (c) => {
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2 + 0.3;
@@ -205,10 +250,12 @@ export function crearObjetosHistoria(ctx) {
   function huellas(c, desdeP, hastaP) {
     const dx = hastaP.x - desdeP.x, dz = hastaP.z - desdeP.z, dist = Math.hypot(dx, dz) || 1;
     const n = Math.max(8, Math.min(44, Math.round(dist / 2.4))), ang = Math.atan2(dx, dz);
+    // 4.17.0: más grandes y más claras (a 0,05 m de radio no se veían ni de cerca), y más seguidas en los primeros diez metros, que es donde se las mira
+    const pie = (x, z, lado) => c.agregar(new THREE.SphereGeometry(0.085, 7, 5), { color: '#f4f8ff', tipo: 0, variar: 0.02, matriz: matriz([x, alt(x, z) + 0.04, z], [0, ang + lado * 0.12, 0], [1, 0.16, 1.9]) });
+    for (let k = 1; k <= 9 && k * 1.1 < dist; k++) { const lado = k % 2 ? 1 : -1, d = k * 1.1; pie(desdeP.x + (dx / dist) * d + Math.cos(ang) * 0.13 * lado, desdeP.z + (dz / dist) * d - Math.sin(ang) * 0.13 * lado, lado); }
     for (let i = 1; i < n; i++) {
       const u = i / n, lado = i % 2 ? 1 : -1, ondula = Math.sin(u * 9) * 1.1;
-      const x = desdeP.x + dx * u + Math.cos(ang) * (0.13 * lado + ondula), z = desdeP.z + dz * u - Math.sin(ang) * (0.13 * lado + ondula);
-      c.agregar(new THREE.SphereGeometry(0.05, 7, 5), { color: '#e6eef5', tipo: 0, variar: 0.02, matriz: matriz([x, alt(x, z) + 0.035, z], [0, ang, 0], [1, 0.14, 1.8]) });
+      pie(desdeP.x + dx * u + Math.cos(ang) * (0.13 * lado + ondula), desdeP.z + dz * u - Math.sin(ang) * (0.13 * lado + ondula), lado);
     }
   }
   function armarMalla(id, q) {

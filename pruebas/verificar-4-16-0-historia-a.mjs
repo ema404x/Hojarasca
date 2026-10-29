@@ -236,13 +236,13 @@ async function chequear(arch = '', sufijo = '') {
     const quien = (h, p, extra, ctx) => D.escenaPendiente(h, E(p, extra), ctx);
     const ids = A2.ESCENAS_ACTO2_IDS;
     const EB = await import('../src/historia-escenas-acto2.js');
-    ok(ids.length === 32 && new Set(ids).size === 32, 'son 32 las escenas que dispara el juego en el acto II');
+    ok(ids.length === 35 && new Set(ids).size === 35, 'son 35 las escenas que dispara el juego en el acto II (4.17.0: tablas-tito, foto-sofia y mulas-belisario ya tienen disparador)');
     for (const id of ids) ok(EB.IDS_ACTO2.includes(id) || A2.ESCENAS_SIN_GUION.includes(id), `${id}: es una escena de B o una mecánica sin guion`);
-    igual(EB.IDS_ACTO2.filter((x) => !ids.includes(x)).sort(), ['cuaderno-1', 'cuaderno-2', 'cuaderno-3', 'foto-sofia', 'mulas-belisario', 'tablas-tito'], 'las de B que no dispara el juego: el cuaderno (sale de la mesa) y tres optativas');
+    igual(EB.IDS_ACTO2.filter((x) => !ids.includes(x)).sort(), ['cuaderno-1', 'cuaderno-2', 'cuaderno-3'], 'las de B que no dispara el juego: el cuaderno (sale de la mesa)');
     const conDisp = new Set(Object.entries(A2.DISPARADORES_ACTO2).map(([k, d]) => d.escena || k));
     for (const id of ids) ok(conDisp.has(id), `${id}: tiene su disparador`);
     for (const id of conDisp) ok(ids.includes(id), `${id}: el disparador es de una escena conocida`);
-    for (const [k, d] of Object.entries(A2.DISPARADORES_ACTO2)) { ok(Object.hasOwn(H.CAPITULO, d.cap) && H.CAPITULOS.indexOf(H.CAPITULO[d.cap]) >= 4 && H.CAPITULOS.indexOf(H.CAPITULO[d.cap]) < 8, `${k}: es de los capítulos 5 a 8`); for (const r of d.requiere || []) ok(ids.includes(r), `${k}: requiere una escena conocida`); }
+    for (const [k, d] of Object.entries(A2.DISPARADORES_ACTO2)) { for (const cp of [].concat(d.cap)) ok(Object.hasOwn(H.CAPITULO, cp) && H.CAPITULOS.indexOf(H.CAPITULO[cp]) >= 4 && H.CAPITULOS.indexOf(H.CAPITULO[cp]) < 8, `${k}: es de los capítulos 5 a 8`); for (const r of d.requiere || []) ok(ids.includes(r), `${k}: requiere una escena conocida`); }
     for (const id of Object.keys(A2.EFECTOS_ESCENA_ACTO2)) ok(ids.includes(id), `${id}: el efecto es de una escena conocida`);
     ok(D.DISPARADORES['piedras-molino'] && D.EFECTOS_ESCENA['zaino-ramon'] && D.OBJETOS.dedal, 'el acto II está juntado con el acto I');
     for (const l of A2.LUGARES_ACTO2) ok(D.LUGARES_HISTORIA.includes(l), `lugar ${l}`);

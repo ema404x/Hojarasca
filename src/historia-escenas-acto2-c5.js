@@ -29,7 +29,7 @@ const piedrasMolino = {
       linea('Mirá lo que traje.', { gesto: gs('senalar', 1.6) }),
       'La nota de Eusebio, la de la bolsa. La saqué del bolsillo veinte veces en estos días. ...Para quién era la bolsa aparte, digo. Bueno. Ahora lo sabemos los dos, o casi.',
     ]), siDecision('bolsa', 'c')),
-    plano('hombro', FRENTE(24, -6), { desde: 'jugador', atras: 0, costado: 0, miraY: 6, alto: 1.7, mezcla: 0.9, dur: 2.6 }),
+    plano('hombro', { lugar: 'coihue' }, { desde: 'jugador', atras: 0, costado: 0, miraY: 6, alto: 1.7, mezcla: 0.9, dur: 2.6 }),
     dlg('josefina', [
       linea('Y ese no se toca.', { gesto: gs('cruzarse', 2), plano: primerDe('josefina') }),
       'Bueno. Eso lo vamos a hablar.',
@@ -83,7 +83,7 @@ const titoCoihue = {
   pasos: [
     aparece('tito', FRENTE(6, -4.5), 'jugador'),
     aparece('josefina', FRENTE(6, 4.5), 'jugador'),
-    plano('general', FRENTE(6), { desde: 'jugador', dist: 14, alto: 2.8, dur: 3.2, mezcla: 0.9 }),
+    plano('general', FRENTE(6), { desde: 'jugador', dist: 10, alto: 3.8, miraY: 1.3, dur: 3.2, mezcla: 0.9 }),   // (4.17.0: más cerca y más alto: entre los helechos no se veía ni a Tito ni a Josefina)
     narra('Los dos llegaron antes que vos. Cada uno se paró a un lado del coihue, como en un duelo de película del oeste, pero muy amable.'),
     plano('medio', 'tito', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
     dlg('tito', [
@@ -202,15 +202,16 @@ const tobiasPirca = {
     ], { si: siEleg('pirca-resp', 'veta') }),
     dlg('tobias', ['Si quiere venir una noche a mirar, avise. Con los cantos blancos, no se asuste.'], { si: siEleg('pirca-resp', 'veta') }),
     efecto('optativa:veta-vuelve'),
+    // 4.17.0: la segunda mitad pasa en el coihue de verdad (el jugador se queda en la cantera: antes se armaba 6 pasos delante de la cantera)
     ...apagon([
-      aparece('tobias', FRENTE(5, -3)),
-      aparece('josefina', FRENTE(8, 4)),
-      efecto('mundo:pirca-coihue', { donde: FRENTE(6) }),
+      aparece('tobias', { lugar: 'coihue', dx: 4.5, dz: -2.5 }),
+      aparece('josefina', { lugar: 'coihue', dx: -4, dz: 5 }),
+      efecto('mundo:pirca-coihue', { donde: { lugar: 'coihue' } }),
     ], { dur: 2 }),
-    plano('general', FRENTE(6), { desde: 'jugador', dist: 10, alto: 2.6, dur: 3.2, mezcla: 0.8 }),
+    plano('general', { lugar: 'coihue' }, { desde: 'jugador', dist: 11, alto: 2.8, dur: 3.2, mezcla: 0.8 }),
     narra('Las piedras redondas están puestas en rueda alrededor de la raíz, sin cemento, una apoyada en la otra. Se sostienen porque sí.'),
     plano('medio', 'josefina', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
-    camina('josefina', FRENTE(4, 1), { vel: 1.4 }),
+    camina('josefina', { lugar: 'coihue', dx: -3, dz: 2.4 }, { vel: 1.4 }),
     narra('Josefina se agacha y pasa la mano por las piedras. No dice nada. En ella eso es mucho.'),
     dlg('tobias', [linea('Respira, ¿ve? Cuando sopla el viento, silba un poquito entre las piedras. Es una pirca contenta.', { gesto: gs('senalar', 2) })]),
     efecto('lazo:ema:1'),
@@ -228,10 +229,10 @@ const ruedaGira = {
     sonido('juntar'),
     plano('detalle', FRENTE(2.4), { desde: 'jugador', dist: 1.6, alto: 1.2, dur: 3.2, mezcla: 0.9 }),
     narra('El agua empuja la rueda. Se queja, cruje, vuelve a empujar, y de golpe agarra ritmo. Adentro, la muela empieza a hablar con su voz de piedra.'),
-    plano('paneo', FRENTE(2.4), { hasta: FRENTE(24, -6), dist: 7, alto: 2.4, dur: 4.2, mezcla: 0.9 }),
+    plano('paneo', FRENTE(2.4), { hasta: { lugar: 'coihue' }, dist: 7, alto: 2.4, dur: 4.2, mezcla: 0.9 }),
     con(narra('La cámara sube despacio hasta la copa del coihue grande, que no se movió ni un centímetro, como si el ruido fuera cosa de otro.'), noEsB),
     con(narra('La mirada sube despacio hasta donde estaba el coihue grande. Queda el tocón, ancho como una mesa, y el cielo vacío arriba.'), siDecision('coihue', 'b')),
-    con(efecto('mundo:puntitos-verdes', { donde: FRENTE(24, -6) }), noEsB),
+    con(efecto('mundo:puntitos-verdes', { donde: { lugar: 'coihue' } }), noEsB),
     con(narra('Entre las raíces, al pie, dos puntitos verdes. Se encienden un segundo y se apagan.'), noEsB),
     aparece('josefina', FRENTE(2.8, 1.4)),
     plano('medio', 'josefina', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
@@ -309,7 +310,7 @@ const truchasNicanor = {
   resumen: 'Con Nicanor pescaste las primeras truchas del otoño: gordas, lentas y de buen humor. Nicanor dice que el lago anda contento.',
   personajes: pj('nicanor', 'narra'),
   pasos: [
-    plano('general', { lugar: 'muelle' }, { dist: 14, alto: 3.4, dur: 3, mezcla: 0.9 }),
+    plano('general', { lugar: 'muelle' }, { dist: 12, alto: 4, dur: 3, mezcla: 0.9 }),
     aparece('nicanor', { lugar: 'muelle', dx: -2, dz: 1.4 }),
     plano('medio', 'nicanor', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
     dlg('nicanor', [

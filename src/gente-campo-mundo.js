@@ -124,19 +124,32 @@ export function crearGenteCampoMundo({ T, col, gente }) {
   }
 
   let armando = null;
+  function cerrarArmado(f) {
+    const npc = f.tarea.npc;
+    npc.poblador = false;   // no es de la aldea (aldea-gente.js no lo maneja)
+    npc.campo = true;       // (gente-campo-juego.js: la charla)
+    npc.historias = [];     // (las historias van por el menú: gente-campo.js)
+    f.npc = npc;
+  }
+  // 4.17.0 (C): una escena de la Historia pide a uno de ellos donde sea que estés (la minga de la plaza, la cantera): se arma ya, de una vez, en su lugar de
+  // siempre (después la escena lo pone donde quiere). Devuelve el npc o null si no hay lugar libre. Si ya estaba armado, es el mismo.
+  function armarYa(k) {
+    if (!PERSONAS_CAMPO[k]) return null;
+    if (figuras[k]?.npc) return figuras[k].npc;
+    if (armando) { const g = armando; for (let i = 0; i < 400 && !g.tarea.avanzar(50); i++); if (g.tarea.npc) cerrarArmado(g); armando = null; if (g === figuras[k]) return g.npc || null; }
+    const def = definir(k);
+    if (!def) return null;
+    const fig = { def, tarea: gente.armarPobladorDeAPoco(def), npc: null, intentos: 0, espera: REINTENTO_S };
+    figuras[k] = fig;
+    for (let i = 0; i < 400; i++) if (fig.tarea.avanzar(50)) { cerrarArmado(fig); return fig.npc; }
+    return null;
+  }
   function actualizar(dt, js, hablando = null) {
     if (!js?.pos) return;
     if (armando) {
       // uno por vez y de a poco
       const f = armando;
-      if (f.tarea.avanzar(MS_POR_CUADRO)) {
-        const npc = f.tarea.npc;
-        npc.poblador = false;   // no es de la aldea (aldea-gente.js no lo maneja)
-        npc.campo = true;       // (gente-campo-juego.js: la charla)
-        npc.historias = [];     // (las historias van por el menú: gente-campo.js)
-        f.npc = npc;
-        armando = null;
-      }
+      if (f.tarea.avanzar(MS_POR_CUADRO)) { cerrarArmado(f); armando = null; }
     } else {
       for (const k of Object.keys(PERSONAS_CAMPO)) {
         const previo = figuras[k];
@@ -165,5 +178,5 @@ export function crearGenteCampoMundo({ T, col, gente }) {
   }
   const npcDe = (k) => figuras[k]?.npc || null;
   const lista = () => Object.values(figuras).map((f) => f.npc).filter(Boolean);
-  return { actualizar, npcDe, lista, definir, libre, __figuras: figuras };
+  return { actualizar, npcDe, armarYa, lista, definir, libre, __figuras: figuras };
 }

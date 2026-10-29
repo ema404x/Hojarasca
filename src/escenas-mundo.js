@@ -97,7 +97,9 @@ export function crearEscenasMundo(ctx) {
   };
   function capturar(clave) {
     if (!clave || captura.has(clave)) return;
-    const n = actor(clave);
+    let n = actor(clave);
+    // 4.17.0 (C): Fermín, Belisario y Tobías sólo se arman cuando te acercás a su lugar; si la escena los pide desde lejos (la minga, la veta), se arman ya
+    if (!n && ctx.armarYa) { try { n = ctx.armarYa(clave) || actor(clave); } catch (e) { ctx.fallo?.(e, 'escenas-armar'); n = null; } }
     if (!n) { captura.set(clave, { n: null }); return; }
     const guardado = {};
     for (const k of ['conVos', 'enCita', 'pose', 'asiento', 'soloCerca', 'dormido', 'charlaVecinos', 'sinFrenar', 'camino', 'velocidad', 'miraFinal', '__quietud', 'alAmor', 'aBordo', 'enViaje']) guardado[k] = { tiene: Object.hasOwn(n, k), v: n[k] };
@@ -125,6 +127,12 @@ export function crearEscenasMundo(ctx) {
     if (mira) { const r = Math.atan2(mira.x - p.x, mira.z - p.z); n.rumboObjetivo = r; n.miraFinal = r; n.g.rotation.y = r; n.rumbo = r; }
   }
 
+  // 4.17.0 (C): un lugar con nombre: los de la Historia (la raíz de Ramón, el coihue, tu molino, la cantera…: `ctx.puntos()`) y los del mundo (T.lugares)
+  const lugarDe = (k) => {
+    const p = ctx.puntos?.();
+    if (p && typeof k === 'string' && Object.hasOwn(p, k) && Number.isFinite(p[k]?.x)) return p[k];
+    return ctx.T?.lugares && typeof k === 'string' && Object.hasOwn(ctx.T.lugares, k) ? ctx.T.lugares[k] : null;
+  };
   // ---- el mundo que ve el director
   const mundo = {
     puedeEmpezar: () => { try { return ctx.puedeEmpezar ? !!ctx.puedeEmpezar() : true; } catch { return false; } },
@@ -134,12 +142,12 @@ export function crearEscenasMundo(ctx) {
       if (typeof ref === 'string') {
         const n = actor(ref);
         if (n) return { x: n.pos.x, y: n.pos.y, z: n.pos.z };
-        const l = ctx.T?.lugares && Object.hasOwn(ctx.T.lugares, ref) ? ctx.T.lugares[ref] : null;
+        const l = lugarDe(ref);
         return l && Number.isFinite(l.x) ? { x: l.x, z: l.z } : null;
       }
       if (ref && typeof ref === 'object') {
         if (typeof ref.lugar === 'string') {
-          const l = ctx.T?.lugares && Object.hasOwn(ctx.T.lugares, ref.lugar) ? ctx.T.lugares[ref.lugar] : null;
+          const l = lugarDe(ref.lugar);
           return l && Number.isFinite(l.x) ? { x: l.x + num(ref.dx), z: l.z + num(ref.dz) } : null;
         }
         if (typeof ref.frente === 'string') {
@@ -301,9 +309,44 @@ export function crearEscenasMundo(ctx) {
   }
 
   // ---- la cámara
-  function aplicarCamara() {
-    const c = director.camara();
+  // 4.17.0 (C): la cámara dirigida no se mete adentro de un árbol, un muro o una roca. Del foco (a lo que mira) hacia la cámara se camina de a 0,3 m con
+  // una bolita de 0,3 m de radio; en el primer choque la cámara se queda un poco antes (nunca a menos de 1,3 m del foco). Si el paso libre se achica la cámara
+  // se acerca de golpe (para no ver el interior del tronco); si se agranda, vuelve despacio. Y nunca por debajo del suelo.
+  const DESPEJE = { paso: 0.3, radio: 0.3, minimo: 1.3, margen: 0.25, bajo: 0.45, bajoLejos: 1.3, lejos: 5 };   // (bajoLejos: los planos a 5 m o más no van por debajo de 1,3 m del suelo: el pasto alto y los helechos tapaban la lente)
+  const bola = { x: 0, y: 0, z: 0 };
+  let brazo = { id: null, k: 1 };
+  function despejarCamara(c, dt, id) {
+    const f = c.foco, col = ctx.col;
+    if (!f || !col?.resolver) return c;
+    let dx = c.x - f.x, dy = c.y - f.y, dz = c.z - f.z;
+    const L = Math.hypot(dx, dy, dz);
+    let k = 1;
+    if (L > DESPEJE.minimo) {
+      const ux = dx / L, uy = dy / L, uz = dz / L;
+      for (let s = DESPEJE.minimo; s <= L; s += DESPEJE.paso) {
+        bola.x = f.x + ux * s; bola.y = f.y + uy * s - 0.45; bola.z = f.z + uz * s;
+        const x0 = bola.x, z0 = bola.z;
+        col.resolver(bola, DESPEJE.radio, 0.7);
+        if (Math.hypot(bola.x - x0, bola.z - z0) > 0.02) { k = Math.max(DESPEJE.minimo, s - DESPEJE.paso - DESPEJE.margen) / L; break; }
+      }
+    }
+    if (brazo.id !== id) brazo = { id, k };
+    brazo.k = k < brazo.k ? k : Math.min(k, brazo.k + (k - brazo.k) * Math.min(1, dt * 2.5));
+    const r = { ...c };
+    if (brazo.k < 0.999) { r.x = f.x + dx * brazo.k; r.y = f.y + dy * brazo.k; r.z = f.z + dz * brazo.k; }
+    const suelo = ctx.T?.altura ? ctx.T.altura(r.x, r.z) : null;
+    const piso = (L >= DESPEJE.lejos ? DESPEJE.bajoLejos : DESPEJE.bajo);
+    if (Number.isFinite(suelo) && r.y < suelo + piso) r.y = suelo + piso;
+    if (r.x !== c.x || r.y !== c.y || r.z !== c.z) {
+      dx = f.x - r.x; dy = f.y - r.y; dz = f.z - r.z;
+      r.yaw = Math.atan2(-dx, -dz); r.pitch = Math.atan2(dy, Math.hypot(dx, dz));
+    }
+    return r;
+  }
+  function aplicarCamara(dt = 0.016) {
+    let c = director.camara();
     if (!c) return;
+    try { c = despejarCamara(c, dt, director.idActual?.()); } catch (e) { ctx.fallo?.(e, 'escenas-camara'); }
     const cam = ctx.camara;
     cam.position.set(c.x, c.y, c.z);
     cam.rotation.set(c.pitch, c.yaw, 0, 'YXZ');
@@ -322,7 +365,7 @@ export function crearEscenasMundo(ctx) {
     // el mouse queda suelto en toda la escena (volver de la pausa lo bloqueaba)
     if (doc?.pointerLockElement) { try { ctx.jugador().soltar(); } catch { /* ya */ } }
     try { director.actualizar(dt); } catch (e) { ctx.fallo?.(e, 'escenas'); director.saltar(); }
-    aplicarCamara();
+    aplicarCamara(dt);
     pintar();
   }
   // Después de gente.actualizar: las poses propias de las escenas

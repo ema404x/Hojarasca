@@ -318,7 +318,7 @@ const vetaVuelve = {
   personajes: pj('tobias', 'narra'),
   disparador: { hora: [21, 25] },
   pasos: [
-    ...apagon([hora(22.4, { dur: 0 })], { dur: 2 }),
+    ...apagon([hora(20.2, { dur: 0 })], { dur: 2 }),   // (4.17.0: a las 22:24 la cantera era un cuadro negro; a las 20 todavía queda un poco de cielo)
     plano('general', FRENTE(8, -3), { desde: 'jugador', dist: 14, alto: 4, dur: 3.2, mezcla: 0.9 }),
     narra('La cantera de noche es otro lugar: sin el ruido de la maceta, la piedra deja oír cómo se enfría. Tobías te espera con un farol bajo, sentado en un cajón.'),
     plano('medio', 'tobias', { desde: 'jugador', dist: 3.4, mezcla: 0.9, dur: 1, sinEsperar: true }),
