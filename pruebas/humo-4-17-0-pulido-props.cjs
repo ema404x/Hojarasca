@@ -13,17 +13,19 @@ exports.correr = async function correr({ N, ok, foto, entrar, esperar }) {
     return { vis, c };
   };
 
-  console.log('— P2. la foto movida y la llavecita, sobre la mesa del refugio');
+  console.log('— P2. la foto movida y la llavecita, en el umbral del refugio');
   await prep(5, [], '');
   await N('N.tick(0.8)');
   let r = await mira('foto-movida');
   ok(r.vis === false, 'sin haber sacado la foto, no hay nada sobre la mesa');
   await prep(5, ['obj:foto-movida'], 'P.horas = 11');
   r = await mira('foto-movida');
-  ok(r.vis === true, 'con la foto movida sacada, la foto está sobre la mesa del refugio');
+  ok(r.vis === true, 'con la foto movida sacada, la foto está en el umbral del refugio');
   ok(r.c && r.c.id === 'foto-movida' && /foto movida/i.test(r.c.aviso), `y la E la ofrece: «${r.c && r.c.aviso}»`);
   await foto('p-foto-movida');
+  console.log('  [depuración] aviso de pantalla antes de la E:', JSON.stringify(await N('(document.getElementById("aviso") || {}).textContent')), ' objetivo/cerca:', JSON.stringify(await N('(() => { const c = H.__objetoHistoriaCerca(); return c ? c.id : null })()')));
   await N('N.tecla("KeyE")'); await N('N.tick(0.6)');
+  console.log('  [depuración] notas después de la E:', JSON.stringify((await N('document.getElementById("notas") ? document.getElementById("notas").textContent : ""')).slice(0, 300)));
   ok(/foto movida/i.test(await N('document.getElementById("notas") ? document.getElementById("notas").textContent : ""')), 'la E muestra la nota de la foto movida');
   await prep(7, ['obj:llavecita', 'cuaderno:1', 'cuaderno:2', 'cuaderno:3'], 'P.horas = 11');   // (con el cuaderno ya leído: la mesa no compite con la E de la llavecita)
   r = await mira('llavecita');
