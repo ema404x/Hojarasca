@@ -161,7 +161,7 @@ export const OBJETOS = {
   'ronda': { forma: 'ronda', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco') },
   'canto-blanco': { forma: 'canto', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco'),
     aviso: 'Mirar el canto blanco del umbral', marca: 'canto-blanco', nota: ['Un canto blanco', 'Liso como un huevo. Lo dejás en la repisa, al lado de la ventana'] },
-  'nota-mesa': { forma: 'nota', lx: -1.4, lz: 0.9, visible: (s, h) => s.escenas.has('nota-eusebio') && !cuadernoVisible(h, s),
+  'nota-mesa': { forma: 'nota', lx: 1.1, lz: -0.6, visible: (s, h) => s.escenas.has('nota-eusebio') && !cuadernoVisible(h, s),
     aviso: 'Releer la nota de Eusebio', nota: ['La nota de Eusebio', 'No toques el frasco de la repisa, que es masa madre de 1987. Y gracias. E. M.'] },
   'bolsa-eusebio': { forma: 'bolsa', lx: 2.6, lz: 3.3, visible: (s) => s.escenas.has('bolsa-alero') && s.decisiones.bolsa == null,
     aviso: 'Releer la nota de la bolsa', nota: ['La nota de la bolsa', 'Para la raíz del coihue grande del molino viejo, antes del primer frío. No te olvides, que ellos no se olvidan. Y gracias. E. M.'] },
@@ -182,10 +182,10 @@ export const RADIO_OBJETO = 2.4;
 // en el tocón, el alero), en coordenadas locales del refugio (x a la derecha, z hacia donde mira la puerta); `mira`: hacia qué punto local mira. Las escenas
 // anclan sus planos al jugador (`FRENTE(…)`): si empezaban con vos mirando para cualquier lado, la cámara miraba el pasto.
 export const COLOCACION_ESCENA = {
-  'nota-eusebio': { lx: -0.3, lz: 0.4, mira: [-1.4, 0.9] },
+  'nota-eusebio': { lx: 0.1, lz: 0.5, mira: [1.1, -0.98] },   // (la mesa del refugio está en (1,1; −0,98) de su estructura)
   'ronda-umbral': { lx: 0.1, lz: 5.4, mira: [0.1, 3.7] },
   'hacha-tocon': { lx: -2.2, lz: 9.0, mira: [-5.5, 6.0] },
-  'bolsa-alero': { lx: 2.6, lz: 4.6, mira: [2.6, 3.3] },
+  'bolsa-alero': { lx: 2.6, lz: 5.6, mira: [2.6, 3.3] },
 };
 
 // Los objetos que se ven ahora

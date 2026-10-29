@@ -228,14 +228,14 @@ app.whenReady().then(async () => {
       // las piedras del molino viejo
       const mv = await N('N.pts()["molino-viejo"]');
       ok(mv && Number.isFinite(mv.x), `el molino viejo tiene lugar (${mv && mv.x.toFixed(0)}, ${mv && mv.z.toFixed(0)})`);
-      await N(`N.ir(${mv.x + 3}, ${mv.z + 3}, 0)`); await N('N.tick(1.5)'); await N('N.despejar(8)');
+      await N(`N.ir(${mv.x + 3}, ${mv.z + 3}, 0)`); await N('N.tick(1.5)'); await N('N.despejar(25)');
       ok(await hecho('rueda:piedras'), 'llegar a las piedras del molino viejo: la escena de Josefina y el objetivo');
       await foto('1a-molino-viejo-y-coihue');
       const pu = await N('H.__historiaObjetos().mallas["puertitas-raiz"] && H.__historiaObjetos().mallas["puertitas-raiz"].visible');
       ok(pu === true, 'las puertitas talladas en la raíz del coihue grande se ven');
       // el zaino
       ok(!(await N('!!P.cosas.caballo')), 'todavía no hay zaino');
-      await N('H.__valle.alHablarCon("ramon")'); await N('N.tick(0.8)'); await N('N.despejar(8)');
+      await N('H.__valle.alHablarCon("ramon")'); await N('N.tick(0.8)'); await N('N.despejar(25)');
       ok((await N('!!P.cosas.caballo && P.historia.prestado.zaino === true')) === true, 'hablarle a Ramón: el zaino queda prestado y es tuyo para acarrear');
       ok(await hecho('rueda:zaino'), 'y el objetivo del zaino se tilda');
       // un molino de agua de verdad
@@ -248,7 +248,7 @@ app.whenReady().then(async () => {
       // la decisión del coihue (Tito, respaldo con tarjeta): Pirca con Tobías (C)
       await N(`N.ir(${mv.x + 5}, ${mv.z + 5}, 0)`); await N('N.tick(1.5)');
       await decidir('coihue', 3, 'El coihue de las puertitas', '1b-decision-coihue');
-      ok((await N('P.historia.decisiones.coihue')) === 'c' && (await N('P.historia.lazos.ema')) === 1, 'elegir la pirca: queda guardada y Josefina +1');
+      ok((await N('P.historia.decisiones.coihue')) === 'c', 'elegir la pirca: queda guardada (los lazos los dan las escenas de cumplir)');
       ok((await N('N.panel().texto')).includes('Tobías'), 'el panel dice lo que hay que cumplir: llevarle piedras a Tobías');
       // Tobías: diez piedras, y te sigue a pie
       await N('(() => { N.ir(-394, -305, 0); return 1 })()');
@@ -257,9 +257,10 @@ app.whenReady().then(async () => {
       ok(!!tob, `Tobías está en la cantera (${tob && tob.x.toFixed(0)}, ${tob && tob.z.toFixed(0)})`);
       await N('(() => { P.materiales.piedra = 12; P.acopio = P.acopio || {}; P.acopio.piedra = 0; return 1 })()');
       await N(`N.ir(${tob.x + 2}, ${tob.z}, 0)`); await N('N.tick(0.8)');
-      await N('H.__valle.alHablarCon("tobias")'); await N('N.tick(0.8)'); await N('N.despejar(8)');
-      ok((await N('P.historia.entregados["tobias:piedra"] > 0 && P.historia.acompanante === "tobias" && P.materiales.piedra === 2')) === true, 'las diez piedras para Tobías: se gastan y él te acompaña');
-      // caminar con él hasta el coihue: te sigue de verdad
+      await N('H.__valle.alHablarCon("tobias")'); await N('N.tick(0.8)'); await N('N.despejar(40, { avanzar: true })');
+      ok((await N('P.historia.entregados["tobias:piedra"] > 0 && P.historia.objetos.pirca > 0 && P.materiales.piedra === 2')) === true, 'las diez piedras para Tobías: se gastan y él te acompaña');
+      // (con la escena de B la pirca la levanta la escena; el seguimiento a pie se prueba igual, poniendo a Tobías de acompañante a mano)
+      await N('(() => { P.historia.acompanante = "tobias"; return 1 })()');
       await N(`N.ir(${tob.x + 4}, ${tob.z}, 0)`); await N('N.tick(1)');
       await N(`N.ir(${mv.x + 4}, ${mv.z + 4}, 0)`);   // un salto largo: aparece a tu lado
       await N('N.tick(1.5)');
@@ -269,12 +270,8 @@ app.whenReady().then(async () => {
       d = await N('(() => { const n = H.__genteCampo().npcDe("tobias"); const j = H.jugador.estado.pos; return Math.hypot(n.pos.x - j.x, n.pos.z - j.z) })()');
       ok(d < 9, `y caminando te alcanza y te sigue (a ${d.toFixed(1)} m)`);
       await foto('1c-tobias-te-sigue');
-      // la pirca (la E en la raíz)
+      await N('(() => { P.historia.acompanante = null; return 1 })()'); await N('N.tick(1)');
       await N(`N.ir(${mv.x + 3}, ${mv.z + 3}, 0)`); await N('N.tick(1)');
-      const raizA = await eCerca('raiz-pirca');
-      ok(raizA && /pirca/.test(raizA.aviso), `la E en la raíz dice «${raizA && raizA.aviso}»`);
-      ok((await N('P.historia.objetos.pirca > 0 && P.historia.acompanante === null')) === true, 'levantar la pirca la deja marcada y Tobías se vuelve a su cantera');
-      await N('N.tick(1)');
       ok((await N('H.__historiaObjetos().mallas.pirca.visible')) === true, 'y la pirca se ve alrededor del tronco');
       await foto('1d-pirca');
       // el aserradero de verdad
@@ -340,7 +337,7 @@ app.whenReady().then(async () => {
       const t = await N('N.tarjeta()');
       ok(t && t.titulo === 'Lo que se pierde, aparece' && !/continuará|todavía se está escribiendo/.test(t.texto), `la tarjeta del capítulo 6 (${t && t.titulo})`);
       await empezar();
-      ok(await N('N.panel() && N.panel().filas === 7'), 'siete objetivos');
+      ok(await N('N.panel() && N.panel().filas === 6'), 'seis objetivos');
       await vigilar('capítulo 6');
       // las tres cosas perdidas
       for (const id of ['dedal', 'pipa', 'cuchara']) {
@@ -352,16 +349,11 @@ app.whenReady().then(async () => {
       const a2 = await eCerca('pipa'); await vigilar('pipa'); const a3 = await eCerca('cuchara'); await vigilar('cuchara');
       ok((await N('["dedal", "pipa", "cuchara"].every((k) => P.historia.objetos[k] > 0)')) === true, 'las tres cosas levantadas');
       ok(await hecho('perdido:buscar'), 'y el objetivo «encontrá las tres» se tilda');
-      // devolverlas a sus dueños
-      await N('H.__valle.alHablarCon("ercilia")'); await N('N.tick(0.5)'); await N('N.despejar(6)');
-      await N('H.__valle.alHablarCon("ercilia")'); await N('N.tick(0.5)'); await N('N.despejar(6)');
-      await N('H.__valle.alHablarCon("panadera")'); await N('N.tick(0.5)'); await N('N.despejar(6)');
-      await N('H.__valle.alHablarCon("panadera")'); await N('N.tick(0.5)'); await N('N.despejar(6)');
-      await N('H.__valle.alHablarCon("belisario")'); await N('N.tick(0.5)'); await N('N.despejar(6)');
-      ok((await N('P.historia.entregados["ercilia:dedal"] > 0 && P.historia.entregados["panadera:cuchara"] > 0 && P.historia.entregados["belisario:pipa"] > 0')) === true, 'cada cosa vuelve a su dueño (Ercilia, Rosa y Belisario)');
-      ok(await hecho('perdido:preguntar') && await hecho('perdido:devolver'), 'preguntar y devolver quedan tildados');
-      await N('H.__valle.alHablarCon("nicanor")'); await N('N.tick(0.5)'); await N('N.despejar(6)');
-      ok(await hecho('perdido:nicanor'), 'las luces del lago: la charla con Nicanor');
+      // las luces del lago (Nicanor) y devolverlas: las tres a Ercilia, que sabe de quién es cada una
+      await N('H.__valle.alHablarCon("nicanor")'); await N('N.tick(0.5)'); await N('N.despejar(40, { avanzar: true })');
+      ok(await hecho('perdido:nicanor'), 'las luces del lago: la charla con Nicanor (la escena de B)');
+      await N('H.__valle.alHablarCon("ercilia")'); await N('N.tick(0.5)'); await N('N.despejar(40, { avanzar: true })');
+      ok(await hecho('perdido:devolver'), 'las tres cosas a Ercilia: la escena y el objetivo');
       await vigilar('devoluciones');
       // el kayak al faro de noche
       const fa = await N('N.pts().faro');
@@ -376,8 +368,8 @@ app.whenReady().then(async () => {
       await N(`(() => { P.horas = 22.3; N.ir(${mv.x + 6}, ${mv.z + 4}, 0); return 1 })()`);
       await N('N.tick(0.8)');
       // (una escena de mentira para la guardia: prueba que el juego te levanta antes de empezarla)
-      const reg = await N('(() => { const r = H.__escenas.registrar({ id: "guardia-molino", titulo: "La guardia", acto: 2, capitulo: 6, resumen: "Prueba", personajes: { narra: { clave: null, nombre: "", color: "#e9dfc4" } }, pasos: [ { tipo: "plano", plano: "general", a: "jugador", dist: 12, alto: 3, dur: 1.2 }, { tipo: "dialogo", quien: "narra", lineas: ["Una silueta se asoma por la raíz."] } ] }); return r.ok })()');
-      ok(reg === true, 'una escena de prueba para la guardia se registra');
+      const reg = await N('(() => { const r = { ok: H.__escenas.director.hay("guardia-molino") }; return r.ok })()');
+      ok(reg === true, 'la escena de la guardia de B está registrada');
       await N('(() => { H.jugador.estado.sentado = true; return 1 })()');
       await N('N.tick(1.0)');
       const ac = await N('H.__valle.aceleracion()');
@@ -390,7 +382,7 @@ app.whenReady().then(async () => {
       console.log('  [diag antes]', JSON.stringify(await N('N.diag()')));
       await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["guardia-molino"], 40)');
       ok((await N('H.__escenas.activa()')) === true && (await N('H.jugador.estado.sentado')) === false, 'a la hora de la guardia sale la escena y el juego te levantó del asiento antes de empezarla');
-      await N('N.despejar(10)');
+      await N('N.despejar(40, { avanzar: true })');
       console.log('  [diag después]', JSON.stringify(await N('N.diag()')));
       await N('N.tick(1.2)');
       ok((await N('Object.hasOwn(P.historia.escenas.vistas, "guardia-molino")')) === true && await hecho('perdido:guardia'), 'sentado junto al coihue a medianoche: la guardia del molino');
@@ -400,11 +392,13 @@ app.whenReady().then(async () => {
       await N('(() => { P.horas = 8.3; return 1 })()'); await N('N.tick(1.2)');
       const hv = await N('(() => { const o = H.__historiaObjetos(); return { huellas: !!o.mallas.huellas && o.mallas.huellas.visible, yerba: !!o.mallas["yerba-raiz"] && o.mallas["yerba-raiz"].visible, n: o.mallas.huellas ? o.mallas.huellas.geometry.getAttribute("position").count : 0 } })()');
       ok(hv.huellas && hv.yerba, `a la mañana se ven las huellas en la escarcha (${hv.n} vértices) y el puñado de yerba ${JSON.stringify(hv)}`);
+      await N('N.despejar(40, { avanzar: true })');   // (la escena de las huellas, junto al molino)
+      await N('(() => { P.horas = 8.3; return 1 })()');
       await N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones.huellas; const p = H.__puntosHistoria()["raiz-ramon"]; const a = Math.atan2(p.x - q.x, p.z - q.z); N.ir(q.x - Math.sin(a) * 4, q.z - Math.cos(a) * 4, a + Math.PI); return 1 })()`);
       await N('N.tick(1)'); await foto('3b-huellas-en-la-escarcha'); await vigilar('huellas');
       const rr = await N('N.pts()["raiz-ramon"]');
       await N(`N.ir(${rr.x + 3}, ${rr.z + 3}, 0)`); await N('N.tick(1.2)'); await foto('3c-raiz-de-ramon');
-      await N('N.despejar(8)');
+      await N('N.despejar(40, { avanzar: true })');
       ok(await hecho('perdido:huellas'), 'seguir las huellas hasta la raíz de la ladera de Ramón: la escena y el objetivo');
       const out = await N('(async () => { await N.hasta(() => N.tarjeta() && /terminado/.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
       ok(out && out.titulo === 'Lo que se pierde, aparece' && /Ercilia guardó el dedal/.test(out.texto), `la tarjeta de cierre (${out && out.titulo})`);
@@ -450,16 +444,16 @@ app.whenReady().then(async () => {
       await N(`(() => { P.horas = 11; const q = ${JSON.stringify(mol)}; N.ir(q.x + 2.5, q.z + 2.5, 0); return 1 })()`);
       await N('N.tick(1.5)');
       await decidir('molienda', 2, 'La primera molienda', '4a-decision-molienda');
-      ok((await N('P.historia.decisiones.molienda')) === 'b' && (await N('P.historia.lazos.ercilia')) === 2, 'el fiado: queda guardado y Ercilia +2');
+      ok((await N('P.historia.decisiones.molienda')) === 'b', 'el fiado: queda guardado (los lazos los da la escena de cumplir)');
       ok((await N('N.panel().texto')).includes('seis medidas'), 'el panel pide llevar seis medidas de harina a Ercilia');
       // la harina a Ercilia
       await N('(() => { P.cosas.harina = 9; return 1 })()');
-      await N('H.__valle.alHablarCon("ercilia")'); await N('N.tick(0.8)'); await N('N.despejar(8)');
+      await N('H.__valle.alHablarCon("ercilia")'); await N('N.tick(0.8)'); await N('N.despejar(25)');
       ok((await N('P.cosas.harina === 3 && P.historia.entregados["ercilia:harina"] > 0')) === true, 'seis medidas para el almacén: se gastan y quedan anotadas');
       ok(await hecho('cosecha:cumplir'), 'y se cumple lo elegido');
       // la minga: algo cocinado, la plaza, de día
       await N('(() => { P.cocina = P.cocina || {}; P.cocina.hechas = P.cocina.hechas || {}; P.cocina.hechas["pan-casero"] = (P.cocina.hechas["pan-casero"] || 0) + 1; P.horas = 10.5; const q = H.__puntosHistoria().plaza; N.ir(q.x + 2, q.z + 2, 0); return 1 })()');
-      await N('N.tick(1.5)'); await N('N.despejar(8)');
+      await N('N.tick(1.5)'); await N('N.despejar(25)');
       ok(await hecho('cosecha:minga'), 'cocinar algo y llevarlo a la plaza: la minga');
       // el galpón, al amanecer siguiente
       await N('(() => { P.dia += 1; P.horas = 6.4; return 1 })()');
@@ -467,12 +461,12 @@ app.whenReady().then(async () => {
       await N(`N.ir(${gp.x + 6}, ${gp.z + 6}, 0)`); await N('N.tick(1.6)');
       const rv = await N('(() => { const o = H.__historiaObjetos(); return { ronda: !!o.mallas["ronda-harina"] && o.mallas["ronda-harina"].visible, cuaderno: !!o.mallas["cuaderno-pozo"] && o.mallas["cuaderno-pozo"].visible } })()');
       ok(rv.ronda && rv.cuaderno, 'al amanecer, la harina en ronda y el cuaderno en el pozo ya están en tu galpón');
-      await N('N.despejar(8)'); await N('N.tick(0.8)');
+      await N('N.despejar(25)'); await N('N.tick(0.8)');
       ok(await hecho('cosecha:ronda'), 'entrar al galpón: el punto medio');
       await N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones["cuaderno-pozo"]; N.ir(q.x + 1.4, q.z + 1.0, 0); return 1 })()`);
       await N('N.tick(1)'); await foto('4b-galpon-en-ronda');
-      const ac = await eCerca('cuaderno-pozo');
-      ok(ac && /cuaderno/.test(ac.aviso), `la E: «${ac && ac.aviso}»`);
+      // (con la escena de B el cuaderno ya queda en la mochila al final de la escena; si no, se agarra del pozo con la E)
+      if (!(await hecho('cosecha:cuaderno'))) { const ac = await eCerca('cuaderno-pozo'); ok(ac && /cuaderno/.test(ac.aviso), `la E: «${ac && ac.aviso}»`); }
       ok(await hecho('cosecha:cuaderno'), 'agarrar el cuaderno tilda el último objetivo');
       const out = await N('(async () => { await N.hasta(() => N.tarjeta() && /terminado/.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
       ok(out && out.titulo === 'La cosecha' && /enterrado, el cuaderno/.test(out.texto), `la tarjeta de cierre (${out && out.titulo})`);
@@ -491,26 +485,26 @@ app.whenReady().then(async () => {
       await empezar();
       ok(await N('N.panel() && N.panel().filas === 6'), 'seis objetivos');
       // las tres páginas en la mesa del refugio
-      await N('(() => { const r = H.T.lugares.refugio, rot = r.rot || 0, lx = -0.9, lz = 1.4; N.ir(r.x + lx * Math.cos(rot) + lz * Math.sin(rot), r.z - lx * Math.sin(rot) + lz * Math.cos(rot) - 0.5, 0); return 1 })()');
+      await N('(() => { const r = H.T.lugares.refugio, rot = r.rot || 0, lx = 1.1, lz = -0.2; N.ir(r.x + lx * Math.cos(rot) + lz * Math.sin(rot), r.z - lx * Math.sin(rot) + lz * Math.cos(rot) - 0.5, 0); return 1 })()');
       await N('N.tick(1)');
       const p1 = await N('(() => { const c = H.__objetoHistoriaCerca(); return c ? c.aviso : null })()');
       ok(p1 && /cuaderno de Eusebio \(página 1 de 3\)/.test(p1), `en la mesa del refugio: «${p1}»`);
-      for (let i = 0; i < 3; i++) { await N('N.tecla("KeyE")'); await N('N.tick(0.8)'); }
+      for (let i = 0; i < 3; i++) { await N('N.tecla("KeyE")'); await N('N.tick(0.8)'); await N('N.despejar(40, { avanzar: true })'); }   // (cada parte es una escena de B, o la nota si no está)
       ok((await N('["1", "2", "3"].every((n) => P.historia.temas["cuaderno:" + n] > 0)')) === true && await hecho('cuaderno:leer'), 'tres páginas leídas: el objetivo');
       await N('N.tick(0.8)');
       const p2 = await N('(() => { const c = H.__objetoHistoriaCerca(); return c ? c.id : null })()');
       ok(p2 !== 'cuaderno-mesa', 'y el cuaderno de la mesa se apaga (queda la nota de Eusebio)');
       // los vecinos
-      for (const q of ['ercilia', 'ema', 'belisario']) { await N(`H.__valle.alHablarCon("${q}")`); await N('N.tick(0.6)'); await N('N.despejar(8)'); }
+      for (const q of ['ercilia', 'ema', 'belisario']) { await N(`H.__valle.alHablarCon("${q}")`); await N('N.tick(0.6)'); await N('N.despejar(25)'); }
       ok(await hecho('cuaderno:ercilia') && await hecho('cuaderno:josefina') && await hecho('cuaderno:belisario'), 'Ercilia, Josefina y Belisario: tres escenas, tres objetivos');
       await N('(() => { P.horas = 17.6; return 1 })()');
-      await N('H.__valle.alHablarCon("ramon")'); await N('N.tick(0.6)'); await N('N.despejar(8)');
+      await N('H.__valle.alHablarCon("ramon")'); await N('N.tick(0.6)'); await N('N.despejar(25)');
       ok(await hecho('cuaderno:ramon'), 'Ramón al atardecer, en el banco de su puerta');
       // el fogón de la aldea: contar o callar
       await N('(() => { P.horas = 21; const q = H.__puntosHistoria().plaza; N.ir(q.x + 2, q.z + 2, 0); return 1 })()');
       await N('N.tick(1.5)');
       await decidir('cuaderno', 2, 'Contar o callar', '5a-decision-cuaderno');
-      ok((await N('P.historia.decisiones.cuaderno')) === 'b' && (await N('P.historia.lazos.ema')) === 2 && (await N('P.historia.lazos.ramon')) === 1, 'callar: Josefina +2 y Ramón +1');
+      ok((await N('P.historia.decisiones.cuaderno')) === 'b' && (await N('P.historia.lazos.ema')) >= 2 && (await N('P.historia.lazos.ramon')) >= 1, 'callar: Josefina y Ramón suben (+2 y +1 de la decisión, más lo que dieron las escenas de antes)');
       const out = await N('(async () => { await N.hasta(() => N.tarjeta() && /terminado/.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
       ok(out && out.titulo === 'El cuaderno de Eusebio' && /primera nieve/.test(out.texto) && /poncho viejo/.test(out.premio || out.texto || ''), `la tarjeta de cierre con el premio de lo decidido (${out && out.titulo})`);
       await foto('5b-cierre-capitulo-8');
@@ -533,6 +527,7 @@ app.whenReady().then(async () => {
       ];
       const sueltas = [];
       for (const [id, cap, lugar, dx, dz, hora, previo] of ESC) {
+        await N('(() => { if (H.volverAlJuego) H.volverAlJuego(); return 1 })()');   // (por si un Esc de más dejó la pausa abierta)
         await N(`(() => { const h = P.historia; N.preparar(${cap}); h.fase = 'jugando'; h.base = { dia: 1 }; h.hechos['mesa:nicanor'] = 1; h.hechos['ramal:derrumbe'] = 1; P.horas = ${hora}; const p = H.__puntosHistoria()[${JSON.stringify(lugar)}]; N.ir(p.x + ${dx}, p.z + ${dz}, 0); ${previo || ''}; return 1 })()`);
         await N(`(() => { delete P.historia.escenas.vistas[${JSON.stringify(id)}]; delete P.historia.aplicadas[${JSON.stringify(id)}]; return 1 })()`);
         await N('N.tick(1.2)');
@@ -559,6 +554,52 @@ app.whenReady().then(async () => {
         await esperar(900);
         const img = await v.webContents.capturePage();
         fs.writeFileSync(path.join(salida, `hoja-${String(i / 4 + 1).padStart(2, '0')}.png`), img.toPNG());
+        fs.rmSync(archivoHoja, { force: true });
+        v.destroy();
+      }
+      console.log(`  (${Math.ceil(sueltas.length / 4)} hojas de contacto en ${salida})`);
+    }
+
+    // ================================================================ W. mirar a ojo las escenas del acto II (hojas de contacto)
+    if (toca('W')) {
+      donde = 'escenas a ojo';
+      console.log('— W. las escenas del acto II a ojo (dos cuadros de cada una, en hojas de contacto)');
+      await entrar({ estacion: 'otono' });
+      const ESC = [
+        ['piedras-molino', 4, 'molino-viejo', 3, 3, 10, "P.historia.decisiones.bolsa = 'c'"], ['zaino-ramon', 4, 'puesto', 4, 0, 10], ['tito-coihue', 4, 'molino-viejo', 4, 2, 10], ['rueda-gira', 4, 'molino-viejo', 5, 0, 10, "P.historia.decisiones.coihue = 'a'"],
+        ['guardia-molino', 5, 'molino-viejo', 5, 2, 0.8, "P.historia.decisiones.coihue = 'a'"], ['huellas-escarcha', 5, 'molino-viejo', 3, 3, 7], ['ramon-raiz', 5, 'raiz-ramon', 3, 3, 7.5], ['el-que-vuela', 5, 'faro', 8, 8, 23.5],
+        ['primera-molienda', 6, 'refugio-puerta', 6, 6, 9], ['minga-aldea', 6, 'plaza', 3, 3, 11], ['galpon-ronda', 6, 'refugio-puerta', 8, 4, 6.5],
+        ['libreta-fiado', 7, 'ramos', 0, 3, 11], ['secreto-ramon', 7, 'puesto', 4, 0, 18], ['fogon-leyenda', 7, 'plaza', 4, 2, 21], ['pluma-umbral', 7, 'refugio-puerta', 0, 3, 22],
+      ];
+      const sueltas = [];
+      for (const [id, cap, lugar, dx, dz, hora, previo] of ESC) {
+        await N('(() => { if (H.volverAlJuego) H.volverAlJuego(); return 1 })()');   // (por si un Esc de más dejó la pausa abierta)
+        await N(`(() => { const h = P.historia; N.preparar(${cap}); h.fase = 'jugando'; h.base = { dia: 1 }; h.hechos['rueda:puente'] = 1; P.horas = ${hora}; const p = H.__puntosHistoria()[${JSON.stringify(lugar)}]; N.ir(p.x + ${dx}, p.z + ${dz}, 0); ${previo || ''}; return 1 })()`);
+        await N(`(() => { delete P.historia.escenas.vistas[${JSON.stringify(id)}]; delete P.historia.aplicadas[${JSON.stringify(id)}]; return 1 })()`);
+        await N('N.tick(1.2)');
+        const hay = await N(`H.__escenas.director.hay(${JSON.stringify(id)})`);
+        const sola = await N('H.__escenas.activa()');   // (si el juego ya la disparó solo, por su lugar y su hora)
+        const porPuerta = !sola && id === 'nota-eusebio' ? await N('(() => { const a = H.__valle.accionPuerta(); if (!a) return false; a.hacer(); return true })()') : false;   // (la E de verdad sobre la puerta)
+        const lanzo = sola || porPuerta ? true : hay ? await N(`H.__escenas.disparar(${JSON.stringify(id)})`) : false;
+        if (!lanzo) { console.log(`  (${id}: no se pudo lanzar: hay=${hay}) ${JSON.stringify(await N('N.diagEscena()'))}`); await N('N.despejar(2)'); continue; }
+        await N('N.tick(2.4)'); await N('N.tecla("Enter")'); await N('N.tick(1.6)');
+        await foto(`w-${id}-1`); sueltas.push(`w-${id}-1`);
+        await N('N.tecla("Enter")'); await N('N.tick(1.2)'); await N('N.tecla("Enter")'); await N('N.tick(2.2)');
+        await foto(`w-${id}-2`); sueltas.push(`w-${id}-2`);
+        await N('N.despejar(12)');
+        ok(true, `${id}: corrió (dos cuadros)`);
+      }
+      // hojas de contacto: cuatro cuadros por hoja
+      for (let i = 0; i < sueltas.length; i += 4) {
+        const grupo = sueltas.slice(i, i + 4);
+        const html = '<body style="margin:0;background:#111;display:grid;grid-template-columns:683px 683px;gap:0">' + grupo.map((n) => `<img src="${n}.png" style="width:683px;height:384px;display:block">`).join('') + '</body>';
+        const archivoHoja = path.join(salida, `hoja-w-${String(i / 4 + 1).padStart(2, '0')}.html`);
+        fs.writeFileSync(archivoHoja, html);
+        const v = new BrowserWindow({ show: false, width: 1366, height: 768, useContentSize: true });
+        await v.loadFile(archivoHoja);
+        await esperar(900);
+        const img = await v.webContents.capturePage();
+        fs.writeFileSync(path.join(salida, `hoja-w-${String(i / 4 + 1).padStart(2, '0')}.png`), img.toPNG());
         fs.rmSync(archivoHoja, { force: true });
         v.destroy();
       }

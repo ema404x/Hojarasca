@@ -144,6 +144,19 @@ const FORMAS = {
     caja(c, [0.26, 0.4, 0.03], [0, 0.2, 0.06], '#8a5a34', [-0.28, 0, 0.1], 0.1);
     esfera(c, 0.022, [0.07, 0.2, 0.09], '#e7ddc6', [1, 1, 1], 0.02);
   },
+  // las muelas rotas del molino viejo, las diez bolsas de harina y la pluma de cóndor
+  muelas: (c) => {
+    palo(c, 0.95, 0.3, [0, 0.14, 0], [0, 0, 0.06], '#8d8a82');
+    palo(c, 0.8, 0.26, [2.0, 0.12, 0.8], [0.25, 0, 0.35], '#7d7a72');
+    caja(c, [0.5, 0.2, 0.4], [0.5, 0.08, -1.1], '#8d8a82', [0, 0.5, 0], 0.1);
+  },
+  'diez-bolsas': (c) => {
+    for (let i = 0; i < 10; i++) { const capa = i < 4 ? 0 : i < 7 ? 1 : 2, k = i < 4 ? i : i < 7 ? i - 4 + 0.5 : i - 7 + 1; caja(c, [0.5, 0.3, 0.34], [k * 0.55 - 0.9, 0.15 + capa * 0.3, 0], '#cdbfa0', [0, 0.1 * (i % 3 - 1), 0], 0.08); }
+  },
+  pluma: (c) => {
+    palo(c, 0.012, 0.55, [0, 0.05, 0], [0, 0, 1.45], '#2b2a2a');
+    esfera(c, 0.035, [0.28, 0.06, 0], '#f3f0e8', [1.8, 0.4, 0.8], 0.02);
+  },
   // las puertitas talladas en la raíz del coihue grande (decoración): cuatro, al pie del tronco
   puertitas: (c, info) => {
     const r = Math.max(0.8, Number(info?.r) || 1.4);
@@ -181,7 +194,7 @@ export function crearObjetosHistoria(ctx) {
   // dónde va el objeto en el mundo: { x, z } o null si todavía no se sabe
   function lugarDe(id) {
     const o = OBJETOS[id];
-    if (o.lugar === 'molino-viejo') { const m = ctx.molino?.(); return m ? { x: m.raiz.x, z: m.raiz.z } : null; }
+    if (o.lugar === 'molino-viejo') { const m = ctx.molino?.(); return m ? { x: m.raiz.x + (o.dx || 0), z: m.raiz.z + (o.dz || 0) } : null; }
     if (o.lugar === 'coihue') { const m = ctx.molino?.(); return m?.arbol ? { x: m.arbol.x, z: m.arbol.z } : null; }
     if (o.punto) { const p = ctx.puntos?.()?.[o.punto]; return p ? { x: p.x + (o.dx || 0), z: p.z + (o.dz || 0) } : null; }
     if (Number.isFinite(o.lx)) { const ref = ctx.refugio(); return ref ? aMundoRefugio(ref, o.lx, o.lz) : null; }

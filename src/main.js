@@ -929,7 +929,7 @@ async function construir() {
     escenasMundo = crearEscenasMundo({
       doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
-      puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && !js.enKayak && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
+      puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && (escenaDesdeVehiculo || (!js.enKayak && !js.enVela)) && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
       alTerminar: () => { try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
     });
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
@@ -2258,6 +2258,7 @@ function puntosDeHistoria() {
   const obraPunto = (k, id) => { const o = obras?.obras ? obrasTerminadas(id)[0] : null; if (o) ponr(k, { x: o.datos.x, z: o.datos.z }); else delete P[k]; };
   obraPunto('molino-propio', 'molino-agua');
   obraPunto('galpon-propio', 'galponcito');
+  obraPunto('aserradero-propio', 'aserradero');
   ponr('coihue', molinoViejoHist?.arbol);
   const pu = L.puesto, mv = molinoViejoHist?.raiz;
   if (pu && mv && Number.isFinite(pu.x)) {
@@ -2354,8 +2355,25 @@ function acompananteDeHistoria() {
 }
 function efectoMundoHistoria() { dibujarObjetosHistoriaYa(); }
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
+// 4.16.0: los duendes del acto II (siluetas en las raíces, el lechucero, las lucecitas del lago, los pillos con bellotas): se ven y se mueven (historia-duendes.js)
+const duendesDeEscena = [];
+function efectoDuendesActo2(id, args) {
+  const dh = duendesHistoria();
+  if (!dh || !escenasMundo) return;
+  dh.asegurar();
+  const pos = (ref) => escenasMundo.mundo.posicion(ref);
+  const crear = (tipo, p, o = {}) => { let d = null; try { d = dh.aparecer(tipo, { x: p.x, z: p.z, ...o }); } catch { d = null; } if (!d && tipo !== 'rastreador') { try { d = dh.aparecer('rastreador', { x: p.x, z: p.z, ...o }); } catch { d = null; } } if (d) duendesDeEscena.push(d); return d; };
+  const quitarTodos = () => { while (duendesDeEscena.length) { const d = duendesDeEscena.pop(); try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } } };
+  const a = args || {};
+  if (id === 'lechucero-vuela') { const d0 = pos(a.desde), h0 = pos(a.hasta); if (!d0 || !h0) return; const d = crear(a.tipo || 'volador', d0); d?.irA(h0.x, h0.z, { correr: true, alLlegar: () => { try { d.quitar(); } catch { /* ya */ } } }); }
+  else if (id === 'enjambre-lago') { const s0 = pos(a.sobre); if (!s0) return; for (let i = 0; i < (a.n || 3); i++) setTimeout(() => { const d = crear(a.tipo || 'enjambre', { x: s0.x + (i - 1) * 2.2, z: s0.z + i }); if (d && a.seApagan) setTimeout(() => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }, 2200 + i * 1400); }, i * 500); }
+  else if (id === 'siluetas-raiz' || id === 'pillos-bellotas') { const d0 = pos(a.desde); if (!d0) return; for (let i = 0; i < (a.n || 3); i++) setTimeout(() => { const d = crear('rastreador', { x: d0.x + Math.cos(i * 1.3) * 2.5, z: d0.z + Math.sin(i * 1.3) * 2.5 }); d?.mirar(true); if (d && id === 'pillos-bellotas') setTimeout(() => { try { d.reir(0.6); } catch { /* ya */ } }, 900); }, i * 700); }
+  else if (id === 'siluetas-saludan') { const d = duendesDeEscena.find((x) => x.estado !== 'fuera'); try { d?.saludar(2); } catch { /* ya */ } }
+  else if (id === 'siluetas-corren') quitarTodos();
+}
 function efectoDuendeHistoria(id, args) {
-  if (id !== 'pillo-cruza' || !escenasMundo || !args) return;
+  if (id !== 'pillo-cruza') { try { efectoDuendesActo2(id, args); } catch (e) { fallaSistema('historia-duende', e); } return; }
+  if (!escenasMundo || !args) return;
   try {
     const dh = duendesHistoria();
     if (!dh) return;
@@ -2368,6 +2386,7 @@ function efectoDuendeHistoria(id, args) {
   } catch (e) { fallaSistema('historia-duende', e); }
 }
 // 4.16.0: poner al jugador en un punto local del refugio mirando a otro (ver COLOCACION_ESCENA en historia-disparadores.js)
+let escenaDesdeVehiculo = false;   // 4.16.0: una escena del faro de noche puede empezar con el jugador en el kayak o el velero
 function colocarParaEscena(c) {
   try {
     const ref = T.lugares.refugio;
@@ -2406,7 +2425,7 @@ function crearValle() {
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id) => escenasMundo.disparar(id) } : null),
-    objetos: objetosHistoriaMundo(), colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
+    objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()), taparHuerta: () => { taparHuerta(huerta(), progreso.dia); },
     obras: () => obras, altura: (x, z) => T.altura(x, z), sincronizarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); },

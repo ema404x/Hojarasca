@@ -51,7 +51,12 @@ export function registrarEfectosActo1(reg, ctx, nombres) {
         case 'dar': if (una(h, clave(c))) ctx.dar?.(p.cosa, p.n); break;
         case 'quitar': if (una(h, clave(c))) ctx.quitar?.(p.cosa, p.n); break;
         case 'prestado': if (PRESTADOS.includes(p.id) && h.prestado) h.prestado[p.id] = true; break;
-        case 'mundo': marcarTema(h, 'mundo', p.id, ctx.dia()); ctx.mundo?.(p.id, args, c?.escena); break;
+        case 'mundo':
+          marcarTema(h, 'mundo', p.id, ctx.dia());
+          if (p.id === 'pirca-coihue') marcarObjeto(h, 'pirca', ctx.dia());   // (4.16.0: la pirca de Tobías queda levantada: la dibuja historia-objetos.js)
+          if (p.id === 'zaino-prestado' && h.prestado) h.prestado.zaino = true;
+          ctx.mundo?.(p.id, args, c?.escena);
+          break;
         case 'duende': ctx.duende?.(p.id, args); break;
         case 'optativa': marcarTema(h, 'optativa', p.id, ctx.dia()); break;
         case 'hablado': anotarCharla(h, p.id); break;

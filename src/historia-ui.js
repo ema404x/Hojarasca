@@ -9,14 +9,14 @@
 
 import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, momentoPerdido, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
 // 4.15.0: la Historia nueva: decisiones, lazos, lo raro, escenas y objetos del acto I
-import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, sumarReparacion } from './historia.js';
+import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, marcarTema, sumarReparacion } from './historia.js';
 import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO, COLOCACION_ESCENA } from './historia-disparadores.js';
 import { tarjetaAviso } from './historia-reinicio.js';
 import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
 // 4.16.0: el acto II: la puerta de estación, el clima de la historia, el premio con variantes, el cuaderno de Eusebio y la espera sentado
 import { puertaDeEstacion, estacionForzada, premioDeCapitulo, aceleracionDeEspera, anotarRaro } from './historia.js';
-import { leerPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO } from './historia-disparadores-acto2.js';
+import { leerPagina, proximaPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO, ESCENAS_DESDE_VEHICULO } from './historia-disparadores-acto2.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
@@ -260,7 +260,8 @@ export function crearValleUi(ctx) {
     if (typeof dir.hay === 'function' && !dir.hay(id)) { marcarVista(h, id, ctx.progreso().dia); aplicarEscenas(h); return true; }
     if (Object.hasOwn(COLOCACION_ESCENA, id)) ctx.colocar?.(COLOCACION_ESCENA[id]);   // 4.16.0: el jugador, donde la escena lo necesita
     if (s.sentado && ESCENAS_DESDE_SENTADO.includes(id)) ctx.levantar?.();   // 4.16.0: la guardia empieza con vos de pie (una escena no empieza sentado)
-    return dir.disparar(id) === true;
+    if (ESCENAS_DESDE_VEHICULO.includes(id)) ctx.permitirVehiculo?.(true);   // (el faro de noche: la escena empieza con vos en el kayak o el velero)
+    try { return dir.disparar(id) === true; } finally { ctx.permitirVehiculo?.(false); }
   }
   // Aplica lo que falte de las escenas vistas y anota en pantalla lo raro nuevo
   function aplicarEscenas(h) {
@@ -309,6 +310,12 @@ export function crearValleUi(ctx) {
       return true;
     }
     if (a.tipo === 'pagina') {
+      // con la escena de B («cuaderno-1» a «cuaderno-3», se lee como una escena) o, si no está, la nota de siempre
+      const dir = ctx.escenas?.(), n = proximaPagina(estado());
+      if (n && dir && !dir.activa() && typeof dir.hay === 'function' && dir.hay(`cuaderno-${n}`)) {
+        marcarTema(h, 'cuaderno', String(n), p.dia);
+        if (dir.disparar(`cuaderno-${n}`) === true) { ctx.guardar(); return true; }
+      }
       const pag = leerPagina(h, estado(), p.dia);
       if (pag) { ctx.nota(pag[0], pag[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); }
       return true;

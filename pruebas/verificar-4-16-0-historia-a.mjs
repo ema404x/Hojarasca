@@ -113,17 +113,12 @@ async function chequear(arch = '', sufijo = '') {
   // ---------------------------------------------------------------- 3. capítulo 6: Lo que se pierde, aparece
   {
     const { p, h } = armar(5, { horas: 23.5 });
-    H.marcarTema(h, 'ercilia', 'perdidas', 6);
-    ok(!hecho(h, p, 'preguntar'), 'preguntar: con una sola no alcanza');
-    H.marcarTema(h, 'panadera', 'perdidas', 6); ok(hecho(h, p, 'preguntar'), 'preguntar: Ercilia y Rosa');
-    vista(h, 'luces-lago'); ok(hecho(h, p, 'nicanor'), 'Nicanor: las luces del lago');
+    vista(h, 'luces-lago-nicanor'); ok(hecho(h, p, 'nicanor'), 'Nicanor: las luces del lago');
     H.marcarObjeto(h, 'dedal', 6); H.marcarObjeto(h, 'pipa', 6);
     ok(!hecho(h, p, 'buscar'), 'buscar: faltan una');
     H.marcarObjeto(h, 'cuchara', 6); ok(hecho(h, p, 'buscar'), 'buscar: las tres');
-    H.marcarEntrega(h, 'ercilia', 'dedal', 6); H.marcarEntrega(h, 'panadera', 'cuchara', 6);
-    ok(!hecho(h, p, 'devolver'), 'devolver: falta la pipa');
-    H.marcarEntrega(h, 'belisario', 'pipa', 6); ok(hecho(h, p, 'devolver'), 'devolver: cada una a su dueño');
-    igual(H.DUENOS_PERDIDAS, { ercilia: 'dedal', belisario: 'pipa', panadera: 'cuchara' }, 'los dueños de las cosas perdidas');
+    ok(!hecho(h, p, 'devolver'), 'devolver: falta llevárselas a Ercilia');
+    vista(h, 'perdidas-devueltas'); ok(hecho(h, p, 'devolver'), 'devolver: la escena con Ercilia');
     // el faro: de noche, en el kayak o el velero y cerca
     const faro = (extra, horas = 23.5) => { p.horas = horas; return hecho(h, p, 'faro', { lugares: { faro: 30 }, ...extra }); };
     ok(faro({ enKayak: true }) && faro({ enVela: true }), 'el faro: en kayak o en velero, de noche, a menos de 40 m');
@@ -132,7 +127,7 @@ async function chequear(arch = '', sufijo = '') {
     // la guardia y las huellas
     ok(!hecho(h, p, 'guardia') && !hecho(h, p, 'huellas'), 'la guardia y las huellas esperan sus escenas');
     vista(h, 'guardia-molino'); ok(hecho(h, p, 'guardia'), 'la guardia: la escena');
-    vista(h, 'raiz-ramon'); ok(hecho(h, p, 'huellas'), 'las huellas: la escena de la raíz de Ramón');
+    vista(h, 'ramon-raiz'); ok(hecho(h, p, 'huellas'), 'las huellas: la escena de la raíz de Ramón');
     // esperar sentado acelera el reloj sólo si hay algo que esperar
     const { p: p2, h: h2 } = armar(5); h2.hechos = {};
     ok(H.aceleracionDeEspera(h2, E(p2, { sentado: true })) === 8, 'sentado con la guardia pendiente, el reloj corre ×8');
@@ -160,7 +155,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(!c(), 'C: falta todo lo demás'); H.marcarEntrega(h, 'ercilia', 'harina-3', 6); ok(!c(), 'C: falta la raíz'); H.marcarEntrega(h, 'raiz', 'harina', 6); ok(c(), 'C: dos fletes, tres al almacén y una a la raíz');
     h.fletesHarina = 1; ok(!c(), 'C: con un solo flete no');
     // la minga: algo cocinado desde que empezó el capítulo; el galpón y el cuaderno
-    vista(h, 'minga-vecinos'); ok(hecho(h, p, 'minga'), 'la minga'); vista(h, 'galpon-ronda'); ok(hecho(h, p, 'ronda'), 'el galpón en ronda');
+    vista(h, 'minga-aldea'); ok(hecho(h, p, 'minga'), 'la minga'); vista(h, 'galpon-ronda'); ok(hecho(h, p, 'ronda'), 'el galpón en ronda');
     ok(!hecho(h, p, 'cuaderno'), 'el cuaderno todavía no'); H.marcarObjeto(h, 'cuaderno-eusebio', 7); ok(hecho(h, p, 'cuaderno'), 'el cuaderno del pozo');
     ok(H.CAPITULOS[6].premio.cuenta.yerba > 0, 'un premio chico: yerba y el cuaderno');
     // los fletes de la molienda cuentan desde la decisión (los de antes, no)
@@ -177,7 +172,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(!hecho(h, p, 'leer'), 'leer: ninguna página');
     for (let i = 1; i <= 3; i++) { const pag = A2.leerPagina(h, E(p), 7); ok(Array.isArray(pag) && pag[0].includes(`${i} de 3`) && pag[1].length > 60, `la página ${i}`); }
     ok(A2.leerPagina(h, E(p), 7) === null && hecho(h, p, 'leer'), 'después de la tercera, no hay más y el objetivo se tilda');
-    vista(h, 'libreta-ercilia'); vista(h, 'cuaderno-josefina'); vista(h, 'los-del-cerro');
+    vista(h, 'libreta-fiado'); vista(h, 'cuaderno-abuelo'); vista(h, 'los-del-cerro');
     ok(hecho(h, p, 'ercilia') && hecho(h, p, 'josefina') && hecho(h, p, 'belisario'), 'Ercilia, Josefina y Belisario');
     ok(!hecho(h, p, 'ramon'), 'Ramón: todavía no'); vista(h, 'secreto-ramon'); ok(hecho(h, p, 'ramon'), 'Ramón: la escena del atardecer');
     // con Ramón enojado no hay escena: alcanza con estar en su puesto al atardecer (nunca se traba)
@@ -201,9 +196,9 @@ async function chequear(arch = '', sufijo = '') {
   {
     for (const [cap, hace] of [
       [4, (p, h) => { vista(h, 'piedras-molino'); vista(h, 'zaino-ramon'); h.decisiones.coihue = 'a'; p.huerta['0,0'] = {}; h.hechos['rueda:puente'] = 6; return { terminadas: [{ id: 'molino-agua', x: 0, z: 0 }, { id: 'aserradero', x: 50, z: 0 }], coihue: { x: 0, z: 0 } }; }],
-      [5, (p, h) => { for (const t of [['ercilia', 'perdidas'], ['panadera', 'perdidas']]) H.marcarTema(h, ...t, 6); vista(h, 'luces-lago'); for (const o of H.PERDIDAS) H.marcarObjeto(h, o, 6); for (const [q, c] of Object.entries(H.DUENOS_PERDIDAS)) H.marcarEntrega(h, q, c, 6); vista(h, 'guardia-molino'); vista(h, 'raiz-ramon'); p.horas = 23.5; return { enKayak: true, lugares: { faro: 10 } }; }],
-      [6, (p, h) => { h.base = { dia: 6, molido: 0, cocinadas: 0, cosechas: 0 }; h.molido = 10; p.cosechasTotal = 6; h.decisiones.molienda = 'a'; h.fletesHarina = 3; vista(h, 'minga-vecinos'); vista(h, 'galpon-ronda'); H.marcarObjeto(h, 'cuaderno-eusebio', 6); return { terminadas: [{ id: 'galponcito', x: 0, z: 0 }] }; }],
-      [7, (p, h) => { for (let i = 0; i < 3; i++) A2.leerPagina(h, E(p), 7); for (const e of ['libreta-ercilia', 'cuaderno-josefina', 'los-del-cerro', 'secreto-ramon']) vista(h, e); h.decisiones.cuaderno = 'c'; return {}; }],
+      [5, (p, h) => { vista(h, 'luces-lago-nicanor'); for (const o of H.PERDIDAS) H.marcarObjeto(h, o, 6); vista(h, 'perdidas-devueltas'); vista(h, 'guardia-molino'); vista(h, 'ramon-raiz'); p.horas = 23.5; return { enKayak: true, lugares: { faro: 10 } }; }],
+      [6, (p, h) => { h.base = { dia: 6, molido: 0, cocinadas: 0, cosechas: 0 }; h.molido = 10; p.cosechasTotal = 6; h.decisiones.molienda = 'a'; h.fletesHarina = 3; vista(h, 'minga-aldea'); vista(h, 'galpon-ronda'); H.marcarObjeto(h, 'cuaderno-eusebio', 6); return { terminadas: [{ id: 'galponcito', x: 0, z: 0 }] }; }],
+      [7, (p, h) => { for (let i = 0; i < 3; i++) A2.leerPagina(h, E(p), 7); for (const e of ['libreta-fiado', 'cuaderno-abuelo', 'los-del-cerro', 'secreto-ramon']) vista(h, e); h.decisiones.cuaderno = 'c'; return {}; }],
     ]) {
       const { p, h } = armar(cap, { fase: 'intro' });
       ok(H.arrancarCapitulo(h, E(p)), `capítulo ${cap + 1}: arranca`);
@@ -240,7 +235,10 @@ async function chequear(arch = '', sufijo = '') {
     const base = (cap, dec = {}, horas = 10) => { const { p, h } = armar(cap, { dec, horas }); return { p, h }; };
     const quien = (h, p, extra, ctx) => D.escenaPendiente(h, E(p, extra), ctx);
     const ids = A2.ESCENAS_ACTO2_IDS;
-    ok(ids.length === 24 && new Set(ids).size === 24, 'son 24 escenas del acto II');
+    const EB = await import('../src/historia-escenas-acto2.js');
+    ok(ids.length === 32 && new Set(ids).size === 32, 'son 32 las escenas que dispara el juego en el acto II');
+    for (const id of ids) ok(EB.IDS_ACTO2.includes(id) || A2.ESCENAS_SIN_GUION.includes(id), `${id}: es una escena de B o una mecánica sin guion`);
+    igual(EB.IDS_ACTO2.filter((x) => !ids.includes(x)).sort(), ['cuaderno-1', 'cuaderno-2', 'cuaderno-3', 'foto-sofia', 'mulas-belisario', 'tablas-tito'], 'las de B que no dispara el juego: el cuaderno (sale de la mesa) y tres optativas');
     const conDisp = new Set(Object.entries(A2.DISPARADORES_ACTO2).map(([k, d]) => d.escena || k));
     for (const id of ids) ok(conDisp.has(id), `${id}: tiene su disparador`);
     for (const id of conDisp) ok(ids.includes(id), `${id}: el disparador es de una escena conocida`);
@@ -258,26 +256,28 @@ async function chequear(arch = '', sufijo = '') {
       ok(quien(h, p, { lugares: { 'molino-viejo': 20 }, terminadas: [{ id: 'molino-agua', x: 0, z: 0 }] }) === 'tito-coihue', 'Tito y el coihue, con el molino terminado y cerca del coihue');
       vista(h, 'zaino-ramon'); vista(h, 'tito-coihue');
       ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === null, 'Tobías sin D2 = pirca: nada');
-      h.decisiones.coihue = 'c'; p.materiales.piedra = 9; ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === null, 'Tobías con 9 piedras: nada'); p.materiales.piedra = 10; ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === 'tobias-cantera', 'Tobías con 10 piedras');
-      p.materiales.piedra = 4; p.acopio.piedra = 6; ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === 'tobias-cantera', '(las del acopio cuentan)');
+      h.decisiones.coihue = 'c'; p.materiales.piedra = 9; ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === null, 'Tobías con 9 piedras: nada'); p.materiales.piedra = 10; ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === 'tobias-pirca', 'Tobías con 10 piedras');
+      p.materiales.piedra = 4; p.acopio.piedra = 6; ok(quien(h, p, {}, { modo: 'hablar', clave: 'tobias' }) === 'tobias-pirca', '(las del acopio cuentan)');
       ok(quien(h, p, { lugares: { 'molino-propio': 10 }, terminadas: [{ id: 'molino-agua' }] }) === null, 'la rueda gira sólo con el aserradero hecho');
       ok(quien(h, p, { lugares: { 'molino-propio': 10 }, terminadas: [{ id: 'molino-agua' }, { id: 'aserradero' }] }) === 'rueda-gira', 'la rueda gira: molino, aserradero y D2 decidida');
     }
     // capítulo 6
     { const { p, h } = base(5);
-      ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'perdidas-ercilia' && quien(h, p, {}, { modo: 'hablar', clave: 'panadera' }) === 'perdidas-rosa' && quien(h, p, {}, { modo: 'hablar', clave: 'nicanor' }) === 'luces-lago', 'preguntar por lo perdido y las luces del lago');
-      vista(h, 'perdidas-ercilia'); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, '(una sola vez)');
-      H.marcarObjeto(h, 'dedal', 6); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'devuelve-dedal', 'con el dedal levantado, a Ercilia');
-      H.marcarEntrega(h, 'ercilia', 'dedal', 6); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, '(entregado, nada)');
-      H.marcarObjeto(h, 'pipa', 6); H.marcarObjeto(h, 'cuchara', 6);
-      ok(quien(h, p, {}, { modo: 'hablar', clave: 'belisario' }) === 'devuelve-pipa' && quien(h, p, {}, { modo: 'hablar', clave: 'panadera' }) === 'perdidas-rosa', 'la pipa a Belisario; Rosa primero cuenta lo perdido');
-      p.horas = 23.5; ok(quien(h, p, { lugares: { faro: 30 } }) === null, 'la silueta del faro necesita haber oído a Nicanor'); vista(h, 'luces-lago');
-      ok(quien(h, p, { lugares: { faro: 30 } }) === 'el-que-vuela' && quien(h, p, { lugares: { faro: 90 } }) === null, 'el que vuela: cerca del faro, de noche');
+      ok(quien(h, p, {}, { modo: 'hablar', clave: 'nicanor' }) === 'luces-lago-nicanor', 'las luces del lago: Nicanor');
+      ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, 'Ercilia sin las tres cosas: nada');
+      H.marcarObjeto(h, 'dedal', 6); H.marcarObjeto(h, 'pipa', 6); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, 'con dos tampoco');
+      H.marcarObjeto(h, 'cuchara', 6); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'perdidas-devueltas', 'con las tres, a Ercilia');
+      vista(h, 'perdidas-devueltas'); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, '(una sola vez)');
+      p.horas = 23.5; ok(quien(h, p, { lugares: { faro: 30 } }) === 'el-que-vuela' && quien(h, p, { lugares: { faro: 90 } }) === null, 'el que vuela: cerca del faro, de noche');
       p.horas = 0.7; ok(quien(h, p, { lugares: { 'molino-viejo': 10 }, sentado: false }) === null, 'la guardia pide estar sentado');
       ok(quien(h, p, { lugares: { 'molino-viejo': 10 }, sentado: true }) === 'guardia-molino', 'la guardia: sentado junto al coihue a las 0:40');
       ok(quien(h, p, { lugares: { 'molino-viejo': 40 }, sentado: true }) === null, '(no lejos)'); p.horas = 3; ok(quien(h, p, { lugares: { 'molino-viejo': 10 }, sentado: true }) === null, '(no a las 3)');
-      p.horas = 6; ok(quien(h, p, { lugares: { 'raiz-ramon': 5 } }) === null, 'la raíz de Ramón pide haber hecho la guardia'); vista(h, 'guardia-molino');
-      ok(quien(h, p, { lugares: { 'raiz-ramon': 5 } }) === 'raiz-ramon' && quien(h, p, { lugares: { 'raiz-ramon': 50 } }) === null, 'la raíz de Ramón: a la mañana, siguiendo las huellas');
+      p.horas = 7; ok(quien(h, p, { lugares: { 'molino-viejo': 10 } }) === null && quien(h, p, { lugares: { 'raiz-ramon': 5 } }) === null, 'las huellas y la raíz de Ramón piden haber hecho la guardia'); vista(h, 'guardia-molino');
+      ok(quien(h, p, { lugares: { 'molino-viejo': 10 } }) === 'huellas-escarcha' && quien(h, p, { lugares: { 'molino-viejo': 60 } }) === null, 'las huellas de la escarcha: a la mañana, junto al molino');
+      p.horas = 9.5; ok(quien(h, p, { lugares: { 'molino-viejo': 10 } }) === null, '(no tan tarde)'); p.horas = 7;
+      ok(quien(h, p, { lugares: { 'raiz-ramon': 5 } }) === 'ramon-raiz' && quien(h, p, { lugares: { 'raiz-ramon': 50 } }) === null, 'Ramón en la raíz: a la mañana, siguiendo las huellas');
+      vista(h, 'ramon-raiz'); ok(quien(h, p, { lugares: { 'molino-viejo': 10 } }) === null, 'visto Ramón, las huellas ya no hacen falta');
+      const { p: p2, h: h2 } = base(5, { bolsa: 'b' }); ok(quien(h2, p2, {}, { modo: 'hablar', clave: 'panadera' }) === 'masa-crece', 'la masa que crece sola: sólo con D1 = b'); const { p: p3, h: h3 } = base(5, { bolsa: 'a' }); ok(quien(h3, p3, {}, { modo: 'hablar', clave: 'panadera' }) === null, '(con otra decisión, no)');
     }
     // capítulo 7
     { const { p, h } = base(6, {}, 10); h.base = { dia: 6, molido: 0, cocinadas: 0 };
@@ -285,23 +285,23 @@ async function chequear(arch = '', sufijo = '') {
       ok(quien(h, p, { lugares: { 'molino-propio': 5 } }) === 'primera-molienda' && quien(h, p, { lugares: { 'molino-propio': 80 } }) === null, 'la primera molienda: diez medidas y cerca del molino');
       vista(h, 'primera-molienda');
       ok(quien(h, p, { lugares: { plaza: 10 } }) === null, 'la minga pide haber cocinado'); p.cocina.hechas['pan-casero'] = 1; h.base.cocinadas = 0;
-      ok(quien(h, p, { lugares: { plaza: 10 } }) === 'minga-vecinos', 'la minga: algo cocinado, en la plaza, de día'); p.horas = 20; ok(quien(h, p, { lugares: { plaza: 10 } }) === null, '(no de noche)'); p.horas = 10;
-      ok(quien(h, p, { lugares: { 'galpon-propio': 5 } }) === null, 'el galpón en ronda pide la minga'); vista(h, 'minga-vecinos', 6); p.horas = 6.5;
+      ok(quien(h, p, { lugares: { plaza: 10 } }) === 'minga-aldea', 'la minga: algo cocinado, en la plaza, de día'); p.horas = 20; ok(quien(h, p, { lugares: { plaza: 10 } }) === null, '(no de noche)'); p.horas = 10;
+      ok(quien(h, p, { lugares: { 'galpon-propio': 5 } }) === null, 'el galpón en ronda pide la minga'); vista(h, 'minga-aldea', 6); p.horas = 6.5;
       ok(quien(h, p, { lugares: { 'galpon-propio': 5 } }) === null, '… y esperar al otro día'); p.dia = 7;
       ok(quien(h, p, { lugares: { 'galpon-propio': 5 } }) === 'galpon-ronda', 'el galpón en ronda: al amanecer siguiente a la minga, en tu galpón');
       p.horas = 15; ok(quien(h, p, { lugares: { 'galpon-propio': 5 } }) === null, '(no a la tarde)');
       h.decisiones.molienda = 'b'; p.cosas.harina = 5; ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, 'el fiado: con 5 medidas no alcanza'); p.cosas.harina = 6;
-      ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'fiado-ercilia', 'el fiado: seis medidas');
-      h.decisiones.molienda = 'c'; p.cosas.harina = 3; ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'fiado-ercilia', 'partida: tres medidas a Ercilia');
+      ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'molienda-fiado', 'el fiado: seis medidas');
+      h.decisiones.molienda = 'c'; p.cosas.harina = 3; ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'harina-ercilia-c', 'partida: tres medidas a Ercilia (mecánica sin guion)');
       H.marcarEntrega(h, 'ercilia', 'harina-3', 7); ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === null, '(ya entregadas)');
-      ok(quien(h, p, {}, { modo: 'interaccion', clave: 'raiz-molienda' }) === 'harina-raiz', 'partida: una medida a la raíz'); p.cosas.harina = 0; ok(quien(h, p, {}, { modo: 'interaccion', clave: 'raiz-molienda' }) === null, '(sin harina, no)');
+      ok(quien(h, p, {}, { modo: 'interaccion', clave: 'raiz-molienda' }) === null, 'partida: la raíz pide los dos fletes'); h.fletesHarina = 2; ok(quien(h, p, {}, { modo: 'interaccion', clave: 'raiz-molienda' }) === 'molienda-partir', 'partida: una medida a la raíz, ya hechos los fletes y las tres del almacén'); p.cosas.harina = 1; p.cosas.harina = 0; ok(quien(h, p, {}, { modo: 'interaccion', clave: 'raiz-molienda' }) === null, '(sin harina, no)');
     }
     // capítulo 8
     { const { p, h } = base(7, {}, 18);
-      ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'libreta-ercilia' && quien(h, p, {}, { modo: 'hablar', clave: 'ema' }) === 'cuaderno-josefina' && quien(h, p, {}, { modo: 'hablar', clave: 'belisario' }) === 'los-del-cerro', 'la libreta, el cuaderno del abuelo y los del cerro');
+      ok(quien(h, p, {}, { modo: 'hablar', clave: 'ercilia' }) === 'libreta-fiado' && quien(h, p, {}, { modo: 'hablar', clave: 'ema' }) === 'cuaderno-abuelo' && quien(h, p, {}, { modo: 'hablar', clave: 'belisario' }) === 'los-del-cerro', 'la libreta, el cuaderno del abuelo y los del cerro');
       ok(quien(h, p, {}, { modo: 'hablar', clave: 'ramon' }) === 'secreto-ramon', 'Ramón al atardecer'); p.horas = 12; ok(quien(h, p, {}, { modo: 'hablar', clave: 'ramon' }) === null, '(no a mediodía)'); p.horas = 18;
       h.lazos.ramon = -1; ok(quien(h, p, {}, { modo: 'hablar', clave: 'ramon' }) === null, '(ni con el lazo de Ramón por el piso)'); h.lazos.ramon = 0;
-      p.horas = 21; ok(quien(h, p, { lugares: { plaza: 10 } }) === null, 'el fogón pide las dos escenas de los cuadernos'); vista(h, 'libreta-ercilia'); vista(h, 'cuaderno-josefina');
+      p.horas = 21; ok(quien(h, p, { lugares: { plaza: 10 } }) === null, 'el fogón pide las dos escenas de los cuadernos'); vista(h, 'libreta-fiado'); vista(h, 'cuaderno-abuelo');
       ok(quien(h, p, { lugares: { plaza: 10 } }) === 'fogon-leyenda' && quien(h, p, { lugares: { plaza: 90 } }) === null, 'el fogón: de noche, en la plaza'); p.horas = 12; ok(quien(h, p, { lugares: { plaza: 10 } }) === null, '(no de día)');
     }
     // una escena de otro capítulo no sale
@@ -317,19 +317,19 @@ async function chequear(arch = '', sufijo = '') {
     ok(h.prestado.zaino === true && h.temas['ramon:zaino'] > 0 && llamadas.length === 1 && llamadas[0].join() === 'dar,caballo,1', 'el zaino: queda prestado y se da el caballo');
     D.aplicarVistas(h, 6, ctx); ok(llamadas.length === 1, 'una sola vez');
     const h2 = H.historiaNueva(); h2.activa = true; vista(h2, 'zaino-ramon'); D.aplicarVistas(h2, 6, { ...ctx, tieneCaballo: () => true }); ok(!llamadas.some((l, i) => i > 0), 'si ya tenías caballo, no te dan otro');
-    vista(h, 'tobias-cantera'); D.aplicarVistas(h, 6, ctx);
-    ok(h.acompanante === 'tobias' && h.entregados['tobias:piedra'] > 0 && llamadas.some((l) => l.join() === 'gastar,piedra,10'), 'Tobías: se gastan diez piedras y te acompaña');
-    h.decisiones.molienda = 'b'; vista(h, 'fiado-ercilia'); D.aplicarVistas(h, 7, ctx);
+    vista(h, 'tobias-pirca'); D.aplicarVistas(h, 6, ctx);
+    ok(h.objetos.pirca > 0 && h.entregados['tobias:piedra'] > 0 && llamadas.some((l) => l.join() === 'gastar,piedra,10'), 'Tobías: se gastan diez piedras y queda la pirca');
+    h.decisiones.molienda = 'b'; vista(h, 'molienda-fiado'); D.aplicarVistas(h, 7, ctx);
     ok(h.entregados['ercilia:harina'] > 0 && llamadas.some((l) => l.join() === 'gastar,harina,6'), 'el fiado: seis medidas');
-    h.decisiones.molienda = 'c'; delete h.aplicadas['fiado-ercilia']; D.aplicarVistas(h, 7, ctx);
+    h.decisiones.molienda = 'c'; vista(h, 'harina-ercilia-c'); D.aplicarVistas(h, 7, ctx);
     ok(h.entregados['ercilia:harina-3'] > 0 && llamadas.some((l) => l.join() === 'gastar,harina,3'), 'partida: tres medidas');
-    vista(h, 'harina-raiz'); D.aplicarVistas(h, 7, ctx);
+    vista(h, 'molienda-partir'); D.aplicarVistas(h, 7, ctx);
     ok(h.entregados['raiz:harina'] > 0 && llamadas.some((l) => l.join() === 'gastar,harina,1') && h.duendes.convidado === 1, 'la raíz: una medida, y cuenta como convidado');
-    vista(h, 'devuelve-dedal'); vista(h, 'devuelve-pipa'); vista(h, 'devuelve-cuchara'); D.aplicarVistas(h, 7, ctx);
+    vista(h, 'perdidas-devueltas'); D.aplicarVistas(h, 7, ctx);
     ok(h.entregados['ercilia:dedal'] && h.entregados['belisario:pipa'] && h.entregados['panadera:cuchara'], 'las tres cosas devueltas');
-    for (const id of ['perdidas-ercilia', 'perdidas-rosa', 'luces-lago', 'libreta-ercilia', 'cuaderno-josefina', 'los-del-cerro', 'secreto-ramon', 'piedras-molino', 'tito-coihue', 'rueda-gira']) vista(h, id);
+    for (const id of ['luces-lago-nicanor', 'libreta-fiado', 'cuaderno-abuelo', 'los-del-cerro', 'secreto-ramon', 'piedras-molino', 'tito-coihue', 'rueda-gira']) vista(h, id);
     D.aplicarVistas(h, 7, ctx);
-    for (const t of ['ercilia:perdidas', 'panadera:perdidas', 'nicanor:luces', 'ercilia:cuaderno', 'ema:cuaderno', 'belisario:cerro', 'ramon:ceniza', 'ema:piedras', 'tito:coihue', 'ema:rueda']) ok(h.temas[t] > 0, `tema ${t}`);
+    for (const t of ['nicanor:luces', 'ercilia:cuaderno', 'ema:cuaderno', 'belisario:cerro', 'ramon:ceniza', 'ema:piedras', 'tito:coihue', 'ema:rueda']) ok(h.temas[t] > 0, `tema ${t}`);
     for (const id of Object.keys(A2.NOTAS_ESCENA_ACTO2)) ok(A2.NOTAS_ESCENA_ACTO2[id].length === 2 && id in A2.EFECTOS_ESCENA_ACTO2, `${id}: su aviso es de una escena con efecto`);
     // el coihue talado
     const t = H.historiaNueva(); t.activa = true; t.decisiones.coihue = 'a';
@@ -352,10 +352,10 @@ async function chequear(arch = '', sufijo = '') {
       H.marcarObjeto(h, 'dedal', 6); ok(!vis(h, p).includes('dedal') && vis(h, p).includes('pipa'), 'el dedal levantado ya no está');
       const a = D.accionDeObjeto('pipa', h, E(p)); ok(a.tipo === 'marca' && a.marca === 'pipa' && /pipa/i.test(a.aviso), 'la E sobre la pipa la levanta');
       ok(!vis(h, p).includes('huellas') && !vis(h, p).includes('yerba-raiz'), 'las huellas esperan la guardia'); vista(h, 'guardia-molino'); p.horas = 6.2;
-      ok(vis(h, p).includes('huellas') && vis(h, p).includes('yerba-raiz'), 'a la mañana, las huellas y la yerba'); p.horas = 13; ok(!vis(h, p).includes('huellas'), 'a mediodía la escarcha ya no está'); p.horas = 6.2; vista(h, 'raiz-ramon'); ok(!vis(h, p).includes('huellas') && !vis(h, p).includes('yerba-raiz'), 'seguidas, se apagan');
+      ok(vis(h, p).includes('huellas') && vis(h, p).includes('yerba-raiz'), 'a la mañana, las huellas y la yerba'); p.horas = 13; ok(!vis(h, p).includes('huellas'), 'a mediodía la escarcha ya no está'); p.horas = 6.2; vista(h, 'ramon-raiz'); ok(!vis(h, p).includes('huellas') && !vis(h, p).includes('yerba-raiz'), 'seguidas, se apagan');
     }
     { const { p, h } = armar(6, { dec: { molienda: 'c' } }); h.base = { dia: 6 };
-      ok(!vis(h, p).includes('ronda-harina'), 'el galpón en ronda espera la minga'); vista(h, 'minga-vecinos', 6); p.dia = 6; ok(!vis(h, p).includes('ronda-harina'), '… y el día siguiente'); p.dia = 7;
+      ok(!vis(h, p).includes('ronda-harina'), 'el galpón en ronda espera la minga'); vista(h, 'minga-aldea', 6); p.dia = 6; ok(!vis(h, p).includes('ronda-harina'), '… y el día siguiente'); p.dia = 7;
       ok(vis(h, p).includes('ronda-harina') && vis(h, p).includes('cuaderno-pozo'), 'al día siguiente: la ronda de harina y el cuaderno en el pozo');
       const a = D.accionDeObjeto('cuaderno-pozo', h, E(p)); ok(a.marca === 'cuaderno-eusebio', 'agarrar el cuaderno'); H.marcarObjeto(h, 'cuaderno-eusebio', 7);
       ok(vis(h, p).includes('ronda-harina') && !vis(h, p).includes('cuaderno-pozo'), 'sin el cuaderno, la ronda queda');
@@ -381,6 +381,9 @@ async function chequear(arch = '', sufijo = '') {
       ok(vis(h3, p3).includes('puertita-noche') && D.accionDeObjeto('puertita-noche', h3, E(p3)).raro === 'puertita-noche', 'la puertita apoyada en tu puerta de noche (y anota lo raro al levantarla)'); p3.horas = 12; ok(!vis(h3, p3).includes('puertita-noche'), 'de día no está');
       void p; void h;
     }
+    { const { p, h } = armar(4); ok(vis(h, p).includes('muelas-rotas'), 'capítulo 5: las muelas rotas del molino viejo se dibujan');
+      const { p: p2, h: h2 } = armar(6); h2.base = { dia: 6, molido: 0 }; h2.molido = 10; ok(vis(h2, p2).includes('diez-bolsas'), 'capítulo 7: las diez bolsas junto al molino'); h2.decisiones.molienda = 'a'; ok(!vis(h2, p2).includes('diez-bolsas'), '(decidida la molienda, se van)');
+      const { p: p3, h: h3 } = armar(7, { horas: 22 }); vista(h3, 'fogon-leyenda'); ok(vis(h3, p3).includes('pluma-umbral') && D.accionDeObjeto('pluma-umbral', h3, E(p3)).marca === 'pluma-condor', 'capítulo 8: la pluma de cóndor en el umbral, de noche, después del fogón'); p3.horas = 12; ok(!vis(h3, p3).includes('pluma-umbral'), '(de día no)'); }
     ok(Object.values(D.OBJETOS).every((o) => o.visible), 'todos los objetos dicen cuándo se ven');
   }
 
@@ -447,6 +450,7 @@ async function chequear(arch = '', sufijo = '') {
       "obraPunto('molino-propio', 'molino-agua')", "obraPunto('galpon-propio', 'galponcito')", "ponr('raiz-ramon'",
       'colocar: (c) => colocarParaEscena(c)', 'levantar: () =>',
       'puntos: () => puntosCacheadosDeHistoria()',
+      'permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }', 'escenaDesdeVehiculo || (!js.enKayak && !js.enVela)', 'function efectoDuendesActo2(id, args) {', "obraPunto('aserradero-propio', 'aserradero')",
     ]) ok(main.includes(frag.replace('obraPunto(\'molino-propio\'', 'obraPunto(\'molino-propio\'')), `main.js: ${frag.slice(0, 70)}`);
     ok(main.includes('const hacen = golpesParaTalarAhora();') && main.includes('const escala = js.sentado && !durmiendo'), 'las líneas de siempre del hachazo y del reloj sentado siguen como estaban (otras pruebas las leen)');
     ok(/let talaGrande = false;[\s\S]*golpesParaTalarAhora = \(\) => \(talaGrande \? GOLPES_COIHUE/.test(main), 'el coihue grande lleva seis hachazos sin importar el oficio ni el filo');
@@ -481,8 +485,8 @@ const MUT = [
   ['historia.js', "if (d === 'a') return ase && s.aserradero.lejos;", "if (d === 'a') return ase;", 'D2 = A no mira la distancia'],
   ['historia.js', "if (d === 'b') return ase && s.temas.has('mundo:coihue-talado');", "if (d === 'b') return ase;", 'D2 = B sin talar'],
   ['historia.js', "if (d === 'c') return ase && s.objetos.has('pirca');", "if (d === 'c') return ase;", 'D2 = C sin pirca'],
-  ['historia.js', "if (d === 'b') return s.entregados.has('ercilia:harina');", "if (d === 'b') return true;", 'D3 = B sin entregar'],
-  ['historia.js', "if (d === 'c') return s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && s.entregados.has('raiz:harina');", "if (d === 'c') return s.fletesHarina >= 2;", 'D3 = C sin la raíz ni el almacén'],
+  ['historia.js', "if (d === 'b') return s.entregados.has('ercilia:harina') || s.escenas.has('molienda-fiado');", "if (d === 'b') return true;", 'D3 = B sin entregar'],
+  ['historia.js', "if (d === 'c') return s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && (s.entregados.has('raiz:harina') || s.escenas.has('molienda-partir'));", "if (d === 'c') return s.fletesHarina >= 2;", 'D3 = C sin la raíz ni el almacén'],
   ['historia.js', "if (d === 'a') return s.fletesHarina >= 3;", "if (d === 'a') return s.fletesHarina >= 1;", 'D3 = A con un solo flete'],
   ['historia.js', "  if (diasEsperados(h, s) >= c.puerta.tope) return null;", "", 'la puerta de estación espera para siempre'],
   ['historia.js', "  return diasEsperados(h, s) >= (CAPITULOS[4].puerta?.tope ?? 2) ? 'otono' : null;", "  return null;", 'la historia nunca trae su otoño'],
@@ -500,13 +504,13 @@ const MUT = [
   ['historia-disparadores-acto2.js', "'guardia-molino': { cap: 'perdido', modo: 'auto', lugar: en('molino-viejo', 22), hora: [0.5, 2.5], cond: (s) => s.sentado },", "'guardia-molino': { cap: 'perdido', modo: 'auto', lugar: en('molino-viejo', 22), hora: [0.5, 2.5] },", 'la guardia sin estar sentado'],
   ['historia-disparadores-acto2.js', "hora: [0.5, 2.5], cond: (s) => s.sentado }", "hora: [0, 24], cond: (s) => s.sentado }", 'la guardia a cualquier hora'],
   ['historia-disparadores-acto2.js', "export const HARINA_DE_ENTREGA = { b: 6, c: 3 };", "export const HARINA_DE_ENTREGA = { b: 1, c: 1 };", 'el fiado cuesta una medida'],
-  ['historia-disparadores-acto2.js', "cond: (s, h) => s.dia > diaVista(h, 'minga-vecinos') },", "cond: () => true },", 'el galpón en ronda el mismo día de la minga'],
-  ['historia-disparadores-acto2.js', "const rondaVisible = (s, h) => cosecha7(h) && s.escenas.has('minga-vecinos') && (s.dia > diaVista(h, 'minga-vecinos') || s.escenas.has('galpon-ronda'));", "const rondaVisible = (s, h) => cosecha7(h);", 'la ronda de harina se ve antes de la minga'],
-  ['historia-disparadores-acto2.js', "marcarTema(h, 'cuaderno', String(n), dia); return PAGINAS_CUADERNO[n - 1];", "return PAGINAS_CUADERNO[n - 1];", 'leer una página no la marca'],
-  ['historia-disparadores-acto2.js', "    if (!Object.hasOwn(h.aplicadas, 'coihue-talado')) {", "    if (true) {", 'cada hachazo al tocón baja el lazo de Josefina'],
+  ['historia-disparadores-acto2.js', "cond: (s, h) => s.dia > diaVista(h, 'minga-aldea') },", "cond: () => true },", 'el galpón en ronda el mismo día de la minga'],
+  ['historia-disparadores-acto2.js', "const rondaVisible = (s, h) => cosecha7(h) && s.escenas.has('minga-aldea') && (s.dia > diaVista(h, 'minga-aldea') || s.escenas.has('galpon-ronda'));", "const rondaVisible = (s, h) => cosecha7(h);", 'la ronda de harina se ve antes de la minga'],
+  ['historia-disparadores-acto2.js', "  marcarTema(h, 'cuaderno', String(n), dia);\n", "", 'leer una página no la marca'],
+  ['historia-disparadores-acto2.js', "    if (!Object.hasOwn(h.aplicadas, 'lazo-coihue-talado')) {", "    if (true) {", 'cada hachazo al tocón baja el lazo de Josefina'],
   ['historia-disparadores-acto2.js', "if (!ctx?.tieneCaballo?.()) ctx?.dar?.('caballo', 1);", "ctx?.dar?.('caballo', 1);", 'te dan otro caballo si ya tenías'],
   ['historia-disparadores-acto2.js', "ctx?.gastar?.('piedra', 10);", "", 'las piedras de Tobías no se gastan'],
-  ['historia-disparadores-acto2.js', "'tobias-cantera': { cap: 'rueda', modo: 'hablar', clave: 'tobias', cond: (s) => s.decisiones.coihue === 'c' && s.piedra >= 10 && !s.entregados.has('tobias:piedra') },", "'tobias-cantera': { cap: 'rueda', modo: 'hablar', clave: 'tobias', cond: (s) => s.decisiones.coihue === 'c' && !s.entregados.has('tobias:piedra') },", 'Tobías sin pedir las diez piedras'],
+  ['historia-disparadores-acto2.js', "'tobias-pirca': { cap: 'rueda', modo: 'hablar', clave: 'tobias', cond: (s) => s.decisiones.coihue === 'c' && s.piedra >= 10 && !s.entregados.has('tobias:piedra') },", "'tobias-pirca': { cap: 'rueda', modo: 'hablar', clave: 'tobias', cond: (s) => s.decisiones.coihue === 'c' && !s.entregados.has('tobias:piedra') },", 'Tobías sin pedir las diez piedras'],
   ['historia-acompanante.js', "export const DIST_TELETRANSPORTE = 42;", "export const DIST_TELETRANSPORTE = 4200;", 'el acompañante nunca aparece a tu lado'],
   ['historia-acompanante.js', "const fx = -Math.sin(yaw), fz = -Math.cos(yaw);", "const fx = Math.sin(yaw), fz = Math.cos(yaw);", 'el acompañante se pone adelante'],
   ['historia-acompanante.js', "    if (ctx.tomada?.()) return;   // una escena lo está usando", "", 'el acompañante se mueve durante una escena'],

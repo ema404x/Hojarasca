@@ -200,7 +200,7 @@ const PREMIO_CONTINUARA = { ramitas: 4, texto: 'Unas ramitas secas para el fuego
 export const PERDIDAS = ['dedal', 'pipa', 'cuchara'];
 // quién recibe cada cosa perdida (clave de la charla) y cómo se llama la entrega: «<quien>:<cosa>»
 export const DUENOS_PERDIDAS = { ercilia: 'dedal', belisario: 'pipa', panadera: 'cuchara' };
-export const paginasLeidas = (s) => [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`)).length;
+export const paginasLeidas = (s) => [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`) || s.escenas.has(`cuaderno-${n}`)).length;
 // el coihue grande talado (la marca la pone el hachazo número 6: ver main.js)
 export const talado = (id) => (s) => s.temas.has(`mundo:${id}-talado`);
 // D2: lo que hay que cumplir según lo elegido
@@ -208,7 +208,7 @@ const cumplioCoihue = (s) => {
   const d = s.decisiones.coihue, ase = s.terminadas.has('aserradero');
   if (d === 'a') return ase && s.aserradero.lejos;
   if (d === 'b') return ase && s.temas.has('mundo:coihue-talado');
-  if (d === 'c') return ase && s.objetos.has('pirca');
+  if (d === 'c') return ase && s.objetos.has('pirca');   // (la pirca la deja marcada la escena de Tobías, o la E en la raíz)
   return false;
 };
 function textoCumplirCoihue(s) {
@@ -226,8 +226,8 @@ function textoCumplirCoihue(s) {
 const cumplioMolienda = (s) => {
   const d = s.decisiones.molienda;
   if (d === 'a') return s.fletesHarina >= 3;
-  if (d === 'b') return s.entregados.has('ercilia:harina');
-  if (d === 'c') return s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && s.entregados.has('raiz:harina');
+  if (d === 'b') return s.entregados.has('ercilia:harina') || s.escenas.has('molienda-fiado');
+  if (d === 'c') return s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && (s.entregados.has('raiz:harina') || s.escenas.has('molienda-partir'));
   return false;
 };
 function textoCumplirMolienda(s) {
@@ -366,13 +366,12 @@ export const CAPITULOS = [
       'Nicanor dice que de noche hay luces sobre el lago. Nadie le cree. Vos sí.',
     ],
     objetivos: [
-      { id: 'preguntar', tecla: 'E', texto: 'Preguntá en la aldea por las cosas perdidas: hablá con Ercilia y con Rosa (E)', vecinos: true, meta: 2, cuenta: (s) => (s.temas.has('ercilia:perdidas') ? 1 : 0) + (s.temas.has('panadera:perdidas') ? 1 : 0) },
-      { id: 'nicanor', tecla: 'E', texto: 'Escuchá a Nicanor: dice que de noche hay luces sobre el lago (E en el muelle)', vecinos: true, hecho: escena('luces-lago') },
+      { id: 'nicanor', tecla: 'E', texto: 'Escuchá a Nicanor: dice que de noche hay luces sobre el lago (E en el muelle)', vecinos: true, hecho: escena('luces-lago-nicanor') },
       { id: 'buscar', tecla: 'E', texto: 'Encontrá las tres cosas perdidas: el dedal, la pipa y la cuchara de palo (E): están en lugares imposibles', meta: 3, cuenta: (s) => PERDIDAS.filter((x) => s.objetos.has(x)).length },
-      { id: 'devolver', tecla: 'E', texto: 'Devolvé cada una a su dueño: el dedal a Ercilia, la cuchara a Rosa y la pipa a Belisario', vecinos: true, meta: 3, cuenta: (s) => Object.keys(DUENOS_PERDIDAS).filter((q) => s.entregados.has(`${q}:${DUENOS_PERDIDAS[q]}`)).length },
+      { id: 'devolver', tecla: 'E', texto: 'Llevale las tres cosas a Ercilia, que sabe de quién es cada una (E sobre ella)', vecinos: true, hecho: escena('perdidas-devueltas') },
       { id: 'faro', tecla: '·', texto: 'Salí al lago de noche, en el kayak o en el velero, y acercate al faro (entre las 23 y la 1)', hecho: (s) => (s.enKayak || s.enVela) && Number(s.lugares?.faro) <= 40 && enHora(s.horas, 23, 1) },
       { id: 'guardia', tecla: 'E', espera: true, texto: 'Hacé guardia en el molino viejo de noche: sentate cerca del coihue (con un banco, O) entre las 22 y las 2', hecho: escena('guardia-molino') },
-      { id: 'huellas', tecla: '·', texto: 'A la mañana, seguí las huellas chiquitas de la escarcha', hecho: escena('raiz-ramon') },
+      { id: 'huellas', tecla: '·', texto: 'A la mañana, seguí las huellas chiquitas de la escarcha', hecho: escena('ramon-raiz') },
     ],
     outro: [
       'Ramón no te dijo nada y vos no le preguntaste. Hay cosas que en el valle se saben de costado.',
@@ -392,9 +391,9 @@ export const CAPITULOS = [
       { id: 'galpon', tecla: 'O', texto: 'Construí un galpón para guardar las bolsas (O → Trabajo → Galpón de herramientas)', hecho: tiene('galponcito') },
       { id: 'molienda', tecla: '·', texto: 'Decidí qué hacer con la primera molienda', hecho: decision('molienda') },
       { id: 'cumplir', tecla: 'E', visible: (s) => s.decisiones.molienda != null, texto: (s) => textoCumplirMolienda(s), hecho: (s) => cumplioMolienda(s) },
-      { id: 'minga', tecla: 'E', texto: 'Cociná algo (pan casero, tortas fritas o empanadas) y llevalo a la minga, en la plaza de la aldea (de 9 a 17)', vecinos: true, hecho: escena('minga-vecinos') },
+      { id: 'minga', tecla: 'E', texto: 'Cociná algo (pan casero, tortas fritas o empanadas) y llevalo a la minga, en la plaza de la aldea (de 9 a 17)', vecinos: true, hecho: escena('minga-aldea') },
       { id: 'ronda', tecla: 'E', texto: 'A la mañana siguiente, entrá a tu galpón', hecho: escena('galpon-ronda') },
-      { id: 'cuaderno', tecla: 'E', texto: 'Agarrá el cuaderno que quedó en el pozo del galpón (E)', hecho: objeto('cuaderno-eusebio') },
+      { id: 'cuaderno', tecla: 'E', texto: 'Agarrá el cuaderno que quedó en el pozo del galpón (E)', hecho: (s) => s.objetos.has('cuaderno-eusebio') || s.temas.has('obj:cuaderno-eusebio') },
     ],
     decisiones: [{ id: 'molienda', tras: 'primera-molienda' }],
     outro: [
@@ -412,8 +411,8 @@ export const CAPITULOS = [
     ],
     objetivos: [
       { id: 'leer', tecla: 'E', texto: 'Leé el cuaderno de Eusebio: tres páginas (E en la mesa del refugio)', meta: 3, cuenta: (s) => paginasLeidas(s) },
-      { id: 'ercilia', tecla: 'E', texto: 'Mostrale el cuaderno a Ercilia en el almacén', vecinos: true, hecho: escena('libreta-ercilia') },
-      { id: 'josefina', tecla: 'E', texto: 'Mostrale el cuaderno a Josefina', vecinos: true, hecho: escena('cuaderno-josefina') },
+      { id: 'ercilia', tecla: 'E', texto: 'Mostrale el cuaderno a Ercilia en el almacén', vecinos: true, hecho: escena('libreta-fiado') },
+      { id: 'josefina', tecla: 'E', texto: 'Mostrale el cuaderno a Josefina', vecinos: true, hecho: escena('cuaderno-abuelo') },
       { id: 'belisario', tecla: 'E', texto: 'Andá al Puesto del Paso y preguntale a Belisario por «los del cerro» (trochita o caballo)', vecinos: true, hecho: escena('los-del-cerro') },
       { id: 'ramon', tecla: 'E', texto: 'Subí al Puesto Alto a ver a Ramón al atardecer (entre las 17 y las 20)', vecinos: true, hecho: (s) => s.escenas.has('secreto-ramon') || (s.lazos.ramon < 0 && enHora(s.horas, 17, 20) && Number(s.lugares?.puesto) <= 30) },
       { id: 'fogon', tecla: '·', texto: 'En el fogón de la aldea, de noche: contar lo del cuaderno o callar', hecho: decision('cuaderno') },
