@@ -518,7 +518,7 @@ const MUT = [
   ['historia-acompanante.js', "export const DIST_TELETRANSPORTE = 42;", "export const DIST_TELETRANSPORTE = 4200;", 'el acompañante nunca aparece a tu lado'],
   ['historia-acompanante.js', "const fx = -Math.sin(yaw), fz = -Math.cos(yaw);", "const fx = Math.sin(yaw), fz = Math.cos(yaw);", 'el acompañante se pone adelante'],
   ['historia-acompanante.js', "    if (ctx.tomada?.()) return;   // una escena lo está usando", "", 'el acompañante se mueve durante una escena'],
-  ['historia-acompanante.js', "    npc.camino = g.camino === undefined ? [] : g.camino;", "    npc.camino = [];", 'al soltarlo no vuelve a su ruta'],
+  ['historia-acompanante.js', "    npc.camino = g.camino === undefined ? (Array.isArray(npc.ruta) ? undefined : []) : g.camino;", "    npc.camino = [];", 'al soltarlo no vuelve a su ruta'],   // (4.17.1: la línea nueva)
   ['historia-escenas-efectos.js', "case 'quitar': if (una(h, clave(c))) ctx.quitar?.(p.cosa, p.n); break;", "case 'quitar': ctx.quitar?.(p.cosa, p.n); break;", 'quitar no es idempotente'],
   ['historia-escenas-efectos.js', "const clave = q === 'rosa' ? 'panadera' : q;", "const clave = q;", 'Rosa no es la panadera'],
 ];

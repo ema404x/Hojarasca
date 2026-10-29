@@ -39,6 +39,7 @@ export const ENTRADA_CAMARA = 1.2;  // y en irse al primer plano
 export const CPS = 42;              // letras por segundo del texto
 export const ACELERADO = 6;         // cuánto más rápido escribe con la tecla apretada
 export const CONFIRMAR_SALTO = 2.6; // segundos que vale el «Esc otra vez para saltar»
+export const MARGEN_ELECCION = 0.4; // 4.17.1: segundos desde que aparece una elección hasta que «seguir» (Enter, Espacio, clic) la toma
 const TOPE_PASOS = 4000;            // por si una escena con saltos hacia atrás no termina nunca
 
 // Nombres y colores de los personajes del valle (la escena puede pisarlos en `personajes`)
@@ -309,6 +310,20 @@ export function crearMirada() {
   };
 }
 
+// 4.17.1: la regla única del corte de hora en seco (un `hora` con `dur: 0`, el del apagón). Devuelve la hora a poner, o `null` si la hora
+// no se toca. Una escena nunca lleva el reloj para atrás ni se come un día por llegar tarde a su hora:
+//   · si la hora pedida ya pasó hoy (de las 18 a las 7:30 del MISMO día; menos de 12 h para atrás), la escena sigue con la hora de ahora;
+//   · si es de madrugada (antes de las 6) y la hora pedida es de la noche (desde las 18), es la noche de hoy, que ya empezó: también sigue
+//     con la de ahora (la guardia del molino, de 0,5 a 2,5, pedía las 22:36 y después +2,1 h: cruzaba otra medianoche y se comía un día);
+//   · si no, hacia adelante, como la hora con duración (de las 23 a las 7 es la mañana siguiente: pasa el día).
+// Con `atras: true` explícito, la escena puede ir para atrás (como siempre).
+export function horaDeCorte(ahora, final) {
+  const a = ((num(ahora, 12) % 24) + 24) % 24, f = ((num(final, 12) % 24) + 24) % 24;
+  if (f <= a && a - f <= 12) return null;
+  if (a < 6 && f >= 18) return null;
+  return f;
+}
+
 // ---------------------------------------------------------------- el director
 // opc: { mundo, efectos: {nombre: fn(args, ctx)}, condiciones: {nombre: fn(ctx) → bool}, estado: () => ({vistas, elecciones}), dia: () => n,
 //        alTerminar: (resultado) => void, alError: (texto) => void }
@@ -520,11 +535,19 @@ export function crearDirector(opc = {}) {
   function iniciarHora(p, instante = false) {
     const ahora = num(mundo.horaActual?.(), 12);
     const final = ((((Number.isFinite(Number(p.mas)) && p.a === undefined) ? ahora + num(p.mas) : num(p.a)) % 24) + 24) % 24;
-    if (instante || num(p.dur, 4) <= 0) { s.horaMov = null; mundo.hora?.(final); return; }
+    // 4.17.1: el corte en seco (`dur: 0`) sigue la regla única de horaDeCorte (antes iba directo a la hora pedida: atrasaba el reloj del
+    // mismo día o se comía uno); `mundo.hora` recibe hacia dónde se movió (`delta`) para saber si cruzó la medianoche
+    if (num(p.dur, 4) <= 0 && p.atras !== true) {
+      s.horaMov = null;
+      const h = horaDeCorte(ahora, final);
+      if (h !== null) mundo.hora?.(h, { delta: (((h - ahora) % 24) + 24) % 24 });
+      return;
+    }
     // siempre hacia adelante (de las 15 a las 7 es de noche corrida, no para atrás), salvo `atras: true`
     let delta = final - ahora;
     if (p.atras === true) { if (delta > 12) delta -= 24; if (delta < -12) delta += 24; }
     else if (delta < 0) delta += 24;
+    if (instante || num(p.dur, 4) <= 0) { s.horaMov = null; mundo.hora?.(final, { delta }); return; }   // (4.17.1: salteada, el mismo recorrido de una vez)
     s.horaMov = { desde: ahora, delta, final, t: 0, dur: Math.max(0.05, num(p.dur, 4)), suave: p.suave || 'suave' };
   }
   function tickHora(dt) {
@@ -692,7 +715,7 @@ export function crearDirector(opc = {}) {
       case 'hora': iniciarHora(p); if (p.sinEsperar !== true && s.horaMov) s.actual = { tipo: 'hora-espera' }; break;
       case 'clima': iniciarClima(p); if (p.esperar === true) s.actual = { tipo: 'espera', t: 0, dur: num(p.dur, 4) }; break;
       case 'eleccion':
-        s.eleccion = { p, i: acotar(Math.floor(num(p.porDefecto, 0)), 0, p.opciones.length - 1) };
+        s.eleccion = { p, i: acotar(Math.floor(num(p.porDefecto, 0)), 0, p.opciones.length - 1), desde: reloj };   // (4.17.1: `desde`, para el margen)
         s.actual = { tipo: 'eleccion' };
         break;
       case 'efecto': correrEfecto(p.nombre, p.args); break;
@@ -802,9 +825,12 @@ export function crearDirector(opc = {}) {
   function avanzar() {
     if (!s || s.fase !== 'corriendo' || !s.actual) return false;
     if (s.actual.tipo === 'dialogo' && s.dialogo) { if (avanzarLinea()) s.actual = null; return true; }
-    if (s.actual.tipo === 'eleccion') return elegir(s.eleccion.i);
+    if (s.actual.tipo === 'eleccion') return eleccionLista() ? elegir(s.eleccion.i) : false;   // 4.17.1: con el margen
     return false;
   }
+  // 4.17.1: la elección recién aparecida no se toma con un Enter, Espacio o clic de más (el que venía pasando líneas a los golpes elegía la
+  // marcada sin verla): «seguir» y el clic sobre una opción valen pasado MARGEN_ELECCION. Los números y las flechas valen siempre.
+  function eleccionLista() { return !!(s && s.fase === 'corriendo' && s.eleccion && reloj - num(s.eleccion.desde, -1e9) >= MARGEN_ELECCION); }
   function moverEleccion(d) {
     if (!s || !s.eleccion) return false;
     const n = s.eleccion.p.opciones.length;
@@ -863,7 +889,7 @@ export function crearDirector(opc = {}) {
 
   return {
     registrar, quitar, registrarEfecto, registrarCondicion, hay, ids, vista, elegible, buscarElegible, efectosFaltantes, cumple,
-    disparar, actualizar, avanzar, elegir, moverEleccion, saltar, pedirSaltar, acelerar,
+    disparar, actualizar, avanzar, elegir, moverEleccion, saltar, pedirSaltar, acelerar, eleccionLista,
     datos, camara, paraGuardar,
     activa: () => !!s,
     corriendo: () => !!s && s.fase === 'corriendo',
