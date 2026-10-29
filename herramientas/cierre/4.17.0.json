@@ -1,0 +1,34 @@
+{
+  "anterior": "4.16.0",
+  "fecha": "30-10-2026",
+  "titulo": "Historia nueva, acto III: la Historia completa",
+  "cambios": [
+    "Ramas v4170-a (mecánica y noche), v4170-b (guiones) y v4170-c (pulido de los actos I y II), juntadas. Detalle en CAMBIOS_4_17_0_A.md, _B.md y _C.md.",
+    "",
+    "- Capítulos 9 a 13 completos (los primeros fríos, trato o pelea, el arco y la honda, la noche de la nevada, el deshielo): 56 escenas, decisiones D5 (majada) y D6 (trato o pelea), dos finales con variantes, epílogo, créditos y la costumbre del trato. La Historia queda completa de punta a punta (13 capítulos).",
+    "- La noche de la nevada reemplaza la de la 4.13.0: tres olas, jefe con lomo débil, defensas prestadas por los vecinos, aliados (perro, Ramón, Josefina, Fermín con honda), ayudas de los duendes en el trato, Otra vez y Que amanezca, variante Viejo. Blancos de práctica, arreo de la majada, helada y nevada forzadas (tope de 2 días), Ramón convaleciente, escena sugerida de la pareja sólo con el amor prendido.",
+    "- Pulido de los actos I y II: 58 escenas vistas a ojo, cámara dirigida que no se mete en troncos ni muros, colocación del jugador, invitados, props nuevos (foto movida, llavecita, cantos blancos, mulas, fogón), 14 lugares nuevos, disparadores que faltaban.",
+    "- Rendimiento: el programa de profundidad de las instanciadas sin color se compila en la carga (110 a 111 de base, 0 compilaciones a mitad de juego).",
+    "- Se retiró verificar-4-13-0-historia-b y su humo (probaban la noche vieja).",
+    "- Verificación: npm run verify de corrido; pruebas nuevas de A (237), B (22830), C (71718); humos de partida real de los tres actos y del pulido en orden (con tiempos mayores: -Espera 1800 y 2400).",
+    "",
+    "## Sin ver / pendiente",
+    "- De 56 escenas del acto III sólo 4 se vieron a ojo (galpon-encuentro, noche-espera, noche-tras-ganar, umbral-fin); las variantes de pareja y del final B no.",
+    "- Sin hacer: Ramón sentado con manta junto a la estufa, Fermín en el techo, faroles de la loma y lucecitas de las raíces; sin disparador: galpon-sin-golpear, cumple-nevada, plumas-gallinero, costumbre-dejar y costumbre-regalito.",
+    "- Al llegar de noche a tu galponcito el conteo de programas llegó a subir de 111 a 113 en la corrida larga de A (la de C lo dejó en 111 en Media): revisar en la 4600G.",
+    "- Balance de la pelea (daño de los duendes bajado de x0,55 a x0,4 por criterio) sin juzgar por una persona; fps sólo en la notebook, ruido incluido.",
+    "- Pruebas de mutación de la 4.16.0 con ESM en caché (sólo la primera mutación de cada archivo mide); logros de Steam sin hacer; textos sólo en castellano."
+  ],
+  "release": "HISTORIA NUEVA, ACTO III (CAMBIOS_4_17_0.md) — capítulos 9 a 13: 56 escenas, decisiones D5 y D6, noche de la nevada, dos finales, epílogo; pulido de los actos I y II (58 escenas vistas a ojo); la Historia queda completa de punta a punta",
+  "seguir": "Historia nueva, acto III (CAMBIOS_4_17_0.md, detalle en _A, _B y _C): la Historia queda COMPLETA (13 capítulos). **Sigue:** que una persona la juegue de punta a punta y cuente qué se siente largo o flojo; subtramas optativas y pulido; lo marcado sin hacer en CAMBIOS_4_17_0.md; fps en la 4600G (4.12.x, noche); luego Steam (fuses de Electron, steamworks, logros nuevos) y el inglés al final. Los humos de la Historia tardan más (-Espera 1800, el del pulido 2400). Herramienta de cierre: herramientas/cerrar-version.cjs. Pendiente de antes: W2 sombras cercanas, audio al minimizar, puente con carro.",
+  "leemeNovedades": [
+    "- La Historia está completa: «El trato del molino», 13 capítulos, de la llegada en verano al deshielo. Del 9 al 13: los primeros fríos, la decisión de tratar o pelear con los duendes, el arco y la honda, la noche de la nevada (con tres olas y aliados) y el deshielo, con dos finales.",
+    "- Se pulieron las escenas de los capítulos 1 a 8: la cámara ya no se mete en troncos y paredes, y aparecen objetos nuevos (la foto movida, la llavecita, los cantos blancos, las mulas).",
+    "- Quien tenga una partida vieja en modo Historia verá la tarjeta de aviso del reinicio (se guarda una copia)."
+  ],
+  "leemeMirar": [
+    "- Si la Historia entera se sostiene de punta a punta: qué capítulo se hace largo, cuál confunde, cuál emociona.",
+    "- Si la noche de la nevada es difícil o fácil, con trato y con pelea.",
+    "- Si los dos finales te dejan con ganas, y si las decisiones se sienten importantes."
+  ]
+}
