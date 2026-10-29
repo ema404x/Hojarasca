@@ -1,0 +1,28 @@
+{
+  "anterior": "4.15.0",
+  "fecha": "29-10-2026",
+  "titulo": "Historia nueva, acto II",
+  "cambios": [
+    "Ramas v4160-a (mecánica) y v4160-b (guiones), juntadas. Detalle en CAMBIOS_4_16_0_A.md y CAMBIOS_4_16_0_B.md.",
+    "",
+    "- Capítulos 5 a 8 completos (la rueda, lo que se pierde, la cosecha, el cuaderno de Eusebio): 37 escenas, decisiones D2 (coihue), D3 (molienda) y D4 (cuaderno), objetivos, momentos, premios, objetos en el mundo, coihue grande talable, puerta de estación con tope de 2 días, esperar sentado, acompañante a pie.",
+    "- Pendientes del acto I resueltos: la opción de Rosa se ofrece sólo si Rosa ya vive en la aldea; piñones, cuchara y puertita se dibujan; Elsa se ve en escena.",
+    "- Verificación: npm run verify de corrido (321 pasos); pruebas nuevas de A (478) y B (1610); humos de partida real con las escenas reales en orden.",
+    "",
+    "## Sin ver / pendiente",
+    "- 22 de las 37 escenas del acto II no se miraron a ojo. Dudosas: tito-coihue, rueda-gira (cámara contra un tronco, sin la rueda), huellas-escarcha (helecho en la lente), guardia-molino (oscura), ramon-raiz (Ramón chico) y fermin-galpon del acto I (cámara pegada al muro).",
+    "- Los duendes del acto II corrieron pero no se vieron en pantalla; Tobías con la escena real tampoco.",
+    "- Sin disparador: tablas-tito, foto-sofia y mulas-belisario. Props sin dibujar: foto movida, llavecita, diez cantos blancos, mulas, nieve alta.",
+    "- Caminar de día por el molino viejo compila un programa de shader más (110 a 111), igual que antes.",
+    "- fps en la 4600G sin medir; textos sólo en castellano."
+  ],
+  "release": "HISTORIA NUEVA, ACTO II (CAMBIOS_4_16_0.md) — capítulos 5 a 8 completos con 37 escenas, decisiones del coihue, la molienda y el cuaderno, coihue grande talable, puerta de estación; pendientes del acto I resueltos; herramienta herramientas/cerrar-version.cjs y skill hojarasca-historia",
+  "seguir": "Historia nueva, acto II (CAMBIOS_4_16_0.md, detalle en _A y _B): capítulos 5 a 8 completos. **Sigue:** acto III (capítulos 9 a 13: primeros fríos, trato o pelea, el arco y la honda, la noche de la nevada, el deshielo), que reemplaza la noche de la 4.13.0 y mide fps. Herramienta nueva: herramientas/cerrar-version.cjs (juntar, docs, publicar). Pendiente a ojo humano: 22 escenas del acto II sin mirar; duendes del acto II sin verse en pantalla. Pendiente de antes: fps en la 4600G, humo-4-13-0-historia-b por foco, W2 sombras cercanas, audio al minimizar, puente con carro.",
+  "leemeNovedades": [
+    "- Siguen los capítulos de la Historia: del 5 al 8 (otoño) ya están completos, con escenas con cámara y diálogos y tres decisiones grandes: el coihue de las puertitas, la primera molienda y el cuaderno de Eusebio. Del 9 al 13 todavía dice «continuará».",
+    "- La opción de llevarle la bolsa a Rosa sólo aparece cuando Rosa ya vive en la aldea."
+  ],
+  "leemeMirar": [
+    "- Si las escenas del otoño se leen cómodas y la cámara acompaña; si las tres decisiones se sienten importantes; si el ritmo de las misiones no se hace largo."
+  ]
+}
