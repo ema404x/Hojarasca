@@ -258,6 +258,16 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
     ok(new RegExp(l === 'predio' ? 'P\.predio' : `'${l}'`).test(main), `main.js arma el punto «${l}»`);
   }
 
+  // ---------------------------------------------------------------- 4b. el programa de profundidad de más (110 a 111 al ir de día al molino viejo o al faro)
+  {
+    const piel = leer(muta('animales-piel.js') ? 'src/animales-piel' + sufijo + '.js' : 'src/animales-piel.js');
+    const cuerpo = (piel.match(/export function precalentarSilueta[\s\S]*?\n\}\n/) || [''])[0];
+    ok(/const instancia = new THREE\.InstancedMesh\(geo, mat, 1\);/.test(cuerpo) && /instancia\.castShadow = true/.test(cuerpo), 'la carga dibuja una instanciada con sombra (el programa de profundidad de los álamos de la aldea)');
+    ok(!/setColorAt|instanceColor/.test(cuerpo), 'sin color por instancia (esa variante ya la cubre la piel de los animales)');
+    ok(/escena\.add\(instancia\);/.test(cuerpo) && /escena\.remove\(instancia\);/.test(cuerpo) && (cuerpo.match(/dibujar\(\)/g) || []).length === 1, 'se agrega y se saca en el mismo dibujo de la carga: ningún dibujo de más');
+    ok(/instancia\.setMatrixAt\(0, new THREE\.Matrix4\(\)\)/.test(cuerpo), 'con su matriz de instancia (sin eso no se dibuja)');
+  }
+
   // ---------------------------------------------------------------- 5. la cámara que no se mete adentro de nada, y las personas que se piden desde lejos
   const em = leer('src/escenas-mundo.js');
   ok(/function despejarCamara\(c, dt, id\)/.test(em) && /aplicarCamara\(dt\);/.test(em) && /c = despejarCamara\(c, dt, director\.idActual\?\.\(\)\)/.test(em), 'escenas-mundo.js despeja la cámara en cada cuadro de la escena');
@@ -347,6 +357,7 @@ const MUTACIONES = [
   ['escenas-mundo.js', 'la cámara despejada no tiene mínimo', 'minimo: 1.3,', 'minimo: 0.05,'],
   ['escenas-mundo.js', 'la cámara lejos puede ir a ras del suelo', 'bajoLejos: 1.3,', 'bajoLejos: 0.45,'],
   ['escenas.js', 'la cámara sobre el jugador no sigue su mirada', 'return ctx.base.yaw;', 'return 0;'],
+  ['animales-piel.js', 'la carga no dibuja la instanciada sin color', 'const instancia = new THREE.InstancedMesh(geo, mat, 1);', 'const instancia = new THREE.Mesh(geo, mat);'],
   ['escenas.js', 'los planos no llevan foco', 'fov, foco: { x: mira.x, y: mira.y, z: mira.z } };', 'fov };'],
 ];
 {

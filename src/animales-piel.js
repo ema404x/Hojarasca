@@ -556,9 +556,18 @@ export function precalentarSilueta(escena, camara, dibujar) {
   malla.castShadow = true; malla.receiveShadow = false; malla.frustumCulled = false;
   const dir = new THREE.Vector3(); camara.getWorldDirection(dir);
   malla.position.set(camara.position.x + dir.x * 3, camara.position.y - 1.2, camara.position.z + dir.z * 3);
+  // 4.17.0 (C): y una instanciada SIN color por instancia, con sombra (los álamos de la aldea, entre otras): su programa de profundidad (instancing sin instancingColor,
+  // el que no cubre la instancia con color de la piel de abajo) se compilaba la primera vez que entraba en el mapa de sombras: +1 programa (110 a 111) al ir de día al molino viejo
+  const instancia = new THREE.InstancedMesh(geo, mat, 1);
+  instancia.setMatrixAt(0, new THREE.Matrix4());
+  instancia.castShadow = true; instancia.receiveShadow = false; instancia.frustumCulled = false;
+  instancia.position.copy(malla.position);
   escena.add(malla);
+  escena.add(instancia);
   try { dibujar(); } finally {
     escena.remove(malla);
+    escena.remove(instancia);
+    instancia.dispose?.();
     geo.dispose(); mat.dispose();
   }
   return true;
