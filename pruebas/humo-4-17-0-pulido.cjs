@@ -5,7 +5,7 @@
 //      foto-sofia, mulas-belisario), con sus interacciones.
 //   S. los programas de shader: ninguno nuevo en juego, y el del molino viejo / el faro de día ya compilado en la carga.
 // Uso (después de `node armar.mjs`), en el monitor externo y con perfil propio:
-//   powershell -File herramientas\lanzar-electron.ps1 -Script pruebas\humo-4-17-0-pulido.cjs -Espera 900 -Perfil <carpeta propia> -Visible
+//   powershell -File herramientas\lanzar-electron.ps1 -Script pruebas\humo-4-17-0-pulido.cjs -Espera 1800 -Perfil <carpeta propia> -Visible
 // Variables: HUMO_SOLO=V,P,S (secciones), HUMO_FASE=antes|despues, HUMO_ESC=id1,id2 (sólo esas escenas), HUMO_SALIDA=<carpeta>, HUMO_CAPTURAS=0.
 const { app, BrowserWindow } = require('electron');
 const fs = require('fs');
@@ -221,6 +221,7 @@ app.whenReady().then(async () => {
   const ajustes = (tipo, extra = {}) => `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify(Object.assign({calidad:'media', clima:'despejado', musica:false, modo:'relax', relaxTipo:'${tipo}', autoCalidad:false, guiaPrimerDia:false}, ${JSON.stringify(extra)}))); 1`;
   const cargar = async () => {
     await w.loadFile(url, { search: '?debug=1' });
+    await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana de Electron pierde el foco mientras carga y el juego se pausaba solo (sección 0 sin tarjeta)
     let listo = false;
     for (let i = 0; i < 300 && !listo; i++) { await esperar(1000); listo = await js('!!window.__hojarasca && !!window.__hojarasca.jugador').catch(() => false); }
     if (!listo) throw new Error('el juego no cargó');

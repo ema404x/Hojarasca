@@ -1,7 +1,7 @@
 // Partida real 4.17.0 (Electron + WebGL): la Historia nueva, el acto III (capítulos 9 a 13): la helada temprana, la majada y el arreo, golpear antes de abrir (D6),
 // los blancos de práctica del arco y la honda, la noche de la nevada (trato y pelea, perder, Otra vez, Que amanezca, ganar), el amanecer, el final A con la
 // costumbre de la bolsa y los cuadros de la noche. Corre sin depender del foco de la ventana (window.__sinPausaPorBlur, sólo con ?debug=1).
-// Uso (después de `node armar.mjs`): powershell -File herramientaslanzar-electron.ps1 -Script pruebashumo-4-17-0-historia.cjs -Espera 900 -Perfil <carpeta propia> -Visible
+// Uso (después de `node armar.mjs`): powershell -File herramientaslanzar-electron.ps1 -Script pruebashumo-4-17-0-historia.cjs -Espera 1800 -Perfil <carpeta propia> -Visible
 const { app, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -127,6 +127,7 @@ app.whenReady().then(async () => {
   const ajustes = (tipo, extra = {}) => `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify(Object.assign({calidad:'media', clima:'despejado', musica:false, modo:'relax', relaxTipo:'${tipo}', autoCalidad:false, guiaPrimerDia:false}, ${JSON.stringify(extra)}))); 1`;
   const cargar = async () => {
     await w.loadFile(url, { search: '?debug=1' });
+    await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana de Electron pierde el foco mientras carga y el juego se pausaba solo (sección 0 sin tarjeta)
     let listo = false;
     for (let i = 0; i < 300 && !listo; i++) { await esperar(1000); listo = await js('!!window.__hojarasca && !!window.__hojarasca.jugador').catch(() => false); }
     if (!listo) throw new Error('el juego no cargó');

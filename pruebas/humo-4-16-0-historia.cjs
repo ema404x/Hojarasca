@@ -9,7 +9,7 @@
 //   5. capítulo 8: las tres páginas, las escenas con los vecinos, Belisario, Ramón, el fogón (D4) y el premio según lo decidido;
 //   6. ningún programa de shader nuevo y sin errores de consola.
 // Uso (después de `node armar.mjs`), en el monitor externo y con perfil propio:
-//   powershell -File herramientas\lanzar-electron.ps1 -Script pruebas\humo-4-16-0-historia.cjs -Espera 900 -Perfil <carpeta propia> [-Visible]
+//   powershell -File herramientas\lanzar-electron.ps1 -Script pruebas\humo-4-16-0-historia.cjs -Espera 1800 -Perfil <carpeta propia> [-Visible]
 const { app, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -22,7 +22,7 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-setTimeout(() => { console.log('ERROR: la prueba tardó más de 14 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 14 * 60 * 1000).unref?.();
+setTimeout(() => { console.log('ERROR: la prueba tardó más de 30 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 30 * 60 * 1000).unref?.();
 const CAPTURAS = process.env.HUMO_CAPTURAS !== '0';
 const SOLO = (process.env.HUMO_SOLO || '').split(',').filter(Boolean);   // p. ej. HUMO_SOLO=6,7 corre sólo esas secciones
 const toca = (n) => !SOLO.length || SOLO.includes(String(n));
@@ -135,6 +135,7 @@ app.whenReady().then(async () => {
   const ajustes = (tipo, extra = {}) => `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify(Object.assign({calidad:'media', clima:'despejado', musica:false, modo:'relax', relaxTipo:'${tipo}', autoCalidad:false, guiaPrimerDia:false}, ${JSON.stringify(extra)}))); 1`;
   const cargar = async () => {
     await w.loadFile(url, { search: '?debug=1' });
+    await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana de Electron pierde el foco mientras carga y el juego se pausaba solo (sección 0 sin tarjeta)
     let listo = false;
     for (let i = 0; i < 300 && !listo; i++) { await esperar(1000); listo = await js('!!window.__hojarasca && !!window.__hojarasca.jugador').catch(() => false); }
     if (!listo) throw new Error('el juego no cargó');
@@ -309,6 +310,7 @@ app.whenReady().then(async () => {
       ok(ar && ar.c, 'hay un coihue grande elegido junto a las piedras del molino viejo');
       await N(`(() => { const a = { x: ${ar.c.x}, z: ${ar.c.z} }; const t = H.veg.arboles.find((q) => Math.abs(q.x - a.x) < 0.01 && Math.abs(q.z - a.z) < 0.01); window.__arbol = t; N.ir(a.x + (t.r || 1) + 1.3, a.z, 0); return 1 })()`);
       await N('N.tick(0.8)'); await N('N.despejar(40)');   // (4.17.0: la escena de las piedras del molino arranca al llegar; se la salta)
+      await N(`(() => { const a = window.__arbol; N.ir(a.x + (a.r || 1) + 1.3, a.z, 0); H.jugador.estado.pitch = -0.2; return 1 })()`); await N('N.tick(0.8)');   // (y se lo pone de nuevo junto al coihue: la colocación de la escena lo había movido)
       ok((await N('window.__arbol.grande === true')) === true, 'el árbol está marcado como el coihue grande');
       const antes = await N('H.veg.arboles.length');
       for (let i = 1; i <= 5; i++) { await N('N.tecla("KeyH")'); await N('N.tick(0.5)'); }

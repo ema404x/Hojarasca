@@ -96,6 +96,7 @@ app.whenReady().then(async () => {
   const ajustes = (tipo) => `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'media', clima:'despejado', musica:false, modo:'relax', relaxTipo:'${tipo}', autoCalidad:false})); 1`;
   const cargar = async () => {
     await w.loadFile(url, { search: '?debug=1' });
+    await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana de Electron pierde el foco mientras carga y el juego se pausaba solo (sección 0 sin tarjeta)
     let listo = false;
     for (let i = 0; i < 300 && !listo; i++) { await esperar(1000); listo = await js('!!window.__hojarasca && !!window.__hojarasca.jugador').catch(() => false); }
     if (!listo) throw new Error('el juego no cargó');
