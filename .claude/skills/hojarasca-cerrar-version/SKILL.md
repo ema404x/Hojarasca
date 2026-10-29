@@ -7,6 +7,8 @@ description: Pasos para cerrar y entregar una versión de Hojarasca (versión, d
 
 Pedir OK al usuario antes del push si no lo pidió. Distinguir siempre lo verificado de lo que no.
 
+**Atajo (4.16):** `herramientas/cerrar-version.cjs` hace lo mecánico. `juntar <rama>` (merge y choque de package.json), `docs <ver>` (pasos 1, 4 y 6 desde `herramientas/cierre/<ver>.json`: ver el encabezado del script), el gate `npm run verify` a mano, y `publicar <ver> <rama>` en el repo principal (ff a main, armar, etiqueta, push y zip). Los pasos de abajo siguen valiendo para entender qué hace.
+
 1. **Versión:** `package.json` y sólo la raíz de `package-lock.json` (las dos líneas que siguen a `"name": "hojarasca"`), con Node. Nunca desde PowerShell.
 2. **Gate:** `node armar.mjs` y `npm run verify` completo de corrido: anotar el número exacto de pasos. `npm run verify:paralelo` sirve durante el trabajo, no para cerrar.
 3. **Partidas reales** relacionadas, de a una (skill `hojarasca-partidas`), y las capturas vistas a tamaño completo.
