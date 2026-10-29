@@ -94,11 +94,12 @@ const FORMAS = {
     esfera(c, 0.022, [0.07, 0.2, 0.025], '#e7ddc6', [1, 1, 1], 0.02);
     caja(c, [0.04, 0.05, 0.02], [-0.12, 0.2, 0.02], '#4a3624', [0.1, 0, 0.12], 0.05);
   },
+  // 4.17.0: el tocón más alto (se perdía entre los lupinos, que le llegan a la rodilla)
   'hacha-tocon': (c) => {
-    palo(c, 0.4, 0.42, [0, 0.21, 0], [0, 0, 0], '#6b4f35');
-    palo(c, 0.4, 0.04, [0, 0.43, 0], [0, 0, 0], '#c9ac80');
-    caja(c, [0.05, 0.62, 0.05], [0.05, 0.72, 0.02], '#7a5a38', [0, 0, 0.18], 0.06);
-    caja(c, [0.2, 0.15, 0.05], [0.12, 0.99, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
+    palo(c, 0.42, 0.95, [0, 0.475, 0], [0, 0, 0], '#6b4f35');
+    palo(c, 0.42, 0.04, [0, 0.96, 0], [0, 0, 0], '#c9ac80');
+    caja(c, [0.05, 0.62, 0.05], [0.05, 1.25, 0.02], '#7a5a38', [0, 0, 0.18], 0.06);
+    caja(c, [0.2, 0.15, 0.05], [0.12, 1.52, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
   },
   // 4.16.0: los props del acto II y los del acto I que antes sólo dejaban una marca
   'dedal-poste': (c) => {
@@ -134,7 +135,7 @@ const FORMAS = {
     caja(c, [0.03, 0.062, 0.2], [0, 0.062, 0], '#b8432f', [0, 0.3, 0], 0.03);
   },
   pinones: (c) => {
-    for (let i = 0; i < 5; i++) esfera(c, 0.035, [Math.cos(i * 1.7) * 0.12, 0.47, Math.sin(i * 1.7) * 0.12], '#5a3a22', [1, 1.6, 1], 0.1);
+    for (let i = 0; i < 5; i++) esfera(c, 0.035, [Math.cos(i * 1.7) * 0.12, 1.0, Math.sin(i * 1.7) * 0.12], '#5a3a22', [1, 1.6, 1], 0.1);
   },
   'cuchara-techo': (c) => {
     palo(c, 0.012, 0.36, [0, 0.03, 0], [0, 0, 1.25], '#b89462');
@@ -170,6 +171,42 @@ const FORMAS = {
     const r = Math.max(0.8, Number(info?.r) || 1.4) + 0.95;
     for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2; esfera(c, 0.27, [Math.cos(a) * r, 0.17, Math.sin(a) * r], i % 3 ? '#8d8a82' : '#76736b', [1, 0.65, 1], 0.12); }
     for (let i = 0; i < 17; i++) { const a = ((i + 0.5) / 17) * Math.PI * 2; esfera(c, 0.22, [Math.cos(a) * (r - 0.05), 0.4, Math.sin(a) * (r - 0.05)], '#8d8a82', [1, 0.7, 1], 0.12); }
+  },
+  // 4.17.0 (C): los que faltaban. Una foto sobre la mesa con tres manchas doradas (la foto movida del lago) y la llavecita de bronce de Herminia
+  'foto-movida': (c) => {
+    caja(c, [0.23, 0.012, 0.17], [0, 0.006, 0], '#e9e2d0', [0, 0.3, 0], 0.03);
+    caja(c, [0.2, 0.004, 0.14], [0, 0.014, 0], '#26221e', [0, 0.3, 0], 0.02);
+    [[-0.05, 0.025], [0.015, -0.03], [0.06, 0.03]].forEach(([x, z]) => esfera(c, 0.017, [x, 0.018, z], '#e6b04a', [1, 0.3, 1], 0.05));
+  },
+  llavecita: (c) => {
+    esfera(c, 0.028, [0, 0.012, 0], '#c9a24a', [1.2, 0.3, 1.2], 0.04);
+    caja(c, [0.11, 0.008, 0.014], [0.07, 0.008, 0], '#c9a24a', [0, 0, 0], 0.04);
+    caja(c, [0.012, 0.008, 0.03], [0.115, 0.008, 0.012], '#c9a24a', [0, 0, 0], 0.04);
+  },
+  // los diez cantos blancos que alguien rellenó en la veta de la cantera: un montoncito contra la pared de piedra
+  'cantos-veta': (c) => {
+    for (let i = 0; i < 10; i++) {
+      const capa = i < 5 ? 0 : i < 8 ? 1 : 2, k = i < 5 ? i : i < 8 ? i - 5 + 0.5 : 1.5;
+      esfera(c, 0.15, [k * 0.28 - 0.56, 0.1 + capa * 0.2, capa * 0.02], '#f3f0e8', [1, 0.78, 0.9], 0.02);
+    }
+  },
+  // la tropa de mulas de Belisario: siete en fila, con la carga atada (cada una: cuerpo, cuello, cabeza, orejas, cuatro patas, cola y bulto)
+  mulas: (c) => {
+    const pelos = ['#7a6650', '#5d4b3a', '#8a7a68', '#4d4036', '#6e5d4a', '#85705a', '#5a4a3c'];
+    for (let i = 0; i < 7; i++) {
+      const bx = i * 1.7, bz = Math.sin(i * 1.3) * 0.3, giro = Math.sin(i * 2.1) * 0.12, cg = Math.cos(giro), sg = Math.sin(giro);
+      const loc = (x, y, z) => [bx + x * cg + z * sg, y, bz - x * sg + z * cg];
+      const pelo = pelos[i];
+      caja(c, [0.55, 0.52, 1.25], loc(0, 1.0, 0), pelo, [0, giro, 0], 0.08);
+      caja(c, [0.24, 0.55, 0.26], loc(0, 1.25, 0.72), pelo, [0.5, giro, 0], 0.08);
+      caja(c, [0.22, 0.24, 0.46], loc(0, 1.45, 1.0), pelo, [0.2, giro, 0], 0.08);
+      caja(c, [0.07, 0.22, 0.05], loc(-0.07, 1.67, 0.9), pelo, [0, giro, -0.1], 0.06);
+      caja(c, [0.07, 0.22, 0.05], loc(0.07, 1.67, 0.9), pelo, [0, giro, 0.1], 0.06);
+      for (const [px, pz] of [[-0.18, -0.48], [0.18, -0.48], [-0.18, 0.48], [0.18, 0.48]]) caja(c, [0.12, 0.76, 0.12], loc(px, 0.38, pz), '#3d3228', [0, giro, 0], 0.06);
+      caja(c, [0.06, 0.5, 0.06], loc(0, 0.95, -0.68), '#3d3228', [-0.25, giro, 0], 0.06);
+      caja(c, [0.78, 0.34, 0.8], loc(0, 1.46, -0.05), i % 2 ? '#cdbfa0' : '#a98558', [0, giro, 0], 0.08);
+      caja(c, [0.8, 0.05, 0.12], loc(0, 1.45, -0.05), '#b8432f', [0, giro, 0], 0.05);
+    }
   },
   raiz: (c) => {
     for (let i = 0; i < 5; i++) {

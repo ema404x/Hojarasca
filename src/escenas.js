@@ -183,10 +183,14 @@ export function resolverRef(ref, mundo) {
 
 export function poseMirando(pos, mira, fov = 60) {
   const dx = mira.x - pos.x, dy = mira.y - pos.y, dz = mira.z - pos.z;
-  return { x: pos.x, y: pos.y, z: pos.z, yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)), fov };
+  // 4.17.0 (C): `foco` es el punto al que mira la cámara; escenas-mundo.js lo usa para que la cámara no se meta adentro de un árbol o un muro
+  return { x: pos.x, y: pos.y, z: pos.z, yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)), fov, foco: { x: mira.x, y: mira.y, z: mira.z } };
 }
 export function mezclarPoses(a, b, u) {
-  return { x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u), yaw: lerpAng(a.yaw, b.yaw, u), pitch: lerp(a.pitch, b.pitch, u), fov: lerp(a.fov, b.fov, u) };
+  const r = { x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u), yaw: lerpAng(a.yaw, b.yaw, u), pitch: lerp(a.pitch, b.pitch, u), fov: lerp(a.fov, b.fov, u) };
+  // 4.17.0 (C): el foco es el de la pose de llegada (si las dos lo tienen, el intermedio); al volver al jugador (que no tiene) no hay
+  if (b.foco) r.foco = a.foco ? { x: lerp(a.foco.x, b.foco.x, u), y: lerp(a.foco.y, b.foco.y, u), z: lerp(a.foco.z, b.foco.z, u) } : { ...b.foco };
+  return r;
 }
 const poseValida = (p) => !!p && ['x', 'y', 'z', 'yaw', 'pitch', 'fov'].every((k) => Number.isFinite(p[k]));
 

@@ -65,6 +65,9 @@ const lugaresDelJuego = () => {
   return r;
 };
 const CLAVES = clavesDelJuego(), LUGARES = lugaresDelJuego();
+// 4.17.0 (C): los puntos de la historia (main.js: puntosDeHistoria) también sirven de ancla ({ lugar: 'raiz-ramon' }, { lugar: 'coihue' }…)
+const PUNTOS_HISTORIA = (await import('../src/historia-disparadores.js')).LUGARES_HISTORIA;
+for (const l of PUNTOS_HISTORIA) LUGARES.add(l);
 
 // ---------------------------------------------------------------- recorrer los textos de las escenas
 function textosDe(e) {
@@ -135,7 +138,7 @@ function mundoFalso() {
   const claves = ['guarda', 'ramon', 'ema', 'ercilia', 'nicanor', 'nelida', 'jefe', 'abuela', 'panadera', 'fermin', 'graciela', 'carpintero', 'tobias', 'belisario', 'nene', 'nena', 'fotografa'];
   const actores = {};
   claves.forEach((k, i) => { actores[k] = { x: 30 + i * 3, y: 0, z: -20 - i * 2, meta: null, vel: 1.4, capt: false, visible: true }; });
-  const lugares = { refugio: { x: -120, z: 232 }, estacion: { x: 300, z: 90 }, almacen: { x: 60, z: 40 }, galpon: { x: 228, z: -110 }, mirador: { x: -292, z: 36 }, molino: { x: -80, z: 120 }, faro: { x: -200, z: 300 }, muelle: { x: -150, z: 260 }, mallin: { x: 100, z: -200 } };
+  const lugares = { refugio: { x: -120, z: 232 }, estacion: { x: 300, z: 90 }, almacen: { x: 60, z: 40 }, galpon: { x: 228, z: -110 }, mirador: { x: -292, z: 36 }, molino: { x: -80, z: 120 }, faro: { x: -200, z: 300 }, muelle: { x: -150, z: 260 }, 'molino-viejo': { x: -60, z: 150 }, coihue: { x: -70, z: 160 }, 'raiz-ramon': { x: -150, z: 120 }, 'molino-propio': { x: -75, z: 140 }, plaza: { x: 10, z: 50 }, cantera: { x: -405, z: -305 }, mallin: { x: 100, z: -200 } };
   const w = {
     actores, hv: 18, sonidos: [], posadas: [], tele: [], libres: [], empezo: 0, termino: 0, horas: [],
     puedeEmpezar: () => true,

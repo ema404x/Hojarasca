@@ -228,9 +228,10 @@ const bolsaAlero = {
   personajes: personajesDe('nota', 'narra'),
   pasos: [
     sonido('juntar'),
-    plano('detalle', FRENTE(1.1), { dist: 0.8, alto: 1.5, dur: 3, mezcla: 0.8 }),
+    // 4.17.0: el jugador queda a 2,3 m del alero (COLOCACION_ESCENA): la bolsa está ahí, no a un metro (la cámara miraba el pasto y después se pegaba al muro)
+    plano('detalle', FRENTE(2.3), { dist: 1.5, alto: 1.3, miraY: 0.6, dur: 3, mezcla: 0.8 }),
     narra('Entre la chapa y la viga, envuelta en arpillera, hay una bolsa de harina atada con un piolín colorado. Y una nota, doblada en cuatro.'),
-    plano('primer', FRENTE(1.1), { dist: 0.9, alto: 1.5, dur: 2.2, mezcla: 0.6 }),
+    plano('primer', FRENTE(2.3), { dist: 1.7, alto: 1.4, miraY: 0.8, dur: 2.2, mezcla: 0.6 }),
     efecto('objeto:bolsa-eusebio'),
     dlg('nota', [
       'Para la raíz del coihue grande del molino viejo, antes del primer frío.',

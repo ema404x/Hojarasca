@@ -31,7 +31,7 @@ const primeraMolienda = {
       'Diez bolsas a Esquel son media tonelada para el ramal.',
       linea('Media tonelada que figura en la planilla.', { gesto: gs('contar', 2) }),
     ]),
-    plano('hombro', FRENTE(24, -6), { desde: 'josefina', atras: 0, costado: 0, miraY: 6, alto: 1.7, mezcla: 0.9, dur: 3 }),
+    plano('hombro', { lugar: 'coihue' }, { desde: 'josefina', atras: 0, costado: 0, miraY: 6, alto: 1.7, mezcla: 0.9, dur: 3 }),
     dlg('josefina', [
       linea('Mi abuelo dejaba una aparte. Siempre una aparte.', { gesto: gs('mirar', 2.4) }),
     ]),

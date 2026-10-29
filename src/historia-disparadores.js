@@ -18,6 +18,8 @@
 import { capituloActual, marcarTema, marcarObjeto, marcarEntrega, anotarRaro, cambiarLazo, sumarRamal, duendesDe, horaEntre, lazoDe } from './historia.js';
 // 4.16.0: el acto II (capítulos 5 a 8)
 import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2, cuadernoVisible } from './historia-disparadores-acto2.js';
+// 4.17.0 (C): dónde se pone al jugador antes de las escenas de los actos I y II (historia-colocacion.js)
+import { COLOCACION_PULIDO } from './historia-colocacion.js';
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
@@ -158,8 +160,8 @@ export function alCerrarCapitulo(h, capId, dia = 1) {
 // Cada uno: dónde (en coordenadas locales del refugio: x a la derecha, z hacia donde mira la puerta), cuándo se ve, y qué hace la E.
 // `clave` es el id del objeto en `interaccion` de los disparadores y en `h.objetos` (lo levantado).
 export const OBJETOS = {
-  'ronda': { forma: 'ronda', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco') },
-  'canto-blanco': { forma: 'canto', lx: 0.1, lz: 3.7, visible: (s) => s.escenas.has('ronda-umbral') && !s.objetos.has('canto-blanco'),
+  'ronda': { forma: 'ronda', lx: 0.1, lz: 3.7, visible: (s) => (s.escenas.has('ronda-umbral') || s.temas.has('mundo:ronda-ramitas')) && !s.objetos.has('canto-blanco') },   // (4.17.0: también mientras corre la escena, que la pone con un efecto)
+  'canto-blanco': { forma: 'canto', lx: 0.1, lz: 3.7, visible: (s) => (s.escenas.has('ronda-umbral') || s.temas.has('mundo:ronda-ramitas')) && !s.objetos.has('canto-blanco'),
     aviso: 'Mirar el canto blanco del umbral', marca: 'canto-blanco', nota: ['Un canto blanco', 'Liso como un huevo. Lo dejás en la repisa, al lado de la ventana'] },
   'nota-mesa': { forma: 'nota', lx: 1.1, lz: -0.6, visible: (s, h) => s.escenas.has('nota-eusebio') && !cuadernoVisible(h, s),
     aviso: 'Releer la nota de Eusebio', nota: ['La nota de Eusebio', 'No toques el frasco de la repisa, que es masa madre de 1987. Y gracias. E. M.'] },
@@ -186,6 +188,7 @@ export const COLOCACION_ESCENA = {
   'ronda-umbral': { lx: 0.1, lz: 5.4, mira: [0.1, 3.7] },
   'hacha-tocon': { lx: -2.2, lz: 9.0, mira: [-5.5, 6.0] },
   'bolsa-alero': { lx: 2.6, lz: 5.6, mira: [2.6, 3.3] },
+  ...COLOCACION_PULIDO,   // (4.17.0: las de un lugar o una persona, no del refugio)
 };
 
 // Los objetos que se ven ahora

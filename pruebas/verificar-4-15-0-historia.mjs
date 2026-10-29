@@ -338,7 +338,7 @@ async function chequear(arch = '', sufijo = '') {
     for (const id of ids1) ok(conDisp.has(id), `${id}: tiene su disparador`);
     for (const id of conDisp) ok(ids.includes(id), `${id}: el disparador es de una escena conocida`);
     for (const [k, d] of Object.entries(D.DISPARADORES)) {
-      ok(Object.hasOwn(H.CAPITULO, d.cap), `${k}: el capítulo existe`);
+      for (const cp of [].concat(d.cap)) ok(Object.hasOwn(H.CAPITULO, cp), `${k}: el capítulo existe`);   // (4.17.0: un disparador puede valer en varios capítulos)
       ok(H.CAPITULOS.indexOf(H.CAPITULO[d.cap]) < 8, `${k}: es del acto I o del II`);
       ok(['auto', 'hablar', 'interaccion'].includes(d.modo), `${k}: modo`);
       if (d.modo !== 'auto') ok(typeof d.clave === 'string', `${k}: la clave`);

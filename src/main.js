@@ -87,7 +87,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
+import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
@@ -268,6 +268,10 @@ import { ESCENAS_ACTO1, EFECTOS_ACTO1 } from './historia-escenas-acto1.js';
 import { ESCENAS_ACTO2, EFECTOS_ACTO2 } from './historia-escenas-acto2.js';
 import { crearAcompanante } from './historia-acompanante.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
+// 4.17 C: dónde se pone al jugador antes de una escena (historia-colocacion.js)
+import { resolverColocacion } from './historia-colocacion.js';
+// 4.17 C (sólo para el gancho de depuración __colocarEscena)
+import { COLOCACION_ESCENA } from './historia-disparadores.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
 import { crearGracielaMundo } from './historia-graciela.js';
@@ -322,7 +326,8 @@ import { crearGenteCampoJuego } from './gente-campo-juego.js';
 import { crearGenteCampoMundo } from './gente-campo-mundo.js';
 import { crearTablonMundo } from './tablon-mundo.js';
 import { existeEnJuego } from './tablon.js';
-import { genteCampoDe } from './gente-campo.js';
+// (4.17 C: la cantera y el puesto del paso, como lugares de la historia)
+import { genteCampoDe, CANTERA as CANTERA_HIST, PUESTO_PASO as PUESTO_PASO_HIST } from './gente-campo.js';
 import { avisoDe, hacerConE } from './interacciones.js';
 
 const $ = (id) => document.getElementById(id);
@@ -928,9 +933,11 @@ async function construir() {
   if (!esDesafio) {
     escenasMundo = crearEscenasMundo({
       doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
+      puntos: () => puntosCacheadosDeHistoria(),   // 4.17 C: los lugares de la historia sirven de ancla ({ lugar: 'raiz-ramon' })
+      armarYa: (k) => genteCampoMundo?.armarYa?.(k) || invitadoDeHistoria(k),   // 4.17 C: Fermín, Belisario y Tobías se arman al pedirlos una escena, aunque estés lejos de su lugar
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => { const js = jugador.estado; return modo === 'jugando' && !durmiendo && !foto.activo && !banco.activa && !creadorAbierto && !modoObra && !charla.npc && !charla.menu && !panelDelHudAbierto() && !panelFueraDelHudAbierto() && !js.enTren && (escenaDesdeVehiculo || (!js.enKayak && !js.enVela)) && !js.enSulky && !js.enCable && !js.sentado && !js.montado && !js.nadando; },
-      alTerminar: () => { try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
+      alTerminar: () => { quitarInvitadosHistoria(); try { if (valle) valle.aplicarEscenas(valle.historia()); } catch (e) { fallaSistema('historia-escenas', e); } programarGuardadoSuave(); },   // (4.15.0: lo que cambia al ver la escena)
     });
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
     try {
@@ -2252,7 +2259,7 @@ function puntosDeHistoria() {
   if (ref && e) ponr('sendero', { x: (ref.x + e.x) / 2, z: (ref.z + e.z) / 2 });
   ponr('aldea', PARADA_ALDEA);
   try { ponr('plaza', edificioEnMundo('plaza')); ponr('ramos', edificioEnMundo('almacen')); } catch { /* sin aldea */ }
-  for (const k of ['casa-te', 'molino', 'galpon', 'faro', 'mirador', 'puesto']) ponr(k, L[k]);
+  for (const k of ['casa-te', 'molino', 'galpon', 'faro', 'mirador', 'puesto', 'mallin', 'muelle']) ponr(k, L[k]);   // (4.17 C: el mallín y el muelle también)
   ponr('molino-viejo', molinoViejoHist?.raiz);
   // 4.16.0: el acto II: tu molino y tu galponcito (las obras terminadas), el coihue y la raíz de la ladera de Ramón
   const obraPunto = (k, id) => { const o = obras?.obras ? obrasTerminadas(id)[0] : null; if (o) ponr(k, { x: o.datos.x, z: o.datos.z }); else delete P[k]; };
@@ -2260,6 +2267,16 @@ function puntosDeHistoria() {
   obraPunto('galpon-propio', 'galponcito');
   obraPunto('aserradero-propio', 'aserradero');
   ponr('coihue', molinoViejoHist?.arbol);
+  // 4.17 C: más lugares con nombre (los que nombran las escenas y los objetivos): la cantera, los puestos, la seccional, la panadería, la carpintería, la casa de
+  // Herminia, el estudio de fotos, el predio del fogón (la plaza) y el molino de la historia (el tuyo, o el viejo si todavía no armaste uno)
+  ponr('cantera', CANTERA_HIST); ponr('puesto-paso', PUESTO_PASO_HIST);
+  if (L.puesto) ponr('puesto-alto', L.puesto);
+  try { for (const [k, ed] of [['seccional', 'seccional'], ['panaderia', 'panaderia'], ['carpinteria', 'carpinteria'], ['casa-herminia', 'casa-abuela'], ['estudio-fotos', 'estudio-fotos']]) { const q = edificioEnMundo(ed); if (q) ponr(k, q); else delete P[k]; } } catch { /* sin aldea */ }
+  if (P.plaza) P.predio = { x: P.plaza.x, z: P.plaza.z };
+  // la rueda de tu molino de agua (2 m hacia el agua desde el centro: su lado +x) y la puerta (3 m al otro lado): de ahí se ve girar
+  { const om = obras?.obras ? obrasTerminadas('molino-agua')[0] : null; if (om) { ponr('rueda-molino', aMundoRefugio(om.datos, 2.0, 0)); ponr('puerta-molino', aMundoRefugio(om.datos, 0.2, -3)); } else { delete P['rueda-molino']; delete P['puerta-molino']; } }
+  const molHist = P['molino-propio'] || P['molino-viejo'];
+  if (molHist) P['molino-historia'] = { x: molHist.x, z: molHist.z };
   const pu = L.puesto, mv = molinoViejoHist?.raiz;
   if (pu && mv && Number.isFinite(pu.x)) {
     const d = Math.hypot(mv.x - pu.x, mv.z - pu.z) || 1;
@@ -2385,16 +2402,58 @@ function efectoDuendeHistoria(id, args) {
     s.irA(h.x, h.z, { correr: true, alLlegar: () => { try { if (args.rie) dh.reir({ x: h.x, y: T.altura(h.x, h.z) + 0.4, z: h.z }); s.huir(null, { desaparecer: true }); } catch { /* ya */ } } });
   } catch (e) { fallaSistema('historia-duende', e); }
 }
+// 4.17 C: los invitados de la Historia. Tito (el carpintero), Sofía (la fotógrafa), Herminia, Rosa… no siempre están en la aldea (llegan de a poco, o están durmiendo
+// o lejos): si una escena los pide y no hay nadie con esa clave, se arma una figura con la ficha de la aldea (POBLADORES_ALDEA o VECINOS_ALDEA) sólo mientras dura la
+// escena; si ya viven ahí, es la de siempre.
+const invitadosHist = new Map();
+function invitadoDeHistoria(clave) {
+  try {
+    if (typeof clave !== 'string') return null;
+    if (invitadosHist.has(clave)) return invitadosHist.get(clave);
+    const P = Object.hasOwn(POBLADORES_ALDEA, clave) ? POBLADORES_ALDEA[clave] : Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : null;
+    if (!P || !gente?.agregarPoblador || !jugador) return null;
+    const j = jugador.estado.pos;
+    const n = gente.agregarPoblador({ clave, nombre: P.nombre, oficio: P.oficio, saludo: P.saludo, despedida: P.despedida, colores: P.colores, pos: { x: j.x + 3, z: j.z }, mira: { x: j.x, z: j.z }, mano: P.mano, velocidad: 0.8, camino: [] });
+    if (!n) return null;
+    n.invitadoHistoria = true;
+    invitadosHist.set(clave, n);
+    return n;
+  } catch (e) { fallaSistema('historia-invitado', e); return null; }
+}
+function quitarInvitadosHistoria() {
+  for (const n of invitadosHist.values()) { try { gente?.quitar(n); } catch { /* ya */ } }
+  invitadosHist.clear();
+}
 // 4.16.0: poner al jugador en un punto local del refugio mirando a otro (ver COLOCACION_ESCENA en historia-disparadores.js)
 let escenaDesdeVehiculo = false;   // 4.16.0: una escena del faro de noche puede empezar con el jugador en el kayak o el velero
 function colocarParaEscena(c) {
   try {
+    if (c && (c.punto || c.npc)) { colocarEnFoco(c); return; }   // 4.17 C: la de un lugar o una persona (historia-colocacion.js)
     const ref = T.lugares.refugio;
     if (!ref || !jugador || !c) return;
     const a = aMundoRefugio(ref, c.lx, c.lz), b = aMundoRefugio(ref, c.mira[0], c.mira[1]);
     jugador.ubicar(a.x, a.z, Math.atan2(-(b.x - a.x), -(b.z - a.z)));
     jugador.estado.pitch = -0.1;
   } catch (e) { fallaSistema('historia-colocar', e); }
+}
+// 4.17 C: el jugador a «dist» metros de un lugar o una persona, del lado que dice la entrada, mirándolo (historia-colocacion.js: busca un punto libre)
+function colocarEnFoco(c) {
+  if (!jugador) return false;
+  const pts = puntosCacheadosDeHistoria();
+  const punto = (k) => { const q = pts[k] || T.lugares[k]; return q && Number.isFinite(q.x) && Number.isFinite(q.z) ? { x: q.x, z: q.z } : null; };
+  const npc = (k) => { const p = escenasMundo?.mundo.posicion(k); const n = (gente?.gente || []).find((g) => g.clave === k); return p && Number.isFinite(p.x) ? { x: p.x, z: p.z, rumbo: n?.g ? n.g.rotation.y : undefined } : null; };
+  const _p = { x: 0, y: 0, z: 0 };
+  const libre = (x, z) => {
+    if (Math.abs(x) > 460 || Math.abs(z) > 460 || T.agua?.(x, z)) return false;
+    _p.x = x; _p.y = T.altura(x, z) + 0.05; _p.z = z;
+    col.resolver(_p, 0.5, 1.6);
+    return Math.hypot(_p.x - x, _p.z - z) <= 0.02;
+  };
+  const r = resolverColocacion(c, { punto, npc, libre });
+  if (!r) return false;
+  jugador.ubicar(r.x, r.z, r.yaw);
+  jugador.estado.pitch = r.pitch;
+  return true;
 }
 function gastarUnaTabla() {
   if ((Number(progreso.materiales?.tabla) || 0) > 0) { progreso.materiales.tabla -= 1; refrescarBarra(true); return true; }
@@ -11945,7 +12004,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
   if (HOJARASCA_DEBUG) window.__hojarasca.__escenas = escenasMundo;   // 4.14.0 (QA): el director de escenas
-  if (HOJARASCA_DEBUG) Object.assign(window.__hojarasca, { __historiaObjetos: () => objetosHist, __distanciasHistoria: () => ({ ...distanciasHistoria() }), __puntosHistoria: () => ({ ...puntosDeHistoria() }), __objetoHistoriaCerca: () => historiaObjetoCerca(), __puertaHistoria: () => historiaPuertaCerca(), __graciela: () => gracielaMundo });   // 4.15.0 (QA): los objetos de la Historia nueva
+  if (HOJARASCA_DEBUG) Object.assign(window.__hojarasca, { __historiaObjetos: () => objetosHist, __distanciasHistoria: () => ({ ...distanciasHistoria() }), __puntosHistoria: () => ({ ...puntosDeHistoria() }), __colocarEscena: (id) => (Object.hasOwn(COLOCACION_ESCENA, id) ? (colocarParaEscena(COLOCACION_ESCENA[id]), true) : false), __objetoHistoriaCerca: () => historiaObjetoCerca(), __puertaHistoria: () => historiaPuertaCerca(), __graciela: () => gracielaMundo });   // 4.15.0 (QA): los objetos de la Historia nueva
   if (HOJARASCA_DEBUG) window.__hojarasca.__noche = () => nocheMundo;
   if (HOJARASCA_DEBUG) { window.__hojarasca.__duendesHist = () => duendesHist; window.__hojarasca.__presencia = () => presenciaHist; }   // 4.13.0 (A)   // 4.13.0 (B)
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
