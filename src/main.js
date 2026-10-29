@@ -8320,10 +8320,11 @@ function programaDelTiempo() {
   // 3.8.7: con el clima fijo en «despejado» no se fuerza nada (el clima no lo sigue; el programa decía lluvia igual y la
   // crecida, el tendal y la estación la contaban)
   const tipo = p.tipo, viento = p.viento, fijo = () => ajustes.clima === 'despejado';
-  // 4.17.0: y la nevada de la historia (capítulo 12): de la tarde a la mañana, el tramo en que estamos y el que sigue nievan (con el invierno forzado, la lluvia es nieve)
-  const nevadaH = (k) => !desafio && valle?.nevada?.() && Math.abs(k - Math.floor(horaDeJuego() / 3)) <= 1 ? 'lluvia' : null;
-  p.tipo = (k) => (fijo() ? null : (temporalDeLaHistoria(k) ? 'lluvia' : null) || (!desafio && fiestasJuego?.climaForzado(k)) || nevadaH(k)) || tipo(k);
+  p.tipo = (k) => (fijo() ? null : (temporalDeLaHistoria(k) ? 'lluvia' : null) || (!desafio && fiestasJuego?.climaForzado(k))) || tipo(k);
   p.viento = (k) => (!fijo() && temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));
+  // 4.17.0: y la nevada de la historia (capítulo 12): de la tarde a la mañana, el tramo en que estamos y el que sigue nievan (con el invierno forzado, la lluvia es nieve)
+  const tipoSinNevada = p.tipo;
+  p.tipo = (k) => (!fijo() && !desafio && valle?.nevada?.() && Math.abs(k - Math.floor(horaDeJuego() / 3)) <= 1 ? 'lluvia' : tipoSinNevada(k));
   return p;
 }
 // 3.8.6: ¿el tramo `k` es de la noche del temporal de la historia? Del día en que llegó la tarjeta (el momento del

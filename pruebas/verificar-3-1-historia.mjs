@@ -33,10 +33,10 @@ assert.equal(H.CAPITULOS.length, 13, `trece capítulos (${H.CAPITULOS.length})`)
 assert.equal(new Set(H.CAPITULOS.map((c) => c.id)).size, H.CAPITULOS.length, 'ids de capítulo únicos');
 for (const c of H.CAPITULOS) {
   assert.ok(c.titulo && c.intro.length >= 1 && c.outro.length >= 1, `${c.id}: entrada y salida`);
-  assert.ok(c.objetivos.length >= 1 && c.objetivos.length <= 8, `${c.id}: 1 a 8 objetivos (${c.objetivos.length})`);   // (4.15.0: el acto I tiene hasta ocho; del 5 al 13, el «continuará» tiene uno)
+  assert.ok(c.objetivos.length >= 1 && c.objetivos.length <= 12, `${c.id}: 1 a 12 objetivos (${c.objetivos.length})`);   // (4.15.0: el acto I tiene hasta ocho; del 5 al 13, el «continuará» tiene uno)
   assert.equal(new Set(c.objetivos.map((o) => o.id)).size, c.objetivos.length, `${c.id}: objetivos únicos`);
   for (const o of c.objetivos) assert.ok(o.texto && (typeof o.hecho === 'function' || typeof o.cuenta === 'function'), `${c.id}:${o.id} se mide`);   // (4.15.0: `texto` puede ser una función del estado)
-  assert.ok(c.premio && c.premio.texto && (c.premio.materiales || c.premio.cuenta || c.premio.ramitas), `${c.id}: premio concreto`);
+  assert.ok(c.premio && c.premio.texto && (c.premio.materiales || c.premio.cuenta || c.premio.ramitas || c.premio.cosas || c.premioVar), `${c.id}: premio concreto`);   // 4.17.0: el acto III premia con cosas o según lo decidido
   for (const k of Object.keys(c.premio.materiales || {})) assert.ok(['tronco', 'tabla', 'piedra', 'lana'].includes(k), `${c.id}: material ${k}`);
   if (c.momento) {
     assert.ok(Object.hasOwn(E.EVENTO_VALLE, c.momento.evento), `${c.id}: el momento es un evento del valle`);

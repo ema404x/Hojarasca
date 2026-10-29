@@ -1,4 +1,6 @@
 // 4.16.0 (B): las escenas y los textos del ACTO II de la Historia (src/historia-escenas-acto2.js, -c5 … -c8, historia-texto-acto2.js). Sólo Node.
+// 4.17.0: las condiciones del acto III las documenta CAMBIOS_4_17_0_A.md (no estas notas)
+const CONDICIONES_ACTO3 = ['trato', 'noche', 'convidado', 'deuda', 'perdon', 'prestado', 'amor'];
 // Las escenas son datos: la prueba las valida con el director real (escenas.js), las corre de punta a punta por TODOS los caminos de elección
 // (y por todas las combinaciones de decisiones y lazos que cada una mira) con un mundo de mentira, las salta, y revisa los textos (cabe en el
 // cuadro, sin inglés, sin palabras religiosas ni explícitas, sin nombrar nada que no exista en el juego). Al final hay MUTACIONES de los datos
@@ -611,7 +613,7 @@ const noCorrio = (id, o, ...nombres) => { const q = quienes(correrEscena(ESCENAS
   ok(cambios.length > 2000, 'existe CAMBIOS_4_16_0_B.md');
   for (const id of IDS_ACTO2) ok(cambios.includes('`' + id + '`'), `CAMBIOS_4_16_0_B.md lista la escena «${id}» en la tabla de ids`);
   for (const nombre of EFECTOS_ACTO2.map((x) => x.split(':')[0]).filter((x, i, a) => a.indexOf(x) === i)) ok(cambios.includes(`${nombre}:`), `CAMBIOS_4_16_0_B.md documenta la convención «${nombre}:»`);
-  for (const cond of CONDICIONES_HISTORIA) ok(cambios.includes(cond), `CAMBIOS_4_16_0_B.md documenta la condición «${cond}»`);
+  for (const cond of CONDICIONES_HISTORIA.filter((x) => !CONDICIONES_ACTO3.includes(x))) ok(cambios.includes(cond), `CAMBIOS_4_16_0_B.md documenta la condición «${cond}»`);
   for (const nombre of EFECTOS_ACTO2.filter((x) => x.startsWith('duende:') || x.startsWith('mundo:'))) ok(cambios.includes('`' + nombre + '`'), `CAMBIOS_4_16_0_B.md documenta el efecto «${nombre}»`);
   ok(!/scratch/i.test(cambios), 'los cambios no mencionan lo que no se menciona');
   const modulos = ['src/historia-escenas-acto2.js', 'src/historia-escenas-acto2-util.js', 'src/historia-escenas-acto2-c5.js', 'src/historia-escenas-acto2-c6.js', 'src/historia-escenas-acto2-c7.js', 'src/historia-escenas-acto2-c8.js', 'src/historia-texto-acto2.js'];

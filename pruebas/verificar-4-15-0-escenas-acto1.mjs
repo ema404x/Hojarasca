@@ -1,4 +1,6 @@
 // 4.15.0 (B): las escenas y los textos del ACTO I de la Historia (src/historia-escenas-acto1.js, historia-texto-acto1.js,
+// 4.17.0: las condiciones del acto III las documenta CAMBIOS_4_17_0_A.md (no estas notas)
+const CONDICIONES_ACTO3 = ['trato', 'noche', 'convidado', 'deuda', 'perdon', 'prestado', 'amor'];
 // historia-escenas-util.js). Sólo Node. Las escenas son datos: la prueba las valida con el director real (escenas.js), las corre de punta a
 // punta por TODOS los caminos de elección con un mundo de mentira, las salta, y revisa los textos (cabe en el cuadro, sin inglés, sin
 // palabras religiosas ni explícitas, que no nombren nada que no exista en el juego). Al final hay MUTACIONES de los datos (se rompe una
@@ -516,7 +518,7 @@ const quienes = (r) => r.corridos.map((x) => x.nombre);
   const cambiosA = existsSync(join(raiz, 'CAMBIOS_4_16_0_A.md')) ? leer('CAMBIOS_4_16_0_A.md') : '';   // (4.16.0: las condiciones y efectos que sumó el acto II se documentan ahí)
   for (const k of CLAVES_PEDIDAS) ok(new RegExp(k, 'i').test(cambios), `los pedidos para A nombran a «${k}»`);
   for (const nombre of EFECTOS_ACTO1.map((x) => x.split(':')[0]).filter((x, i, a) => a.indexOf(x) === i)) ok(cambios.includes(`${nombre}:`), `CAMBIOS_4_15_0_B.md documenta la convención «${nombre}:»`);
-  for (const cond of CONDICIONES_HISTORIA) ok(cambios.includes(cond) || cambiosA.includes(`«${cond}»`), `CAMBIOS_4_15_0_B.md documenta la condición «${cond}»`);
+  for (const cond of CONDICIONES_HISTORIA.filter((x) => !CONDICIONES_ACTO3.includes(x))) ok(cambios.includes(cond) || cambiosA.includes(`«${cond}»`), `CAMBIOS_4_15_0_B.md documenta la condición «${cond}»`);
   ok(!/scratch/i.test(cambios), 'los cambios no mencionan lo que no se menciona');
   for (const a of ['src/historia-escenas-acto1.js', 'src/historia-texto-acto1.js', 'src/historia-escenas-util.js']) {
     const t = leer(a);

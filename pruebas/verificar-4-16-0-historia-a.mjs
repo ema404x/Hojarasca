@@ -45,7 +45,7 @@ async function chequear(arch = '', sufijo = '') {
   {
     const ids = ['rueda', 'perdido', 'cosecha', 'cuaderno'];
     igual(H.CAPITULOS.slice(4, 8).map((c) => c.id), ids, 'los capítulos 5 a 8, en orden');
-    ok(H.CAPITULOS_COMPLETOS === 8, 'ya son 8 los capítulos completos');
+    ok(H.CAPITULOS_COMPLETOS === 13, 'ya son 13 los capítulos completos (4.17.0)');
     for (const c of H.CAPITULOS.slice(4, 8)) {
       ok(!H.esContinuara(c) && c.objetivos.length >= 6, `${c.id}: objetivos de verdad (${c.objetivos.length})`);
       ok(!/todavía se está escribiendo/.test(c.intro.join(' ')), `${c.id}: sin «continuará»`);
@@ -56,7 +56,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(H.CAPITULOS[4].decisiones[0].id === 'coihue' && H.CAPITULOS[6].decisiones[0].id === 'molienda' && H.CAPITULOS[7].decisiones[0].id === 'cuaderno', 'las decisiones D2, D3 y D4 cuelgan de sus capítulos');
     ok(H.CAPITULOS[4].momento.evento === 'puente', 'el momento del capítulo 5: el puente del arroyo');
     ok(H.CAPITULOS[5].objetivos.some((o) => o.espera), 'la guardia del capítulo 6 es una espera (acelera el reloj sentado)');
-    ok(H.CAPITULOS[8].objetivos.length === 1 && H.esContinuara(H.CAPITULOS[8]), 'del 9 en adelante sigue el «continuará»');
+    ok(H.CAPITULOS[8].objetivos.length > 1 && !H.esContinuara(H.CAPITULOS[8]), 'del 9 en adelante ya no hay «continuará» (4.17.0)');
     for (const d of ['coihue', 'molienda', 'cuaderno']) {
       const def = H.DEFINICION_DECISIONES[d];
       ok(def && def.opciones.length === 3 && def.opciones.every((o) => ['a', 'b', 'c'].includes(o.id)), `${d}: la tarjeta de respaldo con tres opciones`);
@@ -225,7 +225,7 @@ async function chequear(arch = '', sufijo = '') {
     const f = (dia, nat, cap = 4) => { const { p: q, h: k } = armar(cap, { dia }); k.cerrados.ramal = 2; return H.estacionForzada(k, E(q, { estacionNatural: nat })); };
     ok(f(3, 'verano') === null && f(4, 'verano') === 'otono' && f(9, 'verano') === 'otono', 'el otoño de la historia, desde el segundo día de espera');
     ok(f(4, 'otono') === null && f(4, 'invierno') === null, 'si el calendario ya trae otoño o invierno, no se fuerza nada');
-    ok(f(4, 'verano', 8) === null && f(4, 'verano', 0) === null, 'el acto I y el III no fuerzan nada');
+    ok(f(4, 'verano', 0) === null && f(4, 'verano', 8) === 'invierno', 'el acto I no fuerza nada y el III fuerza el invierno (4.17.0)');
     ok(f(4, 'verano', 7) === 'otono', 'el capítulo 8 sigue en otoño');
     const off = armar(4, { dia: 4 }); off.h.activa = false; ok(H.estacionForzada(off.h, E(off.p, { estacionNatural: 'verano' })) === null, 'con la historia en pausa, nada');
   }
@@ -436,9 +436,9 @@ async function chequear(arch = '', sufijo = '') {
       "import { ESCENAS_ACTO2, EFECTOS_ACTO2 } from './historia-escenas-acto2.js';",
       "import { crearAcompanante } from './historia-acompanante.js';",
       '...Object.values(ESCENAS_ACTO2)',
-      '...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2])',
+      '...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2, ...EFECTOS_ACTO3])',
       'conClimaDeHistoria({ oto, inv })',
-      "valle?.estacionForzada?.() === 'otono'",
+      "if (f === 'otono' && e.oto < 1)",
       'estacionNatural: estacionNaturalDeHistoria()',
       'valle.aceleracion?.() || 1',
       'valle?.coihueTalado?.()',
@@ -488,15 +488,15 @@ const MUT = [
   ['historia.js', "if (d === 'b') return s.entregados.has('ercilia:harina') || s.escenas.has('molienda-fiado');", "if (d === 'b') return true;", 'D3 = B sin entregar'],
   ['historia.js', "if (d === 'c') return s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && (s.entregados.has('raiz:harina') || s.escenas.has('molienda-partir'));", "if (d === 'c') return s.fletesHarina >= 2;", 'D3 = C sin la raíz ni el almacén'],
   ['historia.js', "if (d === 'a') return s.fletesHarina >= 3;", "if (d === 'a') return s.fletesHarina >= 1;", 'D3 = A con un solo flete'],
-  ['historia.js', "  if (diasEsperados(h, s) >= c.puerta.tope) return null;", "", 'la puerta de estación espera para siempre'],
-  ['historia.js', "  return diasEsperados(h, s) >= (CAPITULOS[4].puerta?.tope ?? 2) ? 'otono' : null;", "  return null;", 'la historia nunca trae su otoño'],
-  ['historia.js', "  if (s.estacionNatural !== 'verano') return null;\n  return diasEsperados", "  return diasEsperados", 'fuerza el otoño aun con invierno'],
-  ['historia.js', "if (!h?.activa || h.fase === 'fin' || !s || capituloActual(h).acto !== 2) return null;", "if (!h?.activa || h.fase === 'fin' || !s) return null;", 'fuerza el otoño en cualquier acto'],
-  ['historia.js', "  r.texto = `${base.texto}. Y además: ${x.texto}`;", "  r.texto = base.texto;", 'el premio no suma lo decidido'],
+  ['historia.js', "  if (diasEsperados(h, s, c.acto === 3 ? 'cuaderno' : 'ramal') >= c.puerta.tope) return null;", "", 'la puerta de estación espera para siempre'],
+  ['historia.js', "    return diasEsperados(h, s) >= (CAPITULOS[4].puerta?.tope ?? 2) ? 'otono' : null;", "    return null;", 'la historia nunca trae su otoño'],
+  ['historia.js', "    if (s.estacionNatural !== 'verano') return null;\n    return diasEsperados", "    return diasEsperados", 'fuerza el otoño aun con invierno'],
+  ['historia.js', "  if (c.acto === 2) {\n    if (s.estacionNatural", "  if (true) {\n    if (s.estacionNatural", 'fuerza el otoño en cualquier acto'],
+  ['historia.js', "  r.texto = v.noche ? x.texto : `${base.texto}. Y además: ${x.texto}`;", "  r.texto = base.texto;", 'el premio no suma lo decidido'],
   ['historia.js', "for (const [k, n] of Object.entries(x.materiales || {})) r.materiales[k] = (r.materiales[k] || 0) + n;", "", 'el premio no suma la leña'],
   ['historia.js', "    if (h.fletesBase === null || h.fletesBase === undefined) h.fletesBase = previas;", "    if (h.fletesBase === null || h.fletesBase === undefined) h.fletesBase = 0;", 'los fletes de antes cuentan para la molienda'],
   ['historia.js', "if (dm === 'a' || dm === 'c') {", "if (dm === 'a') {", 'la molienda partida no cuenta fletes'],
-  ['historia.js', "export const CONTADORES_HISTORIA = ['anotaciones', 'dia', 'talados', 'peces', 'aceptados', 'encargosHechos', 'entregas', 'cosechas', 'visitas', 'cuentos', 'molido', 'cocinadas'];", "export const CONTADORES_HISTORIA = ['anotaciones', 'dia', 'talados', 'peces', 'aceptados', 'encargosHechos', 'entregas', 'cosechas', 'visitas', 'cuentos'];", 'lo molido no se cuenta desde que empieza el capítulo'],
+  ['historia.js', "export const CONTADORES_HISTORIA = ['anotaciones', 'dia', 'talados', 'peces', 'aceptados', 'encargosHechos', 'entregas', 'cosechas', 'visitas', 'cuentos', 'molido', 'cocinadas', 'cantos'];", "export const CONTADORES_HISTORIA = ['anotaciones', 'dia', 'talados', 'peces', 'aceptados', 'encargosHechos', 'entregas', 'cosechas', 'visitas', 'cuentos'];", 'lo molido no se cuenta desde que empieza el capítulo'],
   ['historia.js', "(s) => (s.enKayak || s.enVela) && Number(s.lugares?.faro) <= 40 && enHora(s.horas, 23, 1)", "(s) => Number(s.lugares?.faro) <= 40", 'el faro sin kayak ni noche'],
   ['historia.js', "(s.lazos.ramon < 0 && enHora(s.horas, 17, 20) && Number(s.lugares?.puesto) <= 30)", "false", 'con Ramón enojado el capítulo se traba'],
   ['historia.js', "export const ACOMPANANTES = [...PERSONAS_LAZO, 'tobias'];", "export const ACOMPANANTES = [...PERSONAS_LAZO];", 'Tobías no puede acompañar'],
