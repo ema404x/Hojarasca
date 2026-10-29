@@ -4,7 +4,7 @@ exports.correr = async function correr({ N, ok, foto, entrar, esperar }) {
   console.log('— P1. entrando a la historia');
   await entrar({ estacion: 'otono' });
   const prep = (cap, temas = [], extra = '') => N(`(() => { const h = P.historia; N.preparar(${cap}); h.fase = 'jugando'; h.base = { dia: 1 }; h.hechos['rueda:puente'] = 1; P.dia = Math.max(P.dia, 3); h.activa = true; h.temas = {}; h.escenas.vistas = {}; for (const t of ${JSON.stringify(temas)}) h.temas[t] = P.dia; ${extra}; return 1 })()`);
-  const cerca = (id, d = 0.8) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const a = 0.6; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.45; return 1 })()`);
+  const cerca = (id, d = 1.2) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const a = 0.6; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.45; return 1 })()`);
   const mira = async (id, esperado, nombreFoto) => {
     await cerca(id);
     await N('N.tick(0.9)');
@@ -25,7 +25,7 @@ exports.correr = async function correr({ N, ok, foto, entrar, esperar }) {
   await foto('p-foto-movida');
   await N('N.tecla("KeyE")'); await N('N.tick(0.6)');
   ok(/foto movida/i.test(await N('document.getElementById("notas") ? document.getElementById("notas").textContent : ""')), 'la E muestra la nota de la foto movida');
-  await prep(7, ['obj:llavecita'], 'P.horas = 11');
+  await prep(7, ['obj:llavecita', 'cuaderno:1', 'cuaderno:2', 'cuaderno:3'], 'P.horas = 11');   // (con el cuaderno ya leído: la mesa no compite con la E de la llavecita)
   r = await mira('llavecita');
   ok(r.vis === true && r.c && r.c.id === 'llavecita', `la llavecita de Herminia sobre la mesa y su E (${r.c && r.c.aviso})`);
   await foto('p-llavecita');

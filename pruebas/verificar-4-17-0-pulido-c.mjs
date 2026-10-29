@@ -262,10 +262,12 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   {
     const piel = leer(muta('animales-piel.js') ? 'src/animales-piel' + sufijo + '.js' : 'src/animales-piel.js');
     const cuerpo = (piel.match(/export function precalentarSilueta[\s\S]*?\n\}\n/) || [''])[0];
-    ok(/const instancia = new THREE\.InstancedMesh\(geo, mat, 1\);/.test(cuerpo) && /instancia\.castShadow = true/.test(cuerpo), 'la carga dibuja una instanciada con sombra (el programa de profundidad de los álamos de la aldea)');
-    ok(!/setColorAt|instanceColor/.test(cuerpo), 'sin color por instancia (esa variante ya la cubre la piel de los animales)');
-    ok(/escena\.add\(instancia\);/.test(cuerpo) && /escena\.remove\(instancia\);/.test(cuerpo) && (cuerpo.match(/dibujar\(\)/g) || []).length === 1, 'se agrega y se saca en el mismo dibujo de la carga: ningún dibujo de más');
-    ok(/instancia\.setMatrixAt\(0, new THREE\.Matrix4\(\)\)/.test(cuerpo), 'con su matriz de instancia (sin eso no se dibuja)');
+    const ayuda = (piel.match(/function instanciadaDeArboles\(pos\) \{[\s\S]*?\n\}\n/) || [''])[0];
+    ok(/new THREE\.InstancedMesh\(geo, new THREE\.MeshBasicMaterial\(/.test(ayuda) && /m\.castShadow = true/.test(ayuda), 'la carga dibuja una instanciada con sombra (el programa de profundidad de los álamos de la aldea)');
+    ok(/setAttribute\('position'/.test(ayuda) && /setAttribute\('normal'/.test(ayuda) && /setAttribute\('color'/.test(ayuda), 'con position, normal y color de vértice (sin «color» la clave del programa es otra: lo mostró el diagnóstico)');
+    ok(!/setColorAt|instanceColor/.test(ayuda), 'sin color por instancia (esa variante ya la cubre la piel de los animales)');
+    ok(/const instancia = instanciadaDeArboles\(malla\.position\);/.test(cuerpo) && /escena\.add\(instancia\);/.test(cuerpo) && /escena\.remove\(instancia\);/.test(cuerpo) && (cuerpo.match(/dibujar\(\)/g) || []).length === 1, 'se agrega y se saca en el mismo dibujo de la carga: ningún dibujo de más');
+    ok(/m\.setMatrixAt\(0, new THREE\.Matrix4\(\)\)/.test(ayuda), 'con su matriz de instancia (sin eso no se dibuja)');
   }
 
   // ---------------------------------------------------------------- 5. la cámara que no se mete adentro de nada, y las personas que se piden desde lejos
@@ -357,7 +359,8 @@ const MUTACIONES = [
   ['escenas-mundo.js', 'la cámara despejada no tiene mínimo', 'minimo: 1.3,', 'minimo: 0.05,'],
   ['escenas-mundo.js', 'la cámara lejos puede ir a ras del suelo', 'bajoLejos: 1.3,', 'bajoLejos: 0.45,'],
   ['escenas.js', 'la cámara sobre el jugador no sigue su mirada', 'return ctx.base.yaw;', 'return 0;'],
-  ['animales-piel.js', 'la carga no dibuja la instanciada sin color', 'const instancia = new THREE.InstancedMesh(geo, mat, 1);', 'const instancia = new THREE.Mesh(geo, mat);'],
+  ['animales-piel.js', 'la carga no dibuja la instanciada de árbol', 'const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial(', 'const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial('],
+  ['animales-piel.js', 'la instanciada de la carga no lleva color de vértice', "geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9).fill(0.5), 3));\n  const m = new THREE.InstancedMesh", "const m = new THREE.InstancedMesh"],
   ['escenas.js', 'los planos no llevan foco', 'fov, foco: { x: mira.x, y: mira.y, z: mira.z } };', 'fov };'],
 ];
 {

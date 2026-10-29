@@ -39,6 +39,20 @@ app.whenReady().then(async () => {
       return r; };
     return 1 })()`);
   console.log('programas al empezar: ' + await js(`${H}.renderer.info.programs.length`));
+  // VARIANTES=1: qué geometría hace falta para que el programa de profundidad de una instanciada sin color sea el de los álamos (máscara 8388609)
+  if (process.env.VARIANTES) {
+    const r = await js(`(async () => { const R = ${H}.renderer, T0 = ${H}.THREE, esc = ${H}.escena, cam = ${H}.camara; const sal = []; const dormir = (ms) => new Promise((x) => setTimeout(x, ms));
+      let im0 = null, ms0 = null; esc.traverse((o) => { if (!im0 && o.isInstancedMesh && o.geometry && o.geometry.attributes.position) im0 = o; if (!ms0 && o.isMesh && !o.isInstancedMesh && o.geometry && o.geometry.attributes.position) ms0 = o; });
+      const THREE = { Vector3: T0.Vector3, MeshLambertMaterial: T0.MeshLambertMaterial, FrontSide: 0, InstancedMesh: im0.constructor, BufferGeometry: ms0.geometry.constructor, BufferAttribute: ms0.geometry.attributes.position.constructor, Matrix4: im0.matrixWorld.constructor };
+      const clave = () => R.info.programs.filter((p) => /^depth/.test(String(p.cacheKey))).map((p) => String(p.cacheKey).split(',').slice(-4, -2).join('/'));
+      const antes = clave().length; const dir = new THREE.Vector3(); cam.getWorldDirection(dir);
+      const variantes = { pos: ['position'], posNormal: ['position', 'normal'], posNormalColor: ['position', 'normal', 'color'], todo: ['position', 'normal', 'color', 'aTipo', 'aSuperficie', 'aLocal'] };
+      for (const [nombre, attrs] of Object.entries(variantes)) { const g = new THREE.BufferGeometry(); for (const a of attrs) g.setAttribute(a, new THREE.BufferAttribute(new Float32Array(a === 'aTipo' || a === 'aSuperficie' ? [0, 0, 0] : [0, 0, 0, 0.02, 0, 0, 0, 0.02, 0]), a === 'aTipo' || a === 'aSuperficie' ? 1 : 3));
+        const m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ side: THREE.FrontSide }), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.castShadow = true; m.frustumCulled = false; m.position.set(cam.position.x + dir.x * 3, cam.position.y - 1.2, cam.position.z + dir.z * 3); esc.add(m);
+        for (let k = 0; k < 6; k++) { ${H}.__bucle(); await dormir(20); } sal.push([nombre, clave().join(' | ')]); esc.remove(m); }
+      return JSON.stringify(sal); })()`).catch((e) => 'error ' + e.message);
+    console.log('VARIANTES: ' + r);
+  }
   const ir = async (nombre, punto, dx, dz, hora) => {
     await js(`(() => { window.__fase = '${nombre}'; ${H}.progreso.horas = ${hora}; const p = ${H}.__puntosHistoria ? ${H}.__puntosHistoria()['${punto}'] : null; const l = p || ${H}.T.lugares['${punto}']; if (!l) return 0; ${H}.jugador.ubicar(l.x + ${dx}, l.z + ${dz}, 0); return 1 })()`);
     await correr(50);

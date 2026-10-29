@@ -544,6 +544,21 @@ export function armarPielPerro(m) {
 // tres figuras que se alternan en el juego —rígida, con huesos e instanciada (la silueta de un árbol: capa 1, con color por instancia)— en ese
 // orden, así cada cambio de tipo ocurre con las luces contadas. Todo en la carga: nada de esto se hace en el juego. Sin la piel (Baja y Mínima)
 // no hace nada.
+// 4.17.0 (C): una instanciada SIN color por instancia y con geometría con color de vértice (position, normal, color), con sombra: la misma clave de profundidad que los
+// álamos de la aldea (estructura:aldea-alamos) y las demás instanciadas de las estructuras. Su programa se compilaba la primera vez que entraba en el mapa de sombras
+// (+1, 110 a 111, al ir de día al molino viejo o al faro); esta variante no la cubre la piel de los animales de abajo (que lleva color por instancia). Sin el atributo
+// «color» la clave es otra (lo mostró herramientas/diag-programa-historia.cjs con VARIANTES=1).
+function instanciadaDeArboles(pos) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0.02, 0, 0, 0, 0.02, 0]), 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]), 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9).fill(0.5), 3));
+  const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), 1);
+  m.setMatrixAt(0, new THREE.Matrix4());
+  m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false;
+  m.position.copy(pos);
+  return m;
+}
 // 4.12.2 (shader tardío): la silueta de la sombra del jugador (`cuerpo-jugador-sombra`, personal-personaje-mundo.js) es una malla de sólo `position` con un
 // MeshBasicMaterial sin color ni profundidad; su programa de profundidad (sombra) se compilaba la primera vez que la silueta tenía geometría. Se dibuja un
 // instante, en la carga, una igual (mismo material, mismo atributo) con sombra. En las calidades sin sombras no hace falta.
@@ -556,18 +571,14 @@ export function precalentarSilueta(escena, camara, dibujar) {
   malla.castShadow = true; malla.receiveShadow = false; malla.frustumCulled = false;
   const dir = new THREE.Vector3(); camara.getWorldDirection(dir);
   malla.position.set(camara.position.x + dir.x * 3, camara.position.y - 1.2, camara.position.z + dir.z * 3);
-  // 4.17.0 (C): y una instanciada SIN color por instancia, con sombra (los álamos de la aldea, entre otras): su programa de profundidad (instancing sin instancingColor,
-  // el que no cubre la instancia con color de la piel de abajo) se compilaba la primera vez que entraba en el mapa de sombras: +1 programa (110 a 111) al ir de día al molino viejo
-  const instancia = new THREE.InstancedMesh(geo, mat, 1);
-  instancia.setMatrixAt(0, new THREE.Matrix4());
-  instancia.castShadow = true; instancia.receiveShadow = false; instancia.frustumCulled = false;
-  instancia.position.copy(malla.position);
+  // 4.17.0 (C): y una instanciada de árbol (ver más arriba): su programa de profundidad se compilaba la primera vez que entraba en el mapa de sombras
+  const instancia = instanciadaDeArboles(malla.position);
   escena.add(malla);
   escena.add(instancia);
   try { dibujar(); } finally {
     escena.remove(malla);
     escena.remove(instancia);
-    instancia.dispose?.();
+    instancia.geometry.dispose(); instancia.material.dispose(); instancia.dispose?.();
     geo.dispose(); mat.dispose();
   }
   return true;
