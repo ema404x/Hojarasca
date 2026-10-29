@@ -23,5 +23,24 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree list:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(node armar.mjs)",
+      "Bash(node pruebas/*)",
+      "Bash(node herramientas/*)",
+      "Bash(npm run verify)",
+      "Bash(npm run verify:paralelo)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)"
+    ]
   }
 }
