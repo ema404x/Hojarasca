@@ -4,7 +4,7 @@ exports.correr = async function correr({ N, ok, foto, entrar, esperar }) {
   console.log('— P1. entrando a la historia');
   await entrar({ estacion: 'otono' });
   const prep = (cap, temas = [], extra = '') => N(`(() => { const h = P.historia; N.preparar(${cap}); h.fase = 'jugando'; h.base = { dia: 1 }; h.hechos['rueda:puente'] = 1; P.dia = Math.max(P.dia, 3); h.activa = true; h.temas = {}; h.escenas.vistas = {}; for (const t of ${JSON.stringify(temas)}) h.temas[t] = P.dia; ${extra}; return 1 })()`);
-  const cerca = (id, d = 1.5) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const a = 0.6; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.45; return 1 })()`);
+  const cerca = (id, d = 0.8) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const a = 0.6; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.45; return 1 })()`);
   const mira = async (id, esperado, nombreFoto) => {
     await cerca(id);
     await N('N.tick(0.9)');
@@ -57,7 +57,7 @@ exports.correr = async function correr({ N, ok, foto, entrar, esperar }) {
   await N('(() => { const p = N.pts().carpinteria; N.ir(p.x + 6, p.z + 6, 0); return 1 })()'); await N('N.tick(2.5)');
   let sola = await N('H.__escenas.activa() ? H.__escenas.director.idActual() : null');
   ok(sola === 'tablas-tito', `pasar de día por la carpintería, con el coihue talado, dispara «tablas-tito» (${sola})`);
-  await N('N.tick(2.2)'); await N('N.tecla("Enter")'); await N('N.hasta(() => H.__escenas.capturados().includes("carpintero"), 14)'); await N('N.tick(0.8)');
+  await N('N.tick(2.2)'); await N('N.tecla("Enter")'); await N('N.tick(1.2)'); await N('N.tecla("Enter")'); await N('N.hasta(() => H.__escenas.capturados().includes("carpintero"), 14)'); await N('N.tick(0.8)');
   ok((await N('H.__escenas.capturados().includes("carpintero")')) === true && (await N('(() => { const p = H.__escenas.mundo.posicion("carpintero"); return !!p && Math.hypot(p.x - H.jugador.estado.pos.x, p.z - H.jugador.estado.pos.z) < 15 })()')) === true, 'y Tito aparece en la escena (el vecino o un invitado) cerca de vos');
   await foto('p-tablas-tito');
   await N('N.despejar(40)');

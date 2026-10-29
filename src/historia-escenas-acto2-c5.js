@@ -184,8 +184,7 @@ const tobiasPirca = {
   personajes: pj('tobias', 'josefina', 'narra'),
   pasos: [
     efecto('decision:coihue:c'),
-    // 4.17.0: la cámara delante de Tobías (pica de espaldas al camino: se lo veía por la nuca)
-    plano('medio', 'tobias', { desde: { frente: 'tobias', dist: 4 }, dist: 3.6, dur: 3, mezcla: 0.9 }),
+    plano('medio', 'tobias', { desde: 'jugador', dist: 3.6, dur: 3, mezcla: 0.9 }),
     mira('tobias', 'jugador'),
     dlg('tobias', [
       linea('¿Una pirca para una raíz?', { gesto: gs('martillar', 1.8) }),

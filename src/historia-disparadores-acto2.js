@@ -159,14 +159,16 @@ export const OBJETOS_ACTO2 = {
   // 4.17.0 (C): lo que faltaba dibujar. La foto movida del lago y la llavecita de Herminia quedan sobre la mesa del refugio (se miran con E); los diez cantos
   // blancos son el montoncito de la veta de la cantera (aparece cuando la escena de Tobías lo muestra); la tropa de mulas de Belisario está atada junto al
   // puesto del paso y, después de acompañarla, en el mallín.
-  'foto-movida': { forma: 'foto-movida', lx: 0.7, lz: -0.85, y: 0.78, visible: (s) => s.temas.has('obj:foto-movida'),
+  'foto-movida': { forma: 'foto-movida', lx: 0.75, lz: -1.2, y: 0.78,   // (al fondo de la mesa: la nota y el cuaderno quedan en (1,1; −0,6) y la E elige el objeto más cercano)
+     visible: (s) => s.temas.has('obj:foto-movida'),
     aviso: 'Mirar la foto movida', nota: ['La foto movida', 'Tres manchas doradas sobre un fondo negro, y algo que parece, si uno quiere, la punta de un ala. Salió como sale todo lo que importa: movida'] },
-  'llavecita': { forma: 'llavecita', lx: 1.55, lz: -0.85, y: 0.78, visible: (s) => s.temas.has('obj:llavecita'),
+  'llavecita': { forma: 'llavecita', lx: 1.5, lz: -1.2, y: 0.78,
+     visible: (s) => s.temas.has('obj:llavecita'),
     aviso: 'Mirar la llavecita de Herminia', nota: ['La llavecita', 'De bronce, con el ojo en forma de hoja. Herminia la encontró de nena en una raíz. No se sabe a qué puerta abre'] },
   'cantos-veta': { forma: 'cantos-veta', punto: 'cantera', dx: 0, dz: 0, visible: (s) => s.temas.has('mundo:cantos-veta'),
     aviso: 'Mirar los cantos blancos de la veta', nota: ['Cantos blancos', 'Redondos, lisos como huevos, acomodados de a uno. Los mismos que el de tu umbral. Quien los puso no dejó ni una huella'] },
   // el fogón de la Noche de la Leyenda (el efecto mundo:fogon-leyenda de la escena): se ve de noche en el predio, al costado de la plaza
-  'fogon-leyenda': { forma: 'fogon', punto: 'predio', dx: 6, dz: 3.5, visible: (s, h) => enCap(h, 'cuaderno') && s.temas.has('mundo:fogon-leyenda') && deNoche(s) },
+  'fogon-leyenda': { forma: 'fogon', punto: 'predio', dx: 3.4, dz: 0.8, visible: (s, h) => enCap(h, 'cuaderno') && s.temas.has('mundo:fogon-leyenda') && deNoche(s) },
   'mulas-paso': { forma: 'mulas', punto: 'puesto-paso', dx: -7, dz: 6, visible: (s, h) => enCap(h, 'cuaderno') && !s.temas.has('mundo:tropa-mulas') },
   'mulas-mallin': { forma: 'mulas', punto: 'mallin', dx: -3, dz: 2, visible: (s) => s.temas.has('mundo:tropa-mulas') },
   // los props del acto I que antes sólo dejaban una marca

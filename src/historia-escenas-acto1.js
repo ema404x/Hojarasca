@@ -579,7 +579,8 @@ const derrumbePuertita = {
     { tipo: 'salto', a: 'fin' },
     // rama 2: ayudás y la encontrás en la vía
     { ...narra('Piedra por piedra, entre los tres, la vía queda limpia. Elsa levanta la última, grande, y debajo, en el ripio, hay algo que no es una piedra.'), etiqueta: 'ayuda' },
-    plano('detalle', FRENTE(3.4, -0.4), { desde: 'jugador', dist: 1.5, alto: 1.6, miraY: 0.3, dur: 3, mezcla: 0.8 }),
+    // 4.17.0: sobre las manos de Graciela, no sobre el ripio (entre el pasto la puertita no se veía)
+    plano('medio', 'graciela', { desde: 'jugador', dist: 2.2, alto: 1.5, miraY: 1.1, dur: 3, mezcla: 0.8 }),
     narra('Una puertita de madera de coihue, del tamaño de una mano. Con bisagra de cuero y una manijita de hueso. Está tibia.'),
     plano('medio', 'graciela', { desde: 'jugador', mezcla: 0.7, dur: 30, sinEsperar: true }),
     dlg('graciela', [
