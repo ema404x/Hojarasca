@@ -1,0 +1,342 @@
+// 4.17.0 (B): ACTO III · capítulo 10 «Golpeá antes de abrir» (GUION_HISTORIA.md): el encuentro con los duendes en tu galpón. Nueve escenas.
+// La decisión D6 (trato o pelea) se toma en `galpon-encuentro` (con el efecto `duendes:trato` | `duendes:trato-fuerte` | `duendes:pelea`) y se
+// cumple en `galpon-trato` o `galpon-pelea`. Los duendes NO hablan: se ven, se oyen y se mueven (efectos `duende:*`).
+import { efectosDe, dlg, narra, linea, gs, plano, pose, aparece, camina, mira, desaparece, espera, sonido, efecto, opcion, eleccion, siEleg, siDecision } from './historia-escenas-util.js';
+import { FRENTE, apagon, hora, con, no, lazoAl } from './historia-escenas-acto2-util.js';
+import { pj3, siTrato, siDevolver, siPerdon, primerDe } from './historia-escenas-acto3-util.js';
+
+const golpe = {
+  id: 'galpon-golpe', titulo: 'Golpeá antes de abrir', acto: 3, capitulo: 10,
+  resumen: 'De noche, nevando fino, golpeaste la puerta de tu galpón, que tenía luz y risas adentro. Se hizo un silencio total y la puerta se abrió sola, un palmo.',
+  personajes: pj3('narra'),
+  disparador: { hora: [22, 24] },
+  pasos: [
+    efecto('mundo:galpon-luz-adentro', { donde: FRENTE(7) }),
+    plano('general', FRENTE(7, 2), { desde: 'jugador', dist: 15, alto: 3.4, dur: 3.4, mezcla: 0.9 }),
+    narra('Nieva finito, de ese que casi no se oye. Por las rendijas de tu galpón sale una luz amarilla, temblona, y se oyen risas bajitas, como de gente que se tapa la boca.'),
+    plano('hombro', FRENTE(7), { desde: 'jugador', mezcla: 0.9, dur: 3 }),
+    narra('En la plaza de la aldea hay una placa que dice «Golpeá antes de abrir». La leíste cien veces. Nunca pensaste que fuera un consejo.'),
+    eleccion('golpe-resp', '¿Cómo golpeás?', [
+      opcion('tres', 'Tres golpes, despacio.', { sabor: true }),
+      opcion('uno', 'Uno solo, firme.', { sabor: true }),
+      opcion('bajito', 'Con los nudillos, bajito, como en lo de un vecino.', { sabor: true }),
+    ]),
+    con(narra('Tres golpes despacio, con los dedos duros de frío. El sonido queda flotando un segundo en el aire de la nieve.'), siEleg('golpe-resp', 'tres')),
+    con(narra('Un solo golpe, de los que se dan cuando uno quiere que lo oigan y no que lo asusten. Retumba más de lo que pensabas.'), siEleg('golpe-resp', 'uno')),
+    con(narra('Golpeás bajito, con los nudillos, como se golpea en lo de un vecino a quien no querés despertar. Adentro alguien contiene el aliento.'), siEleg('golpe-resp', 'bajito')),
+    espera(2.4),
+    narra('Silencio total. Ni las risas, ni la nieve, ni el viento. Después, un crujido de bisagras que no necesitaron mano: la puerta se abre sola, un palmo.'),
+    sonido('bisagra'),
+    efecto('mundo:galpon-puerta-entornada', { donde: FRENTE(7) }),
+    plano('hombro', FRENTE(8), { desde: 'jugador', atras: 0.3, mezcla: 0.9, dur: 3 }),
+    efecto('raro:golpe-galpon'),
+  ],
+};
+
+const sinGolpear = {
+  id: 'galpon-sin-golpear', titulo: 'Sin golpear', acto: 3, capitulo: 10, repetible: true,
+  resumen: 'Abriste la puerta del galpón sin golpear. La luz se apagó de golpe y tuviste que esperar un rato en la oscuridad hasta que se volvió a prender: una broma de ellos, sin castigo.',
+  personajes: pj3('narra'),
+  disparador: { hora: [20, 26] },
+  pasos: [
+    plano('hombro', FRENTE(5), { desde: 'jugador', dist: 10, mezcla: 0.9, dur: 2.6 }),
+    narra('Abrís la puerta del galpón de un empujón, sin golpear. Alcanzás a ver un resplandor amarillo y muchas sombras chicas. Después, nada: la luz se apaga de golpe.'),
+    ...apagon([efecto('mundo:galpon-luz-apagada'), espera(8), efecto('mundo:galpon-luz-vuelve')], { dur: 1.2 }),
+    plano('general', FRENTE(6), { desde: 'jugador', dist: 13, alto: 3, dur: 3, mezcla: 0.9 }),
+    narra('Esperás diez segundos en una oscuridad total, con el corazón golpeándote las costillas. Después la luz se prende otra vez, como si nada. Alguien, adentro, se ríe. Una sola vez, bajito.'),
+    eleccion('sin-golpear-resp', '¿Qué hacés?', [
+      opcion('perdon', 'Decir «perdón» y golpear como corresponde.', { sabor: true }),
+      opcion('reir', 'Reírte, que se lo merecía la puerta.', { sabor: true }),
+    ]),
+    con(narra('«Perdón», decís al aire. Golpeás. La puerta se abre un palmo, muy despacito. No es una disculpa aceptada: es una invitación.'), siEleg('sin-golpear-resp', 'perdon')),
+    con(narra('Te reís solo, en la nieve, de vos mismo, de la puerta y de la placa de la plaza. Adentro se ríen más fuerte. Se ve que el chiste era para los dos.'), siEleg('sin-golpear-resp', 'reir')),
+    efecto('raro:sin-golpear'),
+  ],
+};
+
+const encuentro = {
+  id: 'galpon-encuentro', titulo: 'Los del galpón', acto: 3, capitulo: 10,
+  resumen: 'Adentro de tu galpón había once duendes sentados en ronda amasando harina, y el Mandamás arriba de una bolsa. Te señaló las bolsas, la ventana y a vos. Sin palabras. Tenías que decidir: dejar la puerta abierta, devolver la bolsa o echarlos.',
+  personajes: pj3('narra'),
+  pasos: [
+    plano('hombro', FRENTE(5), { desde: 'jugador', atras: 0.3, mezcla: 0.9, dur: 3 }),
+    narra('Entrás de a un paso. Huele a harina tibia y a hojas mojadas. El piso de tierra está lleno de montoncitos blancos y de huellas chiquitas que no se parecen a nada.'),
+    efecto('duende:galpon-pillos', { tipo: 'rastreador', n: 4, sentados: true, amasan: true, enRonda: true }),
+    efecto('duende:galpon-saltarines', { tipo: 'saltador', n: 2, enVigas: true }),
+    efecto('duende:galpon-lucecitas', { tipo: 'enjambre', n: 3, ambar: true }),
+    efecto('duende:galpon-yuyero', { tipo: 'curandero', n: 1, huele: 'harina' }),
+    efecto('duende:galpon-topo', { tipo: 'excavador', n: 1, alPozo: true }),
+    efecto('duende:galpon-mandamas', { tipo: 'jefe', sobre: 'bolsa', hongosApagados: true }),
+    plano('general', FRENTE(6), { desde: 'jugador', dist: 10, alto: 2.6, dur: 3.8, mezcla: 0.9 }),
+    narra('Once duendes sentados en ronda alrededor de las bolsas abiertas. Pillos de orejas grandes, dos saltarines colgados de las vigas, duendecitos con lucecitas ámbar y un yuyero que huele la harina con cara de catador.'),
+    narra('Amasan bollitos con las manos, como chicos en una cocina ajena. Cuando entrás, se congelan. Todos a la vez. Un bollito se cae al piso.'),
+    efecto('duende:galpon-se-congelan', { n: 11 }),
+    plano('paneo', FRENTE(4, -4), { hasta: FRENTE(4, 4), desde: 'jugador', dist: 6, alto: 1.6, dur: 5, mezcla: 0.9 }),
+    narra('Cara por cara. Ojos verdes, ojos ámbar. Nadie parpadea. Nadie se mueve. Se oye el goteo de la nieve que se derrite en el techo.'),
+    plano('contrapicado', FRENTE(8), { desde: 'jugador', dist: 5, mezcla: 0.9, dur: 4 }),
+    narra('Al fondo, sentado arriba de una bolsa, el Mandamás. Es el más grande de todos, con una barba de musgo y unos hongos en el lomo que brillan apenas. Te mira mucho rato.'),
+    plano('primer', FRENTE(8), { desde: 'jugador', dist: 1.6, alto: 1.7, mezcla: 0.8, dur: 3.2 }),
+    narra('Levanta un brazo y señala las bolsas. Después, despacio, la ventana.'),
+    plano('hombro', FRENTE(60, -8), { desde: 'jugador', atras: 0, costado: 0, miraY: 22, alto: 1.7, mezcla: 0.9, dur: 2.4 }),
+    narra('Por la ventana, el cerro nevado. Nada: nieve y oscuridad.'),
+    plano('primer', FRENTE(8), { desde: 'jugador', dist: 1.6, alto: 1.7, mezcla: 0.8, dur: 3 }),
+    narra('Vuelve la cara, y te señala a vos. ¿Te está pidiendo, te está avisando o te está amenazando? No se sabe. A propósito.'),
+    narra('Un duendecito estornuda harina. Risas tapadas por todos lados. El Mandamás no se ríe.'),
+    efecto('duendes:vistos'),
+    efecto('raro:once-en-el-galpon'),
+    plano('general', FRENTE(6), { desde: 'jugador', dist: 9, alto: 2.4, dur: 2.8, mezcla: 0.9 }),
+    narra('Esto no tiene tiempo límite. El valle espera. Las bolsas, la puerta, el farol y la pala: lo que hagas ahora es lo que va a pasar.'),
+    con(eleccion('duendes', '¿Qué hacés?', [
+      opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral.', { efecto: 'duendes:trato' }),
+      opcion('fuerte', 'Poner la bolsa de Eusebio en el umbral.', { efecto: 'duendes:trato-fuerte' }),
+      opcion('pelea', 'Agarrar la pala y el farol: ¡fuera de acá!', { efecto: 'duendes:pelea' }),
+    ]), siDevolver()),
+    con(eleccion('duendes-sin', '¿Qué hacés?', [
+      opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral.', { efecto: 'duendes:trato' }),
+      opcion('pelea', 'Agarrar la pala y el farol: ¡fuera de acá!', { efecto: 'duendes:pelea' }),
+    ]), no(siDevolver())),
+  ],
+};
+
+const trato = {
+  id: 'galpon-trato', titulo: 'Un trato', acto: 3, capitulo: 10,
+  resumen: 'Dejaste la puerta abierta y te sentaste en el umbral. El Mandamás se bajó de la bolsa, se llevó una, te dejó la llave que Eusebio perdió en el 79, y salieron en fila tocándote la bota. El último dejó la puerta entornada.',
+  personajes: pj3('narra'),
+  pasos: [
+    plano('medio', 'jugador', { desde: FRENTE(3), dist: 3, alto: 1.2, dur: 3, mezcla: 0.9 }),
+    narra('Dejás la puerta abierta de par en par. La nieve entra de costado, lenta. Te sentás en el umbral con las manos sobre las rodillas, como se espera a alguien en un andén.'),
+    con(narra('En el umbral, delante de vos, ponés la bolsa de harina que dejó Eusebio. La ponés derecha, con el piolín colorado hacia afuera, para que se vea quién la dejó.'), siTrato('fuerte')),
+    plano('general', FRENTE(-4), { desde: 'jugador', dist: 8, alto: 2, dur: 3, mezcla: 0.9 }),
+    narra('Atrás tuyo, adentro, el Mandamás se baja de la bolsa despacio, con un crujido de rodillas. Camina hasta vos y se queda parado, tan cerca que le sentís el olor a musgo.'),
+    efecto('duende:galpon-mandamas-camina', { tipo: 'jefe', hasta: FRENTE(1.2), despacio: true }),
+    plano('primer', FRENTE(1.2), { desde: 'jugador', dist: 1.5, alto: 1.2, dur: 3.4, mezcla: 0.8 }),
+    con(narra('Mira la bolsa. La toma con las dos manos, como a una cosa frágil, y asiente una sola vez. Tiene los ojos viejos y amables, ahora que los ves de cerca.'), siTrato('fuerte')),
+    con(narra('Mira tus manos vacías. Las mira un largo rato, sin enojo, como un contador que repasa una cuenta. Después se da vuelta y agarra una bolsa de harina de la pila, una sola.'), no(siTrato('fuerte'))),
+    con(narra('Se acuerda de una cuenta vieja: la bolsa que le debías a las raíces, la que fue a la panadería de Rosa. Agarra una del galpón, una, y la carga al hombro con cuidado.'), siDecision('bolsa', 'b')),
+    con(narra('Antes de irse, estira un dedo y señala, por la ventana, el lado del molino viejo donde estaba el coihue grande. Después levanta seis dedos. Seis tablas. No lo dice: lo muestra.'), siDecision('coihue', 'b')),
+    plano('detalle', FRENTE(1.2), { desde: 'jugador', dist: 0.8, alto: 0.7, dur: 3.4, mezcla: 0.8 }),
+    narra('Deja en el piso, delante tuyo, una llave grande, vieja, de hierro, con aceite fresco en el ojo. En la lista de Eusebio hay una igual: «la llave que perdí en el 79».'),
+    efecto('objeto:llave-79'),
+    plano('general', FRENTE(-3), { desde: 'jugador', dist: 9, alto: 2.2, dur: 3.6, mezcla: 0.9 }),
+    efecto('duende:galpon-salen-fila', { tipo: 'rastreador', n: 11, enFila: true, tocanLaBota: true, hasta: 'raiz-coihue' }),
+    narra('Salen en fila, uno atrás del otro. Cada uno, al pasar, te toca la bota con un dedo. No es una caricia ni un golpe: es otra cosa. Es lo que se hace con los vecinos que no se conocen todavía.'),
+    narra('El último deja la puerta del galpón entornada. Y se va, sin ruido, como si no hubiera estado.'),
+    efecto('mundo:galpon-puerta-entornada', { donde: FRENTE(-3) }),
+    con(efecto('duendes:deuda-bolsa'), siDecision('bolsa', 'b')),
+    con(efecto('duendes:deuda-tablas'), siDecision('coihue', 'b')),
+    eleccion('trato-resp', '¿Qué hacés con la llave?', [
+      opcion('guardar', 'Guardarla en el bolsillo, bien adentro.', { sabor: true }),
+      opcion('mirar', 'Mirarla a la luz del farol, dándola vuelta.', { sabor: true }),
+    ]),
+    con(narra('La llave pesa lo que tiene que pesar. Hace cuarenta años que anda por ahí y está tibia. Te la guardás sin hacer preguntas.'), siEleg('trato-resp', 'guardar')),
+    con(narra('A la luz del farol se ve el dibujito de una hoja en el ojo. Es la misma hoja de la llavecita de Herminia. Alguien las hizo juntas.'), siEleg('trato-resp', 'mirar')),
+    efecto('raro:nos-dimos-la-mano'),
+  ],
+};
+
+const pelea = {
+  id: 'galpon-pelea', titulo: 'Fuera de acá', acto: 3, capitulo: 10,
+  resumen: 'Agarraste la pala y el farol y los echaste del galpón a los gritos. Huyeron por la ventana, por el pozo y entre tus piernas; el Mandamás salió el último, caminando, con una bolsa al hombro. A la mañana, barro y bellotas en la ventana, y una puertita de juguete clavada al revés.',
+  personajes: pj3('narra'),
+  pasos: [
+    plano('general', FRENTE(5), { desde: 'jugador', dist: 9, alto: 2.2, dur: 2.6, mezcla: 0.9, tiembla: 0.004 }),
+    narra('Agarrás la pala con una mano y el farol con la otra. Te sale un grito que no sabías que tenías: «¡Fuera!». Más fuerte de lo que pensabas. Las vigas devuelven el eco.'),
+    efecto('duende:galpon-huyen', { tipo: 'saltador', n: 2, porVentana: true }),
+    efecto('duende:galpon-huyen-pozo', { tipo: 'excavador', n: 1, alPozo: true }),
+    efecto('duende:galpon-huyen-piernas', { tipo: 'rastreador', n: 4, entreLasPiernas: true }),
+    efecto('duende:galpon-yuyero-tira', { tipo: 'curandero', n: 1, tiraCalabacita: true }),
+    plano('general', FRENTE(5), { desde: 'jugador', dist: 8, alto: 2.4, dur: 4, mezcla: 0.2, tiembla: 0.006 }),
+    narra('Saltarines por la ventana. El topo al pozo del piso, que se lo traga. Pillos entre tus piernas, riéndose de miedo. El yuyero tira su calabacita y corre con las manos arriba.'),
+    narra('Las lucecitas ámbar se apagan una por una. El galpón queda a oscuras, con el farol temblándote en la mano y el corazón haciendo lo mismo.'),
+    plano('primer', FRENTE(8), { desde: 'jugador', dist: 1.6, alto: 1.7, mezcla: 0.7, dur: 3.2 }),
+    narra('El Mandamás es el último. Se levanta de la bolsa sin apuro. Agarra una al hombro y sale caminando, derecho, por al lado tuyo. No te toca. Ni te mira.'),
+    efecto('duende:mandamas-se-va', { tipo: 'jefe', conBolsa: true, caminando: true }),
+    plano('contrapicado', FRENTE(2), { desde: 'jugador', dist: 3, mezcla: 0.9, dur: 3 }),
+    narra('En la puerta se da vuelta. Primer plano: los ojos viejos, la barba de musgo. No hay enojo. No hay miedo. Hay algo más pesado que las dos cosas. Y se va.'),
+    ...apagon([hora(7.2, { dur: 0 }), efecto('mundo:ventana-barro-y-bellotas', { donde: FRENTE(6, -2) }), efecto('mundo:puertita-al-reves', { donde: FRENTE(7) })], { dur: 2 }),
+    plano('detalle', FRENTE(7), { desde: 'jugador', dist: 0.9, alto: 1.1, dur: 3.4, mezcla: 0.9 }),
+    narra('A la mañana, la ventana del refugio tiene barro y bellotas contra el vidrio. Y en la puerta del galpón, clavada con cuidado, una puertita de juguete. Al revés.'),
+    eleccion('pelea-resp', '¿Qué hacés con la puertita?', [
+      opcion('dejar', 'Dejarla como está, clavada al revés.', { sabor: true }),
+      opcion('dar', 'Darla vuelta, a ver qué pasa.', { sabor: true }),
+      opcion('guardar', 'Sacarla con cuidado y guardarla.', { sabor: true }),
+    ]),
+    con(narra('La dejás. Mirarla cada mañana te va a venir bien, como a otros les viene bien una cicatriz.'), siEleg('pelea-resp', 'dejar')),
+    con(narra('La das vuelta. Queda derecha un segundo, y un golpe de viento la vuelve al revés. Ya sabés cómo es la cosa: no se la puede arreglar de afuera.'), siEleg('pelea-resp', 'dar')),
+    con(narra('La sacás despacio, con los dedos fríos. Pesa casi nada. La guardás en un cajón, sin saber si está bien o si es peor.'), siEleg('pelea-resp', 'guardar')),
+    efecto('raro:nadie-me-pego'),
+  ],
+};
+
+const etq = (paso, nombre) => ({ ...paso, etiqueta: nombre });
+
+const cerro = {
+  id: 'cerro-mirador', titulo: 'Arriba, en el cerro', acto: 3, capitulo: 10,
+  resumen: 'En el mirador, a la mañana, viste formas oscuras en la nieve del cerro, más grandes que los de las raíces: los del cerro. Con Josefina (o con Belisario) entendiste que cuando la nieve tape el paso, bajan.',
+  personajes: pj3('josefina', 'belisario', 'narra'),
+  disparador: { hora: [7, 12] },
+  pasos: [
+    ...apagon([hora(8.4, { dur: 0 }), con(aparece('josefina', FRENTE(2.6, 1.2)), lazoAl('ema', 1)), con(aparece('belisario', FRENTE(2.6, 1.2)), no(lazoAl('ema', 1)))], { dur: 1.6 }),
+    plano('general', FRENTE(70, -10), { desde: 'jugador', dist: 66, alto: 2.4, miraY: 26, dur: 3.6, mezcla: 0.9 }),
+    narra('Desde el mirador se ve todo el cerro nevado, con las lengas negras asomando como pelos en un brazo blanco. Está limpio y quieto, y se ve a kilómetros.'),
+    plano('empuje', FRENTE(70, -10), { desde: 'jugador', dist: 60, distFin: 26, alto: 2.4, miraY: 24, dur: 5, mezcla: 0.9 }),
+    efecto('duende:viejos-en-la-nieve', { tipo: 'bruto', n: 5, viejo: true, enFila: true, desde: 'cerro' }),
+    narra('En la nieve, muy arriba, hay formas oscuras que se mueven en fila, más grandes que los de las raíces. Barbudos, de liquen gris, caminan despacio hundiéndose hasta la cintura.'),
+    con(efecto('duende:lucecitas-mirador', { tipo: 'enjambre', n: 3, sobre: 'piedra-mirador', tiemblan: true }), no(siTrato('pelea'))),
+    con(narra('Sobre la piedra del mirador, a tu lado, tres lucecitas ámbar que tiemblan. No se acercan ni se van: están ahí, apretadas, mirando al cerro con vos.'), no(siTrato('pelea'))),
+    con(efecto('duende:chicos-suben-cerro', { tipo: 'rastreador', n: 8, suben: true, desde: 'raices' }), siTrato('pelea')),
+    con(narra('Y desde abajo, por la ladera, otras formas más chicas suben a juntarse con las grandes. Corren en zigzag. Se acomodan en la fila, de a una, sin mirar para atrás.'), siTrato('pelea')),
+    { tipo: 'salto', a: 'con-belisario', si: no(lazoAl('ema', 1)) },
+    // con Josefina
+    con(dlg('josefina', [linea('Tienen miedo. Mirá cómo tiemblan.', { gesto: gs('susurrar', 2.2) })]), no(siTrato('pelea'))),
+    con(dlg('josefina', [linea('Se van con ellos.', { gesto: gs('suspirar', 2.4) })]), siTrato('pelea')),
+    plano('medio', 'josefina', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }),
+    dlg('josefina', [
+      'Cuando la nieve tape el paso, bajan. La nevada grande viene en un par de días.',
+      'Y el molino es lo único caliente con harina de acá al lago.',
+      linea('Vamos a necesitar algo más que una pala.', { gesto: gs('cruzarse', 2) }),
+    ]),
+    eleccion('mirador-resp', '¿Qué le contestás a Josefina?', [
+      opcion('junt', 'Entonces nos preparamos entre todos.', { sabor: true }),
+      opcion('cuantos', '¿Cuántos son los de arriba?', { sabor: true }),
+      opcion('vienen', '¿Vienen a pelear o vienen a comer?', { sabor: true }),
+    ]),
+    dlg('josefina', ['Entre todos, sí. Para eso hay un valle.'], { si: siEleg('mirador-resp', 'junt') }),
+    dlg('josefina', ['Lo que vimos es lo que hay. Pero cada uno que baja trae a otros, y los otros vienen con hambre.'], { si: siEleg('mirador-resp', 'cuantos') }),
+    dlg('josefina', ['No sé. Ellos tampoco. Eso lo vamos a ver cuando lleguen al galpón.'], { si: siEleg('mirador-resp', 'vienen') }),
+    { tipo: 'salto', a: 'fin-cerro' },
+    // con Belisario
+    etq(con(dlg('belisario', [linea('Esas lucecitas no son de los grandes. Son de los suyos, amigo. Y están asustadas de los de arriba.', { gesto: gs('barba', 2.2) })]), no(siTrato('pelea'))), 'con-belisario'),
+    con(dlg('belisario', [linea('Los chiquitos se van con los grandes. Eso es mala señal, amigo. O buena, según quién cuente.', { gesto: gs('encogerse', 2.2) })]), siTrato('pelea')),
+    plano('medio', 'belisario', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }),
+    dlg('belisario', [
+      linea('Cuando la nieve tapa el paso, bajan. La nevada grande viene en un par de días.', { gesto: gs('mirar', 2) }),
+      'Y el molino es lo único caliente con harina de acá al lago. Las mulas lo saben. Yo también.',
+      'Va a necesitar algo más que una pala, amigo.',
+    ]),
+    eleccion('cerro-bel', '¿Qué le contestás a Belisario?', [
+      opcion('junt', 'Entonces nos preparamos entre todos.', { sabor: true }),
+      opcion('cuantos', '¿Cuántos son los de arriba?', { sabor: true }),
+      opcion('mulas', '¿Y sus mulas?', { sabor: true }),
+    ]),
+    dlg('belisario', ['Entre todos. Yo pongo la vista y el consejo, que son lo único que me sobra.'], { si: siEleg('cerro-bel', 'junt') }),
+    dlg('belisario', ['Mil años y una noche, si le creo a mi abuelo. Hoy, calculo que cinco.'], { si: siEleg('cerro-bel', 'cuantos') }),
+    dlg('belisario', ['Las dejo en el corral con pan duro. Las mulas son sensatas: se esconden primero y opinan después.'], { si: siEleg('cerro-bel', 'mulas') }),
+    etq(efecto('mundo:lado-del-arroyo-marcado'), 'fin-cerro'),
+    efecto('raro:viejos-del-cerro'),
+  ],
+};
+
+const mesaGuerra = {
+  id: 'mesa-guerra', titulo: 'La mesa de guerra, sin guerra', acto: 3, capitulo: 10,
+  resumen: 'A la tarde juntaste a los vecinos en tu mesa, con el mapa del valle abierto: Ramón en una silla con la manta, Josefina con el arco, Fermín con su honda secreta y Ercilia con la lista de lo que cada uno tiene para prestar.',
+  personajes: pj3('ramon', 'josefina', 'fermin', 'ercilia', 'narra'),
+  disparador: { hora: [16, 20] },
+  pasos: [
+    ...apagon([
+      hora(16.5, { dur: 0 }),
+      efecto('mundo:mesa-con-mapa', { donde: FRENTE(2.4) }),
+      con(aparece('ramon', FRENTE(2.8, -1.8)), lazoAl('ramon', 0)),
+      con(aparece('josefina', FRENTE(3, 1.8)), lazoAl('ema', 0)),
+      con(aparece('fermin', FRENTE(3.6, 3)), lazoAl('fermin', 1)),
+      aparece('ercilia', FRENTE(2.6, 0.2)),
+    ], { dur: 1.6 }),
+    plano('general', FRENTE(2.4), { desde: 'jugador', dist: 6, alto: 2.8, dur: 3.4, mezcla: 0.9 }),
+    narra('La mesa tiene el mapa del valle, una hoja del cuaderno con el arroyo, el galpón y las lomas. Alrededor, mate en mano, los que quedaron. Afuera, el cielo se pone color estaño.'),
+    con(dlg('ramon', [linea('Yo en la cama no me quedo.', { gesto: gs('cruzarse', 2) }), 'Con un martillo en la mano no me duele nada. Me traen, me sientan, me dan el martillo. Y se acabó la discusión.']), lazoAl('ramon', 0)),
+    con(plano('medio', 'josefina', { desde: 'jugador', dist: 3.2, mezcla: 0.8, dur: 30, sinEsperar: true }), lazoAl('ema', 0)),
+    con(dlg('josefina', [linea('Arco. Yo tiro con arco desde los quince.', { gesto: gs('senalar', 2) }), 'Pero vos también vas a tener que tirar. Una sola persona no alcanza.']), lazoAl('ema', 0)),
+    con(dlg('fermin', [linea('Y honda. Con honda le pego a una lata a treinta metros.', { gesto: gs('encogerse', 2.2) }), 'No le cuenten a nadie. Es mi secreto de cuando espantaba zorros.']), lazoAl('fermin', 1)),
+    plano('primer', 'ercilia', { desde: 'jugador', mezcla: 0.8, dur: 30, sinEsperar: true }),
+    dlg('ercilia', [
+      linea('Anselmo tiene estacas, Guido tiene miel, Martín tiene la campana vieja del taller.', { gesto: gs('contar', 2.4) }),
+      'Esto es un valle, querido: acá nadie tiene todo, pero entre todos tenemos todo.',
+    ]),
+    con(narra('Nadie dice lo que todos piensan: que si el trato es un trato, hay que saber qué se les debe, y si no, hay que saber cómo se los frena.'), siTrato('trato')),
+    con(narra('Nadie dice lo que todos piensan: que los chicos se fueron al cerro, y que un grito en un galpón se contesta con una nevada.'), siTrato('pelea')),
+    eleccion('mesa-resp', '¿Qué proponés para la noche?', [
+      opcion('ensayo', 'Armar todo y ensayarlo dos veces antes de la nevada.', { sabor: true }),
+      opcion('cada-uno', 'Que cada uno haga lo que mejor sabe.', { sabor: true }),
+      opcion('josefina', 'Josefina, vos mandás a los del arco.', { efecto: 'lazo:ema:1' }),
+    ]),
+    dlg('ercilia', ['Ensayar, sí. Nada sale a la primera, ni el pan.'], { si: siEleg('mesa-resp', 'ensayo') }),
+    dlg('ercilia', ['Eso, eso. Que nadie se meta en la cocina del otro.'], { si: siEleg('mesa-resp', 'cada-uno') }),
+    dlg('ercilia', ['Muy bien elegido. Mandona es, pero mandona con razón.'], { si: siEleg('mesa-resp', 'josefina') }),
+    efecto('mundo:plan-de-la-noche'),
+    efecto('raro:mesa-de-guerra'),
+  ],
+};
+
+const llave79 = {
+  id: 'llave-79', titulo: 'La llave del 79', acto: 3, capitulo: 10,
+  resumen: 'Probaste la llave de hierro en el cajón trabado del molino viejo. Adentro había una foto de tres hombres jóvenes con una bolsa de trigo: Eusebio, el abuelo de Josefina y Ramón. A los dos les llevaste la foto.',
+  personajes: pj3('josefina', 'ramon', 'narra'),
+  pasos: [
+    plano('detalle', FRENTE(1.4), { desde: 'jugador', dist: 0.8, alto: 1.1, dur: 3, mezcla: 0.9 }),
+    narra('Junto a las piedras del molino viejo hay un cajón trabado, hundido en el barro. La llave de hierro entra como si la hubieran hecho para ese hueco. Gira con un clac seco.'),
+    sonido('bisagra'),
+    narra('Adentro, envuelta en hule: una foto vieja, color té. Tres hombres jóvenes con una bolsa de trigo al hombro, riéndose de algo que quedó fuera del cuadro.'),
+    plano('primer', FRENTE(1.4), { desde: 'jugador', dist: 1, alto: 1.3, dur: 3.2, mezcla: 0.8 }),
+    narra('Reconocés a Eusebio, flaco, de pelo negro. Al del medio lo reconocés por la mandíbula: es el abuelo de Josefina. Y al tercero, con la boina torcida, sin dudas: Ramón.'),
+    efecto('objeto:foto-de-tres'),
+    ...apagon([aparece('josefina', FRENTE(3, 1.4)), con(aparece('ramon', FRENTE(3, -1.6)), lazoAl('ramon', 0))], { dur: 1.4 }),
+    plano('medio', 'josefina', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }),
+    dlg('josefina', [
+      linea('Mi abuelo. Con diecinueve años. Tenía la cara de mi mamá.', { gesto: gs('mirar', 2.4) }),
+      'Nunca me mostraron una foto de él así. Siempre de viejo, con cara de enojado.',
+    ]),
+    con(plano('medio', 'ramon', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }), lazoAl('ramon', 0)),
+    con(dlg('ramon', [
+      linea('Qué flaco estaba. Qué flaco y qué zonzo.', { gesto: gs('hacer-broma', 2.4) }),
+      "Ese día cargamos treinta sacos. Eusebio no quería parar. Dijo que había que dejar uno aparte, y nosotros nos reímos. Qué zonzos, m'hijo.",
+    ]), lazoAl('ramon', 0)),
+    eleccion('llave79-resp', '¿Qué hacés con la foto?', [
+      opcion('josefina', 'Dejársela a Josefina para el cuaderno.', { sabor: true }),
+      opcion('ramon', 'Dejársela a Ramón, para su pieza.', { sabor: true }),
+      opcion('repisa', 'Ponerla en tu repisa, con las demás.', { sabor: true }),
+    ]),
+    dlg('josefina', ['Gracias. La pego en la última hoja del cuaderno del abuelo. Que ahora sí está completo.'], { si: siEleg('llave79-resp', 'josefina') }),
+    con(narra('Se la llevás a Ramón después. No dice nada: la cuelga al lado de la cama, para acordarse de cómo era el mundo cuando todavía había sacos para cargar.'), siEleg('llave79-resp', 'ramon')),
+    dlg('josefina', ['En tu repisa queda bien. Entre el canto y la puertita. La historia se junta.'], { si: siEleg('llave79-resp', 'repisa') }),
+    efecto('lazo:ema:1'),
+    efecto('lazo:ramon:1'),
+    efecto('raro:foto-de-los-tres'),
+  ],
+};
+
+const pedirPerdon = {
+  id: 'pedir-perdon', titulo: 'Pedir perdón', acto: 3, capitulo: 10,
+  resumen: 'Después de echarlos, fuiste a la raíz del coihue y dejaste algo: una bolsa, piñones o la puertita. No cambió lo que hiciste, pero la raíz lo recibió.',
+  personajes: pj3('narra'),
+  pasos: [
+    plano('general', FRENTE(7, 2), { desde: 'jugador', dist: 14, alto: 3.2, dur: 3.2, mezcla: 0.9 }),
+    narra('La raíz del coihue grande está cubierta de escarcha. Las puertitas, cerradas, no dejan pasar ni un hilo de luz. Hace frío y hay un silencio que pesa.'),
+    plano('medio', FRENTE(2.4), { desde: 'jugador', dist: 3.2, alto: 1.4, dur: 3, mezcla: 0.9 }),
+    narra('Te arrodillás en la nieve. No sabés qué decir, así que no decís nada. Sacás de la mochila lo que tenés y lo ponés adelante tuyo, en el hueco alisado.'),
+    eleccion('perdon-resp', '¿Qué dejás en la raíz?', [
+      opcion('harina', 'Una bolsa de harina, de la tuya.', { sabor: true }),
+      opcion('pinones', 'Un puñado de piñones.', { sabor: true }),
+      opcion('puertita', 'La puertita al revés.', { sabor: true }),
+    ]),
+    con(efecto('quitar:harina:1'), siEleg('perdon-resp', 'harina')),
+    con(efecto('quitar:pinon:3'), siEleg('perdon-resp', 'pinones')),
+    con(efecto('entrega:puertita'), siEleg('perdon-resp', 'puertita')),
+    plano('detalle', FRENTE(2.4), { desde: 'jugador', dist: 0.9, alto: 1, dur: 3, mezcla: 0.9 }),
+    narra('Lo dejás y te quedás un rato más, esperando algo. No pasa nada. Ni una risa, ni una bellota. Pero cuando te levantás, sentís que alguien se movió del otro lado de la tierra.'),
+    efecto('duendes:perdon'),
+    efecto('raro:pedi-perdon'),
+  ],
+};
+
+export const ESCENAS_C10 = {
+  'galpon-golpe': golpe,
+  'galpon-sin-golpear': sinGolpear,
+  'galpon-encuentro': encuentro,
+  'galpon-trato': trato,
+  'galpon-pelea': pelea,
+  'cerro-mirador': cerro,
+  'mesa-guerra': mesaGuerra,
+  'llave-79': llave79,
+  'pedir-perdon': pedirPerdon,
+};
+export const EFECTOS_C10 = [...new Set(Object.values(ESCENAS_C10).flatMap((e) => efectosDe(e)))].sort();
