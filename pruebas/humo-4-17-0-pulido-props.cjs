@@ -4,7 +4,7 @@ exports.correr = async function correr({ N, ok, foto, entrar, esperar }) {
   console.log('— P1. entrando a la historia');
   await entrar({ estacion: 'otono' });
   const prep = (cap, temas = [], extra = '') => N(`(() => { const h = P.historia; N.preparar(${cap}); h.fase = 'jugando'; h.base = { dia: 1 }; h.hechos['rueda:puente'] = 1; P.dia = Math.max(P.dia, 3); h.activa = true; h.temas = {}; h.escenas.vistas = {}; for (const t of ${JSON.stringify(temas)}) h.temas[t] = P.dia; ${extra}; return 1 })()`);
-  const cerca = (id, d = 0.9) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const a = 0.6; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.45; return 1 })()`);
+  const cerca = (id, d = 0.9) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const a = 0.6; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.8; return 1 })()`);
   const mira = async (id, esperado, nombreFoto) => {
     await cerca(id);
     await N('N.tick(0.9)');
