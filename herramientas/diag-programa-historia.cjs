@@ -51,5 +51,8 @@ app.whenReady().then(async () => {
   await ir('estacion-dia', 'estacion', 4, 2, 12);
   await ir('molino-viejo-dia-2', 'molino-viejo', 5, 5, 12);
   console.log('CULPABLES: ' + JSON.stringify(await js('window.__culpables'), null, 1));
+  // las claves de los programas de profundidad (sombras): qué parámetro distingue al último de los demás
+  console.log('PROFUNDIDAD: ' + JSON.stringify(await js(`(() => { const R = ${H}.renderer; return R.info.programs.filter((p) => /depth/i.test(p.name || '')).map((p) => String(p.cacheKey).slice(0, 1500)) })()`), null, 1));
+  console.log('PRIMER-ALAMOS: ' + JSON.stringify(await js(`(() => { let r = null; ${H}.escena && ${H}.escena.traverse((o) => { if (!r && o.name === 'estructura:aldea-alamos') r = { instanciado: !!o.isInstancedMesh, conColor: !!o.instanceColor, capas: o.layers.mask, sombra: o.castShadow, cantidad: o.count, tieneCustomDepth: !!o.customDepthMaterial, mat: o.material && o.material.type, atrib: Object.keys(o.geometry.attributes), indexado: !!o.geometry.index }; }); return r })()`), null, 1));
   app.exit(0);
 });

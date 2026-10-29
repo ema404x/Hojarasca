@@ -83,7 +83,7 @@ const titoCoihue = {
   pasos: [
     aparece('tito', FRENTE(6, -4.5), 'jugador'),
     aparece('josefina', FRENTE(6, 4.5), 'jugador'),
-    plano('general', FRENTE(6), { desde: 'jugador', dist: 14, alto: 2.8, dur: 3.2, mezcla: 0.9 }),
+    plano('general', FRENTE(6), { desde: 'jugador', dist: 10, alto: 3.8, miraY: 1.3, dur: 3.2, mezcla: 0.9 }),   // (4.17.0: más cerca y más alto: entre los helechos no se veía ni a Tito ni a Josefina)
     narra('Los dos llegaron antes que vos. Cada uno se paró a un lado del coihue, como en un duelo de película del oeste, pero muy amable.'),
     plano('medio', 'tito', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
     dlg('tito', [

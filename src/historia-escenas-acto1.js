@@ -229,9 +229,9 @@ const bolsaAlero = {
   pasos: [
     sonido('juntar'),
     // 4.17.0: el jugador queda a 2,3 m del alero (COLOCACION_ESCENA): la bolsa está ahí, no a un metro (la cámara miraba el pasto y después se pegaba al muro)
-    plano('detalle', FRENTE(2.3), { dist: 1.5, alto: 1.3, miraY: 0.6, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(2.3), { dist: 1.7, alto: 1.7, miraY: 1.6, dur: 3, mezcla: 0.8 }),
     narra('Entre la chapa y la viga, envuelta en arpillera, hay una bolsa de harina atada con un piolín colorado. Y una nota, doblada en cuatro.'),
-    plano('primer', FRENTE(2.3), { dist: 1.7, alto: 1.4, miraY: 0.8, dur: 2.2, mezcla: 0.6 }),
+    plano('primer', FRENTE(2.3), { dist: 1.9, alto: 1.7, miraY: 1.6, dur: 2.2, mezcla: 0.6 }),
     efecto('objeto:bolsa-eusebio'),
     dlg('nota', [
       'Para la raíz del coihue grande del molino viejo, antes del primer frío.',
@@ -343,7 +343,7 @@ const hachaTocon = {
     efecto('mundo:hacha-en-tocon'),
     plano('general', FRENTE(5), { desde: 'jugador', dist: 9, alto: 3.2, dur: 3.2 }),
     narra('Tu hacha no está donde la dejaste. Está clavada en el tocón del árbol seco de ayer, derechita, con una hoja de coihue enganchada en el mango.'),
-    plano('detalle', FRENTE(5), { desde: 'jugador', dist: 0.9, dur: 3, mezcla: 0.9 }),
+    plano('detalle', FRENTE(5), { desde: 'jugador', dist: 1.3, alto: 1.5, miraY: 1.35, dur: 3, mezcla: 0.9 }),   // (4.17.0: el tocón ahora es más alto: se mira el filo y la hoja del mango)
     narra('Una hoja verde, de las nuevas. Donde la hoja toca el mango, la madera está tibia, como si acabaran de soltarla.'),
     // el color según la decisión de la bolsa: piñones si la convidaste a la raíz, la cuchara arriba del techo si la hiciste pan
     { ...efecto('mundo:pinones-en-tocon', { donde: FRENTE(5) }), si: siDecision('bolsa', 'a') },
@@ -459,7 +459,8 @@ const ferminGalpon = {
   resumen: 'En el galpón de esquila conociste a Fermín, que cuida las ovejas de Ramón «a medias» y no cree en duendes. Mira para la cordillera igual.',
   personajes: personajesDe('fermin'),
   pasos: [
-    plano('general', { lugar: 'galpon' }, { dist: 15, alto: 4, dur: 3.4 }),
+    // 4.17.0: sobre Fermín, no sobre el centro del galpón (la cámara quedaba adentro del galpón)
+    plano('general', 'fermin', { desde: 'jugador', dist: 14, alto: 3.4, miraY: 1.5, dur: 3.4 }),
     mira('fermin', 'jugador'),
     plano('medio', 'fermin', { desde: 'jugador', mezcla: 1.2, dur: 1, sinEsperar: true }),
     dlg('fermin', [

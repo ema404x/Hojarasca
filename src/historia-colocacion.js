@@ -20,7 +20,7 @@ export const COLOCACION_PULIDO = {
   'estacion-llegada': { punto: 'estacion', dist: 8, desde: 'refugio', alto: -0.05 },
   'ramon-tranquera': { punto: 'refugio-puerta', dist: 6.5, desde: 'estacion' },
   'almacen-ercilia': { npc: 'ercilia', dist: 3.2, desde: 'frente' },
-  'bolsa-coihue': { punto: 'molino-viejo', dist: 3.4, desde: 'refugio' },
+  'bolsa-coihue': { punto: 'coihue', dist: 4.9, desde: 'molino-viejo' },   // (la raíz queda 2,3 m del árbol hacia el agua: 2,6 m adelante, mirando el tronco)
   'placa-herminia': { punto: 'plaza', dist: 5.5, desde: 'estacion' },
   'mesa-visita-nicanor': { punto: 'refugio-puerta', dist: 5, desde: 'estacion' },
   'mesa-visita-ramon': { punto: 'refugio-puerta', dist: 5, desde: 'estacion' },

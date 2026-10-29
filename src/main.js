@@ -2412,8 +2412,9 @@ function invitadoDeHistoria(clave) {
     if (invitadosHist.has(clave)) return invitadosHist.get(clave);
     const P = Object.hasOwn(POBLADORES_ALDEA, clave) ? POBLADORES_ALDEA[clave] : Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : null;
     if (!P || !gente?.agregarPoblador || !jugador) return null;
-    const j = jugador.estado.pos;
-    const n = gente.agregarPoblador({ clave, nombre: P.nombre, oficio: P.oficio, saludo: P.saludo, despedida: P.despedida, colores: P.colores, pos: { x: j.x + 3, z: j.z }, mira: { x: j.x, z: j.z }, mano: P.mano, velocidad: 0.8, camino: [] });
+    const j = jugador.estado.pos, yaw = jugador.estado.yaw || 0;
+    const q = { x: j.x - Math.sin(yaw) * 3, z: j.z - Math.cos(yaw) * 3 };   // (3 m delante de donde mirás)
+    const n = gente.agregarPoblador({ clave, nombre: P.nombre, oficio: P.oficio, saludo: P.saludo, despedida: P.despedida, colores: P.colores, pos: q, mira: { x: j.x, z: j.z }, mano: P.mano, velocidad: 0.8, camino: [] });
     if (!n) return null;
     n.invitadoHistoria = true;
     invitadosHist.set(clave, n);

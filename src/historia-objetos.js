@@ -84,6 +84,7 @@ const FORMAS = {
     caja(c, [0.46, 0.62, 0.3], [0, 0.31, 0], '#cdbfa0', [0, 0.2, 0.05], 0.1);
     caja(c, [0.48, 0.05, 0.32], [0, 0.46, 0], '#b8432f', [0, 0.2, 0.05], 0.05);
     esfera(c, 0.1, [0, 0.64, 0], '#bfae8a', [1.5, 0.7, 1], 0.08);
+    caja(c, [0.03, 0.8, 0.03], [0, 1.04, 0], '#b8432f', [0, 0, 0], 0.04);   // 4.17.0: el piolín colorado de que cuelga bajo el alero (la bolsa se ve desde que se arregla el alero)
   },
   alero: (c) => {
     for (let i = 0; i < 4; i++) caja(c, [0.92, 0.035, 0.17], [0, 0.04 + i * 0.04, i * 0.02], '#a98558', [0, 0.08 * i, 0], 0.1);
