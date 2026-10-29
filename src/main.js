@@ -11838,8 +11838,9 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.5.4: jugando sin el mouse bloqueado (el bloqueo falló al volver con Esc, o el modo de
     // arrastrar para mirar) no llegaba la pausa de "soltaste el mouse": con Alt+Tab, la tecla de
     // Windows u otra ventana encima, la noche del Desafío seguía sin vos. Ahora se pausa igual.
-    // 4.17.0 (A): con ?debug=1 las partidas de prueba pueden pedir `window.__sinPausaPorBlur`: la ventana de Electron pierde el foco y la noche se pausaba sola
-    if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa && !(HOJARASCA_DEBUG && window.__sinPausaPorBlur)) abrir('pausa');
+    // 4.17.0 (A): las partidas de prueba (?debug=1) piden `window.__sinPausaPorBlur`: la ventana de Electron pierde el foco y la noche se pausaba sola
+    if (window.__sinPausaPorBlur === true) return;
+    if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa) abrir('pausa');
   });
   // 3.5.4: la compu se suspende o se bloquea la pantalla (lo avisa main.cjs): pausa
   window.hojarasca?.alPedirPausa?.(() => { if (modo === 'jugando' && jugador && !banco.activa) abrir('pausa'); });
