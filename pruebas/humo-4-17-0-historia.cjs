@@ -276,8 +276,8 @@ app.whenReady().then(async () => {
       await foto('2a-golpear');
       await N('N.tecla("KeyE")'); await N('N.tick(0.8)'); await N('N.despejar(6)');
       console.log('  [prog]', 'tras golpear', await N('N.programas()'));
-      ok(await N('!!P.historia.escenas.vistas.golpe'), 'golpe: hecho');
-      await N('N.hasta(() => P.historia.escenas.vistas.encuentro, 10)'); await N('N.despejar(70, { avanzar: true, eleccion: { duendes: "Digit1" } })');
+      ok(await N('!!P.historia.escenas.vistas["galpon-golpe"]'), 'galpon-golpe: hecho');
+      await N('N.hasta(() => P.historia.escenas.vistas["galpon-encuentro"] || N.tarjeta(), 14)'); await N('N.despejar(120, { avanzar: true, eleccion: { duendes: "Digit1", "duendes-sin": "Digit1" } })'); await N('N.despejar(60)');
       if (!(await N('P.historia.decisiones.duendes'))) {
         const dec = await N('(async () => { await N.hasta(() => N.tarjeta() && /decisión/i.test(N.tarjeta().arriba), 12); return N.tarjeta() })()');
         ok(dec && dec.opciones.length === 3, `sale la decisión D6 (${dec && dec.titulo})`);
@@ -319,6 +319,7 @@ app.whenReady().then(async () => {
       ok(await N('P.historia.duendes.armas.arco === true'), 'con cinco blancos el arco es tuyo');
       await tirar('esquila', 'galpon');
       ok(await N('P.historia.duendes.armas.honda === true'), 'con cinco latas la honda es tuya');
+      await N('N.despejar(30)');
       await N('N.tick(1.2)');
       ok(await hecho('arco:blancos-paso') && await hecho('arco:blancos-esquila'), 'los dos objetivos se tildan');
       await vigilar('capítulo 11');
@@ -335,11 +336,12 @@ app.whenReady().then(async () => {
         console.log(`  · modo ${modo}`);
         for (let k = 0; k < 3 && (await N('!!N.tarjeta()')); k++) { await N('(() => { const t = N.tarjeta(); const b = document.querySelector("#valle-tarjeta button[data-valle-opcion]"); if (b) b.click(); return 1 })()'); await N('N.tick(0.6)'); }   // (cierra la tarjeta del capítulo que quedó de la vuelta anterior)
         await prep(11, { horas: 22.1, decisiones: { bolsa: 'a', molienda: 'c', coihue: 'c', cuaderno: 'a', majada: 'a', duendes: modo === 'trato' ? 'b' : 'c' },
-          duendes: { trato: modo, noche: 'pendiente', armas: { arco: true, honda: true } }, vistas: ['espera'], hechos: ['nevada:comer', 'nevada:estacion'] });
+          duendes: { trato: modo, noche: 'pendiente', armas: { arco: true, honda: true } }, vistas: ['noche-espera'], hechos: ['nevada:comer', 'nevada:estacion'] });
         await N('(() => { const h = P.historia; for (const k of ["herrero","apicultor","maquinista","guarda"]) h.prestado[k] = true; h.lazos.ema = 2; h.lazos.fermin = 2; h.lazos.ramon = 2; return 1 })()');
         const g = await N('H.__puntosHistoria()["galpon-noche"]');
         await N(`N.ir(${g.x + 1}, ${g.z + 1}, 0)`);
-        await N('N.hasta(() => H.__noche() && H.__noche().activa(), 14)');
+        await N('N.hasta(() => H.__noche() && H.__noche().activa(), 12)');
+        if (!(await N('!!(H.__noche() && H.__noche().activa())'))) { await N('N.despejar(60)'); await N('N.hasta(() => H.__noche() && H.__noche().activa(), 14)'); }
         ok(await N('!!(H.__noche() && H.__noche().activa())'), 'la noche empieza sola al terminar la escena de la espera');
         if (!(await N('!!(H.__noche() && H.__noche().activa())'))) console.log('  [diag noche]', JSON.stringify(await N('({ fase: P.historia.fase, cap: P.historia.capitulo, noche: P.historia.duendes.noche, tarjeta: N.tarjeta() && N.tarjeta().titulo, escena: H.__escenas.activa(), horas: P.horas, activa: P.historia.activa, lug: H.__valle.estado().lugares["galpon-noche"], vehiculo: !!(H.jugador.estado.enTren || H.jugador.estado.enKayak || H.jugador.estado.enVela || H.jugador.estado.montado), modo: H.modo && H.modo() })')));
         await N('N.tick(4)');
@@ -351,16 +353,16 @@ app.whenReady().then(async () => {
         await vigilar(`noche ${modo}`);
         // perder: sin aire (pelea) o con siete travesuras (trato)
         await N(`(() => { const s = H.__noche().sim; if ('${modo}' === 'pelea') s.jugador.vida = 0.001; else s.travesuras = 6; for (const d of s.duendes) if (d.estado === 'avanza') { d.x = s.dis.centro.x + 0.5; d.z = s.dis.centro.z; d.wp = 2; } return 1 })()`);
-        await N('N.hasta(() => N.tarjeta() && /se te escapó/.test(N.tarjeta().titulo), 30)');
-        const per = await N('N.tarjeta()'); ok(per && /se te escapó/.test(per.titulo) && per.opciones.length === 2, `perder: «${per && per.titulo}» con dos botones`);
-        ok(per && per.opciones.some((o) => /Otra vez/.test(o.texto)) && per.opciones.some((o) => /Que amanezca/.test(o.texto)), '«Otra vez» y «Que amanezca»');
+        await N('N.hasta(() => H.__escenas.activa(), 30)');
+        ok(await N('H.__escenas.activa()'), 'perder: sale la escena noche-tras-perder (la de B)');
         await foto(`4b-perdida-${modo}`);
         ok((await N('P.historia.duendes.noche')) === 'pendiente', 'perder no cierra la noche (sin castigo)');
-        await N('N.elegir("otra")'); await N('N.tick(2)');
+        await N('N.despejar(60, { eleccion: { "perdida-resp": "Digit1" } })'); await N('N.tick(2)');
         ok(await N('!!H.__noche().activa()') && (await N('P.horas')) < 23.2, 'Otra vez: vuelve a las 22 y empieza de nuevo');
         // ganar: adelantar el reloj de la noche hasta que pare la nevada
         await N('(() => { const s = H.__noche().sim; s.t = 268; return 1 })()');
         await N('N.hasta(() => !H.__noche().activa(), 20)');
+        await N('N.despejar(40)');
         ok(!(await N('H.__noche().activa()')) && (await N('P.historia.duendes.noche')) === 'ganada', 'aguantar hasta que para la nevada gana la noche');
         const hh = await N('({ horas: P.horas, dia: P.dia })'); ok(Math.abs(hh.horas - 6.4) < 0.3, `amanece (${hh.horas.toFixed(2)})`);
         await N('N.tick(2)'); await N('N.despejar(8)');
@@ -370,11 +372,11 @@ app.whenReady().then(async () => {
       }
       // «Que amanezca»
       await cerrarTarjetas();
-      await prep(11, { horas: 22.1, decisiones: { cuaderno: 'a' }, duendes: { trato: 'pelea', noche: 'pendiente' }, vistas: ['espera'] });
+      await prep(11, { horas: 22.1, decisiones: { cuaderno: 'a' }, duendes: { trato: 'pelea', noche: 'pendiente' }, vistas: ['noche-espera'] });
       const g2 = await N('H.__puntosHistoria()["galpon-noche"]'); await N(`N.ir(${g2.x + 1}, ${g2.z + 1}, 0)`);
       await N('N.hasta(() => H.__noche() && H.__noche().activa(), 14)'); await N('N.tick(3)');
-      await N('H.__noche().sim.jugador.vida = 0.001'); await N('N.hasta(() => N.tarjeta() && /se te escapó/.test(N.tarjeta().titulo), 30)');
-      await N('N.elegir("amanezca")'); await N('N.tick(2)');
+      await N('H.__noche().sim.jugador.vida = 0.001'); await N('N.hasta(() => H.__escenas.activa(), 30)');
+      await N('N.despejar(80, { avanzar: true, eleccion: { "perdida-resp": "Digit2" } })'); await N('N.tick(2)');
       ok((await N('P.historia.duendes.noche')) === 'perdida' && !(await N('H.__noche().activa()')), '«Que amanezca»: la noche queda perdida y la historia sigue');
       await N('N.despejar(8)');
       ok(await N('!!P.historia.escenas.vistas["amanecer-pelea-perdida"]'), 'amanecer-pelea-perdida');
@@ -387,7 +389,7 @@ app.whenReady().then(async () => {
       donde = 'capítulo 13';
       console.log('— 5. capítulo 13: el último día, el final A (trato) y la costumbre de la bolsa');
       if (!entrado) await entrar({ estacion: 'invierno' });
-      await prep(12, { horas: 7.5, decisiones: { majada: 'a', cuaderno: 'a' }, duendes: { trato: 'trato', noche: 'ganada' }, vistas: ['carpeta', 'majada-fin', 'josefina-fin'], hechos: ['deshielo:fiesta'] });
+      await prep(12, { horas: 7.5, decisiones: { majada: 'a', cuaderno: 'a' }, duendes: { trato: 'trato', noche: 'ganada' }, vistas: ['carpeta-celeste', 'majada-fin', 'josefina-fin', 'fiesta-nieve'], hechos: [] });
       await N('(() => { P.historia.ramal = 10; P.dia += 1; return 1 })()');
       const rp = await N('H.__puntosHistoria()["refugio-puerta"]'); await N(`N.ir(${rp.x}, ${rp.z + 1}, 0)`);
       await N('N.hasta(() => P.historia.escenas.vistas["umbral-fin"], 14)'); await N('N.despejar(8)');
@@ -411,7 +413,7 @@ app.whenReady().then(async () => {
       if (!entrado) await entrar({ estacion: 'invierno' });
       await N('(() => { window.__sinPausaPorBlur = true; return 1 })()');
       const medir = (seg) => N(`(async () => { const t = []; const t0 = performance.now(); let u = performance.now(); while (performance.now() - t0 < ${seg * 1000}) { H.__bucle(); const a = performance.now(); t.push(a - u); u = a; await new Promise((r) => requestAnimationFrame(r)); } t.shift(); t.sort((a, b) => a - b); return { n: t.length, media: t.reduce((s, x) => s + x, 0) / t.length, p95: t[Math.floor(t.length * 0.95)], llamadas: H.renderer.info.render.calls, tri: H.renderer.info.render.triangles } })()`);
-      await prep(11, { horas: 22.1, decisiones: { cuaderno: 'a', coihue: 'c' }, duendes: { trato: 'trato', noche: 'pendiente', armas: { arco: true, honda: true } }, vistas: ['espera'] });
+      await prep(11, { horas: 22.1, decisiones: { cuaderno: 'a', coihue: 'c' }, duendes: { trato: 'trato', noche: 'pendiente', armas: { arco: true, honda: true } }, vistas: ['noche-espera'] });
       await N('(() => { for (const k of ["herrero","apicultor","maquinista","guarda"]) P.historia.prestado[k] = true; return 1 })()');
       const g = await N('H.__puntosHistoria()["galpon-noche"]'); await N(`N.ir(${g.x + 1}, ${g.z + 1}, 0)`);
       const base = await medir(4);

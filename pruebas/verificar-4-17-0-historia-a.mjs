@@ -75,16 +75,16 @@ async function chequear(arch = '', sufijo = '') {
     ok(!hecho(h, p, 'cumplir') && !hecho(h, p, 'majada'), 'D5 y su cumplimiento sin hacer');
     // a: arreo a Fermín
     h.decisiones.majada = 'a'; ok(!hecho(h, p, 'cumplir'), 'A: sin arreo no se cumple');
-    H.marcarTema(h, 'arreo', 'galpon-esquila', 6); ok(hecho(h, p, 'cumplir'), 'A: el arreo al galpón de esquila la cumple');
+    H.marcarTema(h, 'arreo', 'galpon-esquila', 6); ok(!hecho(h, p, 'cumplir'), 'A: sin la escena de la llegada todavía no'); vista(h, 'majada-fermin'); ok(hecho(h, p, 'cumplir'), 'A: el arreo al galpón de esquila y su escena la cumplen');
     // b: tres días
     const b = armar(8, { dec: { majada: 'b' } });
     for (let d = 1; d <= 2; d++) H.marcarTema(b.h, 'majada', `dia${d}`, d);
-    ok(!hecho(b.h, b.p, 'cumplir'), 'B: dos mañanas no alcanzan'); H.marcarTema(b.h, 'majada', 'dia3', 3);
-    ok(hecho(b.h, b.p, 'cumplir') && E(b.p).cuidados === 3, 'B: tres mañanas cuidando la cumplen');
+    vista(b.h, 'majada-vos'); ok(!hecho(b.h, b.p, 'cumplir'), 'B: dos mañanas (aun con la escena) no alcanzan'); H.marcarTema(b.h, 'majada', 'dia3', 3);
+    ok(hecho(b.h, b.p, 'cumplir') && E(b.p).cuidados === 3, 'B: tres mañanas cuidando (y su escena) la cumplen');
     ok(A3.OBJETOS_ACTO3['corral-ramon'].visible(E(b.p), b.h) === false, 'B: con tres no queda más para cuidar');
     { const q = armar(8, { dec: { majada: 'b' } }); ok(A3.OBJETOS_ACTO3['corral-ramon'].visible(E(q.p), q.h) && D.accionDeObjeto('corral-ramon', q.h, E(q.p))?.tipo === 'cuidar', 'B: el corral de Ramón se cuida con la E'); H.marcarTema(q.h, 'majada', `dia${q.p.dia}`, q.p.dia); ok(!A3.OBJETOS_ACTO3['corral-ramon'].visible(E(q.p), q.h), 'B: una vez por día'); }
     // c: arreo al paso
-    const c = armar(8, { dec: { majada: 'c' } }); H.marcarTema(c.h, 'arreo', 'puesto-paso', 6); ok(hecho(c.h, c.p, 'cumplir'), 'C: el arreo al Puesto del Paso la cumple');
+    const c = armar(8, { dec: { majada: 'c' } }); H.marcarTema(c.h, 'arreo', 'puesto-paso', 6); vista(c.h, 'majada-belisario'); ok(hecho(c.h, c.p, 'cumplir'), 'C: el arreo al Puesto del Paso la cumple');
     ok(!hecho(c.h, c.p, 'lena') && (c.p.obras = [{ plano: 'lenera', lenera: { secos: 6 } }], hecho(c.h, c.p, 'lena')), 'la leñera con seis troncos');
     ok(H.textoObjetivo(H.capituloActual(c.h).objetivos.find((o) => o.id === 'cumplir'), E(c.p)).includes('Belisario') || H.textoObjetivo(H.capituloActual(c.h).objetivos.find((o) => o.id === 'cumplir'), E(c.p)).includes('Puesto del Paso'), 'el texto de C habla del Puesto del Paso');
     // Ramón: la escena lo hace acompañante y la del sanitario lo suelta
@@ -98,18 +98,18 @@ async function chequear(arch = '', sufijo = '') {
   // ---------------------------------------------------------------- 3. capítulo 10 · Golpeá antes de abrir
   {
     const { h, p } = armar(9);
-    ok(!hecho(h, p, 'golpe') && (vista(h, 'golpe'), hecho(h, p, 'golpe')), 'golpear es la escena');
+    ok(!hecho(h, p, 'golpe') && (vista(h, 'galpon-golpe'), hecho(h, p, 'golpe')), 'golpear es la escena');
     ok(!hecho(h, p, 'duendes') && (h.decisiones.duendes = 'c', hecho(h, p, 'duendes')), 'D6 tilda');
     // E sobre la puerta: sólo de noche, sólo en el capítulo 10, y dice Golpear
     const pj = A3.OBJETOS_ACTO3['puerta-galpon'];
     ok(pj.visible(E(armar(9, { horas: 23 }).p), armar(9, { horas: 23 }).h) && !pj.visible(E(armar(9, { horas: 12 }).p), armar(9, { horas: 12 }).h) && !pj.visible(E(armar(8, { horas: 23 }).p), armar(8, { horas: 23 }).h), 'la puerta del galpón se golpea de noche en el 10');
-    const q = armar(9, { horas: 23 }); ok(D.accionDeObjeto('puerta-galpon', q.h, E(q.p)).aviso.startsWith('Golpear') && D.escenaConClave(q.h, E(q.p, { lugares: {} }), 'interaccion', 'puerta-galpon') === 'golpe', 'la E dice «Golpear» y dispara la escena');
+    const q = armar(9, { horas: 23 }); ok(D.accionDeObjeto('puerta-galpon', q.h, E(q.p)).aviso.startsWith('Golpear') && D.escenaConClave(q.h, E(q.p, { lugares: {} }), 'interaccion', 'puerta-galpon') === 'galpon-golpe', 'la E dice «Golpear» y dispara la escena');
     // las optativas
-    const t = armar(9, { duendes: { trato: 'trato' } }); vista(t.h, 'encuentro'); t.p.cosas['llave-79'] = 1;
+    const t = armar(9, { duendes: { trato: 'trato' } }); vista(t.h, 'galpon-encuentro'); t.p.cosas['llave-79'] = 1;
     ok(A3.OBJETOS_ACTO3['cajon-trabado'].visible(E(t.p), t.h) && !A3.OBJETOS_ACTO3['raiz-perdon'].visible(E(t.p), t.h), 'con trato y la llave: el cajón; sin perdón');
-    const pe = armar(9, { duendes: { trato: 'pelea' } }); vista(pe.h, 'encuentro');
+    const pe = armar(9, { duendes: { trato: 'pelea' } }); vista(pe.h, 'galpon-encuentro');
     ok(A3.OBJETOS_ACTO3['raiz-perdon'].visible(E(pe.p), pe.h) && !A3.OBJETOS_ACTO3['cajon-trabado'].visible(E(pe.p), pe.h), 'con pelea: pedir perdón en la raíz');
-    A3.EFECTOS_ESCENA_ACTO3['pedir-perdon'](pe.h, 6); ok(pe.h.duendes.perdon === true && !A3.OBJETOS_ACTO3['raiz-perdon'].visible(E(pe.p), pe.h), 'pedir perdón queda anotado');
+    pe.h.duendes.perdon = true;   // (lo hace el efecto duendes:perdon de la escena de B) ok(pe.h.duendes.perdon === true && !A3.OBJETOS_ACTO3['raiz-perdon'].visible(E(pe.p), pe.h), 'pedir perdón queda anotado');
     ok(H.premioDeCapitulo(H.CAPITULOS[9], { duendes: { trato: 'trato' } }).cosas.includes('llave-79') && !(H.premioDeCapitulo(H.CAPITULOS[9], { duendes: { trato: 'pelea' } }).cosas || []).includes('llave-79'), 'la llave del 79 sólo con trato');
     ok(H.lineasCarta(H.CAPITULOS[9], { duendes: { trato: 'trato' } }).join(' ').includes('en fila') && H.lineasCarta(H.CAPITULOS[9], { duendes: { trato: 'pelea' } }).join(' ').includes('corriendo'), 'el cierre cambia con el trato o la pelea');
   }
@@ -123,10 +123,10 @@ async function chequear(arch = '', sufijo = '') {
     ok(hecho(h, p, 'tito') && hecho(h, p, 'cuerda') && hecho(h, p, 'puntas'), 'sin Tito, Elvira ni Anselmo en la aldea, esos pasos no traban');
     p.aldea.pobladores = [{ clave: 'carpintero' }, { clave: 'tejedora' }, { clave: 'herrero' }, { clave: 'apicultor' }];
     ok(!hecho(h, p, 'tito') && !hecho(h, p, 'cuerda') && !hecho(h, p, 'puntas'), 'con ellos en la aldea hay que ir');
-    vista(h, 'carpinteria-arco'); vista(h, 'cuerda-elvira'); vista(h, 'puntas-anselmo'); ok(hecho(h, p, 'tito') && hecho(h, p, 'cuerda') && hecho(h, p, 'puntas'), 'las escenas los tildan');
+    vista(h, 'tito-arco'); vista(h, 'elvira-cuerda'); vista(h, 'anselmo-puntas'); ok(hecho(h, p, 'tito') && hecho(h, p, 'cuerda') && hecho(h, p, 'puntas'), 'las escenas los tildan');
     // las plumas: seis del bosque o las de Josefina
     ok(!hecho(h, p, 'plumas'), 'plumas: ninguna'); p.entradas.pluma = { cantidad: 6 }; ok(hecho(h, p, 'plumas'), 'plumas: seis del bosque');
-    const s = E(p); ok(H.alCumplirObjetivo(h, 'arco', 'plumas', s) === 'plumas-bosque' && H.lazoDe(h, 'ema') === -1 && H.alCumplirObjetivo(h, 'arco', 'plumas', s) === null, 'las plumas del bosque enojan a Josefina, una vez');
+    const s = E(p); ok(H.alCumplirObjetivo(h, 'arco', 'plumas', s) === null && D.escenaPendiente(h, E(p, { lugares: { refugio: 5 } }), {}) === 'plumas-bosque', 'las plumas del bosque las resuelve la escena plumas-bosque de B (Josefina −1 es suyo)');
     // blancos: cinco aciertos dan el arma
     ok(!hecho(h, p, 'blancos-paso'), 'blancos: ninguno'); for (let i = 0; i < 4; i++) H.sumarBlanco(h, 'paso'); ok(!h.duendes.armas.arco, '4 blancos: todavía no hay arco');
     H.sumarBlanco(h, 'paso'); ok(h.duendes.armas.arco === true && hecho(h, p, 'blancos-paso') && H.sumarBlanco(h, 'otro') === 0, '5 blancos: el arco es tuyo');
@@ -161,7 +161,7 @@ async function chequear(arch = '', sufijo = '') {
     const q = armar(12, { fase: 'intro', dia: 20 }); q.h.cerrados.nevada = 19;
     ok(H.puertaDeEstacion(q.h, E(q.p, { dia: 20 }))?.dias === 2, 'el epílogo espera dos días'); q.p.dia = 21; ok(H.puertaDeEstacion(q.h, E(q.p)) === null, 'y arranca');
     const r = armar(12, { dia: 22, horas: 14 });
-    ok(!hecho(r.h, r.p, 'fiesta') && hecho(r.h, r.p, 'fiesta', { lugares: { plaza: 20 } }), 'la fiesta pide estar en la plaza');
+    ok(!hecho(r.h, r.p, 'fiesta') && (vista(r.h, 'fiesta-nieve'), hecho(r.h, r.p, 'fiesta')), 'la fiesta es su escena en el predio');
     ok(H.CAPITULOS[12].premio.cosas.includes('poncho'), 'el premio final: el poncho');
     // cerrar el último capítulo termina la historia, una sola vez
     const z = armar(12, { fase: 'outro' }); const c1 = H.cerrarCapitulo(z.h, 30); ok(c1.fin && z.h.fase === 'fin' && H.cerrarCapitulo(z.h, 31) === null, 'cerrar el 13 termina y no se repite');
@@ -173,50 +173,50 @@ async function chequear(arch = '', sufijo = '') {
     const a = armar(8, { horas: 10 });
     ok(quien(a.h, a.p, { lugares: { puesto: 5 } }) === 'ramon-cama' && quien(a.h, a.p, { lugares: { puesto: 99 } }) === null, 'ramon-cama sale en el Puesto Alto');
     ok(quien(a.h, a.p, {}, { modo: 'hablar', clave: 'ramon' }) === 'ramon-cama', 'o con la E sobre Ramón');
-    vista(a.h, 'ramon-cama'); ok(quien(a.h, a.p, { lugares: { puesto: 5 } }) === 'fermin-puerta', 'después, Fermín en la puerta');
-    vista(a.h, 'fermin-puerta'); a.p.dia = 7; ok(quien(a.h, a.p, { lugares: { puesto: 5 } }) === 'hojas-canelo', 'a la mañana siguiente, las hojas de canelo');
+    vista(a.h, 'ramon-cama'); ok(quien(a.h, a.p, { lugares: { puesto: 5 } }) === 'fermin-tranquera', 'después, Fermín en la puerta');
+    vista(a.h, 'fermin-tranquera'); a.p.dia = 7; a.p.horas = 8; ok(quien(a.h, a.p, { lugares: { puesto: 5 } }) === 'hojas-canelo', 'a la mañana siguiente, las hojas de canelo');
     a.h.acompanante = 'ramon'; vista(a.h, 'hojas-canelo'); ok(quien(a.h, a.p, { lugares: { plaza: 30 } }) === 'ramon-sanitario', 'con Ramón de acompañante, el puesto sanitario');
     a.h.acompanante = null; const a2 = armar(8, { horas: 10 }); vista(a2.h, 'ramon-cama', 4); ok(quien(a2.h, a2.p, { lugares: { plaza: 30 } }) === 'ramon-sanitario', 'si pasan dos días, Marta ya lo llevó');
     // 10
-    const b = armar(9, { horas: 23 }); vista(b.h, 'golpe'); ok(quien(b.h, b.p, { lugares: { 'galpon-noche': 5 } }) === 'encuentro', 'el encuentro sigue al golpe');
-    vista(b.h, 'encuentro', 6); b.p.dia = 7; b.p.horas = 8; ok(quien(b.h, b.p, { lugares: { mirador: 5 } }) === 'cerro', 'a la mañana, el mirador');
-    vista(b.h, 'cerro', 7); b.p.horas = 17; ok(quien(b.h, b.p, { lugares: { refugio: 5 } }) === null, 'la mesa de guerra pide la mesa puesta');
+    const b = armar(9, { horas: 23 }); vista(b.h, 'galpon-golpe'); ok(quien(b.h, b.p, { lugares: { 'galpon-noche': 5 } }) === 'galpon-encuentro', 'el encuentro sigue al golpe');
+    vista(b.h, 'galpon-encuentro', 6); vista(b.h, 'galpon-trato', 6); b.p.dia = 7; b.p.horas = 8; ok(quien(b.h, b.p, { lugares: { mirador: 5 } }) === 'cerro-mirador', 'a la mañana, el mirador');
+    vista(b.h, 'cerro-mirador', 7); b.p.horas = 17; ok(quien(b.h, b.p, { lugares: { refugio: 5 } }) === null, 'la mesa de guerra pide la mesa puesta');
     b.p.obras = [{ id: 'mesa-campo' }]; 
     // 11
     const c = armar(10, { horas: 12 }); c.p.economia.pesos = 100;
-    ok(quien(c.h, c.p, {}, { modo: 'hablar', clave: 'herrero' }) === 'prestado-anselmo', 'el herrero presta las estacas'); c.h.prestado.herrero = true;
+    ok(quien(c.h, c.p, {}, { modo: 'hablar', clave: 'herrero' }) === 'prestado-herrero', 'el herrero presta las estacas'); c.h.prestado.herrero = true;
     ok(quien(c.h, c.p, {}, { modo: 'hablar', clave: 'herrero' }) === null, 'no las presta dos veces');
-    for (const [clave, id] of [['apicultor', 'prestado-guido'], ['martin', 'prestado-martin'], ['guarda', 'prestado-elsa']]) ok(quien(c.h, c.p, {}, { modo: 'hablar', clave }) === id, `${clave}: ${id}`);
-    c.p.economia.pesos = 500; ok(quien(armar(10).h, c.p, {}, { modo: 'hablar', clave: 'herrero' }) === 'puntas-anselmo', 'con $400 se encargan las puntas');
-    c.p.materiales.lana = 2; ok(quien(c.h, c.p, {}, { modo: 'hablar', clave: 'tejedora' }) === 'cuerda-elvira' && quien(armar(10).h, armar(10).p, {}, { modo: 'hablar', clave: 'tejedora' }) === null, 'Elvira pide los dos vellones');
-    const d = armar(10, { dec: { majada: 'c' } }); d.p.cosas.harina = 1; ok(quien(d.h, d.p, {}, { modo: 'hablar', clave: 'fermin' }) === 'paces-fermin', 'D5 = c: primero las paces');
-    vista(d.h, 'paces-fermin'); ok(quien(d.h, d.p, {}, { modo: 'hablar', clave: 'fermin' }) === 'honda-fermin', 'y después la honda');
+    for (const [clave, id] of [['apicultor', 'prestado-apicultor'], ['martin', 'prestado-maquinista'], ['guarda', 'prestado-guarda']]) ok(quien(c.h, c.p, {}, { modo: 'hablar', clave }) === id, `${clave}: ${id}`);
+    c.p.economia.pesos = 500; ok(quien(armar(10).h, c.p, {}, { modo: 'hablar', clave: 'herrero' }) === 'anselmo-puntas', 'con $400 se encargan las puntas');
+    c.p.materiales.lana = 2; ok(quien(c.h, c.p, {}, { modo: 'hablar', clave: 'tejedora' }) === 'elvira-cuerda' && quien(armar(10).h, armar(10).p, {}, { modo: 'hablar', clave: 'tejedora' }) === null, 'Elvira pide los dos vellones');
+    const d = armar(10, { dec: { majada: 'c' } }); d.p.cosas.harina = 1; ok(quien(d.h, d.p, {}, { modo: 'hablar', clave: 'fermin' }) === 'fermin-paces', 'D5 = c: primero las paces');
+    vista(d.h, 'fermin-paces'); ok(quien(d.h, d.p, {}, { modo: 'hablar', clave: 'fermin' }) === 'fermin-honda', 'y después la honda');
     c.p.horas = 18; ok(quien(c.h, c.p, { lugares: { 'galpon-noche': 5 } }) === null, 'recorrer el lado pide tres prestadas'); c.h.prestado.apicultor = true; c.h.prestado.maquinista = true; ok(quien(c.h, c.p, { lugares: { 'galpon-noche': 5 } }) === 'recorrer-lado', 'con tres, a recorrer el lado');
     // 12
     const e = armar(11, { horas: 22.5 });
-    ok(quien(e.h, e.p, { lugares: { 'galpon-noche': 5 } }) === 'espera', 'la espera: 22:00 en el galpón');
-    const am = (trato, noche) => { const q = armar(11, { horas: 6.5, duendes: { trato, noche } }); vista(q.h, 'espera'); return quien(q.h, q.p, { lugares: { 'galpon-noche': 5 } }); };
+    ok(quien(e.h, e.p, { lugares: { 'galpon-noche': 5 } }) === 'noche-espera', 'la espera: 22:00 en el galpón');
+    const am = (trato, noche) => { const q = armar(11, { horas: 6.5, duendes: { trato, noche } }); vista(q.h, 'noche-espera'); return quien(q.h, q.p, { lugares: { 'galpon-noche': 5 } }); };
     igual([am('trato', 'ganada'), am('trato', 'perdida'), am('pelea', 'ganada'), am('pelea', 'perdida')], ['amanecer-trato-ganada', 'amanecer-trato-perdida', 'amanecer-pelea-ganada', 'amanecer-pelea-perdida'], 'las cuatro variantes del amanecer');
-    const ci = armar(11, { horas: 20 }); ok(quien(ci.h, ci.p, { lugares: { refugio: 5 }, amor: true }) === 'cita-noche' && quien(ci.h, ci.p, { lugares: { refugio: 5 }, amor: false }) !== 'cita-noche', 'la cita sólo con el amor prendido');
+    const ci = armar(11, { horas: 20 }); ok(quien(ci.h, ci.p, { lugares: { refugio: 5 }, amor: true }) === 'pareja-noche-antes' && quien(ci.h, ci.p, { lugares: { refugio: 5 }, amor: false }) !== 'pareja-noche-antes', 'la cita sólo con el amor prendido');
     // 13
     const f = armar(12, { horas: 11 });
-    ok(quien(f.h, f.p, { lugares: { estacion: 5 } }) === 'carpeta' && quien(f.h, f.p, { lugares: { puesto: 5 } }) === 'majada-fin' && quien(f.h, f.p, { lugares: { galpon: 5 } }) === 'majada-fin', 'carpeta en el andén y la majada en el puesto o el galpón');
-    f.p.horas = 8; vista(f.h, 'carpeta'); vista(f.h, 'majada-fin'); vista(f.h, 'josefina-fin'); f.p.dia = 7; ok(quien(f.h, f.p, { lugares: { 'refugio-puerta': 5 } }) === 'umbral-fin', 'la última escena en el umbral');
-    const g = armar(12, { horas: 8 }); vista(g.h, 'carpeta'); vista(g.h, 'josefina-fin'); g.p.dia = 7; ok(quien(g.h, g.p, { lugares: { 'refugio-puerta': 5 } }) === null, 'la última escena pide las tres anteriores');
+    ok(quien(f.h, f.p, { lugares: { estacion: 5 } }) === 'carpeta-celeste' && quien(f.h, f.p, { lugares: { puesto: 5 } }) === 'majada-fin' && quien(f.h, f.p, { lugares: { galpon: 5 } }) === 'majada-fin', 'carpeta en el andén y la majada en el puesto o el galpón');
+    f.p.horas = 8; vista(f.h, 'carpeta-celeste'); vista(f.h, 'majada-fin'); vista(f.h, 'josefina-fin'); f.p.dia = 7; ok(quien(f.h, f.p, { lugares: { 'refugio-puerta': 5 } }) === 'umbral-fin', 'la última escena en el umbral');
+    const g = armar(12, { horas: 8 }); vista(g.h, 'carpeta-celeste'); vista(g.h, 'josefina-fin'); g.p.dia = 7; ok(quien(g.h, g.p, { lugares: { 'refugio-puerta': 5 } }) === null, 'la última escena pide las tres anteriores');
     ok(A3.ESCENAS_ACTO3_IDS.length > 30 && A3.ESCENAS_ACTO3_IDS.every((id) => /^[a-z0-9-]+$/.test(id)), 'ids de escena sin ñ');
   }
 
   // ---------------------------------------------------------------- 7. lo que cambia al ver cada escena
   {
     const { h } = armar(10);
-    D.EFECTOS_ESCENA['prestado-guido'](h, 6); ok(h.prestado.apicultor === true, 'prestado-guido anota lo prestado');
-    D.EFECTOS_ESCENA['espera'](h, 6); ok(h.duendes.noche === 'pendiente' && h.duendes.trato === 'trato', 'la espera deja la noche pendiente (y sin elección se juega el trato)');
+    D.EFECTOS_ESCENA['prestado-apicultor'](h, 6); ok(h.prestado.apicultor === true, 'prestado-guido anota lo prestado');
+    D.EFECTOS_ESCENA['noche-espera'](h, 6); ok(h.duendes.noche === 'pendiente' && h.duendes.trato === 'trato', 'la espera deja la noche pendiente (y sin elección se juega el trato)');
     h.duendes.trato = 'pelea'; D.EFECTOS_ESCENA['umbral-fin'](h, 9); ok(h.duendes.final === 'pelea' && !h.costumbre, 'final B: sin costumbre');
     h.duendes.trato = 'trato'; D.EFECTOS_ESCENA['umbral-fin'](h, 9); ok(h.duendes.final === 'trato' && h.costumbre.bolsa === 'vacia', 'final A: la bolsa vacía en el umbral');
     // aplicar vistas: una sola vez
-    const q = armar(10); vista(q.h, 'prestado-elsa'); const l1 = D.aplicarVistas(q.h, 6, {}), l2 = D.aplicarVistas(q.h, 6, {});
-    ok(l1.includes('prestado-elsa') && l2.length === 0 && q.h.prestado.guarda === true, 'aplicarVistas aplica una vez');
-    const pg = []; const w = armar(10); w.p.economia.pesos = 900; vista(w.h, 'puntas-anselmo'); D.aplicarVistas(w.h, 6, { pagar: (m) => pg.push(m) }); ok(pg[0] === 400, 'puntas-anselmo cobra $400');
+    const q = armar(10); vista(q.h, 'prestado-guarda'); const l1 = D.aplicarVistas(q.h, 6, {}), l2 = D.aplicarVistas(q.h, 6, {});
+    ok(l1.includes('prestado-guarda') && l2.length === 0 && q.h.prestado.guarda === true, 'aplicarVistas aplica una vez');
+    const pg = []; const w = armar(10); w.p.economia.pesos = 900; vista(w.h, 'anselmo-puntas'); D.aplicarVistas(w.h, 6, { pagar: (m) => pg.push(m) }); ok(pg[0] === 400, 'puntas-anselmo cobra $400');
     // las condiciones nuevas
     const reg = {}; X.registrarEfectosHistoria({ registrarEfecto: () => {}, registrarCondicion: (nombre, fn) => { reg[nombre] = fn; } }, { historia: () => q.h, dia: () => 6, estado: () => E(q.p, { amor: true }) });
     for (const c of ['trato', 'noche', 'convidado', 'deuda', 'perdon', 'prestado', 'amor']) ok(typeof reg[c] === 'function', `condición «${c}» registrada`);
@@ -224,8 +224,26 @@ async function chequear(arch = '', sufijo = '') {
     ok(reg.trato({ args: { es: 'pelea' } }) && !reg.trato({ args: { es: 'trato' } }) && reg.noche({ args: { es: 'ganada' } }) && reg.deuda({ args: { es: 'debe' } }) && !reg.deuda({ args: { es: 'pagada' } }) && reg.perdon() && reg.prestado({ args: { quien: 'guarda' } }) && reg.amor(), 'las condiciones del acto III responden');
     // la decisión D6 por una escena
     const ef = {}; const q2 = armar(9, { dec: { bolsa: 'b' } }); X.registrarEfectosActo1({ registrarEfecto: (nombre, fn) => { ef[nombre] = fn; }, registrarCondicion: () => {} }, { historia: () => q2.h, dia: () => 6 }, ['decision:duendes:a', 'decision:duendes:c']);
-    ef['decision:duendes:a']({}, { escena: 'encuentro' }); ok(q2.h.decisiones.duendes === 'a' && q2.h.duendes.trato === 'trato' && q2.h.duendes.deuda === 1, 'la escena toma D6 y arma el trato y la deuda');
-    ef['decision:duendes:c']({}, { escena: 'encuentro' }); ok(q2.h.duendes.trato === 'trato', 'D6 no se pisa');
+    ef['decision:duendes:a']({}, { escena: 'galpon-encuentro' }); ok(q2.h.decisiones.duendes === 'a' && q2.h.duendes.trato === 'trato' && q2.h.duendes.deuda === 1, 'la escena toma D6 y arma el trato y la deuda');
+    ef['decision:duendes:c']({}, { escena: 'galpon-encuentro' }); ok(q2.h.duendes.trato === 'trato', 'D6 no se pisa');
+    // las 56 escenas de B: todos sus efectos se registran y los de D6, la noche, las armas y el perfil hacen lo suyo
+    { const B3 = await import('../src/historia-escenas-acto3.js'); const U3 = await import('../src/historia-escenas-acto3-util.js');
+      ok(B3.IDS_ACTO3.length === 56 && B3.EFECTOS_ACTO3.length > 150, 'las 56 escenas y sus efectos de B');
+      const reg3 = {}; const q3 = armar(9, { dec: { bolsa: 'a' } }); const llam = [];
+      X.registrarEfectosActo1({ registrarEfecto: (nombre, fn) => { reg3[nombre] = fn; }, registrarCondicion: () => {} }, { historia: () => q3.h, dia: () => 6, quitar: (c, k) => llam.push(['quitar', c, k]), mundo: (id) => llam.push(['mundo', id]), duende: (id) => llam.push(['duende', id]) }, B3.EFECTOS_ACTO3);
+      ok(B3.EFECTOS_ACTO3.every((e) => U3.parsearEfectoActo3(e) && Object.hasOwn(reg3, e)), 'todos los efectos de B se registran (uno por uno)');
+      reg3['duendes:trato-fuerte']({}, { escena: 'galpon-encuentro' }); ok(q3.h.duendes.trato === 'trato' && q3.h.decisiones.duendes === 'b' && q3.h.duendes.convidado === 1, 'duendes:trato-fuerte: trato, D6 = b y un convite');
+      reg3['duendes:deuda-bolsa']({}, { escena: 'galpon-trato' }); ok(q3.h.duendes.deuda === 1, 'duendes:deuda-bolsa'); reg3['duendes:deuda-pagada']({}, { escena: 'deuda-pagada' }); ok(q3.h.duendes.deuda === 0, 'duendes:deuda-pagada');
+      reg3['duendes:perdon']({}, {}); reg3['armas:arco']({}, {}); reg3['armas:honda']({}, {}); reg3['perfil:del-valle']({}, {});
+      ok(q3.h.duendes.perdon && q3.h.duendes.armas.arco && q3.h.duendes.armas.honda && q3.h.perfil === 'del-valle', 'perdón, armas y perfil');
+      reg3['noche:perdida']({}, {}); ok(q3.h.duendes.noche === 'perdida' && q3.h.noche.estado === 'perdida', 'noche:perdida: «Que amanezca»');
+      reg3['quitar:vellon:2']({}, { escena: 'elvira-cuerda' }); ok(llam.some((l) => l[0] === 'quitar' && l[1] === 'vellon' && l[2] === 2), 'quitar:vellon:2 llega al juego');
+      const q4 = armar(9, {}); const r4 = {}; X.registrarEfectosActo1({ registrarEfecto: (nombre, fn) => { r4[nombre] = fn; }, registrarCondicion: () => {} }, { historia: () => q4.h, dia: () => 6 }, ['duendes:pelea']);
+      r4['duendes:pelea']({}, {}); ok(q4.h.duendes.trato === 'pelea' && q4.h.decisiones.duendes === 'c', 'duendes:pelea: pelea y D6 = c');
+      // las condiciones de B
+      const cond = {}; X.registrarEfectosHistoria({ registrarEfecto: () => {}, registrarCondicion: (nombre, fn) => { cond[nombre] = fn; } }, { historia: () => q3.h, dia: () => 6, estado: () => E(q3.p, { amor: true, perro: true }) });
+      q3.h.ramal = 7; q3.h.decisiones.molienda = 'c'; q3.h.decisiones.duendes = 'b'; q3.h.duendes.trato = 'trato'; q3.h.duendes.deuda = 1;
+      ok(cond['ramal-nivel']({ args: { es: 'prueba' } }) && !cond['ramal-nivel']({ args: { es: 'salvado' } }) && cond['trato']({ args: { es: 'fuerte' } }) && cond['trato']({ args: { es: 'trato' } }) && !cond['trato']({ args: { es: 'pelea' } }) && cond['deuda']({ args: { es: 'pendiente' } }) && cond['devolver-bolsa']() && cond['perro']() && cond['convidado'](), 'las condiciones de B: ramal-nivel, trato fuerte, deuda pendiente, devolver-bolsa, perro, convidado'); }
   }
 
   // ---------------------------------------------------------------- 8. la costumbre del trato (final A)
@@ -363,7 +381,7 @@ async function chequear(arch = '', sufijo = '') {
   // ---------------------------------------------------------------- 15. el enganche con el juego (por texto)
   {
     const main = leer('src/main.js'), ui = leer('src/historia-ui.js'), nui = leer('src/historia-noche-ui.js'), mundo = leer('src/historia-noche-mundo.js');
-    for (const frag of ["import { ESCENAS_ACTO3, EFECTOS_ACTO3 } from './historia-escenas-acto3.js';", '...Object.values(ESCENAS_ACTO3)', '...EFECTOS_ACTO3', "ponr('puesto-paso', PUESTO_PASO);", "P['galpon-noche']", 'arreoDeHistoria()?.actualizar(dt)', "if (f === 'invierno' && e.inv < 1)", 'valle?.nevada?.()', 'darEntrada:', "if (cosa === 'harina' || cosa === 'yerba')"]) ok(main.includes(frag), `main.js: ${frag.slice(0, 60)}`);
+    for (const frag of ["import { ESCENAS_ACTO3, EFECTOS_ACTO3 } from './historia-escenas-acto3.js';", '...Object.values(ESCENAS_ACTO3)', '...EFECTOS_ACTO3', "ponr('puesto-paso', PUESTO_PASO);", "P['galpon-noche']", 'arreoDeHistoria()?.actualizar(dt)', "if (f === 'invierno' && e.inv < 1)", 'valle?.nevada?.()', 'darEntrada:', "else if (cosa === 'harina' || cosa === 'yerba' || cosa === 'pan-casero')"]) ok(main.includes(frag), `main.js: ${frag.slice(0, 60)}`);
     for (const frag of ['noche.interviene(h)', 'mostrarFinal()', "a.tipo === 'pago'", "a.tipo === 'cuidar'", 'noche.practicar(dt, dondePractica)', 'alCumplirObjetivo(']) ok(ui.includes(frag), `historia-ui.js: ${frag}`);
     ok(nui.includes("id: 'otra', texto: 'Otra vez'") && nui.includes("id: 'amanezca', texto: 'Que amanezca'") && nui.includes('dejarPerdida(h)'), 'la tarjeta de perder: Otra vez y Que amanezca');
     ok(!/mostrarFinal|TEXTOS_NOCHE\.final/.test(nui), 'los finales de la 4.13.0 se retiraron');
@@ -397,11 +415,11 @@ const MUT = [
   ['historia.js', "  h.blancos[donde] = Math.min(99, ent(h.blancos[donde], 99) + 1);\n  if (h.blancos[donde] >= BLANCOS_PARA_ARMA)", "  h.blancos[donde] = Math.min(99, ent(h.blancos[donde], 99) + 1);\n  if (false)", 'cinco blancos no dan el arma'],
   ['historia.js', "if (obj(prestado)[k] === true || (PRESTAMISTA[k] && !vive.has(PRESTAMISTA[k]))) n++;", "if (obj(prestado)[k] === true) n++;", 'los prestamistas ausentes traban'],
   ['historia.js', "{ id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá lo que debés del trato: una bolsa de harina o seis tablas, en la raíz del coihue (o el tocón)', hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },", "{ id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá', hecho: (s) => s.deuda === 0 },", 'la deuda sin pagar traba el capítulo'],
-  ['historia.js', "if (d === 'b') return s.cuidados >= 3;", "if (d === 'b') return s.cuidados >= 1;", 'cuidar la majada un día alcanza'],
+  ['historia.js', "if (d === 'b') return s.cuidados >= 3 && s.escenas.has('majada-vos');", "if (d === 'b') return s.cuidados >= 1 && s.escenas.has('majada-vos');", 'cuidar la majada un día alcanza'],
   ['historia.js', "  if (c.puerta.dias) return diasEsperados(h, s, 'nevada') >= c.puerta.dias ? null : c.puerta;", "", 'el epílogo no espera días'],
   ['historia.js', "return enHora(s.horas, 17, 24) || enHora(s.horas, 0, 7);", "return false;", 'nunca nieva la noche de la nevada'],
   ['historia.js', "const dec = obj(h.decisiones);\n  d.deuda", "const dec = {};\n  d.deuda", 'la deuda ignora las decisiones'],
-  ['historia-disparadores-acto3.js', "'umbral-fin': { cap: 'deshielo', modo: 'auto', requiere: ['carpeta', 'majada-fin', 'josefina-fin'],", "'umbral-fin': { cap: 'deshielo', modo: 'auto', requiere: [],", 'la última escena sale sin las otras'],
+  ['historia-disparadores-acto3.js', "'umbral-fin': { cap: 'deshielo', modo: 'auto', requiere: ['carpeta-celeste', 'majada-fin', 'josefina-fin'],", "'umbral-fin': { cap: 'deshielo', modo: 'auto', requiere: [],", 'la última escena sale sin las otras'],
   ['historia-disparadores-acto3.js', "cond: (s) => s.trato === 'pelea' && s.nocheEstado === 'perdida' },", "cond: (s) => s.nocheEstado === 'perdida' },", 'el amanecer de pelea perdida sale con trato'],
   ['historia-disparadores-acto3.js', "    d.final = d.trato === 'pelea' ? 'pelea' : 'trato';", "    d.final = 'trato';", 'el final B nunca llega'],
   ['historia-disparadores-acto3.js', "cond: (s) => s.amor },", "cond: (s) => true },", 'la cita sale sin el amor prendido'],

@@ -163,7 +163,7 @@ export const OBJETOS_ACTO3 = {
   'cajon-trabado': { forma: null, lugar: 'molino-viejo', dx: -3.0, dz: -2.2, visible: (s, h) => enCap(h, 'golpea', 'arco') && s.trato === 'trato' && s.llave79 && !s.escenas.has('llave-79'),
     aviso: 'Probar la llave del 79 en el cajón trabado', escena: 'llave-79' },
   // pedir perdón en la raíz del coihue (sólo pelea)
-  'raiz-perdon': { forma: null, lugar: 'molino-viejo', dx: 1.4, dz: 1.0, visible: (s, h) => enCap(h, 'golpea', 'arco') && s.trato === 'pelea' && !s.perdon && s.escenas.has('encuentro'),
+  'raiz-perdon': { forma: null, lugar: 'molino-viejo', dx: 1.4, dz: 1.0, visible: (s, h) => enCap(h, 'golpea', 'arco') && s.trato === 'pelea' && !s.perdon && s.escenas.has('galpon-encuentro'),
     aviso: 'Dejar algo en la raíz del coihue para pedir perdón', escena: 'pedir-perdon' },
   // pagar la deuda del trato: una bolsa de harina o seis tablas en la raíz (o el tocón)
   'raiz-deuda': { forma: null, lugar: 'molino-viejo', dx: -1.2, dz: 1.4, visible: (s, h) => enCap(h, 'arco') && s.deuda > 0 && (s.harina >= 1 || s.tablas >= 6),
