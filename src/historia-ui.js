@@ -11,6 +11,8 @@ import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHisto
 // 4.15.0: la Historia nueva: decisiones, lazos, lo raro, escenas y objetos del acto I
 import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, marcarTema, sumarReparacion } from './historia.js';
 import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO, COLOCACION_ESCENA } from './historia-disparadores.js';
+// 4.17.1: la bolsa del umbral también después del final
+import { conEDespuesDelFinal } from './historia-disparadores.js';
 import { tarjetaAviso } from './historia-reinicio.js';
 import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
@@ -329,7 +331,7 @@ export function crearValleUi(ctx) {
   // La E sobre un objeto de historia del mundo: { aviso, hacer } o null
   function accionObjeto(id) {
     const h = historia();
-    if (!h.activa || h.fase !== 'jugando') return null;
+    if (!h.activa || (h.fase !== 'jugando' && !conEDespuesDelFinal(id, h))) return null;   // (4.17.1: la bolsa del umbral también después del final)
     const s = estado();
     const a = accionDeObjeto(id, h, s);
     if (!a) return null;

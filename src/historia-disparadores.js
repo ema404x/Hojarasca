@@ -188,6 +188,21 @@ export const OBJETOS = {
   ...OBJETOS_ACTO3,
 };
 export const RADIO_OBJETO = 2.4;
+// 4.17.1: la foto movida, la llavecita y la bolsa del umbral están junto a la puerta del refugio: con la puerta a mano, la E es de la puerta salvo que
+// estés MIRANDO el objeto (el frente del jugador apunta a él, coseno >= `frente`, y más que a la puerta). Antes le ganaban la E a la puerta en casi todo
+// el umbral. `puerta`: la que da puertas.cerca() ({ x, z }), o null.
+export const OBJETOS_DEL_UMBRAL = ['foto-movida', 'llavecita', 'bolsa-umbral'];
+export function cedeALaPuerta(id, js, q, puerta, frente = 0.9) {
+  if (!puerta || !OBJETOS_DEL_UMBRAL.includes(id) || !q || !js?.pos) return false;
+  const fx = -Math.sin(Number(js.yaw) || 0), fz = -Math.cos(Number(js.yaw) || 0);
+  const mira = (x, z) => { const dx = x - js.pos.x, dz = z - js.pos.z, d = Math.hypot(dx, dz); return d < 0.01 ? 1 : (fx * dx + fz * dz) / d; };
+  const aObjeto = mira(q.x, q.z);
+  if (aObjeto < frente) return true;
+  return Number.isFinite(puerta.x) && Number.isFinite(puerta.z) && mira(puerta.x, puerta.z) >= aObjeto;
+}
+// 4.17.1: después del final (fase 'fin') la E sigue andando sólo para la bolsa del umbral (la costumbre del trato, final A)
+export const conEDespuesDelFinal = (id, h) => id === 'bolsa-umbral' && h?.fase === 'fin' && h?.duendes?.final === 'trato';
+export const hayEDespuesDelFinal = (h) => !!h?.activa && h?.fase === 'fin' && h?.duendes?.final === 'trato' && !!h?.costumbre;
 
 // 4.16.0: dónde se pone al jugador antes de empezar una escena anclada a algo del refugio (la nota adentro, la ronda de ramitas en el umbral, el hacha
 // en el tocón, el alero), en coordenadas locales del refugio (x a la derecha, z hacia donde mira la puerta); `mira`: hacia qué punto local mira. Las escenas

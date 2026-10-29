@@ -276,7 +276,9 @@ import { resolverColocacion } from './historia-colocacion.js';
 // 4.17 C (sólo para el gancho de depuración __colocarEscena)
 import { COLOCACION_ESCENA } from './historia-disparadores.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
-import { textoPaqueteCopia } from './historia-reinicio.js';   // 4.17.1: la copia previa en el formato de «Exportar»
+// 4.17.1: la copia previa en el formato de «Exportar» (con el texto crudo de la carga y las fotos), la puerta del refugio y la bolsa del umbral
+import { textoPaqueteCopia } from './historia-reinicio.js';
+import { cedeALaPuerta, hayEDespuesDelFinal } from './historia-disparadores.js';
 import { textoUltimaCarga, cargarFotos } from './guardado.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
 import { crearGracielaMundo } from './historia-graciela.js';
@@ -2285,6 +2287,7 @@ function puntosDeHistoria() {
   obraPunto('molino-propio', 'molino-agua');
   obraPunto('galpon-propio', 'galponcito');
   obraPunto('aserradero-propio', 'aserradero');
+  obraPunto('gallinero-propio', 'gallinero');   // 4.17.1: las plumas del arco (plumas-gallinero)
   // 4.17.0: el acto III: el Puesto del Paso y el galpón de la noche (tu galponcito o, si no hay, la puerta del refugio)
   ponr('puesto-paso', PUESTO_PASO);
   if (P['galpon-propio']) P['galpon-noche'] = P['galpon-propio']; else if (P['refugio-puerta']) P['galpon-noche'] = P['refugio-puerta']; else delete P['galpon-noche'];
@@ -2334,10 +2337,12 @@ function historiaObjetoCerca() {
   cacheObjetoHist.t = ahora;
   cacheObjetoHist.v = null;
   const h = valle.historia();
-  if (!h.activa || h.fase !== 'jugando') return null;
+  if (!h.activa || (h.fase !== 'jugando' && !hayEDespuesDelFinal(h))) return null;   // (4.17.1: después del final, la bolsa del umbral)
   const visibles = Object.keys(objetosHist.posiciones);   // (4.16.0: todos los que tienen lugar; `accionObjeto` filtra los que se ven y tienen qué hacer)
   const id = objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
-  const a = id ? valle.accionObjeto(id) : null;
+  let a = id ? valle.accionObjeto(id) : null;
+  // 4.17.1: los objetos del umbral no le ganan la E a la puerta del refugio, salvo que los estés mirando
+  if (a && cedeALaPuerta(id, jugador.estado, objetosHist.posiciones[id], puertas ? puertas.cerca(jugador.estado.pos) : null)) a = null;
   cacheObjetoHist.v = a ? { id, ...a } : null;
   return cacheObjetoHist.v;
 }
@@ -2913,8 +2918,13 @@ $('btn-entrar').addEventListener('click', () => {
   if (!sinCreadorDeBruno() && !progreso.personal?.bruno?.creado) { crearABruno('crear', () => $('btn-entrar').click()); return; }
   // 4.1 (F4): el prólogo (5 tarjetas de texto) de una partida nueva, justo después de crear a Bruno; al terminar o saltarlo, entra solo (a la llegada al refugio)
   if (!sinCreadorDeBruno() && debeMostrarPrologo(progreso.personal?.bruno, esDesafio)) {
+    // 4.17.1: una partida nueva que empieza en modo Historia no ve el prólogo de Bruno: contaba otra llegada (el tren, la puerta abierta, «mañana
+    // empieza todo») y en seguida la Historia arranca en la estación con la llave de Eusebio. Queda visto: el comienzo lo cuenta la Historia.
+    if (!esDesafio && ajustes.relaxTipo === 'historia' && !progreso.pos) { const sB = secciones().find((x) => x.id === 'bruno'); if (sB) cambiarPersonal(sB, { prologoVisto: true }); }
+    else {
     abrirPrologo({ alTerminar: () => { const sB = secciones().find((x) => x.id === 'bruno'); if (sB) cambiarPersonal(sB, { prologoVisto: true }); $('btn-entrar').click(); } });
     return;
+    }
   }
   // 4.10 partidas: antes de empezar una partida nueva del Desafío, la pantalla de modo, ventajas y reglas (en la depuración se saltea,
   // salvo con `&meta=1`: las pruebas viejas entran con un clic)
@@ -2947,6 +2957,8 @@ $('btn-entrar').addEventListener('click', () => {
     setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos con el hacha y piedra con el pico (H) y armá defensas (O → Defensa)', true), 1500);
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Hay un cofre de los duendes entre las raíces: buscá el hilo de luz dorada'), 7600);
   }
+  // 4.17.1: con la Historia, el primer día lo cuenta la Historia (la estación a la tarde): la nota del Relax («Salí a caminar») la contradecía
+  else if (!esDesafio && ajustes.relaxTipo === 'historia' && (!habiaGuardado || !progreso.pos) && !entroAlJuego) { /* (nada: la Historia arranca en la estación) */ }
   else if ((!habiaGuardado || !progreso.pos) && !entroAlJuego) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
   // 3.6.2: lo tuyo que quedó donde ahora está la aldea (una partida de antes de la 3.6): una sola nota
   if (avisoDesalojo) { const a = avisoDesalojo; avisoDesalojo = null; setTimeout(() => nota(a.titulo, a.sub, true), 2600); }

@@ -48,7 +48,7 @@ export const PRESTADOS_NOCHE = ['herrero', 'apicultor', 'maquinista', 'guarda'];
 export const PRESTAMISTA = { herrero: 'herrero', apicultor: 'apicultor', maquinista: null, guarda: null };
 export const AMANECERES = ['amanecer-trato-ganada', 'amanecer-trato-perdida', 'amanecer-pelea-ganada', 'amanecer-pelea-perdida'];
 export const RAMAL_SALVADO = 10, RAMAL_A_PRUEBA = 6, RAMAL_MAX_FLETES = 8, RAMAL_BARRA = 10;
-const TOPE_RARO = 60, TOPE_MARCAS = 200;
+const TOPE_RARO = 160, TOPE_MARCAS = 200;   // 4.17.1: lo raro, 160 (hay 108 indicios y cada uno se anota una vez: con 60 el cuaderno dejaba de anotar a mitad del acto III)
 
 // Lo que el juego sabe de la partida, en números y banderas. `extra` trae lo que no está en el guardado: el fuego
 // prendido, si manejás la trochita o vas en el velero, las obras terminadas ({ id, x, z }), a qué distancia estás de
@@ -505,7 +505,7 @@ export const CAPITULOS = [
       { id: 'estufa', tecla: 'O', texto: 'Armá una estufa a leña (O → Trabajo)', hecho: tiene('estufa-hierro') },
       { id: 'abrigo', tecla: 'E', texto: 'Conseguí abrigo: una manta o un poncho', hecho: (s) => s.abrigo },
     ],
-    decisiones: [{ id: 'majada', tras: 'ramon-cama' }],
+    decisiones: [{ id: 'majada', tras: 'fermin-tranquera' }],   // 4.17.1: la elección está en fermin-tranquera (con ramon-cama la tarjeta de respaldo salía antes y D5 se preguntaba dos veces)
     momento: null,
     outro: [
       'Esa noche nevó finito. Volviendo al refugio con el farol, viste que por la rendija de tu galpón salía luz. Una luz amarilla, temblona, como de muchas velitas. Y risas. Muchas risas, bajitas, como de gente que se tapa la boca.',
@@ -553,7 +553,7 @@ export const CAPITULOS = [
       { id: 'tito', tecla: 'E', texto: 'Dejale la madera a Tito en la carpintería y volvé a la mañana (E sobre él)', vecinos: true, hecho: (s) => s.escenas.has('tito-arco') || !s.pobladores.has('carpintero') },
       { id: 'cuerda', tecla: 'E', texto: 'La cuerda: llevale dos vellones a Elvira, la tejedora (esquilá en el corral o pedíselos a Fermín)', vecinos: true, hecho: (s) => s.escenas.has('elvira-cuerda') || !s.pobladores.has('tejedora') },
       { id: 'puntas', tecla: 'E', texto: 'Las puntas: encargale a Anselmo doce puntas de flecha ($400)', vecinos: true, hecho: (s) => s.escenas.has('anselmo-puntas') || !s.pobladores.has('herrero') },
-      { id: 'plumas', tecla: 'E', texto: 'Las plumas: juntá seis en el bosque o pedíselas a Josefina (necesitás su confianza)', hecho: (s) => s.escenas.has('plumas-bosque') || s.escenas.has('plumas-gallinero') || s.escenas.has('plumas-josefina') || s.plumas >= 6 },
+      { id: 'plumas', tecla: 'E', texto: 'Las plumas: juntá seis en el bosque, en tu gallinero (de día) o pedíselas a Josefina (necesitás su confianza)', hecho: (s) => s.escenas.has('plumas-bosque') || s.escenas.has('plumas-gallinero') || s.escenas.has('plumas-josefina') || s.plumas >= 6 },
       { id: 'blancos-paso', tecla: 'E', texto: 'Practicá con el arco: cinco blancos de paja en el Puesto del Paso (mantené el clic para tensar)', meta: 5, cuenta: (s) => s.blancos.paso },
       // cadena B · la honda (Fermín y Tobías)
       { id: 'fermin', tecla: 'E', texto: (s) => (necesitaPaces(s) && !s.escenas.has('fermin-paces') ? 'Hacé las paces con Fermín: llevale un regalo que le guste (harina, yerba o pan)' : 'Pedile a Fermín que te enseñe a tirar con honda (galpón de esquila)'), vecinos: true, hecho: escena('fermin-honda') },

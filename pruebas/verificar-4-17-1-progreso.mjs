@@ -149,4 +149,101 @@ const S = await import('../src/sincronia.js');
   ok(!/OJO/.test(S.textoOferta(local, { progreso: { dia: 5, guardadoEn: 9e12 } })), 'una partida cualquiera: sin aviso');
 }
 
+// ---------------------------------------------------------------- 4. el guion: plumas, majada, costumbre, puerta, cuaderno de lo raro, prólogo
+{
+  const D = await import('../src/historia-disparadores.js');
+  const A3 = await import('../src/historia-disparadores-acto3.js');
+  const iArco = H.CAPITULOS.findIndex((c) => c.id === 'arco');
+  const armar = (dia = 50) => { const p = G.progresoNuevo(); p.dia = dia; p.horas = 10; const h = H.historiaNueva(); h.activa = true; h.empezada = 1; h.capitulo = iArco; h.fase = 'jugando'; h.base = { dia: dia - 1 }; p.historia = h; return { p, h }; };
+  const estado = (p, extra = {}) => ({ ...H.estadoHistoria(p, extra), horas: p.horas });
+  // E2-3: el bosque sin plumas y Josefina fría: el gallinero propio da las plumas
+  {
+    const { p, h } = armar(); h.lazos.ema = -2;
+    const s0 = estado(p, { lugares: { refugio: 5 } });
+    ok(s0.plumas === 0 && D.escenaPendiente(h, s0, { modo: 'auto' }) !== 'plumas-bosque' && D.escenaPendiente(h, s0, { modo: 'hablar', clave: 'ema' }) !== 'plumas-josefina', 'sin plumas y con Josefina fría, ni el bosque ni ella');
+    const s1 = estado(p, { lugares: { 'gallinero-propio': 3 } });
+    ok(D.escenaPendiente(h, s1, { modo: 'auto' }) === 'plumas-gallinero', 'junto a tu gallinero, de día: las plumas del gallinero');
+    p.horas = 23; ok(D.escenaPendiente(h, estado(p, { lugares: { 'gallinero-propio': 3 } }), { modo: 'auto' }) !== 'plumas-gallinero', 'de noche no (las gallinas duermen)'); p.horas = 10;
+    ok(D.LUGARES_HISTORIA.includes('gallinero-propio'), 'el gallinero propio es un lugar con nombre que pasa el juego');
+    h.escenas.vistas['plumas-gallinero'] = 50;
+    const obj = H.CAPITULOS[iArco].objetivos.find((o) => o.id === 'plumas');
+    ok(obj.hecho(estado(p, {}), h.base), 'y con eso el objetivo de las plumas se cumple (se abren los blancos)');
+    const { p: p2, h: h2 } = armar(); p2.entradas = { pluma: { cantidad: 6 } };
+    ok(D.escenaPendiente(h2, estado(p2, { lugares: { 'gallinero-propio': 3, refugio: 80 } }), { modo: 'auto' }) !== 'plumas-gallinero', 'con seis plumas en la mano no hace falta el gallinero');
+    const main = leer('src/main.js');
+    ok(main.includes("obraPunto('gallinero-propio', 'gallinero');"), 'main.js arma el punto de tu gallinero');
+  }
+  // E2-4: D5 se pregunta una sola vez (la tarjeta de respaldo espera a la escena que tiene la elección)
+  {
+    const { p, h } = armar(); h.capitulo = H.CAPITULOS.findIndex((c) => c.id === 'frios');
+    h.escenas.vistas['ramon-cama'] = 50;
+    ok(H.decisionPendiente(h, estado(p)) === null, 'después de ramon-cama no sale la tarjeta de la majada');
+    h.escenas.vistas['fermin-tranquera'] = 50;
+    ok(H.decisionPendiente(h, estado(p))?.id === 'majada', 'si se vio fermin-tranquera sin decidir, sale la de respaldo');
+    h.decisiones.majada = 'b'; ok(H.decisionPendiente(h, estado(p)) === null, 'decidida en la escena: no se vuelve a preguntar');
+    for (const c of H.CAPITULOS) for (const d of c.decisiones || []) ok(!d.tras || Object.hasOwn(D.DISPARADORES, d.tras) || Object.values(D.DISPARADORES).some((x) => x.escena === d.tras), `${d.id}: la tarjeta de respaldo cuelga de una escena con disparador`);
+  }
+  // E2-5 / E4-3: la costumbre del trato anda después del final
+  {
+    const h = H.historiaNueva(); h.activa = true; h.fase = 'fin'; h.duendes.final = 'trato'; h.costumbre = { bolsa: 'vacia', cosechas: 0, regalos: 0, dia: 1 };
+    ok(D.hayEDespuesDelFinal(h) && D.conEDespuesDelFinal('bolsa-umbral', h) && !D.conEDespuesDelFinal('foto-movida', h), 'después del final, la E sólo para la bolsa del umbral');
+    const s = { ...H.estadoHistoria({ dia: 90, entradas: {}, cosas: { harina: 2 }, materiales: {} }, {}) };
+    s.harina = 2;
+    const a = D.accionDeObjeto('bolsa-umbral', h, s);
+    ok(a && a.accion === 'llenar', `con harina: «${a?.aviso}»`);
+    ok(A3.llenarBolsa(h, 90) && A3.amanecerCostumbre(h, { cosechas: 40 }, 91) === 'canto', 'se llena y a la mañana hay regalito');
+    ok(h.costumbre.bolsa === null && h.costumbre.cosechas === 40, 'la cuenta de cosechas arranca de hoy');
+    A3.amanecerCostumbre(h, { cosechas: 41 }, 92); ok(h.costumbre.bolsa === null, 'con una sola cosecha más la bolsa todavía no vuelve');
+    A3.amanecerCostumbre(h, { cosechas: 46 }, 93); ok(h.costumbre.bolsa === 'vacia', 'con seis, vuelve vacía');
+    const pelea = { ...h, duendes: { ...h.duendes, final: 'pelea' } };
+    ok(!D.hayEDespuesDelFinal(pelea) && !D.hayEDespuesDelFinal({ ...h, fase: 'jugando' }), 'con la pelea o en plena historia, nada nuevo');
+    // historia-ui.js: accionObjeto, corrida
+    const ui = leer('src/historia-ui.js');
+    ok(ui.includes("if (!h.activa || (h.fase !== 'jugando' && !conEDespuesDelFinal(id, h))) return null;"), 'historia-ui.js deja la E de la bolsa después del final');
+  }
+  // E4-2: la puerta del refugio le gana a los objetos del umbral salvo que los mires
+  {
+    const ref = { x: -120, z: 232, rot: 0.7 };
+    const aMundo = (lx, lz) => ({ x: ref.x + lx * Math.cos(ref.rot) + lz * Math.sin(ref.rot), z: ref.z - lx * Math.sin(ref.rot) + lz * Math.cos(ref.rot) });
+    const foto = aMundo(D.OBJETOS['foto-movida'].lx, D.OBJETOS['foto-movida'].lz), puerta = aMundo(0, 2.78);
+    // parado en el eje de la puerta, afuera, mirando la puerta
+    const pos = aMundo(0, 4.2);
+    const yawHacia = (q) => Math.atan2(-(q.x - pos.x), -(q.z - pos.z));
+    const js = (q) => ({ pos, yaw: yawHacia(q) });
+    ok(D.cedeALaPuerta('foto-movida', js(puerta), foto, puerta), 'mirando la puerta: la E es de la puerta');
+    ok(!D.cedeALaPuerta('foto-movida', js(foto), foto, puerta), 'mirando la foto: la E es de la foto');
+    ok(!D.cedeALaPuerta('foto-movida', js(puerta), foto, null), 'sin puerta a mano: la foto');
+    ok(!D.cedeALaPuerta('cantos-veta', js(puerta), foto, puerta), 'los demás objetos, como siempre');
+    let gana = 0, total = 0;
+    for (let lx = -1.5; lx <= 1.5; lx += 0.25) for (let lz = 3.0; lz <= 5.5; lz += 0.25) {
+      const p0 = aMundo(lx, lz); total++;
+      const yaw = Math.atan2(-(puerta.x - p0.x), -(puerta.z - p0.z));
+      for (const id of D.OBJETOS_DEL_UMBRAL) { const o = D.OBJETOS[id]; const q = aMundo(o.lx, o.lz); if (Math.hypot(q.x - p0.x, q.z - p0.z) <= D.RADIO_OBJETO && !D.cedeALaPuerta(id, { pos: p0, yaw }, q, puerta)) { gana++; break; } }
+    }
+    ok(gana === 0, `mirando la puerta desde el umbral, ningún objeto le gana la E (${gana} de ${total})`);
+    const main = leer('src/main.js');
+    const f = funcion(main, 'historiaObjetoCerca', {
+      desafio: null, valle: { historia: () => ({ activa: true, fase: 'jugando' }), accionObjeto: (k) => ({ aviso: `Mirar ${k}`, hacer() {} }) },
+      objetosHist: { posiciones: { 'foto-movida': foto }, cercano: () => 'foto-movida' }, jugador: { estado: js(puerta) },
+      cacheObjetoHist: { t: -1e9, v: null }, performance: { now: () => 1e9 }, hayEDespuesDelFinal: D.hayEDespuesDelFinal, cedeALaPuerta: D.cedeALaPuerta, puertas: { cerca: () => ({ nombre: 'la puerta', x: puerta.x, z: puerta.z }) }, Object,
+    });
+    ok(f() === null, 'main.js: mirando la puerta, el objeto del umbral no toma la E');
+  }
+  // E2-6 / E4-7: el cuaderno de lo raro anota todos los indicios
+  {
+    const h = H.historiaNueva(); let n = 0;
+    for (const id of Object.keys(H.RAROS)) if (H.anotarRaro(h, id, 5)) n++;
+    ok(n === Object.keys(H.RAROS).length && n >= 100, `se anotan los ${Object.keys(H.RAROS).length} indicios`);
+    ok(H.sanearHistoria(JSON.parse(JSON.stringify(h))).raro.length === n, 'y guardar y cargar no los recorta');
+  }
+  // E4-5: el prólogo de Bruno no se muestra al empezar en modo Historia
+  {
+    const main = leer('src/main.js');
+    const i = main.indexOf('debeMostrarPrologo(progreso.personal?.bruno, esDesafio)');
+    const bloque = main.slice(i, main.indexOf('// 4.10 partidas:', i));
+    ok(/ajustes\.relaxTipo === 'historia' && !progreso\.pos\) \{[^\n]*prologoVisto: true/.test(bloque) && bloque.indexOf("relaxTipo === 'historia'") < bloque.indexOf('abrirPrologo('), 'con Historia, el prólogo queda visto sin mostrarse; en Libre, como siempre');
+    ok(main.includes("else if (!esDesafio && ajustes.relaxTipo === 'historia' && (!habiaGuardado || !progreso.pos) && !entroAlJuego) {"), 'y la nota «Salí a caminar» no sale con la Historia');
+  }
+}
+
 console.log(`verificar-4-17-1-progreso: ${pasos} pasos en verde`);

@@ -164,6 +164,9 @@ async function chequear(arch = '', sufijo = '') {
     H.sumarFletes(f, { entregas: 5 }); ok(f.fletesHarina === 3 && f.fletes === 3, 'tres fletes después de decidir: cuentan para cumplir y para el ramal');
     H.sumarFletes(f, { entregas: 20 }); ok(f.fletesHarina <= 9 && f.fletes <= 8, 'con tope');
     const g = H.historiaNueva(); g.activa = true; g.capitulo = 6; H.sumarFletes(g, { entregas: 1 }); H.sumarFletes(g, { entregas: 4 }); ok(g.fletesHarina === 0, 'sin decisión de fletes no se cuenta nada para la molienda');
+    // 4.17.1: (las mutaciones «la molienda partida no cuenta fletes» y «lo molido no se cuenta desde que empieza el capítulo» no tenían quién las atrape)
+    { const fc = H.historiaNueva(); fc.activa = true; fc.capitulo = 6; fc.decisiones.molienda = 'c'; H.sumarFletes(fc, { entregas: 2 }); H.sumarFletes(fc, { entregas: 4 }); ok(fc.fletesHarina === 2, 'C (partida): los fletes después de decidir también cuentan'); }
+    ok(H.baseDe({ molido: 25, cocinadas: 3, cantos: 7 }).molido === 25 && H.baseDe({ cocinadas: 3 }).cocinadas === 3, 'al empezar un capítulo se anota lo molido y lo cocinado (para contar desde ahí)');
   }
 
   // ---------------------------------------------------------------- 5. capítulo 8: El cuaderno de Eusebio
@@ -335,6 +338,7 @@ async function chequear(arch = '', sufijo = '') {
     const t = H.historiaNueva(); t.activa = true; t.decisiones.coihue = 'a';
     A2.alTalarCoihue(t, 7); ok(t.temas['mundo:coihue-talado'] > 0 && t.decisiones.coihue === 'b' && t.lazos.ema === -2, 'talar el coihue grande: queda marcado, pasa a «talarlo» y Josefina −2');
     A2.alTalarCoihue(t, 7); ok(t.lazos.ema === -2, 'una sola vez');
+    t.lazos.ema = 1; t.decisiones.coihue = 'a'; A2.alTalarCoihue(t, 8); ok(t.lazos.ema === 1, 'Josefina lo toma mal una sola vez aunque se vuelva a talar');   // 4.17.1: (la mutación «cada hachazo baja el lazo» no tenía quién la atrape)
     const t2 = H.historiaNueva(); t2.activa = true; t2.decisiones.coihue = 'b'; A2.alTalarCoihue(t2, 7); ok(t2.lazos.ema === 0, 'si ya lo habías decidido así, Josefina no lo toma peor');
     const t3 = H.historiaNueva(); t3.activa = true; A2.alTalarCoihue(t3, 7); ok(t3.decisiones.coihue === 'b' && t3.lazos.ema === -2, 'talarlo sin haber decidido: también');
     // sanear: lo nuevo que se guarda
@@ -518,15 +522,15 @@ const MUT = [
   ['historia-escenas-efectos.js', "case 'quitar': if (una(h, clave(c))) ctx.quitar?.(p.cosa, p.n); break;", "case 'quitar': ctx.quitar?.(p.cosa, p.n); break;", 'quitar no es idempotente'],
   ['historia-escenas-efectos.js', "const clave = q === 'rosa' ? 'panadera' : q;", "const clave = q;", 'Rosa no es la panadera'],
 ];
-let atrapadas = 0;
+let atrapadas = 0, iMut = 0;
 for (const [archivo, de, a, que] of MUT) {
   const orig = leer(`src/${archivo}`);
   if (!orig.includes(de)) { ok(false, `mutación inaplicable: ${que}`); continue; }
-  const sufijo = '.mut';
+  const sufijo = `.mut${++iMut}`;   // 4.17.1: un archivo por mutación (ESM guarda el módulo por URL: con el mismo nombre se volvía a medir la primera)
   const dest = join(raiz, 'src', archivo.replace('.js', `${sufijo}.js`));
   writeFileSync(dest, orig.replace(de, () => a));
-  const destD = join(raiz, 'src', 'historia-disparadores.mut.js');
-  if (archivo === 'historia-disparadores-acto2.js') writeFileSync(destD, leer('src/historia-disparadores.js').replace("'./historia-disparadores-acto2.js'", "'./historia-disparadores-acto2.mut.js'"));
+  const destD = join(raiz, 'src', `historia-disparadores${sufijo}.js`);
+  if (archivo === 'historia-disparadores-acto2.js') writeFileSync(destD, leer('src/historia-disparadores.js').replace("'./historia-disparadores-acto2.js'", `'./historia-disparadores-acto2${sufijo}.js'`));
   const antes = fallas, antesN = n;
   callado = true;
   try {

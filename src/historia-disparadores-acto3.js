@@ -12,7 +12,7 @@ const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
 
 // Los lugares nuevos de los que el juego pasa la distancia (los arma `puntosDeHistoria` de main.js): el galpón de la noche (tu galponcito o, si no
 // hay, la puerta del refugio) y el Puesto del Paso (los blancos de paja de Belisario)
-export const LUGARES_ACTO3 = ['galpon-noche', 'puesto-paso'];
+export const LUGARES_ACTO3 = ['galpon-noche', 'puesto-paso', 'gallinero-propio'];   // (4.17.1: tu gallinero, para las plumas del arco)
 // Lo que cuestan las dos entregas con plata y el costo en harina y tablas de la deuda del trato
 export const PRECIO_PUNTAS = 400;
 export const DEUDA_COSTO = { harina: 1, tabla: 6 };
@@ -44,6 +44,9 @@ export const DISPARADORES_ACTO3 = {
   'tito-arco': { cap: 'arco', modo: 'hablar', clave: 'carpintero', cond: (s, h) => diaHecho(h, 'arco', 'lenga') > 0 && s.dia > diaHecho(h, 'arco', 'lenga') },
   'plumas-bosque': { cap: 'arco', modo: 'auto', lugar: en('refugio', 60), cond: (s) => s.plumas >= 6 && !s.escenas.has('plumas-gallinero') && !s.escenas.has('plumas-josefina') },
   'plumas-josefina': { cap: 'arco', modo: 'hablar', clave: 'ema', cond: (s) => s.lazos.ema >= 2 && s.plumas < 6 && !s.escenas.has('plumas-bosque') },
+  // 4.17.1: la escena del gallinero (escrita por B, «necesita gallinero») no tenía disparador. Las plumas del bosque no vuelven a salir (lo juntado
+  // queda tomado) y Josefina pide confianza: con el bosque vacío y el lazo bajo el arco quedaba imposible. Con tu gallinero, siempre hay plumas.
+  'plumas-gallinero': { cap: 'arco', modo: 'auto', lugar: en('gallinero-propio', 6), hora: [7, 20], cond: (s) => s.plumas < 6 && !s.escenas.has('plumas-bosque') && !s.escenas.has('plumas-josefina') },
   'elvira-cuerda': { cap: 'arco', modo: 'hablar', clave: 'tejedora', cond: (s) => s.lana >= 2 },
   'anselmo-puntas': { cap: 'arco', modo: 'hablar', clave: 'herrero', cond: (s) => s.pesos >= PRECIO_PUNTAS && !s.entregados.has('herrero:puntas') },
   'blancos-paso': { cap: 'arco', modo: 'auto', lugar: en('puesto-paso', 28), cond: (s) => s.blancos.paso >= 5 },
@@ -195,7 +198,7 @@ export function amanecerCostumbre(h, s, dia) {
   if (!c || h?.duendes?.final !== 'trato') return null;
   if (c.bolsa === 'llena' && dia > c.dia) {
     const regalo = COSTUMBRE_REGALOS[c.regalos % COSTUMBRE_REGALOS.length];
-    h.costumbre = { bolsa: null, cosechas: c.cosechas, regalos: c.regalos + 1, dia };
+    h.costumbre = { bolsa: null, cosechas: Math.max(c.cosechas, Math.floor(Number(s?.cosechas) || 0)), regalos: c.regalos + 1, dia };   // 4.17.1: la cuenta arranca de las cosechas de HOY (umbral-fin la deja en 0 y la bolsa volvía en el acto)
     return regalo;
   }
   // con una cosecha nueva (desde la última vez), la bolsa vuelve a aparecer vacía
