@@ -285,6 +285,7 @@ async function suite(E, DEMO, ID) {
     c(L.dir.datos().eleccion.indice === 0, 'las flechas dan la vuelta');
     L.dir.moverEleccion(-1);
     c(L.dir.elegir(9) === false && L.dir.elegir(-1) === false, 'una opción que no existe no hace nada');
+    L.dir.actualizar(0.5);   // (4.17.1: pasado el margen de la elección)
     L.dir.avanzar();
     c(L.dir.elecciones().z === 'c', 'Enter confirma la opción marcada');
   }

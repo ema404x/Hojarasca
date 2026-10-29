@@ -15,6 +15,7 @@ const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 export const CSS_ESCENAS = `
 #escena-capa { position: fixed; inset: 0; z-index: 43; display: none; cursor: default; }
 #escena-capa.activa { display: block; }
+body.escena-tapada #escena-capa, body.escena-tapada #escena-dialogo, body.escena-tapada .escena-barra, body.escena-tapada #escena-velo, body.escena-tapada #escena-pie, body.escena-tapada #escena-aviso { visibility: hidden; pointer-events: none; }   /* 4.17.1: con la pausa, la guía o la portada encima, la escena no tapa nada ni recibe clics */
 .escena-barra { position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 44; pointer-events: none; transition: height .7s cubic-bezier(.3,.7,.3,1); }
 .escena-barra.arriba { top: 0; }
 .escena-barra.abajo { bottom: 0; }
@@ -166,11 +167,18 @@ export function crearEscenasMundo(ctx) {
       return { x: c.position.x, y: c.position.y, z: c.position.z, yaw: c.rotation.y, pitch: c.rotation.x, fov: num(a?.fov, 70) };
     },
     horaActual: () => num(ctx.progreso().horas, 12),
-    hora(h) {
+    hora(h, info) {
+      // 4.17.1: con «la hora de tu reloj» la escena no toca la hora: manda la de la PC (al cuadro siguiente la pisaba igual, y el salto
+      // contaba como medianoche: sumaba días de más)
+      if (ctx.ajustes?.()?.duracion === 'reloj') return;
       const p = ctx.progreso();
       const antes = num(p.horas, 12);
       p.horas = ((h % 24) + 24) % 24;
-      if (antes - p.horas > 12) p.dia = Math.floor(num(p.dia, 1)) + 1;   // pasó la medianoche
+      // pasó la medianoche: con `delta` (4.17.1: el corte o la escena salteada, de una vez) si fue hacia adelante y la hora quedó antes;
+      // sin él (el paso a paso de la hora con duración), si bajó más de 12 h
+      const d = Number(info?.delta);
+      const cruzo = Number.isFinite(d) ? d > 0 && p.horas < antes : antes - p.horas > 12;
+      if (cruzo) p.dia = Math.floor(num(p.dia, 1)) + 1;
     },
     clima(nombre, dur) {
       const e = ctx.clima?.()?.estado;
@@ -250,10 +258,14 @@ export function crearEscenasMundo(ctx) {
     const aviso = crear('div', 'escena-aviso');
     aviso.textContent = 'Apretá Esc otra vez para saltar la escena';
     dom = { capa, caja, quien: caja.querySelector('.quien'), texto: caja.querySelector('.texto'), opciones: caja.querySelector('.opciones'), velo, pie, aviso, cache: {} };
-    capa.addEventListener('click', () => { if (director.corriendo()) director.avanzar(); });
+    // 4.17.1: los clics cuentan sólo jugando (con la pausa abierta, un clic avanzaba el diálogo o elegía la opción marcada), y uno sobre
+    // una opción, pasado el margen de la elección (un clic de más no elige apenas aparece)
+    const enJuego = () => ctx.modo() === 'jugando';
+    capa.addEventListener('click', () => { if (enJuego() && director.corriendo()) director.avanzar(); });
     caja.addEventListener('click', (e) => {
+      if (!enJuego()) return;
       const b = e.target.closest?.('button[data-i]');
-      if (b) { director.elegir(Number(b.dataset.i)); return; }
+      if (b) { if (director.eleccionLista()) director.elegir(Number(b.dataset.i)); return; }
       if (director.corriendo()) director.avanzar();
     });
     return dom;
@@ -264,6 +276,15 @@ export function crearEscenasMundo(ctx) {
     doc.body.classList.remove('escena-saliendo');
     doc.body.classList.add('escena-en-curso');
     try { const j = ctx.jugador(); j.estado.zoom = false; j.soltar(); } catch { /* sin mouse bloqueado */ }
+  }
+  // 4.17.1: la pausa, la guía, el cuaderno o la portada encima de una escena: la escena se esconde y no recibe clics (main.js la llama en
+  // cada cuadro con «¿se está jugando?»; sólo toca el DOM cuando cambia)
+  let tapada = false;
+  function tapar(si) {
+    si = !!si && director.activa();
+    if (si === tapada) return;
+    tapada = si;
+    doc.body.classList.toggle('escena-tapada', si);
   }
   function terminarVista() {
     if (!dom) return;
@@ -428,7 +449,7 @@ export function crearEscenasMundo(ctx) {
   }
 
   return {
-    director, mundo, actualizar, despuesDeGente, tecla, teclaSuelta, disparar, mirarA,
+    director, mundo, actualizar, despuesDeGente, tecla, teclaSuelta, disparar, mirarA, tapar,
     registrar: (e) => director.registrar(e),
     registrarEfecto: (n, f) => director.registrarEfecto(n, f),
     registrarCondicion: (n, f) => director.registrarCondicion(n, f),
