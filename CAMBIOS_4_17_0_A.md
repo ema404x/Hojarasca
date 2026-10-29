@@ -167,3 +167,11 @@ ver la escena, no hace falta un efecto. «Condición» y «efecto» sin registra
 - Programas de shader: 0 nuevos por la historia, el arreo, los blancos, las noches y los duendes del acto III (113 → 113 en las noches). Sigue **sin resolver** el 110 → 111 (galpón de esquila de día, igual que en el Relax libre) y el 111 → 113 al llegar de noche a tu galponcito después de ese paseo; en las secciones sueltas se queda en 110.
 - fps (sólo notebook, antes/después): sin la noche 32,6 ms de media (p95 43,9) y con la noche 33,7 (p95 42,7) en la última corrida, con la máquina cargada; otras corridas dieron 22–24 ms y la misma diferencia. 4600G sin medir.
 - Tiempos del tramo de la junta: ids, efectos y noche con escenas, 150 min; duendes, aliados, Ramón y el bastón, 70 min; humo y mirada a ojo (con el candado de Electron ocupado por C buena parte del tiempo), 200 min; el gate, 10 min.
+
+## Junta con el pulido de C (agente C): qué pasaba con los humos
+Los humos `humo-4-17-0-pulido` («termina en tiempo») y `humo-4-16-0-historia` («tardó más de 14 minutos») **no eran un bloqueo del juego**: con las escenas reales de B y la colocación de C el recorrido entero tarda más que el tope que traían (`-Espera 900` y 14 minutos); `humo-4-17-0-pulido` da «Todo en orden» con `-Espera 2400`. Lo que sí rompía de verdad en `humo-4-16-0-historia`, ya ajustado (son de la prueba, no del juego):
+- La ventana de Electron pierde el foco mientras carga y el juego se pausaba por `blur` (sección 0 sin tarjeta): los humos fijan `window.__sinPausaPorBlur` **justo después de cada `loadFile`** (antes sólo después de armar la página, y el `cargar` recarga).
+- En la sección del coihue grande, la escena de las piedras del molino arranca al llegar y la colocación de C pone al jugador a otro lado: se salta la escena y se lo vuelve a poner junto al árbol antes de los hachazos.
+- Tope de 30 minutos (era 14) y `-Espera 1800`.
+Uso: humos 4.15, 4.16 y 4.17 con `-Espera 1800`; el del pulido con `-Espera 2400`.
+`npm run verify` de corrido tras la junta con C: **323 pasos OK**. Humos 4.15, 4.16, 4.17 y pulido: «Todo en orden».
