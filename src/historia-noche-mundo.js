@@ -12,7 +12,7 @@
 // proyectiles son un puñado de mallas chicas que sólo se ven mientras vuelan, y nada se compila a mitad de
 // juego: los materiales se arman en la carga (`paraCompilar`) o bajo la tarjeta que lo anuncia (`preparar`).
 import * as THREE from 'three';
-import { crearNoche, elegirLado, NOCHE, ARMAS_NOCHE } from './historia-noche.js';
+import { crearNoche, elegirLado, NOCHE, ARMAS_NOCHE, crearPractica, blancosDe } from './historia-noche.js';
 import { instalarDuendes, precalentarDuendes, crearDuende, registrarHalos, soltarHalos } from './desafio-duendes.js';
 import { crearBanco } from './desafio-sonidos.js';
 import { matBrilloFijo } from './duendes-modelo.js';
@@ -333,6 +333,58 @@ export function crearNocheMundo(ctx) {
   }
   function abandonar() { terminar({ gano: false, motivo: 'abandono' }); }
 
+  // ---- 4.17.0: los blancos de práctica del capítulo 11: cinco de paja en el Puesto del Paso (arco) o cinco latas en los postes del galpón de esquila (honda)
+  let prac = null;   // { donde, sim, mallas: [{ cuerpo, poste }] }
+  const _alPie = (x, z) => alt(x, z);
+  function abrirPractica(donde) {
+    const p = ctx.puntoDe?.(donde === 'paso' ? 'puesto-paso' : 'galpon'), de = ctx.puntoDe?.('refugio');
+    if (!p || !de || !listo) return false;
+    const blancos = blancosDe(donde === 'paso' ? 'paja' : 'lata', p, de, _alPie);
+    const sim2 = crearPractica({ blancos, alt: _alPie });
+    const mallas = blancos.map((b) => {
+      const cuerpo = new THREE.Mesh(GEO_PALO, donde === 'paso' ? matFlecha : matPiedra);
+      const poste = donde === 'paso' ? null : new THREE.Mesh(GEO_PALO, matFlecha);
+      cuerpo.scale.set(b.r, b.h, b.r); cuerpo.position.set(b.x, b.y + b.h / 2, b.z); cuerpo.frustumCulled = false; escena.add(cuerpo);
+      if (poste) { poste.scale.set(0.07, b.poste === undefined ? 1.3 : (b.y - b.poste), 0.07); poste.position.set(b.x, b.poste + (b.y - b.poste) / 2, b.z); poste.frustumCulled = false; escena.add(poste); }
+      return { cuerpo, poste, b };
+    });
+    prac = { donde, sim: sim2, mallas, aciertos: 0 };
+    mano.arma = donde === 'paso' ? 'arco' : 'honda'; mano.abajo = false;
+    ctx.nota?.(donde === 'paso' ? 'Los blancos de paja de Belisario' : 'Las latas de los postes del galpón', donde === 'paso' ? 'Clic: tirar · mantené el clic para tensar el arco' : 'Clic: tirar piedras · mantené para seguir');
+    return true;
+  }
+  function cerrarPractica() {
+    if (!prac) return;
+    for (const m of prac.mallas) { escena.remove(m.cuerpo); if (m.poste) escena.remove(m.poste); }
+    for (const q of proy) q.m.visible = false;
+    prac = null; mano.abajo = false;
+  }
+  // cada cuadro: `donde` es 'paso' | 'esquila' | null (lo calcula la historia). Devuelve los aciertos nuevos.
+  function practicar(dt, donde) {
+    if (activa) { cerrarPractica(); return 0; }
+    if (!donde || ctx.modo() !== 'jugando') { cerrarPractica(); return 0; }
+    if (!prac || prac.donde !== donde) { cerrarPractica(); if (!abrirPractica(donde)) return 0; }
+    if (mano.abajo && mano.arma === 'honda' && jugador().bloqueado()) disparar('honda');
+    prac.sim.actualizar(dt);
+    let nuevos = 0;
+    for (const ev of prac.sim.eventos) {
+      if (ev.tipo === 'blanco') { nuevos++; sonido.impacto?.(donde === 'paso' ? 'hueco' : 'metal', { pos: { x: ev.b.x, y: ev.b.y + ev.b.h / 2, z: ev.b.z }, tamaño: 0.7, dureza: 0.7, fuerza: 0.8, vol: 0.7 }); }
+      else if (ev.tipo === 'suelo') sonido.impacto?.('tierra', { pos: { x: ev.p.x, y: ev.p.y, z: ev.p.z }, tamaño: 0.5, dureza: 0.5, fuerza: 0.5, vol: 0.35 });
+    }
+    // los blancos caídos se acuestan; vuelven a pararse
+    for (const m of prac.mallas) { const c = m.b.caido; m.cuerpo.visible = c <= 0; }
+    let k = 0;
+    for (const p of prac.sim.proyectiles) {
+      let q = proy[k++];
+      if (!q) { const m = new THREE.Mesh(geoFlecha, matFlecha); m.frustumCulled = false; escena.add(m); q = { m, tipo: 'arco' }; proy.push(q); }
+      if (q.tipo !== p.tipo) { q.tipo = p.tipo; q.m.geometry = p.tipo === 'arco' ? geoFlecha : geoPiedra; q.m.material = p.tipo === 'arco' ? matFlecha : matPiedra; }
+      q.m.visible = true; q.m.position.set(p.x, p.y, p.z);
+      if (p.tipo === 'arco') { _mira.set(p.x + p.vx, p.y + p.vy, p.z + p.vz); q.m.lookAt(_mira); }
+    }
+    for (; k < proy.length; k++) proy[k].m.visible = false;
+    prac.aciertos += nuevos;
+    return nuevos;
+  }
   // ---- 4.17.0: la lucecita ámbar que avisa 2 s antes dónde sale un topo (con el trato): una bolita del material de las bellotas, que ya está compilado
   function avisoTopo(x, z) {
     let q = lucecitas.find((l) => !l.m.visible);
@@ -341,6 +393,14 @@ export function crearNocheMundo(ctx) {
   }
   // ---- el arma
   function disparar(arma = mano.arma, tensionSeg = 0) {
+    // 4.17.0: sin la noche, los blancos de práctica usan las mismas armas
+    if (!activa && prac) {
+      camara.getWorldDirection(_dir);
+      _org.copy(camara.position).addScaledVector(_dir, 0.6);
+      const r = prac.sim.disparar(arma, { x: _org.x, y: _org.y, z: _org.z }, { x: _dir.x, y: _dir.y, z: _dir.z }, tensionSeg);
+      if (r.ok) { if (arma === 'arco') S?.arco?.(); else S?.honda?.(); ctx.gesto?.(); }
+      return r;
+    }
     if (!activa || !sim || sim.fin) return { ok: false, motivo: 'fin' };
     camara.getWorldDirection(_dir);
     _org.copy(camara.position).addScaledVector(_dir, 0.6);
@@ -362,17 +422,18 @@ export function crearNocheMundo(ctx) {
     ctx.nota?.(ARMAS_NOCHE[a].nombre, a === 'arco' ? 'Clic: tirar · mantené para tensar más' : 'Clic: tirar piedras · mantené para seguir');
     return true;
   }
-  const mouseListo = () => activa && sim && !sim.fin && ctx.modo() === 'jugando' && jugador().bloqueado();
+  const mouseListo = () => ((activa && sim && !sim.fin) || (!activa && !!prac)) && ctx.modo() === 'jugando' && jugador().bloqueado();
+  const arcoListo = () => (activa ? sim.flechas > 0 && sim.recarga <= 0 : !!prac && prac.sim.recarga <= 0);
   function alApretar(e) {
     if (!mouseListo()) return;
     if (e.button === 0) {
       e.stopImmediatePropagation(); e.preventDefault();
-      if (mano.arma === 'arco') { if (sim.flechas > 0 && sim.recarga <= 0) { mano.abajo = true; mano.desde = performance.now(); } else disparar('arco'); }
+      if (mano.arma === 'arco') { if (arcoListo()) { mano.abajo = true; mano.desde = performance.now(); } else disparar('arco'); }
       else { mano.abajo = true; disparar('honda'); }
-    } else if (e.button === 2) { e.stopImmediatePropagation(); e.preventDefault(); elegirArma(mano.arma === 'arco' ? 'honda' : 'arco'); }
+    } else if (e.button === 2 && activa) { e.stopImmediatePropagation(); e.preventDefault(); elegirArma(mano.arma === 'arco' ? 'honda' : 'arco'); }
   }
   function alSoltar(e) {
-    if (!activa || e.button !== 0 || !mano.abajo) return;
+    if ((!activa && !prac) || e.button !== 0 || !mano.abajo) return;
     mano.abajo = false;
     if (mano.arma === 'arco' && ctx.modo() === 'jugando') { e.stopImmediatePropagation(); disparar('arco', (performance.now() - mano.desde) / 1000); }
   }
@@ -489,7 +550,8 @@ export function crearNocheMundo(ctx) {
   }
 
   return {
-    paraCompilar, trasCompilar, preparar, iniciar, terminar, abandonar, actualizar, disparar, elegirArma,
+    paraCompilar, trasCompilar, preparar, iniciar, terminar, abandonar, actualizar, disparar, elegirArma, practicar, cerrarPractica,
+    practicaActiva: () => !!prac, get practica() { return prac; },
     activa: () => activa,
     armada: () => listo,
     hud: () => (sim ? { ...sim.hud(), arma: mano.arma, herido: flashHerido, tensando: mano.abajo && mano.arma === 'arco' ? Math.min(1, (performance.now() - mano.desde) / 1100) : 0 } : null),

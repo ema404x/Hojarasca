@@ -16,6 +16,11 @@ import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
 // 4.16.0: el acto II: la puerta de estación, el clima de la historia, el premio con variantes, el cuaderno de Eusebio y la espera sentado
 import { puertaDeEstacion, estacionForzada, premioDeCapitulo, aceleracionDeEspera, anotarRaro } from './historia.js';
+// 4.17.0: el acto III: la nevada, lo prestado, los blancos, la deuda, la majada de Ramón, la costumbre del trato y la tarjeta final
+import { nevadaForzada, alCumplirObjetivo, sumarBlanco, defensasDeNoche } from './historia.js';
+import { NOTAS_ESCENA_ACTO3, pagarLaDeuda, accionBolsaUmbral, amanecerCostumbre, llenarBolsa, costumbreDe } from './historia-disparadores-acto3.js';
+import { aliadosDe } from './historia-noche.js';
+import { tarjetaFinal } from './historia-final.js';
 import { leerPagina, proximaPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO, ESCENAS_DESDE_VEHICULO } from './historia-disparadores-acto2.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
 import { resumenEventos } from './eventos-valle.js';
@@ -147,7 +152,16 @@ export function crearValleUi(ctx) {
     return p.historia;
   }
   const estado = () => estadoHistoria(ctx.progreso(), ctx.extra());
-  const noche = crearNocheUi(ctx, tarjetas, { historia });   // 4.13.0 (B)
+  // 4.17.0: lo que la noche necesita de la historia: las defensas prestadas, los aliados según los lazos y las ayudas de los duendecitos
+  function contextoNoche(h, modo) {
+    const s = estado();
+    return {
+      defensas: defensasDeNoche(h, [...s.pobladores]),
+      aliados: aliadosDe({ lazos: s.lazos, decisiones: s.decisiones, perro: !!ctx.tienePerro?.() }),
+      ayudas: modo === 'trato', fuerte: s.decisiones.duendes === 'b', deuda: s.deuda > 0,
+    };
+  }
+  const noche = crearNocheUi({ ...ctx, nocheContexto: contextoNoche }, tarjetas, { historia });   // 4.13.0 (B)
 
   // la portada muestra la de esta partida: si ya se jugó, lo que tiene su historia
   // (4.15.0: y la partida que se reinició, que todavía no tiene lugar guardado: si no, la portada de otra partida en Libre la dejaba en pausa)
@@ -201,10 +215,35 @@ export function crearValleUi(ctx) {
       alElegir: () => { tarjetas.cerrar(); return true; },
     });
   }
+  // 4.17.0: el último capítulo cierra con la tarjeta final (los dos finales y sus piezas); `Seguir` o `Ver los créditos`; el premio sale una sola vez
+  function mostrarFinal() {
+    const h = historia();
+    const c = capituloActual(h);
+    const F = tarjetaFinal(h);
+    tarjetas.mostrar({
+      clase: 'capitulo', arriba: F.arriba, titulo: F.titulo, texto: F.texto, premio: premioDeCapitulo(c, h)?.texto ? `Te queda: ${premioDeCapitulo(c, h).texto}` : '',
+      opciones: [
+        { id: 'seguir', texto: 'Seguir en el valle', detalle: 'La historia termina; el juego no' },
+        { id: 'creditos', texto: 'Ver los créditos', detalle: 'Y después, a tu ritmo' },
+      ],
+      alElegir: (id) => {
+        const r = cerrarCapitulo(h, ctx.progreso().dia);
+        if (r?.premio) ctx.cobrar(r.premio);
+        ctx.diario('capitulo', `terminé «${c.titulo}»`);
+        ctx.sonido?.()?.anotar?.();
+        ctx.guardar();
+        tarjetas.cerrar();
+        ctx.nota('Terminaste la historia del valle', 'Todo sigue abierto: andá a tu ritmo', true);
+        if (id === 'creditos') ctx.creditos?.();
+        return true;
+      },
+    });
+  }
   function mostrarOutro() {
     const h = historia();
     const c = capituloActual(h);
     const ultimo = h.capitulo >= CAPITULOS.length - 1;
+    if (ultimo) { mostrarFinal(); return; }
     tarjetas.mostrar({
       clase: 'capitulo', arriba: `Capítulo ${numeroCapitulo(h)} · terminado`,
       titulo: c.titulo, texto: lineasCarta(c, h, 'outro'), premio: premioDeCapitulo(c, h)?.texto ? `Te queda: ${premioDeCapitulo(c, h).texto}` : '',
@@ -267,11 +306,13 @@ export function crearValleUi(ctx) {
   function aplicarEscenas(h) {
     const p = ctx.progreso();
     const antes = (h.raro || []).length;
-    const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos, dar: (c, n) => ctx.darCosa?.(c, n), tieneCaballo: () => !!p.cosas?.caballo, gastar: (c, n) => ctx.gastar?.(c, n) });
+    const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos, dar: (c, n) => ctx.darCosa?.(c, n), tieneCaballo: () => !!p.cosas?.caballo, gastar: (c, n) => ctx.gastar?.(c, n),
+      pagar: (monto, motivo, con) => ctx.pagar?.(monto, motivo, con), regalo: () => ((Number(p.cosas?.harina) || 0) >= 1 ? 'harina' : 'yerba') });
     if (hechos.length) {
       for (const x of (h.raro || []).slice(antes)) { ctx.nota('El cuaderno anota algo raro', textoRaro(x.id)); ctx.diario?.('evento', textoRaro(x.id)); }
       // 4.16.0: lo que cambió la mecánica sola (el zaino, la harina, las cosas devueltas): se avisa también si la escena no estaba escrita
       for (const id of hechos) if (Object.hasOwn(NOTAS_ESCENA_ACTO2, id)) { const n = NOTAS_ESCENA_ACTO2[id]; ctx.nota(n[0], n[1], true); }
+      for (const id of hechos) if (Object.hasOwn(NOTAS_ESCENA_ACTO3, id)) { const n = NOTAS_ESCENA_ACTO3[id]; ctx.nota(n[0], n[1], true); }   // 4.17.0
       ctx.refrescarBarra?.();
       ctx.guardar();
     }
@@ -320,6 +361,29 @@ export function crearValleUi(ctx) {
       if (pag) { ctx.nota(pag[0], pag[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); }
       return true;
     }
+    // 4.17.0: pagar lo que se debe del trato (una bolsa de harina o seis tablas, en la raíz) y cuidar la majada de Ramón (una vez por día)
+    if (a.tipo === 'pago') {
+      const s = estado();
+      if (!(s.harina >= 1 || s.tablas >= 6)) { ctx.nota('Te falta con qué pagar', 'Una bolsa de harina o seis tablas de coihue'); return false; }
+      const con = pagarLaDeuda(h, s, { gastar: (c, n) => ctx.gastar?.(c, n) });
+      if (con) { ctx.nota('Pagaste lo del trato', con === 'harina' ? 'Una bolsa de harina en la raíz' : 'Seis tablas en la raíz'); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); }
+      return true;
+    }
+    if (a.tipo === 'cuidar') {
+      if (marcarTema(h, 'majada', `dia${p.dia}`, p.dia)) {
+        ctx.darMaterial?.('lana', 1);
+        ctx.nota('Cuidaste la majada de Ramón', `Agua y forraje: ${Math.min(3, estado().cuidados)} de 3. Te dejaron un vellón`); ctx.sonido?.()?.anotar?.();
+        ctx.guardar(); revisarAhora();
+      }
+      return true;
+    }
+    if (a.tipo === 'bolsa') {
+      if (a.accion === 'llenar') {
+        const h2 = historia();
+        if (llenarBolsa(h2, p.dia)) { ctx.gastar?.('harina', 1); ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); }
+      } else ctx.nota(a.nota[0], a.nota[1], true);
+      return true;
+    }
     if (a.tipo === 'reparar') {
       if (!ctx.gastarTabla?.()) { ctx.nota('Te falta una tabla', 'El banco de carpintero y el hacha te dan tablas'); return false; }
       const n = sumarReparacion(h, a.id, a.n);
@@ -347,11 +411,29 @@ export function crearValleUi(ctx) {
   function harinaMolida(n) { const h = historia(); if (!h.activa) return; h.molido = Math.min(9999, (Number(h.molido) || 0) + Math.max(0, Math.floor(Number(n) || 0))); }
 
   // ---------------------------------------------------------------- cada medio segundo
+  // 4.17.0: dónde se practica ahora ('paso' con el arco, 'esquila' con la honda) y qué hace cada acierto
+  let dondePractica = null;
+  function blancoAcertado(donde) {
+    if (!donde) return;
+    const h = historia(); if (!h.activa) return;
+    const n = sumarBlanco(h, donde);
+    ctx.nota(donde === 'paso' ? `Blanco de paja ${Math.min(5, n)} de 5` : `Lata ${Math.min(5, n)} de 5`, n >= 5 ? (donde === 'paso' ? 'Ya tirás con el arco. «Ahora no le dispare a mis mulas»' : 'Ya tirás con la honda. «Se siente, no se apunta»') : 'Seguí tirando', n >= 5);
+    ctx.guardar();
+  }
+  function calcularPractica(h, s) {
+    if (!h.activa || h.fase !== 'jugando' || !s || capituloActual(h).id !== 'arco') return null;
+    const hh = (o) => h.hechos[`arco:${o}`] !== undefined;
+    if (s.blancos.paso < 5 && hh('tito') && hh('cuerda') && hh('puntas') && hh('plumas') && Number(s.lugares?.['puesto-paso']) <= 26) return 'paso';
+    if (s.blancos.esquila < 5 && hh('fermin') && hh('cantos') && Number(s.lugares?.galpon) <= 26) return 'esquila';
+    return null;
+  }
   let acum = 0, esperaInicio = 0, tiempoCapitulo = 0, azarEnPruebas = false, aceleracion = 1, forzada = null;
   const MOMENTO_PRONTO = 90;   // segundos jugando el capítulo antes de su momento "pronto"
   function actualizar(dt) {
     if (ctx.esDesafio) return;
     noche.actualizar(dt);   // 4.13.0 (B): la noche de defensa (cada cuadro) y el panel de la noche
+    // 4.17.0: los blancos de práctica (capítulo 11): cada acierto suma a la cuenta del arma
+    { const n = noche.practicar(dt, dondePractica); for (let i = 0; i < n; i++) blancoAcertado(dondePractica); }
     if (ctx.modo() === 'jugando') { esperaInicio = Math.max(0, esperaInicio - dt); tiempoCapitulo += dt; }
     acum += dt;
     if (acum < 0.5) return;
@@ -364,7 +446,10 @@ export function crearValleUi(ctx) {
     const s = h.activa ? estado() : null;
     if (jugando && h.activa) {
       const r = revisarHistoria(h, s);
-      for (const o of r.nuevos) { ctx.nota(`✓ ${textoObjetivo(o, s)}`, `${capituloActual(h).titulo} · la historia del valle`); ctx.sonido?.()?.anotar?.(); }
+      for (const o of r.nuevos) {
+        ctx.nota(`✓ ${textoObjetivo(o, s)}`, `${capituloActual(h).titulo} · la historia del valle`); ctx.sonido?.()?.anotar?.();
+        if (alCumplirObjetivo(h, capituloActual(h).id, o.id, s)) ctx.nota('Josefina frunce la nariz', 'Las plumas se quedan en el bosque. Te lo dijo el primer día', true);   // 4.17.0
+      }
       if (r.nuevos.length) ctx.guardar();
       if (revisarNoche(h)) ctx.guardar();   // 4.13.0 (A): con el encuentro y las dos armas, la noche queda pendiente
     }
@@ -375,6 +460,7 @@ export function crearValleUi(ctx) {
     forzada = h.activa && s ? estacionForzada(h, s) : null;
     if (ctx.objetos) ctx.objetos.mostrar(h.activa && s ? objetosVisibles(h, s) : []);
     dibujarPanel(h, s);
+    dondePractica = jugando ? calcularPractica(h, s) : null;   // 4.17.0
     // 4.13.0 (A): el encuentro del galpón espera en el lugar mientras su momento esté pendiente
     if (jugando && h.activa) ctx.presencia?.pedirGalpon?.(momentoPendiente(h, s) === 'duendes-galpon');
     if (noche.activa()) return false;   // 4.13.0 (B): de noche, ni tarjetas ni eventos
@@ -386,9 +472,12 @@ export function crearValleUi(ctx) {
       if (pu) { if (puertaAvisada !== h.capitulo) { puertaAvisada = h.capitulo; mostrarPuerta(pu); return true; } return false; }
       mostrarIntro(); return true;
     }
-    // 4.13.0 (B): el último capítulo no se cierra ahí: ofrece la noche, y el final sale de ganarla
-    if (h.activa && h.fase === 'outro') { if (noche.interviene(h)) return ctx.enVehiculo() ? false : noche.ofrecer(); mostrarOutro(); return true; }
+    // 4.17.0: la noche de la nevada empieza sola al terminar la escena de la espera (capítulo 12) y se repite hasta ganar o dejar que amanezca
+    if (h.activa && h.fase === 'outro') { mostrarOutro(); return true; }
     if (ctx.enVehiculo()) return false;
+    if (h.activa && h.fase === 'jugando' && noche.interviene(h)) return noche.ofrecer();
+    // 4.17.0: la costumbre del trato (final A): a la mañana, el regalito de la bolsa; y la bolsa vuelve cada cosecha
+    if (h.activa || h.fase === 'fin') { const reg = amanecerCostumbre(h, s || estado(), ctx.progreso().dia); if (reg) { ctx.darEntrada?.(reg === 'pinones' ? 'pinon' : reg, 1); ctx.nota('Un regalito en el umbral', 'Dejaron el pago de la bolsa: un canto, piñones o una pluma', true); ctx.guardar(); } }
     // 4.15.0: una decisión grande (la bolsa del molinero) y las escenas del capítulo
     if (h.activa && h.fase === 'jugando') {
       const dec = decisionPendiente(h, s);
@@ -528,6 +617,14 @@ export function crearValleUi(ctx) {
     actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas, noche,
     alHablarCon, accionObjeto, accionPuerta, aplicarEscenas,
     aceleracion: () => aceleracion, estacionForzada: () => forzada, coihueTalado, harinaMolida,   // 4.16.0
+    // 4.17.0: la nevada de la historia, los blancos de práctica, la bolsa del umbral y el final
+    nevada: () => { const h = historia(); return h.activa && nevadaForzada(h, estado()); },
+    blanco: (donde) => { const h = historia(); if (!h.activa) return 0; const n = sumarBlanco(h, donde); ctx.guardar(); revisarAhora(); return n; },
+    accionBolsa: () => { const h = historia(); return accionBolsaUmbral(h, estado()); },
+    llenarBolsa: () => { const h = historia(); if (!llenarBolsa(h, ctx.progreso().dia)) return false; ctx.gastar?.('harina', 1); ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.guardar(); return true; },
+    mostrarFinal, contextoNoche,
+    // la majada llegó al destino del arreo (capítulo 9, D5 = a o c)
+    arreoLlegado: (destino) => { const h = historia(); if (!h.activa) return; if (marcarTema(h, 'arreo', destino, ctx.progreso().dia)) { ctx.nota(destino === 'galpon-esquila' ? 'La majada llegó al galpón de esquila' : 'La majada llegó al Puesto del Paso', destino === 'galpon-esquila' ? 'Fermín se saca el sombrero' : 'Belisario cuenta las ovejas dos veces', true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); } },
     abierta: () => tarjetas.abierta(),
     azar: (v) => { azarEnPruebas = !!v; return azarEnPruebas; },
     // para las pruebas: revisar ya, sin esperar el medio segundo ni el rato del capítulo

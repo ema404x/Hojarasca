@@ -548,3 +548,63 @@ export function relojNoche(seg) {
   const s = Math.max(0, Math.ceil(seg));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+
+// ---------------------------------------------------------------- 4.17.0: los blancos de práctica (capítulo 11)
+// Cinco blancos de paja en el Puesto del Paso (arco) o cinco latas en los postes del galpón de esquila (honda). Sin límite de flechas ni piedras; el blanco que
+// pegás se cae unos segundos y vuelve a pararse, así se puede seguir hasta cinco aciertos. Las armas son las mismas de la noche (ARMAS_NOCHE).
+export const PRACTICA = { vuelve: 3.0, vida: 4 };
+// `op`: { blancos: [{ x, y, z, r, h }], alt(x, z) }
+export function crearPractica(op) {
+  const alt = op.alt || (() => 0);
+  const S = { blancos: (op.blancos || []).map((b) => ({ ...b, caido: 0 })), proyectiles: [], eventos: [], aciertos: 0, recarga: 0, disparos: 0 };
+  S.disparar = (arma, origen, dir, tensionSeg = 0) => {
+    const a = ARMAS_NOCHE[arma];
+    if (!a) return { ok: false, motivo: 'arma' };
+    if (S.recarga > 0) return { ok: false, motivo: 'recarga' };
+    const ten = arma === 'arco' ? factorTension(tensionSeg) : { dano: 1, vel: 1 };
+    const l = Math.hypot(dir.x, dir.y, dir.z) || 1, v = a.vel * ten.vel;
+    S.recarga = a.cadencia; S.disparos++;
+    const p = { tipo: arma, x: origen.x, y: origen.y, z: origen.z, vx: (dir.x / l) * v, vy: (dir.y / l) * v + a.sube, vz: (dir.z / l) * v, vida: PRACTICA.vida, g: a.gravedad };
+    S.proyectiles.push(p);
+    S.eventos.push({ tipo: 'dispara', arma, p });
+    return { ok: true, p };
+  };
+  S.actualizar = (dt) => {
+    S.eventos.length = 0;
+    dt = Math.min(0.1, Math.max(0, dt));
+    S.recarga = Math.max(0, S.recarga - dt);
+    for (const b of S.blancos) b.caido = Math.max(0, b.caido - dt);
+    for (let i = S.proyectiles.length - 1; i >= 0; i--) {
+      const p = S.proyectiles[i];
+      p.vida -= dt;
+      let quitar = p.vida <= 0;
+      const n = Math.max(1, Math.ceil((Math.hypot(p.vx, p.vy, p.vz) * dt) / 0.25)), h = dt / n;
+      for (let k = 0; k < n && !quitar; k++) {
+        p.vy -= p.g * h; p.x += p.vx * h; p.y += p.vy * h; p.z += p.vz * h;
+        if (p.y < alt(p.x, p.z)) { quitar = true; S.eventos.push({ tipo: 'suelo', p }); break; }
+        for (let j = 0; j < S.blancos.length; j++) {
+          const b = S.blancos[j];
+          if (b.caido > 0) continue;
+          if (Math.hypot(p.x - b.x, p.z - b.z) > b.r + 0.06 || p.y < b.y || p.y > b.y + b.h) continue;
+          b.caido = PRACTICA.vuelve; S.aciertos++;
+          S.eventos.push({ tipo: 'blanco', i: j, b });
+          quitar = true; break;
+        }
+      }
+      if (quitar) S.proyectiles.splice(i, 1);
+    }
+    return S;
+  };
+  return S;
+}
+// Los blancos de un puesto: `centro` {x, z}, `hacia` {x, z} (de dónde llegás), 5 en abanico a 13–20 m, de paja (altura 1.1) o latas (0.25) sobre un poste (1.3)
+export function blancosDe(tipo, centro, hacia, alt) {
+  const base = Math.atan2(hacia.z - centro.z, hacia.x - centro.x);
+  const salida = [];
+  for (let i = 0; i < 5; i++) {
+    const a = base + (i - 2) * 0.32, r = 14 + (i % 2) * 5 + i * 0.4;
+    const x = centro.x + Math.cos(a) * r, z = centro.z + Math.sin(a) * r, y = alt(x, z);
+    salida.push(tipo === 'paja' ? { x, y, z, r: 0.55, h: 1.1 } : { x, y: y + 1.3, z, r: 0.22, h: 0.28, poste: y });
+  }
+  return salida;
+}

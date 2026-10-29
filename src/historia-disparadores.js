@@ -19,7 +19,7 @@ import { capituloActual, marcarTema, marcarObjeto, marcarEntrega, anotarRaro, ca
 // 4.16.0: el acto II (capítulos 5 a 8)
 import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2, cuadernoVisible } from './historia-disparadores-acto2.js';
 // 4.17.0: el acto III (capítulos 9 a 13)
-import { DISPARADORES_ACTO3, EFECTOS_ESCENA_ACTO3, OBJETOS_ACTO3, LUGARES_ACTO3 } from './historia-disparadores-acto3.js';
+import { DISPARADORES_ACTO3, EFECTOS_ESCENA_ACTO3, OBJETOS_ACTO3, LUGARES_ACTO3, accionBolsaUmbral } from './historia-disparadores-acto3.js';
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
@@ -209,6 +209,7 @@ export function accionDeObjeto(id, h, s) {
   const o = OBJETOS[id];
   if (!o.visible(s, h)) return null;
   if (o.reparacion) return { tipo: 'reparar', id: o.reparacion.id, n: o.reparacion.n, aviso: `${o.aviso} (${Math.min(o.reparacion.n, s.reparaciones[o.reparacion.id] || 0) + 1} de ${o.reparacion.n}) · 1 tabla` };
+  if (o.bolsaUmbral) { const a = accionBolsaUmbral(h, s); return a ? { tipo: 'bolsa', accion: a.tipo, aviso: a.aviso, nota: a.nota } : null; }   // 4.17.0: la costumbre del trato
   if (o.pago) return { tipo: 'pago', aviso: o.aviso };   // 4.17.0: la deuda del trato
   if (o.cuidar) return { tipo: 'cuidar', aviso: `${o.aviso} (${Math.min(3, s.cuidados) + 1} de 3)` };   // 4.17.0: la majada de Ramón
   if (o.escena) return { tipo: 'escena', escena: o.escena, aviso: o.aviso };

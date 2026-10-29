@@ -151,6 +151,8 @@ export const OBJETOS_ACTO3 = {
   // pagar la deuda del trato: una bolsa de harina o seis tablas en la raíz (o el tocón)
   'raiz-deuda': { forma: null, lugar: 'molino-viejo', dx: -1.2, dz: 1.4, visible: (s, h) => enCap(h, 'arco') && s.deuda > 0,
     aviso: 'Pagar lo que debés del trato en la raíz', pago: true },
+  // la bolsa vacía del umbral (final A: la costumbre del trato): se llena con una medida de harina y a la mañana hay un regalito
+  'bolsa-umbral': { forma: 'bolsa', lx: 0.1, lz: 3.7, visible: (s, h) => h?.duendes?.final === 'trato' && !!costumbreDe(h)?.bolsa, bolsaUmbral: true, aviso: 'La bolsa del umbral' },
   // cuidar la majada de Ramón (D5 = b): agua y forraje, una vez por mañana
   'corral-ramon': { forma: null, punto: 'puesto', dx: 7, dz: 4, visible: (s, h) => enCap(h, 'frios') && s.decisiones.majada === 'b' && s.cuidados < 3 && !s.temas.has(`majada:dia${s.dia}`),
     aviso: 'Darle agua y forraje a la majada de Ramón', cuidar: true },

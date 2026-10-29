@@ -7,8 +7,8 @@
 // pero en vez de cerrarse ahí, ofrece la noche. Ganarla cierra el capítulo con el final que corresponde
 // (el premio y `terminada` salen de `cerrarCapitulo`, como antes). Perderla no cuesta nada: vuelve el reloj
 // a su hora, el refugio sigue como estaba y se puede intentar de nuevo todas las veces que se quiera.
-import { CAPITULOS, cerrarCapitulo, capituloActual } from './historia.js';
-import { modoDeNoche, arsenalDeNoche, nochePendiente, empezarIntento, cerrarIntento, sanearNoche, relojNoche } from './historia-noche.js';
+import { capituloActual } from './historia.js';
+import { modoDeNoche, empezarIntento, cerrarIntento, dejarPerdida, sanearNoche, relojNoche } from './historia-noche.js';
 
 export const CSS_NOCHE = `
 .noche-hud { position: absolute; left: 28px; top: 92px; width: min(300px, 46vw); padding: 10px 14px 10px; border-radius: 10px; background: rgba(16,20,18,.62); color: #f2e6c8; font-family: 'Spectral', Georgia, serif; pointer-events: none; }
@@ -28,52 +28,12 @@ export const CSS_NOCHE = `
 
 // ---------------------------------------------------------------- los textos (cortos, sin nada explícito)
 export const TEXTOS_NOCHE = {
-  // Antes de que nadie sepa a qué vienen (el misterio sigue hasta el portón)
-  intro: {
-    arriba: 'La historia del valle · el final',
-    titulo: 'Lo que vino de noche',
-    texto: [
-      'Al caer el sol, el monte se quedó sin pájaros. Del lado del bosque se encienden luces chicas, una, otra, diez, y se oyen risas finitas que no son de nadie que conozcas.',
-      'No sabés si vienen a jugar o a pelear, y capaz que ellos tampoco. Lo vas a saber cuando lleguen al portón. Las estacas están puestas, las antorchas prendidas y el refugio, a tus espaldas.',
-    ],
-    prestadas: { arco: 'Ramón dejó en el escalón un arco de lenga.', honda: 'Nicanor te dejó su honda de cuero.' },
-    lista: ['Mouse: apuntar. Clic: tirar; con el arco, mantené para tensar más', '1 y 2, o la rueda: cambiar entre el arco y la honda (la honda no se queda sin piedras)', 'Aguantá hasta que amanezca: unos tres minutos'],
-  },
-  // Cuando se vuelve a intentar
-  otra: {
-    arriba: 'La historia del valle · el final',
-    titulo: 'Otra vez la noche',
-    texto: ['Las luces chicas vuelven a asomar entre los coihues. El portón sigue en su lugar y el arco, en tu mano.'],
-  },
+  // la ayuda de la pantalla al empezar (el guion de la espera lo escribe B: acá sólo van las instrucciones)
+  ayuda: ['Mouse: apuntar. Clic: tirar; con el arco, mantené para tensar más', '1 y 2, o la rueda: cambiar entre el arco y la honda (la honda no se queda sin piedras)', 'Aguantá hasta que pare la nevada: unos cuatro minutos y medio'],
+  // si se pierde: nadie se lastima, nunca hay sangre
   perdida: {
-    pelea: {
-      vida: ['Te sacaron del paso entre risas y garrotes, y lo último que viste fue el techo del refugio dando vueltas.', 'Cuando abriste los ojos ya clareaba. Nada se perdió: el reloj vuelve a su hora, el refugio sigue en pie y el portón espera.'],
-      puerta: ['La puerta del refugio se vino abajo bajo tantos golpes chiquitos. Los duendes se quedaron un rato mirando el agujero y después se fueron como habían venido.', 'Nada se perdió: el reloj vuelve a su hora, la puerta ya está en su sitio y el portón espera.'],
-    },
-    trato: {
-      travesuras: ['Se rieron tanto de vos que se cayeron de espaldas en el pasto. Alguno dejó un gorrito en la puerta, de recuerdo.', 'No hay rencor: perdiste la prueba, nada más. El reloj vuelve a su hora y se puede intentar cuando quieras.'],
-    },
-  },
-  // Los dos finales
-  final: {
-    trato: {
-      arriba: 'La historia del valle · final',
-      titulo: 'El trato',
-      texto: [
-        'Cuando el cielo empezó a aclarar no quedaba ni uno en pie: todos sentados en el pasto, jadeando de risa, con el gorro torcido. Era una prueba. Lo supiste cuando el más viejo se paró, te miró de abajo con un ojo cerrado y asintió una sola vez.',
-        'Dejaron en el escalón una semilla dorada, de las que nadie te dijo el nombre, y se fueron hacia el monte en fila, uno detrás del otro, como los chicos cuando salen de la escuela.',
-        'Desde esa noche, algunas mañanas hay huellas chiquitas alrededor del fuego y leña de más que no juntaste. La historia termina acá, pero el valle no: ahora es también de ellos. Tomate tu tiempo.',
-      ],
-    },
-    pelea: {
-      arriba: 'La historia del valle · final',
-      titulo: 'El valle en silencio',
-      texto: [
-        'Amaneció con el monte en silencio. Las luces chicas se fueron apagando entre los coihues, una por una, y la última risa se cortó en el aire como un hilo.',
-        'Quedaron gorritos tirados en el pasto, una flecha clavada en el escalón y el refugio entero, aunque golpeado. Ramón vino a la mañana, miró todo y no preguntó nada: te alcanzó el mate.',
-        'Ganaste la noche y el valle quedó en paz. Pero el monte ya no suena igual: algo falta, y ahora lo sabés. La historia termina acá, pero el valle no. Tomate tu tiempo.',
-      ],
-    },
+    pelea: { vida: ['Te quedaste sin aire, sentado en la nieve. El galpón cruje.', 'Nadie se lastimó. El reloj vuelve a las 22:00 si querés otra vuelta; si no, que amanezca.'], puerta: ['Te quedaste sin aire, sentado en la nieve. El galpón cruje, y cede.', 'Nadie se lastimó. El reloj vuelve a las 22:00 si querés otra vuelta; si no, que amanezca.'] },
+    trato: { travesuras: ['Se rieron tanto de vos que se cayeron de espaldas en la nieve. El galpón cruje de tanta risa.', 'No hay rencor: era una prueba. El reloj vuelve a las 22:00 si querés otra vuelta; si no, que amanezca.'] },
   },
 };
 
@@ -97,7 +57,8 @@ export function crearNocheUi(ctx, tarjetas, util) {
   doc.body.appendChild(flash);
 
   const activa = () => !!mundo?.activa();
-  const interviene = (h) => h.activa && h.fase === 'outro' && h.capitulo >= CAPITULOS.length - 1 && nochePendiente(h);
+  // 4.17.0: la noche empieza sola al terminar la escena de la espera (capítulo 12, 22:00 en el galpón) y se repite hasta ganar o dejar que amanezca
+  const interviene = (h) => h.activa && h.fase === 'jugando' && capituloActual(h).id === 'nevada' && !!h.escenas?.vistas?.espera && h.duendes?.noche === 'pendiente';
 
   function dibujarHud(d) {
     hud.classList.toggle('oculto', !d);
@@ -105,13 +66,14 @@ export function crearNocheUi(ctx, tarjetas, util) {
     flash.style.opacity = String(Math.min(1, d.herido));
     const pelea = d.modo === 'pelea';
     const arma = d.arma === 'arco' ? 'Arco' : 'Honda';
-    let html = `<b>La noche<small>${esc(relojNoche(d.restante))}</small></b>`;
+    let html = `<b>La noche${d.ola ? ` · ola ${d.ola} de 3` : ''}<small>${esc(relojNoche(d.restante))}</small></b>`;
     if (pelea) {
-      html += `<div class="nh-fila"><span>Vida</span><div class="nh-barra"><i style="width:${Math.round(d.vida * 100)}%"></i></div></div>`;
-      html += `<div class="nh-fila"><span>Puerta</span><div class="nh-barra"><i class="puerta" style="width:${Math.round(d.puerta * 100)}%"></i></div></div>`;
+      html += `<div class="nh-fila"><span>Aire</span><div class="nh-barra"><i style="width:${Math.round(d.vida * 100)}%"></i></div></div>`;
+      html += `<div class="nh-fila"><span>Galpón</span><div class="nh-barra"><i class="puerta" style="width:${Math.round(d.puerta * 100)}%"></i></div></div>`;
     } else {
       html += `<div class="nh-fila"><span>Travesuras</span><div class="nh-barra"><i class="puerta" style="width:${Math.round((d.travesuras / d.travesurasMax) * 100)}%"></i></div></div>`;
     }
+    if (d.jefe) html += `<div class="nh-fila"><span>Mandamás</span><div class="nh-barra"><i class="puerta" style="width:${Math.round(d.jefe.vida * 100)}%"></i></div></div>`;
     html += `<p>Duendes: ${d.duendes} · Flechas: ${d.flechas} · En la mano: <span class="nh-arma">${arma}</span></p>`;
     html += `<p class="nh-ayuda">Clic: tirar · 1 y 2: arco y honda</p>`;
     if (html !== htmlHud) { htmlHud = html; hud.innerHTML = html; ctx.traducir?.(hud); }
@@ -122,43 +84,22 @@ export function crearNocheUi(ctx, tarjetas, util) {
     const h = util.historia();
     if (activa() || !interviene(h)) return false;
     const modo = modoDeNoche(h);
-    empezarIntento(h, ctx.progreso().horas);
+    const horas = ctx.progreso().horas;
+    empezarIntento(h, horas < 22 || horas > 23.8 ? 22 : horas);
     ctx.guardar();
     htmlHud = '';
-    const ok = mundo.iniciar({ modo, alTerminar: alTerminar });
+    const ok = mundo.iniciar({ modo, alTerminar: alTerminar, ...(ctx.nocheContexto ? ctx.nocheContexto(h, modo) : {}) });
     if (!ok) return false;
-    ctx.nota('Cae la noche', 'Aguantá en el portón hasta que amanezca');
+    ctx.nota('Empieza la noche de la nevada', TEXTOS_NOCHE.ayuda[0], true);
     return true;
   }
 
-  // ---- la tarjeta que la anuncia
+  // ---- empieza sola (la escena de la espera ya la anunció); si estás en un vehículo o con una tarjeta abierta, espera
   function ofrecer() {
     const h = util.historia();
-    if (!interviene(h) || activa()) return false;
-    if (espera > 0) return false;
-    try { mundo?.preparar(); } catch (e) { console.warn('noche: preparar', e && e.message); }   // (armar y compilar bajo la tarjeta, no a mitad de la noche)
-    const c = capituloActual(h);
-    const larga = !outroVisto && (h.noche?.intentos || 0) === 0;
-    const T = larga ? TEXTOS_NOCHE.intro : TEXTOS_NOCHE.otra;
-    const texto = [];
-    if (larga) for (const t of c.outro) if (!/^La historia termina/.test(t)) texto.push(t);   // el temporal pasó; la historia todavía no
-    texto.push(...T.texto);
-    const prestadas = arsenalDeNoche(h).prestadas;
-    for (const p of prestadas) texto.push(TEXTOS_NOCHE.intro.prestadas[p]);
-    tarjetas.mostrar({
-      clase: 'capitulo', arriba: `${T.arriba}`, titulo: T.titulo, texto, lista: larga ? TEXTOS_NOCHE.intro.lista : null,
-      opciones: [
-        { id: 'salir', texto: 'Salir a esperarlos', detalle: 'Dura unos tres minutos. Si sale mal se repite, sin castigo ni pérdidas.' },
-        { id: 'despues', texto: 'Todavía no', detalle: 'El valle sigue libre; la noche espera hasta que quieras' },
-      ],
-      alElegir: (id) => {
-        outroVisto = true;
-        tarjetas.cerrar();
-        if (id === 'salir') empezar(); else espera = 150;
-        return true;
-      },
-    });
-    return true;
+    if (!interviene(h) || activa() || espera > 0) return false;
+    try { mundo?.preparar(); } catch (e) { console.warn('noche: preparar', e && e.message); }   // (armar y compilar bajo la escena, no a mitad de la noche)
+    return empezar();
   }
 
   // ---- cuando termina (ganó, perdió o se abandonó)
@@ -173,48 +114,32 @@ export function crearNocheUi(ctx, tarjetas, util) {
       return;
     }
     const horas = cerrarIntento(h, res.gano);
-    if (horas !== null) ctx.progreso().horas = horas;
-    ctx.guardar();
     htmlHud = ''; dibujarHud(null);
-    if (res.gano) mostrarFinal(res.modo); else mostrarPerdida(res);
+    if (res.gano) { amanecer(h); ctx.guardar(); }
+    else { if (horas !== null) ctx.progreso().horas = horas; ctx.guardar(); mostrarPerdida(res); }
+  }
+  // la noche pasó: son las 6:24 del otro día (y la nevada para)
+  function amanecer(h) {
+    const p = ctx.progreso();
+    if (p.horas >= 12) { p.dia = (p.dia || 1) + 1; ctx.nota(`Día ${p.dia}`, 'Pasó la noche'); }
+    p.horas = 6.4;
+    h.noche = sanearNoche(h.noche); h.noche.horasAntes = null;
+    ctx.jugadorAlGalpon?.();
   }
   function mostrarPerdida(res) {
     const grupo = TEXTOS_NOCHE.perdida[res.modo] || TEXTOS_NOCHE.perdida.trato;
     const texto = grupo[res.motivo] || Object.values(grupo)[0];
     tarjetas.mostrar({
-      clase: 'despues', arriba: 'La historia del valle · el final', titulo: 'La noche se te escapó', texto,
+      clase: 'despues', arriba: 'La historia del valle · la noche de la nevada', titulo: 'La noche se te escapó', texto,
       opciones: [
-        { id: 'otra', texto: 'Intentarlo de nuevo', detalle: 'Las veces que haga falta' },
-        { id: 'despues', texto: 'Dejarlo para después', detalle: 'El valle sigue libre' },
+        { id: 'otra', texto: 'Otra vez', detalle: 'Vuelve a las 22:00, todo como estaba. Sin castigo, las veces que haga falta' },
+        { id: 'amanezca', texto: 'Que amanezca', detalle: 'La noche queda perdida y la historia sigue: el valle sabe perder' },
       ],
       alElegir: (id) => {
         tarjetas.cerrar();
-        if (id === 'otra') ofrecerSinTarjeta(); else espera = 120;
-        return true;
-      },
-    });
-  }
-  function ofrecerSinTarjeta() { espera = 0; empezar(); }
-
-  function mostrarFinal(modo) {
-    const h = util.historia();
-    const F = TEXTOS_NOCHE.final[modo] || TEXTOS_NOCHE.final.trato;
-    const c = capituloActual(h);
-    tarjetas.mostrar({
-      clase: 'capitulo', arriba: F.arriba, titulo: F.titulo, texto: F.texto, premio: c.premio?.texto ? `Te queda: ${c.premio.texto}` : '',
-      opciones: [
-        { id: 'seguir', texto: 'Seguir en el valle', detalle: 'La historia termina; el juego no' },
-        { id: 'creditos', texto: 'Ver los créditos', detalle: 'Y después, a tu ritmo' },
-      ],
-      alElegir: (id) => {
-        const r = cerrarCapitulo(h, ctx.progreso().dia);
-        if (r?.premio) ctx.cobrar(r.premio);
-        ctx.diario('capitulo', `terminé «${c.titulo}»`);
-        ctx.sonido?.()?.anotar?.();
-        ctx.guardar();
-        tarjetas.cerrar();
-        ctx.nota('Terminaste la historia del valle', 'Todo sigue abierto: andá a tu ritmo', true);
-        if (id === 'creditos') ctx.creditos?.();
+        const h = util.historia();
+        if (id === 'otra') { espera = 0; empezar(); }
+        else { dejarPerdida(h); amanecer(h); ctx.guardar(); }
         return true;
       },
     });
@@ -240,5 +165,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
     }
   }
 
-  return { actualizar, ofrecer, empezar, interviene, activa, hud, dibujarHud, mostrarFinal, mostrarPerdida, esperar: (s) => { espera = s; }, get espera() { return espera; } };
+  // 4.17.0: los blancos de práctica del capítulo 11 (los maneja el mundo de la noche: historia-noche-mundo.js)
+  const practicar = (dt, donde) => (mundo?.practicar ? mundo.practicar(dt, donde) : 0);
+  return { practicar, actualizar, ofrecer, empezar, interviene, activa, hud, dibujarHud, mostrarPerdida, amanecer, esperar: (s) => { espera = s; }, get espera() { return espera; } };
 }
