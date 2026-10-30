@@ -242,19 +242,30 @@ const umbralFin = {
     con(narra('Con el piolín colorado, otra vez. El mismo nudo que ataba la bolsa que dejó Eusebio. Alguien lo hizo igual a propósito.'), siDecision('bolsa', 'a')),
     con(narra('Junto a la bolsa hay migas de pan casero, de las de Rosa. Les gustó. Dejaron migas para decir que lo saben.'), siDecision('bolsa', 'b')),
     con(narra('Debajo del canto hay una pluma chica, negra, con la punta blanca. Se acuerdan de la bolsa que dejaste en la raíz el día de la primera molienda.'), siDecision('molienda', 'c')),
-    plano('paneo', FRENTE(2), { hasta: FRENTE(30, -6), desde: 'jugador', dist: 12, alto: 3, dur: 5, mezcla: 0.9 }),
+    // final B: la pelea (el umbral, antes del corte a la raíz)
+    con(narra('El umbral está vacío. Ni ramitas, ni canto, ni una bolsa doblada. Limpio, como una mesa después de una pelea.'), siTrato('pelea')),
+    // 4.18.0 (C): un corte a la raíz del coihue de verdad (el paneo miraba a 30 m del umbral, donde no hay nada; el coihue está en el molino viejo)
+    // y lo que hay ahí ya puesto antes del corte
+    ...apagon([
+      con(efecto('mundo:puertita-nueva-en-la-raiz', { donde: FRENTE(30, -6) }), no(siTrato('pelea'))),
+      con(efecto('mundo:puertitas-vacias', { donde: FRENTE(30, -6) }), siTrato('pelea')),
+      con(efecto('mundo:bellota-derecha', { donde: FRENTE(30, -6) }), siPerdon()),
+      plano('medio', { lugar: 'molino-viejo' }, { desde: { lugar: 'refugio' }, dist: 3.4, alto: 1.2, miraY: 0.35, dur: 30, mezcla: 0 }),
+    ], { dur: 1 }),
+    // (4.18.0 C: la puertita nueva es del trato; con la pelea se saltaba sólo por el coihue y salían las dos cosas)
+    con(salto('raiz-pelea'), siTrato('pelea')),
     con(narra('Paneo hacia el coihue grande. En la raíz, entre las otras, hay una puertita nueva, de madera clara, con bisagra de cuero fresco. Igual a la de tu repisa.'), no(siDecision('coihue', 'b')), ),
     con(narra('Paneo hacia el tocón ancho. En el borde, entre los anillos más viejos, hay una puertita nueva, con bisagra de cuero fresco. Igual a la de tu repisa. En el tocón, nace algo verde.'), siDecision('coihue', 'b')),
-    con(efecto('mundo:puertita-nueva-en-la-raiz', { donde: FRENTE(30, -6) }), no(siTrato('pelea'))),
-    // final B: la pelea
-    con(narra('El umbral está vacío. Ni ramitas, ni canto, ni una bolsa doblada. Limpio, como una mesa después de una pelea.'), siTrato('pelea')),
-    con(narra('Paneo hacia el coihue. Las puertitas de las raíces están abiertas, de par en par, y vacías. Hay telarañas en los marcos. El silencio es el de una casa cuando la gente se mudó.'), siTrato('pelea')),
-    con(efecto('mundo:puertitas-vacias', { donde: FRENTE(30, -6) }), siTrato('pelea')),
+    etq(con(narra('Paneo hacia el coihue. Las puertitas de las raíces están abiertas, de par en par, y vacías. Hay telarañas en los marcos. El silencio es el de una casa cuando la gente se mudó.'), siTrato('pelea')), 'raiz-pelea'),
     con(narra('En la raíz hay una sola bellota, puesta derecha, como un soldadito. Nadie sabe qué quiere decir.'), siPerdon()),
-    con(efecto('mundo:bellota-derecha', { donde: FRENTE(30, -6) }), siPerdon()),
-    con(aparece('herminia', FRENTE(8, 3)), siTrato('pelea')),
-    con(plano('medio', 'herminia', { desde: 'jugador', dist: 5, mezcla: 0.8, dur: 3.4 }), siTrato('pelea')),
+    // (4.18.0 C: Herminia en la aldea, de verdad en la puerta de su casa: antes aparecía 8 m delante tuyo, adentro del refugio)
+    ...apagon([
+      aparece('herminia', { lugar: 'casa-herminia', dx: 1.5, dz: 1.5 }),
+      plano('medio', 'herminia', { desde: { lugar: 'plaza' }, dist: 4.5, mezcla: 0, dur: 30 }),
+    ], { dur: 0.8 }).map((p) => con(p, siTrato('pelea'))),
     con(narra('En la aldea, Herminia deja la puerta de su casa entornada. Sale al escalón con la taza y mira hacia el cerro. Cree, y no lo dice, que los vecinos que se van, a veces vuelven.'), siTrato('pelea')),
+    // (4.18.0 C: de vuelta al umbral)
+    ...apagon([plano('picado', FRENTE(2), { desde: 'jugador', dist: 3.2, alto: 6.5, miraY: 0.4, dur: 30, mezcla: 0 })], { dur: 0.8 }),
     // la pareja, sólo sugerida
     con(dlg('pareja', ['Feliz año. Otra vez estoy acá, y otra vez es temprano. Qué bueno que no se nos acaba.']), siAmor()),
     // lo que queda
@@ -281,7 +292,7 @@ const costumbreDejar = {
   personajes: pj3('narra'),
   disparador: { hora: [17, 23] },
   pasos: [
-    plano('detalle', FRENTE(2), { desde: 'jugador', dist: 0.9, alto: 1.1, dur: 3, mezcla: 0.9 }),
+    plano('detalle', FRENTE(2), { desde: 'jugador', dist: 1.2, alto: 0.85, miraY: 0.1, dur: 3, mezcla: 0.9 }),   // (4.18.0 C: mira el escalón, no la puerta)
     narra('La bolsa vacía de harina, doblada prolija, espera en el escalón desde hace una semana. Es de arpillera, con un piolín colorado. Hoy la llenás con harina de tu muela, de tus habas.'),
     efecto('quitar:harina:1'),
     plano('medio', FRENTE(2), { desde: 'jugador', dist: 3.2, alto: 1.4, dur: 3, mezcla: 0.9 }),
@@ -308,7 +319,7 @@ const costumbreRegalito = {
     plano('picado', FRENTE(2), { desde: 'jugador', dist: 3.2, alto: 6.5, miraY: 0.4, dur: 3.4, mezcla: 0.9 }),
     narra('La bolsa llena ya no está. En su lugar, sobre el escalón, hay algo chiquito, acomodado con cuidado: un regalito.'),
     efecto('mundo:regalito-umbral', { donde: FRENTE(2) }),
-    plano('detalle', FRENTE(2), { desde: 'jugador', dist: 0.9, alto: 1.1, dur: 3, mezcla: 0.9 }),
+    plano('detalle', FRENTE(2), { desde: 'jugador', dist: 1.2, alto: 0.85, miraY: 0.1, dur: 30, mezcla: 0.9 }),   // (4.18.0 C: mira el escalón, no la puerta; y se queda ahí)
     eleccion('regalito-resp', '¿Qué hacés con el regalito?', [
       opcion('guardar', 'Guardarlo en la repisa, con las demás cosas.', { sabor: true }),
       opcion('mirar', 'Mirarlo un rato antes de tocarlo.', { sabor: true }),

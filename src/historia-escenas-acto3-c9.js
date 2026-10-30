@@ -15,6 +15,10 @@ const ramonEnCama = {
     narra('El cuarto del Puesto Alto es chico y oscuro. Hay olor a humo, a lana mojada y a yuyo. La estufa tira poco y las ventanas tienen una tela de escarcha por dentro.'),
     aparece('ramon', FRENTE(3, 0.8)),
     aparece('marta', FRENTE(3.2, -1.3)),
+    // 4.18.0 (C): Ramón sentado en el banquito, con la manta y la estufa al lado (el efecto se aplica una sola vez: acá se ve durante la escena)
+    mira('ramon', 'jugador'),
+    pose('ramon', 'sentado', { dur: 0.3 }),
+    efecto('mundo:ramon-convaleciente', { donde: FRENTE(3, 0.8) }),
     pose('ramon', 'cruzarse', { dur: 1.6 }),
     plano('medio', 'ramon', { desde: 'jugador', dist: 3, mezcla: 0.9, dur: 3 }),
     narra('Ramón está sentado con una manta hasta el pecho. Tiene la boina puesta y el mate en la mano, como si estuviera de visita en su propia casa.'),
@@ -44,7 +48,6 @@ const ramonEnCama = {
     dlg('ramon', [linea("Fiebre, fiebre. Cuarenta años de fiebre y nunca me tumbó. Bueno… ya veremos, m'hijo. Gracias por no discutir.", { gesto: gs('asentir', 2) })], { si: siEleg('cama-resp', 'fiebre') }),
     dlg('ramon', ['Dice que podés disponer de la majada «como mejor convenga». Lo escribió Ercilia. Yo puse la firma y un manchón de mate.'], { si: siEleg('cama-resp', 'papel') }),
     dlg('marta', [linea('Gracias. Alguien en este valle tiene que escuchar a una enfermera.', { gesto: gs('hacer-broma', 2) })], { si: siEleg('cama-resp', 'marta') }),
-    efecto('mundo:ramon-convaleciente', { donde: FRENTE(3, 0.8) }),
     efecto('raro:ramon-en-cama'),
   ],
 };

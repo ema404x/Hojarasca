@@ -31,7 +31,8 @@ export const TIPOS_PLANO = ['general', 'medio', 'primer', 'detalle', 'hombro', '
 export const ACCIONES_GESTO = ['caminar', 'mirar', 'posar', 'aparecer', 'desaparecer'];
 // las poses que sabe hacer escenas-mundo.js: las del juego (gente.js, `g.pose`), las de quietud (gente-cuerpo.js) y las de escena
 export const POSES_ESCENA = ['saludo', 'senalar', 'asentir', 'negar', 'encoger', 'pensar', 'cruzados', 'cintura', 'barba', 'gorro', 'atras', 'delantal', 'juntas',
-  'mirar', 'aplaudir', 'contar', 'brindar', 'tocar', 'palear', 'hachar', 'regar', 'martillar', 'serruchar', 'bailar'];
+  'mirar', 'aplaudir', 'contar', 'brindar', 'tocar', 'palear', 'hachar', 'regar', 'martillar', 'serruchar', 'bailar',
+  'sentado', 'parado'];   // (4.18.0 C: la pose de base sentado, toda la escena, y la que lo levanta)
 export const MIN_OPCIONES = 2;
 export const MAX_OPCIONES = 4;
 export const SALIDA_CAMARA = 1.0;   // segundos que tarda la cámara en volver al jugador
