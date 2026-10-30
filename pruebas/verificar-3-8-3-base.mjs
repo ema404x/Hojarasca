@@ -48,7 +48,7 @@ const main = leer('src/main.js');
   const { fotoPosible } = await import('../src/atajos-paneles.js');
   ok(fotoPosible({ modo: 'jugando' }) && fotoPosible({ modo: 'pausa' }) && fotoPosible({ modo: 'cuaderno' }) && fotoPosible({ modo: 'mapa' }), 'F2: desde el juego, la pausa, el cuaderno y el mapa');
   ok(!fotoPosible({ modo: 'inicio' }) && !fotoPosible({ modo: 'victoria' }) && !fotoPosible({ modo: 'valle' }) && !fotoPosible({ modo: 'jugando', logrosOculto: false }) && !fotoPosible({ modo: 'jugando', modosAbierto: true }), 'F2: en qué pantallas (y sin los logros ni las carreras encima)');
-  ok(main.includes("const puedeFoto = fotoPosible({ fotoActiva: foto.activo, modo, logrosOculto: $('logros').classList.contains('oculto'), modosAbierto: !!modos?.panelAbierto(),"), 'F2 usa la regla');
+  ok(main.includes("const puedeFoto = !escenasMundo?.activa() && fotoPosible({ fotoActiva: foto.activo, modo, logrosOculto: $('logros').classList.contains('oculto'), modosAbierto: !!modos?.panelAbierto(),"), 'F2 usa la regla');
   ok(main.includes("if (e.code === 'F2' && jugador && puedeFoto && "), 'F2 mira la pantalla');
 }
 

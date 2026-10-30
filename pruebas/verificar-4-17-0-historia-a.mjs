@@ -197,6 +197,7 @@ async function chequear(arch = '', sufijo = '') {
     ok(quien(e.h, e.p, { lugares: { 'galpon-noche': 5 } }) === 'noche-espera', 'la espera: 22:00 en el galpón');
     const am = (trato, noche) => { const q = armar(11, { horas: 6.5, duendes: { trato, noche } }); vista(q.h, 'noche-espera'); return quien(q.h, q.p, { lugares: { 'galpon-noche': 5 } }); };
     igual([am('trato', 'ganada'), am('trato', 'perdida'), am('pelea', 'ganada'), am('pelea', 'perdida')], ['amanecer-trato-ganada', 'amanecer-trato-perdida', 'amanecer-pelea-ganada', 'amanecer-pelea-perdida'], 'las cuatro variantes del amanecer');
+    { const q = armar(11, { horas: 6.5, duendes: { trato: 'trato', noche: 'perdida' } }); vista(q.h, 'noche-espera'); vista(q.h, 'amanecer-trato-perdida'); ok(quien(q.h, q.p, { lugares: { 'galpon-noche': 5 } }) === null, 'con el trato, después de su amanecer no sale el de la pelea'); }   // 4.17.1: (la mutación no tenía quién la atrape)
     const ci = armar(11, { horas: 20 }); ok(quien(ci.h, ci.p, { lugares: { refugio: 5 }, amor: true }) === 'pareja-noche-antes' && quien(ci.h, ci.p, { lugares: { refugio: 5 }, amor: false }) !== 'pareja-noche-antes', 'la cita sólo con el amor prendido');
     // 13
     const f = armar(12, { horas: 11 });
@@ -431,16 +432,16 @@ const MUT = [
   ['historia-escenas-efectos.js', "if (p.d === 'duendes' && primera) alDecidirDuendes(h, p.v);", "", 'la escena de D6 no arma el trato'],
   ['historia-final.js', "if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);", "", 'la pared mal clavada no aparece'],
 ];
-let atrapadas = 0;
+let atrapadas = 0, iMut = 0;
 for (const [archivo, de, a, que] of MUT) {
   if (que === 'x') continue;
   const orig = leer(`src/${archivo}`);
   if (!orig.includes(de)) { ok(false, `mutación inaplicable: ${que}`); continue; }
-  const sufijo = '.mut417';
+  const sufijo = `.mut417-${++iMut}`;   // 4.17.1: un archivo por mutación (ESM guarda el módulo por URL: con el mismo nombre se volvía a medir la primera) (el ?m= no alcanzaba: el juntador mutado importaba el acto III sin consulta)
   const dest = join(raiz, 'src', archivo.replace('.js', `${sufijo}.js`));
   writeFileSync(dest, orig.replace(de, () => a));
-  const destD = join(raiz, 'src', 'historia-disparadores.mut417.js');
-  if (archivo === 'historia-disparadores-acto3.js') writeFileSync(destD, leer('src/historia-disparadores.js').replace("'./historia-disparadores-acto3.js'", "'./historia-disparadores-acto3.mut417.js'"));
+  const destD = join(raiz, 'src', `historia-disparadores${sufijo}.js`);
+  if (archivo === 'historia-disparadores-acto3.js') writeFileSync(destD, leer('src/historia-disparadores.js').replace("'./historia-disparadores-acto3.js'", `'./historia-disparadores-acto3${sufijo}.js'`));
   const antes = fallas, antesN = n;
   callado = !process.env.VER_MUT;
   try {

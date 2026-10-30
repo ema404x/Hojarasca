@@ -331,11 +331,11 @@ app.whenReady().then(async () => {
     await js(`localStorage.setItem('hojarasca-v1', ${JSON.stringify(vieja)}); 1`);
     await cargar();
     const copia = await js(`localStorage.getItem('hojarasca-copia-previa-historia-p1')`);
-    ok(copia && JSON.parse(copia).dia === 9 && JSON.parse(copia).ramitas === 33 && JSON.parse(copia).historia.capitulo === 5, 'la copia de la partida vieja quedó en una clave aparte del navegador');
+    ok(copia && JSON.parse(copia).cuerpo.progreso.dia === 9 && JSON.parse(copia).cuerpo.progreso.ramitas === 33 && JSON.parse(copia).cuerpo.progreso.historia.capitulo === 5, 'la copia de la partida vieja quedó en una clave aparte del navegador');   // 4.17.1: en el formato de «Exportar»
     const dirCopias = path.join(app.getPath('userData'), 'partidas', 'hojarasca', 'copias');
     const archivos = fs.existsSync(dirCopias) ? fs.readdirSync(dirCopias) : [];
     ok(archivos.length >= 1 && /^copia-previa-historia-4\.15\.0-p1-\d{8}-\d{4}\.json$/.test(archivos[archivos.length - 1]), `y en un archivo aparte en la carpeta de datos (${archivos.join(', ')})`);
-    ok(archivos.length >= 1 && JSON.parse(fs.readFileSync(path.join(dirCopias, archivos[archivos.length - 1]), 'utf8')).dia === 9, 'con la partida vieja entera adentro');
+    ok(archivos.length >= 1 && JSON.parse(fs.readFileSync(path.join(dirCopias, archivos[archivos.length - 1]), 'utf8')).cuerpo.progreso.dia === 9, 'con la partida vieja entera adentro');   // 4.17.1: en el formato de «Exportar»
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
     await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');   // 4.17.0: la ventana pierde el foco y el juego se pausaba solo

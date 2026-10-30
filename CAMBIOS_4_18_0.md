@@ -1,6 +1,6 @@
 # Hojarasca 4.18.0 — Historia: subtramas optativas
 
-Ramas v4180-a (mecánica de optativas), v4180-b (guiones) y v4180-c (mundo y pulido), juntadas. Detalle en CAMBIOS_4_18_0_A.md, _B.md y _C.md.
+Sobre la 4.17.1 (pase de bugs de la Historia: CAMBIOS_4_17_1_PROGRESO.md y CAMBIOS_4_17_1_ESCENAS_NOCHE.md). Ramas v4180-a (mecánica de optativas), v4180-b (guiones) y v4180-c (mundo y pulido), juntadas. Detalle en CAMBIOS_4_18_0_A.md, _B.md y _C.md.
 
 - Las 28 optativas del guion son jugables de punta a punta: registro (src/historia-optativas.js) con quién la ofrece, cómo se cumple, hasta cuándo sigue abierta y su premio; nunca traban el capítulo. El tablón suma «De paso (si querés)» y la guía «Lo que hiciste de paso».
 - Escenas nuevas: el frasco de 1987 y su entrega a Rosa, la oveja de Ramón (la Porfiada), el pan para Fermín, el mirador y el faro con Graciela, juntar las ovejas desparramadas; 22 charlas de después y seis entradas del cuaderno de lo raro.

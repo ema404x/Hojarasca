@@ -41,7 +41,7 @@ export function crearAcompanante(ctx) {
     if (!npc) return;
     const g = guardado || {};
     npc.conVos = !!g.conVos; npc.enCita = !!g.enCita; npc.sinFrenar = !!g.sinFrenar;
-    npc.camino = g.camino === undefined ? [] : g.camino;   // (los de ruta —Tobías— vuelven a su ruta; los de camino —Graciela— quedan quietos)
+    npc.camino = g.camino === undefined ? (Array.isArray(npc.ruta) ? undefined : []) : g.camino;   // (los de ruta —Tobías— vuelven a su ruta; los de camino —Graciela— quedan quietos)   (4.17.1: con `[]` los de ruta quedaban quietos: gente.js mira `camino` antes que `ruta`)
     if (Number.isFinite(g.velocidad)) npc.velocidad = g.velocidad;
     if (esperando) npc.dormido = !!g.dormido;
     npc = null; guardado = null; esperando = false;

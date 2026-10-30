@@ -101,7 +101,8 @@ export function crearNocheMundo(ctx) {
     precalentarDuendes();
     S = crearBanco(sonido);
     campana = crearSonidoCampana(sonido);
-    try { campana.preparar(); } catch { /* sin audio */ }
+    // 4.17.1: en el Relax `sonido.relax` está prendido hasta que empieza la noche y preparar() no hacía nada: la primera campana se sintetizaba al sonar
+    { const r = sonido.relax; try { sonido.relax = false; campana.preparar(); } catch { /* sin audio */ } finally { sonido.relax = r; } }
     matMadera = new THREE.MeshLambertMaterial({ vertexColors: true });
     matLlamas = matBrilloFijo();
     matFlecha = new THREE.MeshLambertMaterial({ color: '#6b5238' });
@@ -135,6 +136,7 @@ export function crearNocheMundo(ctx) {
     const lista = pozos[k] || (pozos[k] = []);
     const m = lista.pop() || armarDuende(tipo, viejo);
     m.reiniciar();
+    if (viejo) m.vestir(true);   // 4.17.1: reiniciar() los volvía traviesos (sólo el grandote y el Mandamás quedaban viejos): la variante Viejo no se veía nunca
     m.g.visible = true;
     return m;
   }
@@ -325,6 +327,7 @@ export function crearNocheMundo(ctx) {
     mano.abajo = false;
     for (const [id, a] of asignados) { soltar(a.tipo, a.m, a.viejo); asignados.delete(id); }
     for (const p of proy) p.m.visible = false;
+    for (const q of lucecitas) q.m.visible = false;   // 4.17.1: la lucecita del topo quedaba flotando en el Relax si la noche terminaba durante el aviso
     desarmarEscenario();
     try { ctx.sinAliados?.(); } catch { /* ya */ }
     sonido.relax = relaxAntes;
@@ -440,12 +443,12 @@ export function crearNocheMundo(ctx) {
     if (mano.arma === 'arco' && ctx.modo() === 'jugando') { e.stopImmediatePropagation(); disparar('arco', (performance.now() - mano.desde) / 1000); }
   }
   function alTeclear(e) {
-    if (!activa || ctx.modo() !== 'jugando') return;
+    if (!activa || ctx.modo() !== 'jugando' || pausada) return;   // 4.17.1: en una escena entre olas, el 1 y el 2 eligen la respuesta (no cambian de arma)
     if (e.code === 'Digit1' || e.code === 'Numpad1') { e.stopImmediatePropagation(); elegirArma('arco'); }
     else if (e.code === 'Digit2' || e.code === 'Numpad2') { e.stopImmediatePropagation(); elegirArma('honda'); }
     else if (e.code === 'KeyE') e.stopImmediatePropagation();   // de noche no se duerme ni se toca nada: se defiende
   }
-  function alRueda(e) { if (activa && ctx.modo() === 'jugando' && sim && !sim.fin) { e.stopImmediatePropagation(); elegirArma(mano.arma === 'arco' ? 'honda' : 'arco'); } }
+  function alRueda(e) { if (activa && ctx.modo() === 'jugando' && !pausada && sim && !sim.fin) { e.stopImmediatePropagation(); elegirArma(mano.arma === 'arco' ? 'honda' : 'arco'); } }
   window.addEventListener('mousedown', alApretar, true);
   window.addEventListener('mouseup', alSoltar, true);
   window.addEventListener('keydown', alTeclear, true);
@@ -530,7 +533,9 @@ export function crearNocheMundo(ctx) {
       }
       if (d.golpe > 0) m.flash?.(d.golpe * 0.6); else m.flash?.(0);
       // los hongos del lomo del Mandamás brillan más cuando está de espaldas a vos (la ayuda de los duendecitos del trato)
-      if (d.tipo === 'jefe' && sim.ayudas && m.u?.uDebil && d.estado !== 'cae') m.u.uDebil.value = 1 + (sim.jefeDeEspaldas() ? 1.6 : 0) + (d.golpe > 0 ? d.golpe * 1.2 : 0);
+      // 4.17.1: el uniforme es `m.uniformes()` (`m.u` no existe: la ayuda de los hongos del lomo no andaba), y con deuda sin pagar no ayudan
+      const uJefe = d.tipo === 'jefe' && sim.ayudas && opciones?.deuda !== true && d.estado !== 'cae' ? m.uniformes?.() : null;
+      if (uJefe?.uDebil) uJefe.uDebil.value = 1 + (sim.jefeDeEspaldas() ? 1.6 : 0) + (d.golpe > 0 ? d.golpe * 1.2 : 0);
     }
     // los proyectiles
     let k = 0;

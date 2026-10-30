@@ -120,6 +120,7 @@ NOVEDADES DE LA 4.5.1 — SIN CARRERAS NI TORNEO
   semana de La noche de los duendes. Las partidas viejas cargan igual. El «Desafío del día» sigue, ahora con pesca, obras o trochita.
 
 NOVEDADES DE LA 4.18.0 — HISTORIA: SUBTRAMAS OPTATIVAS
+- Incluye la 4.17.1: un pase de bugs de la Historia (el reinicio de partidas viejas y su copia, el reloj y las escenas, la noche de la nevada, la E en la puerta del refugio).
 - Las subtramas de la Historia ya se pueden jugar todas: el frasco de masa madre para Rosa, la oveja de Ramón, el pan para Fermín, la vuelta con Graciela, juntar las ovejas, el cumpleaños en la nevada y las demás. Aparecen en el tablón como «De paso (si querés)» y nunca te traban el capítulo.
 - Los vecinos ahora te cuentan cosas de la Historia cuando les hablás con E.
 - Ramón convaleciente aparece sentado con manta junto a la estufa, Fermín sube al techo del galpón la noche de la nevada, y se ven los faroles de la loma y las lucecitas de las raíces.

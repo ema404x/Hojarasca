@@ -26,7 +26,7 @@ const THREE = await import('three');
 
 // Todo el chequeo vive en una función: se corre con el código de verdad y con cada mutación
 async function chequear(sufijo = '') {
-  const imp = (f) => import(pathToFileURL(join(raiz, 'src', sufijo === '.mut' && f === 'historia.js' ? 'historia.mut.js' : f)).href);
+  const imp = (f) => import(pathToFileURL(join(raiz, 'src', sufijo.startsWith('.mut') && f === 'historia.js' ? `historia${sufijo}.js` : f)).href);
   const H = await imp('historia.js');
   const E = await import('../src/eventos-valle.js');
   const P = await import(sufijo && sufijo.startsWith('.p') ? pathToFileURL(join(raiz, 'src', `historia-presencia${sufijo}.js`)).href : '../src/historia-presencia.js');
@@ -207,6 +207,7 @@ async function chequear(sufijo = '') {
     ok(dh.paraCompilar() === false && !dh.listo() && dh.aparecer('rastreador', { x: 5, z: 5 }) === null, 'sin Historia no instala ni crea nada');
     activo = true;
     ok(dh.paraCompilar() === true && dh.listo(), 'con Historia instala y precalienta');
+    activo = false; ok(dh.aparecer('rastreador', { x: 5, z: 5 }) === null, 'instalado, pero sin la Historia en curso, no aparece ninguno'); activo = true;   // 4.17.1: (la mutación «duendes sin Historia» no tenía quién la atrape)
     const d = dh.aparecer('rastreador', { x: 20, z: 20, mira: true });
     ok(d && d.estado === 'mirando' && dh.cantidad() === 1 && d.m.g.parent === escena, 'aparece, mira y está en la escena');
     for (let i = 0; i < 30; i++) dh.actualizar(0.05);
@@ -275,11 +276,11 @@ const MUT = [
   ['historia-duendes.js', '(libres[tipo] || (libres[tipo] = [])).pop() || crearDuende(tipo)', 'crearDuende(tipo)', 'los duendes no se reciclan'],
   ['historia-duendes.js', 'if (vivos.length >= MAXIMO)', 'if (vivos.length >= 1e6)', 'sin tope de duendes'],
 ];
-let atrapadas = 0;
+let atrapadas = 0, iMut = 0;
 for (const [archivo, de, a, que] of MUT) {
   const orig = leer(`src/${archivo}`);
   if (!orig.includes(de)) { ok(false, `mutación inaplicable: ${que}`); continue; }
-  const sufijo = archivo === 'historia.js' ? '.mut' : archivo === 'historia-presencia.js' ? '.pmut' : '.dmut';
+  const sufijo = `${archivo === 'historia.js' ? '.mut' : archivo === 'historia-presencia.js' ? '.pmut' : '.dmut'}${++iMut}`;   // 4.17.1: un archivo por mutación (ESM guarda el módulo por URL: con el mismo nombre se volvía a medir la primera)
   const base2 = archivo.replace('.js', '');
   const dest = join(raiz, 'src', `${base2}${sufijo}.js`);
   let mut = orig.replace(de, () => a);

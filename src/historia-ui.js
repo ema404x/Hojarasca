@@ -11,6 +11,8 @@ import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHisto
 // 4.15.0: la Historia nueva: decisiones, lazos, lo raro, escenas y objetos del acto I
 import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, marcarTema, sumarReparacion } from './historia.js';
 import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO, COLOCACION_ESCENA } from './historia-disparadores.js';
+// 4.17.1: la bolsa del umbral también después del final
+import { conEDespuesDelFinal } from './historia-disparadores.js';
 import { tarjetaAviso } from './historia-reinicio.js';
 import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
@@ -317,10 +319,17 @@ export function crearValleUi(ctx) {
     if (!id) return false;
     // una escena que todavía no está escrita (o no se pudo registrar) se da por vista: la historia nunca se traba por una escena que falta
     if (typeof dir.hay === 'function' && !dir.hay(id)) { marcarVista(h, id, ctx.progreso().dia); aplicarEscenas(h); return true; }
-    if (Object.hasOwn(COLOCACION_ESCENA, id)) ctx.colocar?.(COLOCACION_ESCENA[id]);   // 4.16.0: el jugador, donde la escena lo necesita
-    if (s.sentado && ESCENAS_DESDE_SENTADO.includes(id)) ctx.levantar?.();   // 4.16.0: la guardia empieza con vos de pie (una escena no empieza sentado)
+    if (o.soloVehiculo && !ESCENAS_DESDE_VEHICULO.includes(id)) return false;   // 4.17.1: en el kayak o el velero, sólo la del faro
+    const deSentado = !!s.sentado && ESCENAS_DESDE_SENTADO.includes(id);
     if (ESCENAS_DESDE_VEHICULO.includes(id)) ctx.permitirVehiculo?.(true);   // (el faro de noche: la escena empieza con vos en el kayak o el velero)
-    try { return dir.disparar(id) === true; } finally { ctx.permitirVehiculo?.(false); }
+    try {
+      // 4.17.1: primero se pregunta si la escena puede empezar y recién después se mueve al jugador (antes te llevaba al lugar de la escena
+      // y, sentado, a caballo o con la carta abierta, la escena no arrancaba: cada medio segundo, otra vez)
+      if (ctx.puedeEscena && !ctx.puedeEscena(deSentado)) return false;
+      if (Object.hasOwn(COLOCACION_ESCENA, id)) ctx.colocar?.(COLOCACION_ESCENA[id]);   // 4.16.0: el jugador, donde la escena lo necesita
+      if (deSentado) ctx.levantar?.();   // 4.16.0: la guardia empieza con vos de pie (una escena no empieza sentado)
+      return dir.disparar(id) === true;
+    } finally { ctx.permitirVehiculo?.(false); }
   }
   // Aplica lo que falte de las escenas vistas y anota en pantalla lo raro nuevo
   function aplicarEscenas(h) {
@@ -398,7 +407,7 @@ export function crearValleUi(ctx) {
   // La E sobre un objeto de historia del mundo: { aviso, hacer } o null
   function accionObjeto(id) {
     const h = historia();
-    if (!h.activa || (h.fase !== 'jugando' && h.fase !== 'fin')) return null;
+    if (!h.activa || (h.fase !== 'jugando' && !conEDespuesDelFinal(id, h))) return null;   // (4.17.1: la bolsa del umbral también después del final)
     const s = estado();
     const a = accionDeObjeto(id, h, s);
     if (!a) return null;
@@ -555,7 +564,8 @@ export function crearValleUi(ctx) {
     }
     // 4.17.0: la noche de la nevada empieza sola al terminar la escena de la espera (capítulo 12) y se repite hasta ganar o dejar que amanezca
     if (h.activa && h.fase === 'outro') { mostrarOutro(); return true; }
-    if (ctx.enVehiculo()) return false;
+    // 4.17.1: en el kayak o el velero sí puede empezar «El que vuela» (el faro de noche): antes este corte la dejaba sin salir nunca en el agua
+    if (ctx.enVehiculo()) return !!(ctx.enAgua?.() && h.activa && h.fase === 'jugando' && !noche.interviene(h) && !decisionPendiente(h, s) && lanzarEscena(h, s, { modo: 'auto', soloVehiculo: true }));
     if (h.activa && h.fase === 'jugando' && noche.interviene(h)) return noche.ofrecer();
     // 4.17.0: la costumbre del trato (final A): a la mañana, el regalito de la bolsa; y la bolsa vuelve cada cosecha
     if (h.activa || h.fase === 'fin') { const reg = amanecerCostumbre(h, s || estado(), ctx.progreso().dia); if (reg) { ctx.darEntrada?.(reg === 'pinones' ? 'pinon' : reg, 1); if (!escenaCostumbre(h, 'costumbre-regalito')) ctx.nota('Un regalito en el umbral', 'Dejaron el pago de la bolsa: un canto, piñones o una pluma', true); ctx.guardar(); } }   // (4.18.0: con su escena, si está)

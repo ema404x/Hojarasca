@@ -393,6 +393,7 @@ function cmdHistoria(args, m) {
     const idx = lec.valor - 1;
     CAPITULOS.forEach((c, i) => marcar(c, i < idx));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = 0; h.capitulo = idx; h.fase = 'intro'; h.base = {};
+    h.acompanante = null;   // 4.17.1: quien te acompañaba en otro capítulo (Graciela, Ramón) no te sigue para siempre
     activaLaHistoria(m);
     return ok(R.historiaCapitulo(lec.valor, CAPITULOS[idx].titulo || CAPITULOS[idx].nombre || ''));
   }
@@ -405,8 +406,12 @@ function cmdHistoria(args, m) {
   }
   if (a === 'reiniciar' || a === 'empezar') {
     const sobra = unico(args); if (sobra) return sobra;
-    CAPITULOS.forEach((c) => marcar(c, false));
-    h.activa = true; h.empezada = h.empezada || dia; h.terminada = 0; h.capitulo = 0; h.fase = 'intro'; h.base = {};
+    // 4.17.1: de verdad desde cero (antes quedaban las escenas vistas, las decisiones, los lazos, el final y el acompañante: el capítulo 1 se tildaba
+    // solo y se volvían a cobrar premios). Como limpiarHistoria: sólo se conservan los vecinos que ya conocías.
+    const nueva = historiaNueva();
+    for (const k of Object.keys(h.hablados && typeof h.hablados === 'object' ? h.hablados : {})) nueva.hablados[k] = true;
+    nueva.activa = true; nueva.empezada = dia; nueva.terminada = 0; nueva.capitulo = 0; nueva.fase = 'intro'; nueva.base = {};
+    p.historia = nueva;
     activaLaHistoria(m);
     return ok(R.historiaReiniciada);
   }

@@ -730,17 +730,22 @@ function sanearProgreso(p) {
   return limpio;
 }
 
+// 4.17.1: el texto tal cual se leyó en la última carga (antes de sanear), para la copia previa de la historia (historia-reinicio.js)
+let ultimoTextoCargado = null;
+export function textoUltimaCarga() { return ultimoTextoCargado; }
 export function cargarProgreso() {
   let p = null;
   ultimoOrigenCarga = 'ninguno';
+  ultimoTextoCargado = null;
   try {
     const principalTexto = localStorage.getItem(CLAVE);
     p = parsear(principalTexto);
-    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; ultimoSello = Math.max(ultimoSello, selloDe(p)); ultimaSecuencia = Math.max(ultimaSecuencia, secuenciaDe(p)); }
+    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; ultimoSello = Math.max(ultimoSello, selloDe(p)); ultimaSecuencia = Math.max(ultimaSecuencia, secuenciaDe(p)); ultimoTextoCargado = principalTexto; }
     else {
       ultimoPrincipalValidoTexto = null;
-      p = parsear(localStorage.getItem(CLAVE_BACKUP));
-      if (progresoPlausible(p)) ultimoOrigenCarga = 'backup';
+      const backupTexto = localStorage.getItem(CLAVE_BACKUP);
+      p = parsear(backupTexto);
+      if (progresoPlausible(p)) { ultimoOrigenCarga = 'backup'; ultimoTextoCargado = backupTexto; }
       else p = null;
     }
   } catch { p = null; ultimoPrincipalValidoTexto = null; }
@@ -753,7 +758,7 @@ export function cargarProgreso() {
     let b = null;
     try { b = parsear(localStorage.getItem(CLAVE_BACKUP)); } catch { b = null; }
     if (progresoPlausible(b)) { try { limpio = sanearProgreso(b); } catch { limpio = null; } }
-    if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true; }
+    if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true; try { ultimoTextoCargado = localStorage.getItem(CLAVE_BACKUP); } catch { ultimoTextoCargado = null; } }
   }
   if (!limpio) return null;
   p = limpio;

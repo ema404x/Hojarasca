@@ -59,7 +59,8 @@ function recorrer(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){
 recorrer(raiz);
 for (const f of archivos) {
   if (!/\.(js|mjs|cjs|html|json|md)$/.test(f)) continue;
-  const t = fs.readFileSync(f,'utf8');
+  if (/[.-][a-z]?mut[a-z0-9-]*\.js$/i.test(f)) continue;   // 4.17.1: las copias temporales de las pruebas de mutación (con el gate en paralelo aparecen y desaparecen)
+  let t; try { t = fs.readFileSync(f,'utf8'); } catch (e) { if (e.code === 'ENOENT') continue; throw e; }
   if (t.includes('/home/' + 'claude/')) fallo.push(`ruta absoluta de Claude en ${path.relative(raiz,f)}`);
 }
 const js = archivos.filter(f => /\.(js|mjs|cjs)$/.test(f) && !f.includes(`${path.sep}pruebas${path.sep}salidas${path.sep}`));

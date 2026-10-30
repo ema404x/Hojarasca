@@ -40,7 +40,7 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   const correr = (banco) => {
     const progreso = { horas: 22.3, dia: 3, relojNoche: null };
     const env = { trucosJuego: null, jugador: { estado: {} }, foto: { activo: false }, ajustes: { duracion: 'reloj' }, banco, progreso, Date: Reloj,
-      claveNocheReloj: () => 'noche', nota: () => {}, modo: 'jugando' };
+      claveNocheReloj: () => 'noche', nota: () => {}, modo: 'jugando', topeMedianoche: { t: 0 }, medianochePermitida: () => true };   // (4.17.1: el tope de medianoches, abierto)
     funcion(main, 'actualizarTiempo', env)(0.016);
     return progreso;
   };

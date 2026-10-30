@@ -393,6 +393,9 @@ async function chequear(arch = '', sufijo = '') {
       ok(quien(h, p, {}, { visitaActiva: 'nicanor' }) === 'mesa-visita-nicanor', 'la mesa con Nicanor');
       ok(quien(h, p, {}, { visitaActiva: 'ramon' }) === 'mesa-visita-ramon', 'la mesa con Ramón');
       p.horas = 11; ok(quien(h, p, {}, { visitaActiva: 'ramon' }) === null, 'de mañana no');
+      // 4.17.1: (las mutaciones «los fletes desde el capítulo 1» y «las escenas en cualquier orden» no tenían quién las atrape)
+      { const hf = H.historiaNueva(); H.empezarHistoria(hf, 1); hf.fase = 'jugando'; hf.capitulo = 2; hf.entregasVistas = 0; ok(H.sumarFletes(hf, { entregas: 4 }) === 0 && hf.fletes === 0 && hf.ramal === 0, 'en el capítulo 3 los fletes todavía no cuentan para el ramal'); }
+      { const r = base(); r.h.capitulo = 1; r.h.base = { dia: 2 }; r.p.dia = 2; r.p.horas = 10; ok(quien(r.h, r.p, { lugares: { ramos: 5 } }) === null, 'una escena que pide otra antes (el almacén, tras Ramón en la tranquera) no sale sola'); }
       ok(quien(h, p, {}, { modo: 'hablar', clave: 'fermin' }) === 'fermin-galpon', 'Fermín, en el galpón de esquila');
     }
     // capítulo 4
@@ -622,6 +625,8 @@ async function chequear(arch = '', sufijo = '') {
     const AS = await import('../src/gente-ropa.js');
     const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.fase = 'jugando';
     ok(!GR.debeExistir(h) && !GR.debeVerse(h), 'en el capítulo 1 Graciela no existe');
+    h.capitulo = 2; ok(!GR.debeExistir(h), 'en el capítulo 3 tampoco');   // 4.17.1: (la mutación «Graciela en el capítulo 3» no tenía quién la atrape)
+    h.capitulo = 0;
     h.capitulo = 3;
     ok(GR.debeExistir(h) && !GR.debeVerse(h), 'en el capítulo 4 existe (llega en la trochita) pero no se ve hasta bajar');
     EN.marcarVista(h, 'anden-graciela', 4);
@@ -747,11 +752,11 @@ const MUT = [
   ['historia-objetos.js', "const radio = Object.hasOwn(OBJETOS, id) && (OBJETOS[id].forma === 'raiz' || OBJETOS[id].lugar === 'molino-viejo') ? 3.4 : RADIO_OBJETO;", "const radio = 100;", 'el objeto se alcanza desde cualquier lado'],
   ['historia-escenas-efectos.js', "if (h && PERSONAS_LAZO.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n);", "if (h && PERSONAS_LAZO.includes(a?.quien)) cambiarLazo(h, a.quien, a.n);", 'los efectos de lazo no son idempotentes'],
 ];
-let atrapadas = 0;
+let atrapadas = 0, iMut = 0;
 for (const [archivo, de, a, que] of MUT) {
   const orig = leer(`src/${archivo}`);
   if (!orig.includes(de)) { ok(false, `mutación inaplicable: ${que}`); continue; }
-  const sufijo = '.mut';
+  const sufijo = `.mut${++iMut}`;   // 4.17.1: un archivo por mutación (ESM guarda el módulo por URL: con el mismo nombre se volvía a medir la primera)
   const dest = join(raiz, 'src', archivo.replace('.js', `${sufijo}.js`));
   writeFileSync(dest, orig.replace(de, () => a));
   const antes = fallas, antesN = n;
