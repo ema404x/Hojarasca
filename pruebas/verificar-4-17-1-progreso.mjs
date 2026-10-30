@@ -228,7 +228,7 @@ const S = await import('../src/sincronia.js');
     const f = funcion(main, 'historiaObjetoCerca', {
       desafio: null, valle: { historia: () => ({ activa: true, fase: 'jugando' }), accionObjeto: (k) => ({ aviso: `Mirar ${k}`, hacer() {} }) },
       objetosHist: { posiciones: { 'foto-movida': foto }, cercano: () => 'foto-movida' }, jugador: { estado: js(puerta) },
-      cacheObjetoHist: { t: -1e9, v: null }, performance: { now: () => 1e9 }, hayEDespuesDelFinal: D.hayEDespuesDelFinal, cedeALaPuerta: D.cedeALaPuerta, puertas: { cerca: () => ({ nombre: 'la puerta', x: puerta.x, z: puerta.z }) }, Object,
+      cacheObjetoHist: { t: -1e9, v: null }, performance: { now: () => 1e9 }, hayEDespuesDelFinal: D.hayEDespuesDelFinal, cedeALaPuerta: D.cedeALaPuerta, objetoMirado: D.objetoMirado /* (4.18.0: el objeto que mirás le gana al más cercano) */, puertas: { cerca: () => ({ nombre: 'la puerta', x: puerta.x, z: puerta.z }) }, Object,
     });
     ok(f() === null, 'main.js: mirando la puerta, el objeto del umbral no toma la E');
   }

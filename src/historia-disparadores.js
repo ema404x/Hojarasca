@@ -216,6 +216,22 @@ export function cedeALaPuerta(id, js, q, puerta, frente = 0.9) {
   if (aObjeto < frente) return true;
   return Number.isFinite(puerta.x) && Number.isFinite(puerta.z) && mira(puerta.x, puerta.z) >= aObjeto;
 }
+// 4.18.0: el objeto de historia que estás MIRANDO (dentro del alcance y adelante tuyo, a menos de ~25°): le gana al más cercano. Adentro del refugio
+// la nota de la mesa y el frasco de la estantería quedan a 2,3 m: parado frente a la estantería, la nota quedaba más cerca y se llevaba la E.
+export function objetoMirado(js, visibles, posiciones, accion, radio = RADIO_OBJETO, frente = 0.9) {
+  if (!js?.pos) return null;
+  const fx = -Math.sin(Number(js.yaw) || 0), fz = -Math.cos(Number(js.yaw) || 0);
+  let mejor = null, dm = Infinity;
+  for (const id of visibles || []) {
+    const q = posiciones?.[id];
+    if (!q) continue;
+    const dx = q.x - js.pos.x, dz = q.z - js.pos.z, d = Math.hypot(dx, dz);
+    if (d > radio || d < 0.05 || (fx * dx + fz * dz) / d < frente || d >= dm) continue;
+    if (!accion(id)) continue;
+    mejor = id; dm = d;
+  }
+  return mejor;
+}
 // 4.17.1: después del final (fase 'fin') la E sigue andando sólo para la bolsa del umbral (la costumbre del trato, final A)
 export const conEDespuesDelFinal = (id, h) => id === 'bolsa-umbral' && h?.fase === 'fin' && h?.duendes?.final === 'trato';
 export const hayEDespuesDelFinal = (h) => !!h?.activa && h?.fase === 'fin' && h?.duendes?.final === 'trato' && !!h?.costumbre;

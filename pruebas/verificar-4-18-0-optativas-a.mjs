@@ -375,9 +375,26 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
   ok(H.historiaNueva().encargosLazo === null && H.historiaNueva().flechasExtra === 0, 'la historia nueva');
 }
 
+// ---------------------------------------------------------------- 11b. la E: el objeto que mirás le gana al más cercano (el frasco y la nota)
+{
+  const pos = { frasco: { x: 0, z: -2 }, nota: { x: 1.1, z: -0.3 } };
+  const js = { pos: { x: 0, z: -0.6 }, yaw: 0 };   // (mirando a −z: hacia el frasco; la nota queda a 1,1 m, el frasco a 1,4 m)
+  ok(D.objetoMirado(js, ['frasco', 'nota'], pos, () => true) === 'frasco', 'mirando el frasco, la E es del frasco aunque la nota esté más cerca');
+  ok(D.objetoMirado({ ...js, yaw: Math.PI }, ['frasco', 'nota'], pos, () => true) === null, 'de espaldas, ninguno (queda el más cercano)');
+  ok(D.objetoMirado(js, ['frasco', 'nota'], pos, (k) => k !== 'frasco') === null, 'el que no tiene acción no cuenta');
+  ok(D.objetoMirado({ pos: { x: 0, z: 1 }, yaw: 0 }, ['frasco'], pos, () => true) === null, 'fuera de alcance, no');
+}
+
 // ---------------------------------------------------------------- 12. el enganche con el juego (por texto)
 {
   const ui = leer('src/historia-ui.js'), main = leer('src/main.js'), am = leer('src/historia-arreo-mundo.js');
+  // 4.18.0: un comentario de una línea en el medio del contexto de la historia dejaba afuera lo que venía después (darCosa, gastar, colocar…)
+  const ctxValle = main.slice(main.indexOf('valle = crearValleUi({'), main.indexOf('\n  });', main.indexOf('valle = crearValleUi({')));
+  for (const k of ['colocar', 'levantar', 'gastarTabla', 'comenzarEnEstacion', 'darCosa', 'gastar', 'alDecidirDuendes', 'cobrar', 'darEntrada', 'encargosLista']) {
+    const linea = ctxValle.split('\n').find((l) => new RegExp(`\\b${k}: `).test(l)) || '';
+    const antes = linea.slice(0, linea.search(new RegExp(`\\b${k}: `)));
+    ok(linea && !antes.includes('//'), `main.js: «${k}» llega a la historia (no quedó detrás de un comentario)`);
+  }
   ok(/if \(jugando && h\.activa\) revisarLoOptativo\(h\);/.test(ui), 'la UI revisa las optativas cada medio segundo');
   ok(/datos\.optativas = optativasDelPanel\(h, s\)/.test(ui) && /De paso \(si querés\)/.test(ui), 'el panel muestra las optativas');
   ok(/Lo que hiciste de paso/.test(ui), 'la guía muestra las hechas');

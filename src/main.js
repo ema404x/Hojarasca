@@ -281,7 +281,7 @@ import { COLOCACION_ESCENA } from './historia-disparadores.js';
 import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
 // 4.17.1: la copia previa en el formato de «Exportar» (con el texto crudo de la carga y las fotos), la puerta del refugio y la bolsa del umbral
 import { textoPaqueteCopia } from './historia-reinicio.js';
-import { cedeALaPuerta, hayEDespuesDelFinal } from './historia-disparadores.js';
+import { cedeALaPuerta, hayEDespuesDelFinal, objetoMirado } from './historia-disparadores.js';
 import { textoUltimaCarga, cargarFotos } from './guardado.js';
 import { registrarEfectosHistoria, registrarEfectosActo1 } from './historia-escenas-efectos.js';
 import { crearGracielaMundo } from './historia-graciela.js';
@@ -2371,7 +2371,8 @@ function historiaObjetoCerca() {
   const h = valle.historia();
   if (!h.activa || (h.fase !== 'jugando' && !hayEDespuesDelFinal(h))) return null;   // (4.17.1: después del final, la bolsa del umbral)
   const visibles = Object.keys(objetosHist.posiciones);   // (4.16.0: todos los que tienen lugar; `accionObjeto` filtra los que se ven y tienen qué hacer)
-  const id = objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
+  // 4.18.0: el que estás mirando le gana al más cercano (el frasco de la estantería y la nota de la mesa, adentro del refugio)
+  const id = objetoMirado(jugador.estado, visibles, objetosHist.posiciones, (k) => valle.accionObjeto(k)) || objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
   let a = id ? valle.accionObjeto(id) : null;
   // 4.17.1: los objetos del umbral no le ganan la E a la puerta del refugio, salvo que los estés mirando
   if (a && cedeALaPuerta(id, jugador.estado, objetosHist.posiciones[id], puertas ? puertas.cerca(jugador.estado.pos) : null)) a = null;
@@ -2661,7 +2662,7 @@ function comenzarEnLaEstacion() {
 function crearValle() {
   valle = crearValleUi({
     esDesafio, nota, guardar, sumarMaterial, traducir: traducirPanel,
-    presencia: presenciaHistoria(), alActivarHistoria: () => { try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } try { nocheDelMundo()?.preparar(); } catch (e) { console.warn('noche de la historia', e); } },   // (4.17.1: y la noche, como en la carga: sin ella los blancos de práctica del capítulo 11 no salían nunca en esta sesión) alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
+    presencia: presenciaHistoria(), alActivarHistoria: () => { try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } try { nocheDelMundo()?.preparar(); } catch (e) { console.warn('noche de la historia', e); } },   /* (4.17.1: y la noche, como en la carga: sin ella los blancos de práctica del capítulo 11 no salían nunca en esta sesión) */ alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
     noche: nocheDelMundo(), creditos: () => { abrir('pausa'); abrirInfo('creditos', 'pausa'); },   // 4.13.0 (B)
     teclaVisible: (t) => teclaVisible(t, teclasPropias),   // 3.8.4: el panel de la historia, con las teclas del jugador
     // con ?debug=1 los eventos al azar quedan quietos (las pruebas los prenden con __valle.azar(true))
@@ -2676,7 +2677,7 @@ function crearValle() {
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null, cumple: cumpleDeHoyHistoria() }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id, o) => escenasMundo.disparar(id, o) } : null),
-    objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, puedeEscena: (deSentado) => puedeEmpezarEscena(deSentado), enAgua: () => !!(jugador.estado.enKayak || jugador.estado.enVela),   // (4.17.1) colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
+    objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, puedeEscena: (deSentado) => puedeEmpezarEscena(deSentado), enAgua: () => !!(jugador.estado.enKayak || jugador.estado.enVela),   /* (4.17.1) */ colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),   // (4.18.0: el comentario de la 4.17.1 en el medio de la línea dejaba afuera colocar, levantar, gastarTabla, comenzarEnEstacion, darCosa y gastar)
     nocheReintentar: () => { /* la elección «Otra vez» de la escena: lo lee la noche (historia-noche-ui.js) */ },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
     encargosLista: () => TODOS_LOS_ENCARGOS,   // 4.18.0: quién pidió cada encargo (el +1 de lazo de los vecinos con arco)
