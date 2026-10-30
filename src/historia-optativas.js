@@ -290,10 +290,13 @@ const CHARLAS = (() => {
   return r;
 })();
 export const charlasDe = (clave) => (Object.hasOwn(CHARLAS, clave) ? CHARLAS[clave] : []);
-function cuandoOk(w, s, h) {
+// Las líneas de los actos con `cuando: { optativa }` que son de ANTES (la invitan, no la agradecen): valen mientras está ofrecida y sin hacer
+export const LINEAS_DE_ANTES = ['rosa-c2-frasco'];
+function cuandoOk(w, s, h, id = '') {
   if (!w) return true;
   if (w.decision) return s.decisiones[w.decision] === w.es;
-  if (w.optativa) return Object.hasOwn(obj(h.optativas), w.optativa) || s.temas.has(`optativa-hecha:${w.optativa}`);
+  if (w.optativa && LINEAS_DE_ANTES.includes(id)) { const o = OPTATIVA[w.optativa]; return !!o && ['ofrecida', 'en-curso'].includes(estadoOptativa(o, s, h)); }
+  if (w.optativa) return Object.hasOwn(obj(h.optativas), w.optativa);
   if (w.escena) return s.escenas.has(w.escena);
   if (w.trato) return s.trato === w.trato || (w.trato === 'fuerte' && s.decisiones.duendes === 'b');
   if (w.noche) return s.nocheEstado === w.noche;
@@ -305,7 +308,7 @@ export function lineaDeHistoria(h, s, clave) {
   if (!h?.activa || h.fase !== 'jugando' || !s) return null;
   const n = Math.max(0, h.capitulo || 0) + 1;
   const oidas = obj(h.oidas);
-  const c = charlasDe(clave).filter((l) => !Object.hasOwn(oidas, l.id) && Number(l.cap) <= n && (Number(l.cap) === n || l.cuando?.optativa || l.deOptativa) && cuandoOk(l.cuando, s, h));
+  const c = charlasDe(clave).filter((l) => !Object.hasOwn(oidas, l.id) && Number(l.cap) <= n && (Number(l.cap) === n || l.cuando?.optativa || l.deOptativa) && cuandoOk(l.cuando, s, h, l.id));
   if (!c.length) return null;
   // la de capítulo más alto; a igual capítulo, la de una optativa y después la que tiene condición
   c.sort((a, b) => (Number(b.cap) - Number(a.cap)) || ((b.deOptativa ? 1 : 0) - (a.deOptativa ? 1 : 0)) || ((b.cuando ? 1 : 0) - (a.cuando ? 1 : 0)));
