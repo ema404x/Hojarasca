@@ -341,6 +341,8 @@ app.whenReady().then(async () => {
       await prep(9, { horas: 22.5 });
       { const ref = (await pts()).refugio; const r = await N(`N.levantar('galponcito', N.alrededor(${ref.x}, ${ref.z}, [16, 20, 24], 12))`); console.log('  [galponcito]', JSON.stringify(r)); await N('N.tick(1.2)'); }
       for (let vez = 1; vez <= 2; vez++) {
+        // (se llega del lado de «abrir», lejos de la de golpear: la escena anterior deja al jugador en cualquier lado del galpón)
+        await N('(() => { const p = H.__historiaObjetos().posiciones, a = p["puerta-galpon-abrir"], g = p["puerta-galpon"]; if (!a || !g) return 0; const dx = a.x - g.x, dz = a.z - g.z, l = Math.hypot(dx, dz) || 1; N.ir(a.x + dx / l * 4, a.z + dz / l * 4, 0); return 1 })()');
         const av = await eCerca('puerta-galpon-abrir');
         ok(av && /sin golpear/.test(av.aviso), `vez ${vez}: la E «${av && av.aviso}»`);
         await N('N.hasta(() => H.__escenas.activa(), 6)');
@@ -420,6 +422,6 @@ app.whenReady().then(async () => {
     errores.push(String(err && err.message || err));
   }
   if (consola.length) console.log('consola:', consola.slice(0, 6));
-  console.log(errores.length ? `\n${errores.length} problemas` : '\nTodo en orden');
+  console.log(errores.length ? `\n${errores.length} problemas:\n${errores.map((e) => '  · ' + e).join('\n')}` : '\nTodo en orden');
   try { app.exit(errores.length ? 1 : 0); } catch { process.exit(errores.length ? 1 : 0); }
 });
