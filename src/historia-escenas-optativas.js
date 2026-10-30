@@ -267,14 +267,15 @@ export const EFECTOS_OPTATIVAS = [...new Set(Object.values(ESCENAS_OPTATIVAS).fl
 export const POR_DEFECTO_OPTATIVAS = {};
 
 // Dónde y cuándo se dispara cada una. `objetivo`: el id de la optativa (TEXTO_ACTO1/TEXTO_ACTO3 .capitulos[n].optativas[].id) que la escena
-// cuenta como hecha; null si sólo prepara (tomar el frasco). `ofrece`: la escena que ofrece la optativa (`optativa:<id>`), para el tablón.
+// cuenta como hecha; null si sólo prepara (tomar el frasco). `ofrece`: la escena que ofrece la optativa (corre `optativa:<id>`);
+// null si la ofrece el capítulo (el registro de A) o un evento del valle.
 const d = (cap, jugadorEn, cuando, objetivo, ofrece) => ({ cap, jugadorEn, cuando, objetivo, ofrece });
 export const DISPARO_OPTATIVAS = {
-  'frasco-repisa': d(1, 'adentro del refugio, frente a la repisa', 'E en el frasco de la repisa (capítulos 1 y 2, después de nota-eusebio): el frasco va a la mochila', null, 'nota-eusebio'),
+  'frasco-repisa': d(1, 'adentro del refugio, frente a la repisa', 'E en el frasco de la repisa (capítulos 1 y 2, después de nota-eusebio): el frasco va a la mochila', null, null),
   'frasco-rosa': d(2, 'frente a Rosa, en la panadería', 'hablar con Rosa (panadera) con el frasco en la mochila, capítulos 1 y 2 (el guion la abre en el 2; si se pasa, hasta el fin del acto I)', 'frasco-masa-madre', 'nota-eusebio'),
   'oveja-ramon': d(2, 'en el Puesto Alto, junto al corral de Ramón', 'después del evento del valle «oveja» (forzado en el capítulo 2 como momento opcional), al llegar al Puesto Alto; mira si se mandó al perro', 'oveja', null),
   'pan-fermin': d(3, 'frente a Fermín, en el galpón de esquila', 'hablar con Fermín con pan casero o harina en la mochila, después de fermin-galpon (capítulo 3; hasta el fin del acto I)', 'fermin-pan', 'fermin-galpon'),
-  'vuelta-mirador': d(4, 'en el mirador del pehuén, con Graciela al lado (acompañante)', 'llegar al mirador con Graciela de acompañante, después de anden-graciela', 'vuelta-ingeniera', 'anden-graciela'),
-  'vuelta-faro': d(4, 'en la orilla, junto al faro, con Graciela al lado (acompañante)', 'llegar al faro con Graciela de acompañante, después de anden-graciela', 'vuelta-ingeniera', 'anden-graciela'),
+  'vuelta-mirador': d(4, 'en el mirador del pehuén, con Graciela al lado (acompañante)', 'llegar al mirador con Graciela de acompañante, después de anden-graciela', 'vuelta-ingeniera', null),
+  'vuelta-faro': d(4, 'en la orilla, junto al faro, con Graciela al lado (acompañante)', 'llegar al faro con Graciela de acompañante, después de anden-graciela', 'vuelta-ingeniera', null),
   'juntar-ovejas': d(9, 'en la tranquera del corral del Puesto Alto, con la última oveja entrando', 'al terminar de juntar las ovejas desparramadas (la mecánica de A), sólo si hojas-canelo ofreció la optativa (no convidaste)', 'juntar-ovejas', 'hojas-canelo'),
 };
