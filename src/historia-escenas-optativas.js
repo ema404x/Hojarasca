@@ -72,7 +72,7 @@ const frascoRosa = {
       'Pasate mañana temprano, que el primer pan es tuyo. Y pasado. Y el otro.',
       linea('Tres días. Después se te acostumbra la panza y te cobro.', { gesto: gs('senalar', 1.6) }),
     ]),
-    efecto('mundo:pan-de-rosa', { cosa: 'pan-casero', n: 1, dias: 3 }),
+    // (el pan de las tres mañanas lo da el registro de optativas de A: la escena sólo lo promete)
     efecto('lazo:rosa:1'),
   ],
 };
@@ -116,8 +116,9 @@ const ovejaRamon = {
 };
 
 // ---------------------------------------------------------------- capítulo 3 · Pedido de Fermín (pan para el galpón de esquila)
-const panFermin = {
-  id: 'pan-fermin', titulo: 'Pan en la estepa', acto: 1, capitulo: 3,
+// (lo que le das lo gasta el disparador de A: un pan casero o, si no hay, una medida de harina; la escena no gasta)
+const ferminPan = {
+  id: 'fermin-pan', titulo: 'Pan en la estepa', acto: 1, capitulo: 3,
   resumen: 'Le llevaste pan o harina a Fermín al galpón de esquila. Lo compartió «a medias, como las ovejas», y espantó un chimango con un cascote sin mirar.',
   personajes: pj3('fermin', 'narra'),
   pasos: [
@@ -126,12 +127,12 @@ const panFermin = {
     mira('fermin', 'jugador'),
     plano('medio', 'fermin', { desde: 'jugador', dist: 3.2, mezcla: 1, dur: 1, sinEsperar: true }),
     dlg('fermin', [linea('Me trajiste. No te lo pedí, eh. Te dije que no te iba a decir que no, que es distinto.', { gesto: gs('encogerse', 1.8) })]),
-    eleccion('fermin-pan-que', '¿Qué le das?', [
-      opcion('pan', 'El pan, que todavía está tibio.', { efecto: 'quitar:pan-casero:1' }),
-      opcion('harina', 'La harina, para que la amase.', { efecto: 'quitar:harina:1' }),
+    eleccion('fermin-pan-que', '¿Qué le decís?', [
+      opcion('medias', 'Comamos a medias, como las ovejas.', { sabor: true }),
+      opcion('noche', 'Guárdelo para la noche, que acá refresca.', { sabor: true }),
     ]),
-    dlg('fermin', [linea('Lo parto. A medias, como las ovejas: la mitad para vos, que la trajiste.', { gesto: gs('contar', 2) })], { si: siEleg('fermin-pan-que', 'pan') }),
-    dlg('fermin', [linea('Harina. Bueno, acá el horno es el sol, pero algo se inventa: una tortita en la lata, con grasa.', { gesto: gs('pensar', 2) })], { si: siEleg('fermin-pan-que', 'harina') }),
+    dlg('fermin', [linea('A medias. Ya aprendiste cómo es acá. La mitad para vos, que lo trajiste.', { gesto: gs('contar', 2) })], { si: siEleg('fermin-pan-que', 'medias') }),
+    dlg('fermin', [linea('La noche. La noche en la estepa se come todo, amigo: el pan, el fuego y las ganas. Pero bueno, lo guardo.', { gesto: gs('pensar', 2) })], { si: siEleg('fermin-pan-que', 'noche') }),
     plano('general', FRENTE(7, 3), { desde: 'jugador', dist: 9, alto: 2.8, dur: 2.6, mezcla: 0.9 }),
     narra('Un chimango baja a mirar las migas. Fermín, sin darse vuelta, levanta un cascote del suelo y lo revolea. El chimango sale ofendido. Lo hizo como quien se rasca.'),
     plano('primer', 'fermin', { desde: 'jugador', mezcla: 0.7, dur: 30, sinEsperar: true }),
@@ -253,7 +254,7 @@ export const ESCENAS_OPTATIVAS = {
   'frasco-repisa': frascoRepisa,
   'frasco-rosa': frascoRosa,
   'oveja-ramon': ovejaRamon,
-  'pan-fermin': panFermin,
+  'fermin-pan': ferminPan,
   'vuelta-mirador': vueltaMirador,
   'vuelta-faro': vueltaFaro,
   'juntar-ovejas': juntarOvejas,
@@ -271,11 +272,11 @@ export const POR_DEFECTO_OPTATIVAS = {};
 // null si la ofrece el capítulo (el registro de A) o un evento del valle.
 const d = (cap, jugadorEn, cuando, objetivo, ofrece) => ({ cap, jugadorEn, cuando, objetivo, ofrece });
 export const DISPARO_OPTATIVAS = {
-  'frasco-repisa': d(1, 'adentro del refugio, frente a la repisa', 'E en el frasco de la repisa (capítulos 1 y 2, después de nota-eusebio): el frasco va a la mochila', null, null),
-  'frasco-rosa': d(2, 'frente a Rosa, en la panadería', 'hablar con Rosa (panadera) con el frasco en la mochila, capítulos 1 y 2 (el guion la abre en el 2; si se pasa, hasta el fin del acto I)', 'frasco-masa-madre', 'nota-eusebio'),
-  'oveja-ramon': d(2, 'en el Puesto Alto, junto al corral de Ramón', 'después del evento del valle «oveja» (forzado en el capítulo 2 como momento opcional), al llegar al Puesto Alto; mira si se mandó al perro', 'oveja', null),
-  'pan-fermin': d(3, 'frente a Fermín, en el galpón de esquila', 'hablar con Fermín con pan casero o harina en la mochila, después de fermin-galpon (capítulo 3; hasta el fin del acto I)', 'fermin-pan', 'fermin-galpon'),
-  'vuelta-mirador': d(4, 'en el mirador del pehuén, con Graciela al lado (acompañante)', 'llegar al mirador con Graciela de acompañante, después de anden-graciela', 'vuelta-ingeniera', null),
-  'vuelta-faro': d(4, 'en la orilla, junto al faro, con Graciela al lado (acompañante)', 'llegar al faro con Graciela de acompañante, después de anden-graciela', 'vuelta-ingeniera', null),
-  'juntar-ovejas': d(9, 'en la tranquera del corral del Puesto Alto, con la última oveja entrando', 'al terminar de juntar las ovejas desparramadas (la mecánica de A), sólo si hojas-canelo ofreció la optativa (no convidaste)', 'juntar-ovejas', 'hojas-canelo'),
+  'frasco-repisa': d(1, 'adentro del refugio, frente a la repisa', 'E en el frasco de la repisa (capítulos 1 a 4, después de nota-eusebio): el frasco va a la mochila. Si A lo levanta sin escena, que dé objeto:frasco-masa-madre igual', null, null),
+  'frasco-rosa': d(2, 'frente a Rosa, en la panadería', 'E sobre Rosa (panadera) con el frasco en la mochila, capítulos 1 a 4 (el guion la abre en el 2; sigue hasta el fin del acto I)', 'frasco-masa-madre', 'nota-eusebio'),
+  'oveja-ramon': d(2, 'en el Puesto Alto, junto al corral de Ramón', 'después del evento del valle «oveja» (capítulos 2 a 4): con «Arrearla vos», al llegar al Puesto Alto con la oveja; con «perro», la próxima vez que llegues al Puesto Alto (la oveja volvió sola: variante del perro)', 'oveja', null),
+  'fermin-pan': d(3, 'frente a Fermín, en el galpón de esquila', 'E sobre Fermín con un pan casero o una medida de harina, después de fermin-galpon (capítulos 3 y 4); el disparador de A gasta uno (la escena no gasta)', 'fermin-pan', 'fermin-galpon'),
+  'vuelta-mirador': d(4, 'en el mirador del pehuén, con Graciela al lado (acompañante)', 'llegar al mirador del pehuén (16 m) con Graciela de acompañante, después de anden-graciela (capítulo 4); uno de los dos lugares', 'vuelta-ingeniera', null),
+  'vuelta-faro': d(4, 'en la orilla, junto al faro, con Graciela al lado (acompañante)', 'llegar al faro (30 m) con Graciela de acompañante, después de anden-graciela (capítulo 4); uno de los dos lugares', 'vuelta-ingeniera', null),
+  'juntar-ovejas': d(9, 'en la tranquera del corral del Puesto Alto, con la última oveja entrando', 'cuando las ovejas desparramadas vuelven todas al corral (la mecánica de A, capítulos 9 y 10), sólo si hojas-canelo ofreció la optativa (no convidaste)', 'juntar-ovejas', 'hojas-canelo'),
 };

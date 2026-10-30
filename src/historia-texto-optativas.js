@@ -3,6 +3,7 @@
 //   · tablon[id]  = { caps, quien, titulo, ofrecida, hecha }   la entrada del tablón de historia de CADA optativa del guion (las 28): `ofrecida`
 //                   es la pista mientras está abierta; `hecha`, la línea que queda tildada. `quien`: la persona del guion (como en la charla).
 //   · objetos[id] = { nombre, texto }                          los objetos de historia nuevos (el frasco de la repisa)
+//   · notas[id]   = { titulo, texto: [párrafos] }              lo que se lee (el papelito de abajo del frasco)
 //   · raro[id]    = { titulo, texto, cap, donde }              el cuaderno de lo raro: los ids son los de los efectos `raro:<id>` de las escenas
 //                                                              de historia-escenas-optativas.js
 //   · charla[quien] = [{ id, cap, texto, cuando }]             la línea «de después» de cada optativa (la que el vecino dice una vez hecha):
@@ -49,6 +50,11 @@ export const TEXTO_OPTATIVAS = {
     'frasco-masa-madre': { nombre: 'El frasco de la repisa', texto: 'Vidrio grueso, una tela atada con piolín y una etiqueta que dice «1987». Adentro, la masa madre de Eusebio, que respira despacio. Come los martes.' },
   },
 
+  // lo que se lee (mismo formato que TEXTO_ACTO3.notas): el papelito de abajo del frasco, para releerlo con la E en la repisa
+  notas: {
+    'papel-del-frasco': { titulo: 'El papelito de abajo del frasco', texto: ['Ya sé que dije que no lo toques. Si lo estás tocando, es porque hace falta.', 'Llevásela a la panadera, que la masa sola se aburre. Harina y agua tibia los martes. Y gracias. E. M.'] },
+  },
+
   // el cuaderno de lo raro: indicios con fecha y lugar. Los ids son los de los efectos `raro:<id>` de las escenas de las optativas.
   raro: {
     'frasco-de-1987': { titulo: 'Masa de 1987', texto: 'Debajo del frasco que no había que tocar había una nota que decía que lo toque. Eusebio pensaba en todo.', cap: 1, donde: 'refugio' },
@@ -74,7 +80,7 @@ export const TEXTO_OPTATIVAS = {
       { id: 'ramon-opt-loma', cap: 13, texto: 'Gracias por subir a la loma. No hablamos nada y fue lo mejor que hablé en todo el año.', cuando: { escena: 'volver-a-subir' } },
     ],
     fermin: [
-      { id: 'fermin-opt-pan', cap: 3, texto: 'Todavía me acuerdo del pan. En la estepa las cosas ricas duran poco y se recuerdan mucho.', cuando: { escena: 'pan-fermin' } },
+      { id: 'fermin-opt-pan', cap: 3, texto: 'Todavía me acuerdo del pan. En la estepa las cosas ricas duran poco y se recuerdan mucho.', cuando: { escena: 'fermin-pan' } },
       { id: 'fermin-opt-ovejas', cap: 9, texto: 'Las ovejas desparramadas no son cosa de zorro. El zorro se lleva una. Esto fue alguien que quería que miremos.', cuando: { escena: 'juntar-ovejas' } },
     ],
     graciela: [
