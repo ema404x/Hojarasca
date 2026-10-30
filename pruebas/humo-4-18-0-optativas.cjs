@@ -375,7 +375,8 @@ app.whenReady().then(async () => {
       await cerrarTarjetas();
       await prep(10, { horas: 12 });
       { const ref = (await pts()).refugio; const r = await N(`N.levantar('gallinero', N.alrededor(${ref.x}, ${ref.z}, [12, 15, 18, 22], 12))`); console.log('  [gallinero]', JSON.stringify(r)); await N('N.tick(1)'); }
-      await N('(() => { if (P.entradas.pluma) P.entradas.pluma.cantidad = 6; else P.entradas.pluma = { dia: P.dia, hora: 10, cantidad: 6 }; return 1 })()');
+      // (el disparador es el de la 4.17.1: con tu gallinero, de día, si te FALTAN plumas)
+      await N('(() => { if (P.entradas.pluma) P.entradas.pluma.cantidad = 0; return 1 })()');
       await irA('gallinero', 2, 2, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["plumas-gallinero"], 10)');
       await comprobar('plumas-gallinero', null, 'las plumas del gallinero');
       // la pareja (sólo con el amor prendido y alguien con quien salís)

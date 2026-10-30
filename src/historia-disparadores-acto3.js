@@ -42,8 +42,7 @@ export const DISPARADORES_ACTO3 = {
   'pedir-perdon': { cap: ['golpea', 'arco'], modo: 'interaccion', clave: 'raiz-perdon', requiere: ['galpon-encuentro'], cond: (s) => s.trato === 'pelea' && !s.perdon },
   // ---- capítulo 11 · El arco y la honda
   'tito-arco': { cap: 'arco', modo: 'hablar', clave: 'carpintero', cond: (s, h) => diaHecho(h, 'arco', 'lenga') > 0 && s.dia > diaHecho(h, 'arco', 'lenga') },
-  // (4.18.0: junto a tu gallinero, la de las plumas del gallinero: historia-disparadores-optativas.js)
-  'plumas-bosque': { cap: 'arco', modo: 'auto', lugar: en('refugio', 60), cond: (s) => s.plumas >= 6 && !s.escenas.has('plumas-gallinero') && !s.escenas.has('plumas-josefina') && !(s.terminadas.has('gallinero') && Number(s.lugares?.gallinero) <= 10) },
+  'plumas-bosque': { cap: 'arco', modo: 'auto', lugar: en('refugio', 60), cond: (s) => s.plumas >= 6 && !s.escenas.has('plumas-gallinero') && !s.escenas.has('plumas-josefina') },
   'plumas-josefina': { cap: 'arco', modo: 'hablar', clave: 'ema', cond: (s) => s.lazos.ema >= 2 && s.plumas < 6 && !s.escenas.has('plumas-bosque') },
   // 4.17.1: la escena del gallinero (escrita por B, «necesita gallinero») no tenía disparador. Las plumas del bosque no vuelven a salir (lo juntado
   // queda tomado) y Josefina pide confianza: con el bosque vacío y el lazo bajo el arco quedaba imposible. Con tu gallinero, siempre hay plumas.

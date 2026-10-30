@@ -237,11 +237,11 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
   p.horas = 22; ok(quien(h, p, { cumple, lugares: { cumple: 10 } }) !== 'cumple-nevada', 'de noche, no');
   p.horas = 16; h.capitulo = IDX.nevada; ok(quien(h, p, { cumple, lugares: { cumple: 10 } }) === 'cumple-nevada', 'sigue abierta el día de la nevada');
   vista(h, 'noche-espera'); ok(quien(h, p, { cumple, lugares: { cumple: 10 } }) !== 'cumple-nevada', 'pero no después de la espera');
-  // las plumas del gallinero
-  const { h: hg, p: pg } = armar('arco'); pg.entradas.pluma = { cantidad: 6 };
-  const terminadas = [{ id: 'gallinero', x: 0, z: 0 }];
-  ok(quien(hg, pg, { terminadas, lugares: { gallinero: 5, refugio: 20 } }) === 'plumas-gallinero', 'seis plumas junto a tu gallinero: plumas-gallinero');
-  ok(quien(hg, pg, { lugares: { refugio: 20 } }) === 'plumas-bosque', 'sin gallinero: las del bosque');
+  // las plumas del gallinero (el disparador es el de la 4.17.1: con tu gallinero, de día, si te faltan plumas)
+  const { h: hg, p: pg } = armar('arco', { horas: 10 });
+  ok(quien(hg, pg, { lugares: { 'gallinero-propio': 3, refugio: 20 } }) === 'plumas-gallinero', 'sin plumas, junto a tu gallinero de día: plumas-gallinero');
+  pg.entradas.pluma = { cantidad: 6 };
+  ok(quien(hg, pg, { lugares: { refugio: 20 } }) === 'plumas-bosque', 'con seis plumas cerca del refugio: las del bosque');
   // abrir el galpón sin golpear: de noche, antes de golpear, repetible
   const { h: hs, p: ps } = armar('golpea', { horas: 22 });
   ok(D.objetosVisibles(hs, E(ps)).includes('puerta-galpon-abrir'), 'de noche, la puerta del galpón se puede abrir sin golpear');
@@ -409,7 +409,7 @@ const MUT = [
   ['historia-disparadores-optativas.js', "cond: (s) => s.pan >= 1 || s.harina >= 1 },", "cond: () => true },", 'Fermín recibe pan sin pan'],
   ['historia-disparadores-optativas.js', "'vuelta-faro': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], lugar: en('faro', 30), cond: (s) => s.acompanante === 'graciela' },", "'vuelta-faro': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], lugar: en('faro', 30) },", 'la vuelta sin Graciela'],
   ['historia-disparadores-optativas.js', "    if (Object.hasOwn(ap, 'e:pan-fermin:quitar:pan-casero:1') || Object.hasOwn(ap, 'e:pan-fermin:quitar:harina:1')) return;\n", "", 'el pan de Fermín se cobra dos veces'],
-  ['historia-disparadores-optativas.js', "cond: (s) => s.plumas >= 6 && s.terminadas.has('gallinero')", "cond: (s) => false && s.plumas >= 6 && s.terminadas.has('gallinero')", 'las plumas del gallinero nunca salen'],
+  ['historia-disparadores-acto3.js', "lugar: en('gallinero-propio', 6), hora: [7, 20], cond: (s) => s.plumas < 6", "lugar: en('gallinero-propio', 6), hora: [7, 20], cond: (s) => false && s.plumas < 6", 'las plumas del gallinero nunca salen'],
   ['historia-disparadores-acto2.js', "cond: (s) => s.decisiones.coihue === 'b' && tablasParaTito(s) },\n  'tablas-tito:hablar'", "cond: (s) => s.decisiones.coihue === 'b' },\n  'tablas-tito:hablar'", 'Tito compra tablas que no tenés'],
   ['historia-arreo.js', "cerca >= Math.min(A.min ?? ARREO.minimas, A.ovejas.length)", "cerca >= Math.min(ARREO.minimas, A.ovejas.length)", 'el mínimo de cada arreo no cuenta'],
   ['historia-noche.js', "flechas: Number.isFinite(op.flechas) && op.flechas > 0 ? Math.min(99, Math.floor(op.flechas)) : NOCHE.flechas,", "flechas: NOCHE.flechas,", 'las flechas de más no llegan a la noche'],

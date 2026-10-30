@@ -32,8 +32,7 @@ export const DISPARADORES_OPTATIVAS = {
   'juntar-ovejas': { cap: 'frios', modo: 'auto', lugar: en('puesto', 40), cond: (s) => s.temas.has('arreo:corral-ramon') },
   // el cumpleaños de la aldea de hoy (en la casa del que cumple o en la plaza), aunque venga la nevada
   'cumple-nevada': { cap: 'arco', modo: 'auto', no: ['noche-espera'], lugar: en('cumple', 18), hora: [15, 21], cond: (s) => !!s.cumple },
-  // las seis plumas del gallinero (no es optativa: es una de las tres maneras de juntar las plumas del arco)
-  'plumas-gallinero': { cap: 'arco', modo: 'auto', lugar: en('gallinero', 10), cond: (s) => s.plumas >= 6 && s.terminadas.has('gallinero') && !s.escenas.has('plumas-bosque') && !s.escenas.has('plumas-josefina') },
+  // (las plumas del gallinero: su disparador es el de la 4.17.1, en historia-disparadores-acto3.js: con tu gallinero, de día, si te faltan plumas)
   // abrir el galpón sin golpear (capítulo 10, de noche, antes de golpear): una broma de ellos, sin castigo; se repite
   'galpon-sin-golpear': { cap: 'golpea', modo: 'interaccion', clave: 'puerta-galpon-abrir', no: ['galpon-golpe'], repetible: true },
 };
