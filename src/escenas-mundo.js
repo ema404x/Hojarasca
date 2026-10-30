@@ -44,6 +44,9 @@ body.escena-en-curso #escena-pie { display: block; }
 #escena-aviso.visible { display: block; }
 `;
 
+// 4.18.0 (C): la cumbrera de tu galponcito sobre el suelo (alto 2,3 + 1,2: construccion.js; la misma de TECHO_GALPONCITO en historia-props-acto3.js)
+export const CUMBRERA_GALPONCITO = 3.52;
+
 // Las poses que se hacen acá (el juego no las tiene): se aplican después de gente.actualizar, mezcladas con lo que ya hizo.
 // Cada brazo: x (adelante, negativo), z (abrirlo; en el brazo 1, positivo es hacia afuera) y el codo (negativo, doblado).
 const mezclar = (o, k, v, w) => { o[k] += (v - o[k]) * w; };
@@ -122,7 +125,9 @@ export function crearEscenasMundo(ctx) {
   }
   function soltarTodos() { for (const k of [...captura.keys()]) soltar(k); }
   function ubicar(n, p, mira) {
-    n.pos.set(p.x, alturaDePie(ctx.T, ctx.col, p.x, p.z, num(p.y)), p.z);
+    // 4.18.0 (C): una altura pedida bien por encima de donde se pisa (el techo del galpón) se respeta; si no, el piso o el entablado de abajo
+    const piso = alturaDePie(ctx.T, ctx.col, p.x, p.z, num(p.y));
+    n.pos.set(p.x, Number.isFinite(p.y) && p.y > piso + 1.2 ? p.y : piso, p.z);
     n.camino = []; n.vel = 0;
     if (mira) { const r = Math.atan2(mira.x - p.x, mira.z - p.z); n.rumboObjetivo = r; n.miraFinal = r; n.g.rotation.y = r; n.rumbo = r; }
   }
@@ -148,7 +153,11 @@ export function crearEscenasMundo(ctx) {
       if (ref && typeof ref === 'object') {
         if (typeof ref.lugar === 'string') {
           const l = lugarDe(ref.lugar);
-          return l && Number.isFinite(l.x) ? { x: l.x + num(ref.dx), z: l.z + num(ref.dz) } : null;
+          if (!l || !Number.isFinite(l.x)) return null;
+          const q = { x: l.x + num(ref.dx), z: l.z + num(ref.dz) };
+          // 4.18.0 (C): `techo: true` = arriba de la cumbrera de tu galponcito (Fermín con la honda); sin galponcito, en el suelo
+          if (ref.techo === true && (ref.lugar === 'galpon-noche' || ref.lugar === 'galpon-propio') && lugarDe('galpon-propio') && ctx.T?.altura) q.y = ctx.T.altura(q.x, q.z) + CUMBRERA_GALPONCITO;
+          return q;
         }
         if (typeof ref.frente === 'string') {
           let b;
@@ -204,9 +213,13 @@ export function crearEscenasMundo(ctx) {
       const c = captura.get(clave); if (!c?.n) return;
       const n = c.n;
       limpiarPose(c);
+      // 4.18.0 (C): «sentado» es una pose de base (Ramón en cama, con la manta): queda sentado toda la escena y los gestos de brazos y cabeza
+      // se hacen sentado; los del juego que ocupan el cuerpo entero (tocar, palear…) no lo levantan. «parado» lo levanta.
+      if (pose === 'sentado') { c.base = 'sentado'; n.pose = 'sentado'; n.asiento = 0.47; return; }
+      if (pose === 'parado') { c.base = null; if (n.pose === 'sentado') n.pose = null; n.asiento = undefined; return; }
       if (!pose || dur <= 0) return;
       c.pose = { nombre: pose, t: 0, dur };
-      if (POSES_DEL_JUEGO.has(pose)) n.pose = pose;
+      if (POSES_DEL_JUEGO.has(pose) && !c.base) n.pose = pose;
       else if (POSES_QUIETUD.has(pose)) n.__quietud = pose;
     },
     aparecer(clave, p, mira) { const c = captura.get(clave); if (!c?.n) return; c.n.dormido = false; c.n.g.visible = true; ubicar(c.n, p, mira); },

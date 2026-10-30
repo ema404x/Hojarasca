@@ -75,6 +75,8 @@ const lugaresDelJuego = () => {
   return r;
 };
 const CLAVES = clavesDelJuego(), LUGARES = lugaresDelJuego();
+// 4.18.0 (C): los puntos de la historia (main.js: puntosDeHistoria) también sirven de ancla, como en el acto II ({ lugar: 'galpon-noche', techo: true }: Fermín en el techo)
+for (const l of (await import('../src/historia-disparadores.js')).LUGARES_HISTORIA) LUGARES.add(l);
 
 // ---------------------------------------------------------------- recorrer los textos de las escenas
 function textosDe(e) {

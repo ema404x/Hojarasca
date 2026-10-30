@@ -8,10 +8,12 @@ import { FRENTE, apagon, hora, con, no, lazoAl } from './historia-escenas-acto2-
 import { pj3, siTrato, siNoche, siDeuda, siAmor, siPerro, primerDe } from './historia-escenas-acto3-util.js';
 
 // los aliados que se ven a la hora de la espera: dependen del lazo (Ramón y Josefina desde +1, Fermín desde +2)
-const aliadosAparecen = () => [
+// (4.18.0 C: a la hora de la espera Fermín está arriba del techo de tu galponcito, con la honda; Ramón, sentado en un cajón)
+const aliadosAparecen = (espera = false) => [
   con(aparece('ramon', FRENTE(3, -2.6)), lazoAl('ramon', 1)),
+  ...(espera ? [con(pose('ramon', 'sentado', { dur: 0.3 }), lazoAl('ramon', 1))] : []),
   con(aparece('josefina', FRENTE(3.4, 2.8)), lazoAl('ema', 1)),
-  con(aparece('fermin', FRENTE(7, -5)), lazoAl('fermin', 2)),
+  con(aparece('fermin', espera ? { lugar: 'galpon-noche', techo: true } : FRENTE(7, -5)), lazoAl('fermin', 2)),
 ];
 
 const cenaCaliente = {
@@ -81,7 +83,7 @@ const nocheEspera = {
   personajes: pj3('ramon', 'josefina', 'fermin', 'martin', 'narra'),
   disparador: { hora: [21.5, 23] },
   pasos: [
-    ...apagon([hora(22, { dur: 0 }), efecto('mundo:nevada-fuerte'), efecto('mundo:defensas-armadas', { donde: FRENTE(12) }), ...aliadosAparecen()], { dur: 2 }),
+    ...apagon([hora(22, { dur: 0 }), efecto('mundo:nevada-fuerte'), efecto('mundo:defensas-armadas', { donde: FRENTE(12) }), ...aliadosAparecen(true)], { dur: 2 }),
     plano('general', FRENTE(14), { desde: 'jugador', dist: 24, alto: 4, miraY: 1.6, dur: 4, mezcla: 0.9 }),
     narra('Nieva con ganas. Los copos son grandes, lentos, y se pegan a todo. Del arroyo sube el ruido del agua negra que corre entre dos bordes blancos. Las estacas, los frascos, los durmientes y la campana están en su lugar.'),
     plano('paneo', FRENTE(4, -4), { hasta: FRENTE(4, 4), desde: 'jugador', dist: 7, alto: 1.6, dur: 5, mezcla: 0.9 }),

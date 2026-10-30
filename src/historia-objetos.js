@@ -7,7 +7,10 @@
 import * as THREE from 'three';
 import { Constructor, matriz } from './geometria.js';
 import { materialVegetal } from './materiales.js';
-import { OBJETOS, RADIO_OBJETO } from './historia-disparadores.js';
+import { OBJETOS as OBJETOS_HIST, RADIO_OBJETO } from './historia-disparadores.js';
+// 4.18.0 (C): los props de los `mundo:` del acto III (historia-props-acto3.js). Si historia-disparadores.js ya los suma a OBJETOS, es el mismo objeto.
+import { OBJETOS_PROPS_ACTO3, propsDeEfecto, puestoDeEfecto, puestoHacia } from './historia-props-acto3.js';
+const OBJETOS = { ...OBJETOS_HIST, ...OBJETOS_PROPS_ACTO3 };
 
 // ---------------------------------------------------------------- cuentas puras
 // Un punto del refugio en coordenadas locales (x a la derecha, z hacia donde mira la puerta) pasado al mundo
@@ -71,6 +74,9 @@ export function objetoCercano(pos, visibles, posiciones, accion) {
 const caja = (c, dims, pos, color, rot = [0, 0, 0], variar = 0.08) => c.agregar(new THREE.BoxGeometry(...dims), { color, tipo: 4, variar, matriz: matriz(pos, rot) });
 const esfera = (c, r, pos, color, esc = [1, 1, 1], variar = 0.05) => c.agregar(new THREE.SphereGeometry(r, 9, 7), { color, tipo: 0, variar, matriz: matriz(pos, [0, 0, 0], esc) });
 const palo = (c, r, largo, pos, rot, color) => c.agregar(new THREE.CylinderGeometry(r, r * 1.1, largo, 7), { color, tipo: 0, variar: 0.1, matriz: matriz(pos, rot) });
+// 4.18.0 (C): una caja de tipo 0 (madera): el material de las estructuras le pone nieve arriba a lo de tipo 4 en invierno, y adentro del refugio o
+// bajo un techo (el mapa en la mesa, la repisa, la manta) eso la dejaba blanca
+const cajaM = (c, dims, pos, color, rot = [0, 0, 0], variar = 0.08) => c.agregar(new THREE.BoxGeometry(...dims), { color, tipo: 0, variar, matriz: matriz(pos, rot) });
 
 const FORMAS = {
   canto: (c) => { esfera(c, 0.15, [0, 0.11, 0], '#f3f0e8', [1, 0.78, 0.9], 0.02); },
@@ -216,6 +222,159 @@ const FORMAS = {
       caja(c, [0.8, 0.05, 0.12], loc(0, 1.45, -0.05), '#b8432f', [0, giro, 0], 0.05);
     }
   },
+  // ---- 4.18.0 (C): los props del acto III (historia-props-acto3.js). +z local mira hacia el jugador (los de escena) o hacia la puerta (los del refugio).
+  // Ramón en cama: el banquito, la manta sobre las rodillas (Ramón se sienta en el origen, mirando a +z) y la estufa de hierro a su derecha
+  'manta-estufa': (c) => {
+    cajaM(c, [0.46, 0.06, 0.4], [0, 0.45, -0.05], '#6b5030', [0, 0, 0], 0.08);
+    for (const [x, z] of [[-0.18, -0.2], [0.18, -0.2], [-0.18, 0.12], [0.18, 0.12]]) palo(c, 0.025, 0.44, [x, 0.22, z], [0, 0, 0], '#4f3a24');
+    cajaM(c, [0.62, 0.09, 0.5], [0, 0.6, 0.2], '#7d3a2c', [0.08, 0, 0], 0.08);    // sobre las rodillas
+    cajaM(c, [0.64, 0.46, 0.06], [0, 0.38, 0.47], '#743427', [0.06, 0, 0], 0.08);   // cae por delante
+    cajaM(c, [0.58, 0.36, 0.08], [0, 0.86, 0.1], '#7d3a2c', [-0.12, 0, 0], 0.08);   // hasta el pecho
+    for (let i = 0; i < 4; i++) cajaM(c, [0.65, 0.025, 0.012], [0, 0.32 + i * 0.1, 0.505], '#c9b48a', [0.06, 0, 0], 0.04);   // las guardas de la manta
+    cajaM(c, [0.55, 0.62, 0.5], [-1.0, 0.31, 0.1], '#2d2b29', [0, 0.2, 0], 0.05);
+    cajaM(c, [0.6, 0.04, 0.55], [-1.0, 0.64, 0.1], '#3a3734', [0, 0.2, 0], 0.04);
+    palo(c, 0.07, 1.7, [-1.05, 1.5, 0.05], [0, 0, 0], '#3a3734');
+    for (const [x, z] of [[-1.2, -0.08], [-0.8, -0.08], [-1.2, 0.28], [-0.8, 0.28]]) palo(c, 0.03, 0.08, [x, 0.02, z], [0, 0, 0], '#2d2b29');
+    for (let i = 0; i < 4; i++) palo(c, 0.05, 0.42, [-1.62, 0.06 + i * 0.1, 0.15 - (i % 2) * 0.12], [Math.PI / 2, 0.3, 0], '#5b4632');   // leña al lado
+  },
+  'atado-canelo': (c) => {
+    for (let i = 0; i < 7; i++) palo(c, 0.012, 0.7, [Math.cos(i) * 0.05, 0.35, Math.sin(i) * 0.05], [0.1 * Math.sin(i * 2), 0, 0.1 * Math.cos(i * 3)], '#5a4a2a');
+    for (let i = 0; i < 9; i++) esfera(c, 0.09, [Math.cos(i * 2.1) * 0.09, 0.62 + (i % 3) * 0.08, Math.sin(i * 2.1) * 0.09], i % 3 ? '#3f6b35' : '#a9b07a', [0.7, 1.5, 0.4], 0.12);
+    caja(c, [0.14, 0.03, 0.14], [0, 0.42, 0], '#b8432f', [0, 0, 0], 0.04);
+  },
+  'tranquera-abierta': (c) => {
+    palo(c, 0.09, 1.4, [-1.6, 0.7, 0], [0, 0, 0], '#5f4a33'); palo(c, 0.09, 1.4, [1.6, 0.7, 0], [0, 0, 0], '#5f4a33');
+    const giro = 1.25;   // la hoja abierta, colgada del poste de la izquierda
+    for (let i = 0; i < 4; i++) caja(c, [3.0, 0.1, 0.06], [-1.6 + Math.cos(giro) * 1.5, 0.35 + i * 0.28, Math.sin(giro) * 1.5], '#8a6b48', [0, -giro, 0], 0.1);
+    caja(c, [0.08, 1.1, 0.08], [-1.6 + Math.cos(giro) * 2.95, 0.75, Math.sin(giro) * 2.95], '#8a6b48', [0, -giro, 0], 0.1);
+  },
+  // el farol en el piso del galpón (el vidrio, en la malla de brillo)
+  'farol-galpon': (c) => {
+    cajaM(c, [0.22, 0.04, 0.22], [0, 0.02, 0], '#2d2b29', [0, 0, 0], 0.04);
+    cajaM(c, [0.24, 0.04, 0.24], [0, 0.36, 0], '#2d2b29', [0, 0, 0], 0.04);
+    palo(c, 0.012, 0.12, [0, 0.44, 0], [0, 0, 1.57], '#2d2b29');
+    for (let i = 0; i < 3; i++) cajaM(c, [0.5, 0.42, 0.34], [0.55 + (i % 2) * 0.1, 0.21 + Math.floor(i / 2) * 0.42, -0.6 + i * 0.35], '#cdbfa0', [0, 0.3 * i, 0], 0.1);   // las bolsas abiertas
+  },
+  'puertita-reves': (c) => {
+    palo(c, 0.05, 0.9, [0, 0.45, 0], [0, 0, 0], '#5f4a33');
+    caja(c, [0.26, 0.4, 0.03], [0, 0.62, 0.06], '#8a5a34', [0, 0, Math.PI], 0.1);
+    esfera(c, 0.022, [-0.07, 0.62, 0.085], '#e7ddc6', [1, 1, 1], 0.02);
+  },
+  'barro-bellotas': (c) => {
+    [[-0.3, 1.25, 0.25], [0.05, 1.05, 0.33], [0.32, 1.38, 0.2], [-0.05, 1.5, 0.16], [0.4, 0.95, 0.22]].forEach(([x, y, r]) => esfera(c, r, [x, y, 0.02], '#4a3726', [1, 0.8, 0.12], 0.12));
+    for (let i = 0; i < 9; i++) { const x = (i - 4) * 0.13, z = 0.15 + (i % 3) * 0.08; esfera(c, 0.035, [x, 0.035, z], '#8a5a2b', [1, 1.3, 1], 0.08); esfera(c, 0.033, [x, 0.065, z], '#5a4028', [1, 0.45, 1], 0.06); }
+  },
+  mapa: (c) => {
+    cajaM(c, [0.72, 0.006, 0.5], [0, 0.003, 0], '#c9b07e', [0, 0.15, 0], 0.03);   // (más oscuro: el papel claro se perdía contra la tabla)
+    cajaM(c, [0.62, 0.008, 0.05], [0, 0.006, 0.05], '#2f5f86', [0, 0.55, 0], 0.03);   // el arroyo
+    for (const [x, z] of [[-0.24, -0.16], [-0.1, -0.2], [0.05, -0.17]]) esfera(c, 0.04, [x, 0.008, z], '#5d7d3a', [1, 0.2, 1], 0.05);   // el bosque
+    cajaM(c, [0.1, 0.02, 0.08], [0.18, 0.01, -0.12], '#4a3220', [0, 0.15, 0], 0.03);   // el galpón
+    cajaM(c, [0.22, 0.012, 0.02], [-0.12, 0.008, 0.16], '#b8432f', [0, -0.4, 0], 0.03);   // la flecha del lado de ataque
+    esfera(c, 0.035, [-0.28, 0.02, 0.18], '#8a877f', [1, 0.6, 1], 0.06);   // una piedra para que no se vuele
+  },
+  'arco-mesa': (c) => {
+    for (let i = 0; i < 7; i++) { const a = -0.6 + i * 0.2, x = Math.sin(a) * 0.75, z = (Math.cos(a) - 0.88) * 0.75; cajaM(c, [0.22, 0.03, 0.035], [x, 0.02, z], '#8a6a40', [0, -a, 0], 0.06); }
+  },
+  puntas: (c) => {
+    for (let i = 0; i < 12; i++) c.agregar(new THREE.ConeGeometry(0.018, 0.07, 5), { color: '#5d5f63', tipo: 0, variar: 0.08, matriz: matriz([(i % 4) * 0.06 - 0.09, 0.012, Math.floor(i / 4) * 0.06 - 0.06], [0, 0, Math.PI / 2]) });
+  },
+  'atado-flechas': (c) => {
+    for (let i = 0; i < 10; i++) { const x = (i % 5) * 0.03 - 0.06, z = Math.floor(i / 5) * 0.03; palo(c, 0.007, 0.85, [x, 0.43, z], [0.06, 0, 0.03 * (i % 3 - 1)], '#8a6a40'); esfera(c, 0.02, [x, 0.84, z + 0.05], '#f0ece2', [0.4, 1.6, 1], 0.04); }
+    cajaM(c, [0.18, 0.03, 0.1], [-0.01, 0.4, 0.015], '#b8432f', [0, 0, 0], 0.04);
+  },
+  // lo prestado, durante la escena que lo trae (en la noche lo arma historia-noche-mundo.js)
+  estacas: (c, info) => {
+    for (let i = 0; i < 7; i++) { const x = (i - 3) * 0.9, y = info.suelo(x, 0); palo(c, 0.06, 1.4, [x, y + 0.5, 0.15], [0.55, 0, 0], '#6b5238'); c.agregar(new THREE.ConeGeometry(0.065, 0.2, 6), { color: '#5d5f63', tipo: 4, variar: 0.06, matriz: matriz([x, y + 1.13, 0.53], [0.55, 0, 0]) }); }
+  },
+  'frascos-miel': (c) => {
+    for (const x of [-0.25, 0.25]) { palo(c, 0.1, 0.22, [x, 0.11, 0], [0, 0, 0], '#c98a2a'); palo(c, 0.105, 0.03, [x, 0.235, 0], [0, 0, 0], '#e9e2d0'); }
+  },
+  empalizada: (c, info) => {
+    for (let i = 0; i < 7; i++) { const x = (i - 3) * 0.3, y = info.suelo(x, 0); caja(c, [0.26, 1.7, 0.15], [x, y + 0.8, 0], i % 2 ? '#4d3b2a' : '#3f3022', [0, 0, 0.03 * (i % 3 - 1)], 0.1); }
+    caja(c, [2.3, 0.15, 0.12], [0, info.suelo(0, 0) + 1.2, -0.13], '#4d3b2a', [0, 0, 0], 0.1);
+  },
+  'campana-palo': (c) => {
+    palo(c, 0.08, 2.3, [0, 1.15, 0], [0, 0, 0], '#5f4a33');
+    caja(c, [0.9, 0.09, 0.09], [0.38, 2.2, 0], '#5f4a33', [0, 0, 0], 0.08);
+    palo(c, 0.01, 0.2, [0.68, 2.06, 0], [0, 0, 0], '#3a3734');
+    c.agregar(new THREE.CylinderGeometry(0.08, 0.17, 0.26, 10), { color: '#9a7a3a', tipo: 4, variar: 0.05, matriz: matriz([0.68, 1.85, 0]) });
+  },
+  'pirca-alta': (c, info) => {
+    const r = Math.max(0.8, Number(info?.r) || 1.4) + 0.95;
+    for (let k = 0; k < 2; k++) for (let i = 0; i < 15; i++) { const a = ((i + k * 0.5) / 15) * Math.PI * 2; esfera(c, 0.2, [Math.cos(a) * (r - 0.1 - k * 0.05), 0.6 + k * 0.2, Math.sin(a) * (r - 0.1 - k * 0.05)], i % 2 ? '#8d8a82' : '#7d7a72', [1, 0.7, 1], 0.12); }
+  },
+  // la aldea en la loma: siluetas con su farol (el vidrio, en la malla de brillo), en una fila que sigue el suelo
+  faroles: (c, info) => {
+    for (let i = 0; i < 12; i++) {
+      const x = (i - 5.5) * 2.1 + Math.sin(i * 1.7) * 0.4, z = Math.sin(i * 0.9) * 1.2, y = info.suelo(x, z), chico = i % 4 === 3, k = chico ? 0.7 : 1;
+      caja(c, [0.42 * k, 1.05 * k, 0.3 * k], [x, y + 0.55 * k, z], '#24211e', [0, 0.2 * Math.sin(i), 0], 0.12);
+      esfera(c, 0.14 * k, [x, y + 1.2 * k, z], '#2c2824', [1, 1.1, 1], 0.08);
+      palo(c, 0.012, 0.22, [x + 0.26 * k, y + 0.98 * k, z + 0.05], [0, 0, 0], '#24211e');
+    }
+  },
+  'cartel-tabla': (c) => {
+    palo(c, 0.06, 1.7, [-0.75, 0.85, 0], [0, 0, 0], '#5f4a33'); palo(c, 0.06, 1.7, [0.75, 0.85, 0], [0, 0, 0], '#5f4a33');
+    caja(c, [1.75, 0.42, 0.05], [0, 1.45, 0.05], '#a07a4a', [0, 0, 0], 0.08);
+    for (let i = 0; i < 6; i++) caja(c, [0.16 + (i % 3) * 0.05, 0.12, 0.012], [-0.65 + i * 0.26, 1.47, 0.08], '#3a2a1c', [0, 0, 0], 0.04);   // «Puesto Catrileo», a pincel
+  },
+  'cartel-chapa': (c, info) => {
+    const r = Math.max(0.8, Number(info?.r) || 1.4), a = 1.2, x = Math.cos(a) * (r + 0.06), z = Math.sin(a) * (r + 0.06);
+    caja(c, [0.42, 0.26, 0.015], [x, 1.45, z], '#9aa3a8', [0, Math.PI / 2 - a, 0], 0.04);
+    for (let i = 0; i < 3; i++) caja(c, [0.3 - i * 0.06, 0.03, 0.006], [x + Math.cos(a) * 0.012, 1.52 - i * 0.06, z + Math.sin(a) * 0.012], '#2d3236', [0, Math.PI / 2 - a, 0], 0.03);
+  },
+  'puertita-nueva': (c) => {
+    caja(c, [0.28, 0.42, 0.035], [0, 0.22, 0], '#c8a274', [-0.12, 0, 0], 0.06);
+    caja(c, [0.04, 0.12, 0.04], [-0.14, 0.3, 0.02], '#6a4a30', [-0.12, 0, 0], 0.05);
+    caja(c, [0.04, 0.12, 0.04], [-0.14, 0.12, 0.02], '#6a4a30', [-0.12, 0, 0], 0.05);
+    esfera(c, 0.022, [0.08, 0.22, 0.03], '#e7ddc6', [1, 1, 1], 0.02);
+  },
+  // las puertitas de la raíz, abiertas de par en par, vacías y con telarañas (entre las de siempre, que quedan cerradas)
+  'puertitas-abiertas': (c, info) => {
+    const r = Math.max(0.8, Number(info?.r) || 1.4);
+    [1.2, 2.65, 4.15, 5.6].forEach((a) => {
+      const cx = Math.cos(a) * (r + 0.03), cz = Math.sin(a) * (r + 0.03), giro = Math.PI / 2 - a;
+      caja(c, [0.24, 0.34, 0.02], [cx, 0.2, cz], '#1c1511', [0, giro, 0], 0.05);   // el hueco
+      const bx = cx + Math.cos(a) * 0.12 + Math.cos(giro) * 0.14, bz = cz + Math.sin(a) * 0.12 - Math.sin(giro) * 0.14;
+      caja(c, [0.22, 0.32, 0.03], [bx, 0.2, bz], '#6e4a2a', [0, giro + 1.3, 0], 0.1);   // la hoja abierta
+      for (let k = 0; k < 3; k++) caja(c, [0.28, 0.006, 0.006], [cx + Math.cos(a) * 0.02, 0.12 + k * 0.1, cz + Math.sin(a) * 0.02], '#d8d8d0', [0, giro, 0.5 - k * 0.5], 0.02);   // telarañas
+    });
+  },
+  bellota: (c) => {
+    esfera(c, 0.05, [0, 0.06, 0], '#8a5a2b', [1, 1.35, 1], 0.06);
+    esfera(c, 0.052, [0, 0.11, 0], '#5a4028', [1, 0.5, 1], 0.06);
+    palo(c, 0.006, 0.03, [0, 0.145, 0], [0, 0, 0], '#5a4028');
+  },
+  'bolsa-doblada': (c) => {
+    caja(c, [0.42, 0.05, 0.3], [0, 0.025, 0], '#cdbfa0', [0, 0.25, 0], 0.06);
+    caja(c, [0.4, 0.03, 0.14], [0.01, 0.06, -0.06], '#c4b593', [0, 0.25, 0], 0.06);
+    caja(c, [0.44, 0.012, 0.02], [0, 0.08, 0], '#b8432f', [0, 0.25, 0], 0.03);
+  },
+  // el arco y la honda colgados en la pared izquierda del refugio (la pared queda a −x: el arco va en el plano y-z)
+  'arco-honda': (c) => {
+    for (let i = 0; i < 7; i++) { const a = -0.6 + i * 0.2, z = Math.sin(a) * 0.72, y = 1.0 + (Math.cos(a) - 0.88) * 0.72; cajaM(c, [0.035, 0.22, 0.03], [-0.02, y, z], '#8a6a40', [a, 0, 0], 0.06); }
+    cajaM(c, [0.008, 0.008, 0.98], [0.0, 1.0 - 0.12 * 0.72, 0], '#e9e2d0', [0, 0, 0], 0.02);   // la cuerda
+    palo(c, 0.008, 0.55, [-0.01, 0.75, 0.75], [0, 0, 0], '#7a5a38'); palo(c, 0.008, 0.55, [-0.01, 0.75, 0.85], [0, 0, 0], '#7a5a38');
+    cajaM(c, [0.03, 0.11, 0.09], [-0.01, 0.47, 0.8], '#5a3d26', [0, 0, 0], 0.06);   // el cuero de la honda
+    esfera(c, 0.02, [0, 1.03, 0.8], '#5f5f5f', [1, 1, 1], 0.04);   // el clavo
+  },
+  // sobre la estantería de verdad del refugio (la del fondo, estructuras.js), en la punta libre de la tabla de abajo: la puertita abierta y el piñón
+  'repisa-puertita': (c) => {
+    cajaM(c, [0.15, 0.24, 0.02], [0, 0.12, -0.08], '#6e4a2a', [0, 0, 0], 0.08);
+    cajaM(c, [0.14, 0.23, 0.02], [0.06, 0.12, 0.0], '#8a5a34', [0, -1.2, 0], 0.1);   // abierta
+    esfera(c, 0.025, [-0.01, 0.035, -0.04], '#6a4428', [1, 1.6, 1], 0.06);   // el piñón tostado
+  },
+  // el frasco de masa madre de 1987 (la optativa del acto I; el objeto es de A): en la punta libre de la tabla de arriba de la estantería
+  frasco: (c) => {
+    palo(c, 0.065, 0.17, [0, 0.085, 0], [0, 0, 0], '#d9d2b8');   // el frasco
+    palo(c, 0.05, 0.09, [0, 0.06, 0], [0, 0, 0], '#efe6cc');     // la masa adentro
+    palo(c, 0.072, 0.03, [0, 0.18, 0], [0, 0, 0], '#b8432f');    // la tapa, con el trapito colorado
+  },
+  pan: (c) => {
+    cajaM(c, [0.42, 0.04, 0.32], [0, 0.02, 0], '#e9e2d0', [0, 0.2, 0], 0.04);   // el repasador
+    esfera(c, 0.13, [0, 0.1, 0], '#b9803e', [1.3, 0.62, 1], 0.08);
+    for (let i = 0; i < 3; i++) cajaM(c, [0.02, 0.01, 0.16], [-0.06 + i * 0.06, 0.175, 0], '#e3c08a', [0, 0.2, 0.15], 0.04);   // los cortes
+  },
+  'repisa-canto': (c) => { esfera(c, 0.1, [-0.02, 0.07, 0], '#f3f0e8', [1, 0.78, 0.9], 0.02); },   // (en la estantería, como la puertita)
   raiz: (c) => {
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2 + 0.3;
@@ -225,12 +384,41 @@ const FORMAS = {
   },
 };
 
+// 4.18.0 (C): lo que brilla (la misma forma, en una segunda malla con MeshBasicMaterial y color de vértice: no le llega la luz, se ve de noche)
+const brilla = (c, r, pos, color, esc = [1, 1, 1]) => c.agregar(new THREE.SphereGeometry(r, 8, 6), { color, tipo: 0, variar: 0.04, matriz: matriz(pos, [0, 0, 0], esc) });
+const FORMAS_BRILLO = {
+  'manta-estufa': (c) => { caja(c, [0.26, 0.14, 0.02], [-0.98, 0.26, 0.37], '#ff8a32', [0, 0.2, 0], 0.08); },   // la boca de la estufa
+  'farol-galpon': (c) => {
+    brilla(c, 0.11, [0, 0.2, 0], '#ffc25a', [1, 1.35, 1]);
+    for (let i = 0; i < 5; i++) { const a = i * 1.26; caja(c, [0.9, 0.01, 0.05], [Math.cos(a) * 0.75, 0.005, Math.sin(a) * 0.75], '#8a5a20', [0, -a, 0], 0.15); }   // la luz que se cuela entre las tablas del piso
+  },
+  faroles: (c, info) => {
+    for (let i = 0; i < 12; i++) {
+      const x = (i - 5.5) * 2.1 + Math.sin(i * 1.7) * 0.4, z = Math.sin(i * 0.9) * 1.2, y = info.suelo(x, z), k = i % 4 === 3 ? 0.7 : 1;
+      brilla(c, 0.13, [x + 0.26 * k, y + 0.82 * k, z + 0.05], i % 3 ? '#ffcf6a' : '#ffb44a', [1, 1.3, 1]);
+    }
+  },
+  // veinte lucecitas ámbar en semicírculo, bajitas, en las raíces (de a una: se prenden escalonadas con la escena; acá ya están las veinte)
+  lucecitas: (c, info) => {
+    for (let i = 0; i < 20; i++) { const a = Math.PI * (0.08 + 0.84 * (i / 19)), r = 3.2 + Math.sin(i * 2.3) * 0.5, x = Math.cos(a) * r, z = Math.sin(a) * r * 0.7; brilla(c, 0.05 + (i % 3) * 0.01, [x, info.suelo(x, z) + 0.25 + (i % 4) * 0.12, z], i % 2 ? '#ffbe4d' : '#ffd27a'); }
+  },
+  'lucecitas-tres': (c) => { for (let i = 0; i < 3; i++) brilla(c, 0.045, [(i - 1) * 0.18, 0.55 + (i % 2) * 0.08, Math.sin(i) * 0.05], '#ffc25a'); },
+  'lucecitas-ronda': (c, info) => {
+    for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2, x = Math.cos(a) * 3.6, z = Math.sin(a) * 3.6; brilla(c, 0.05, [x, info.suelo(x, z) + 0.7 + (i % 5) * 0.25, z], i % 2 ? '#ffbe4d' : '#ffd27a'); }
+  },
+};
+// las formas que siguen el suelo (anchas: una fila de 24 m sobre la loma) se rearman cuando cambian de lugar
+const SIGUE_SUELO = new Set(['faroles', 'lucecitas', 'lucecitas-ronda', 'estacas', 'empalizada']);
+const enEscenaDom = () => { try { return typeof document !== 'undefined' && !!document.body?.classList?.contains('escena-en-curso'); } catch { return false; } };
+
 // `ctx`: { T, escena, grupo?, refugio: () => ref, molino: () => { raiz, arbol } | null, puntos: () => ({ nombre: {x, z} }), alturaDePie?: (x, z) => y }
 // 4.16.0: los puntos con nombre (el galponcito de tu obra, la estación, el faro…) pueden cambiar o aparecer más tarde: la posición se recalcula en cada
 // `mostrar` (cada medio segundo) y el objeto se mueve si hace falta.
 export function crearObjetosHistoria(ctx) {
   const mat = materialVegetal({ flex: 0 });
   const mallas = {}, posiciones = {}, claves = {};
+  // 4.18.0 (C): lo que puso un efecto de la escena que está corriendo: id → { puesto } o { apaga, hasta }. Se borra cuando la escena termina.
+  const enEscena = {};
   const grupo = new THREE.Group();
   grupo.name = 'historia-objetos';
   (ctx.grupo || ctx.escena).add(grupo);
@@ -258,57 +446,117 @@ export function crearObjetosHistoria(ctx) {
       pie(desdeP.x + dx * u + Math.cos(ang) * (0.13 * lado + ondula), desdeP.z + dz * u - Math.sin(ang) * (0.13 * lado + ondula), lado);
     }
   }
-  function armarMalla(id, q) {
+  // 4.18.0 (C): el suelo debajo de un punto local de la forma (para las que son anchas), relativo al suelo del origen
+  const sueloLocal = (q, rot) => {
+    const y0 = alt(q.x, q.z), c = Math.cos(rot), s = Math.sin(rot);
+    return (lx, lz) => { const x = q.x + lx * c + lz * s, z = q.z - lx * s + lz * c; const y = alt(x, z); return Number.isFinite(y) ? Math.max(-3, Math.min(3, y - y0)) : 0; };
+  };
+  function armarMalla(id, q, rot = 0) {
     const o = OBJETOS[id];
-    if (!o.forma || (o.forma !== 'huellas' && !Object.hasOwn(FORMAS, o.forma))) return;   // (la nota de la mesa, el cuaderno de la mesa y las raíces sin malla se usan con la E)
-    const c = new Constructor();
-    if (o.forma === 'huellas') {
-      const hasta = ctx.puntos?.()?.[o.hasta];
-      if (!hasta) return;
-      huellas(c, q, hasta);
-      claves[id] = claveHuellas(q, hasta);
-    } else FORMAS[o.forma](c, { r: ctx.molino?.()?.arbol?.r });
-    const m = new THREE.Mesh(c.geometria(), mat);
+    const conForma = !!o.forma && Object.hasOwn(FORMAS, o.forma), conBrillo = !!o.forma && Object.hasOwn(FORMAS_BRILLO, o.forma);
+    if (!o.forma || (o.forma !== 'huellas' && !conForma && !conBrillo)) return;   // (la nota de la mesa, el cuaderno de la mesa y las raíces sin malla se usan con la E)
+    const info = { r: ctx.molino?.()?.arbol?.r, suelo: SIGUE_SUELO.has(o.forma) ? sueloLocal(q, rot) : () => 0 };
+    let m = null;
+    if (o.forma === 'huellas' || conForma) {
+      const c = new Constructor();
+      if (o.forma === 'huellas') {
+        const hasta = ctx.puntos?.()?.[o.hasta];
+        if (!hasta) return;
+        huellas(c, q, hasta);
+        claves[id] = claveHuellas(q, hasta);
+      } else FORMAS[o.forma](c, info);
+      m = new THREE.Mesh(c.geometria(), mat);
+      m.castShadow = false; m.receiveShadow = true;   // (sin sombra propia: un dibujo menos en el mapa de sombras y ningún programa de profundidad nuevo cuando sale a la luz de día)
+    }
+    // 4.18.0 (C): lo que brilla, en una malla hija (o sola, si no hay otra): sin sombra y sin luz
+    if (conBrillo) {
+      const c = new Constructor();
+      FORMAS_BRILLO[o.forma](c, info);
+      if (!matBrillo) matBrillo = new THREE.MeshBasicMaterial({ vertexColors: true });
+      const b = new THREE.Mesh(c.geometria(), matBrillo);
+      b.castShadow = false; b.receiveShadow = false; b.name = `historia-brillo:${id}`;
+      if (m) m.add(b); else m = b;
+    }
     m.name = `historia-objeto:${id}`;
-    m.castShadow = false; m.receiveShadow = true;   // (sin sombra propia: un dibujo menos en el mapa de sombras y ningún programa de profundidad nuevo cuando sale a la luz de día)
     m.visible = false;
+    if (SIGUE_SUELO.has(o.forma)) claves[id] = `${q.x.toFixed(1)},${q.z.toFixed(1)},${rot.toFixed(2)}`;
     grupo.add(m);
     mallas[id] = m;
   }
+  function quitarMalla(id) {
+    const m = mallas[id]; if (!m) return;
+    grupo.remove(m);
+    m.traverse((x) => { if (x.geometry) x.geometry.dispose(); });
+    delete mallas[id]; delete claves[id];
+  }
+  // 4.18.0 (C): dónde va mientras dura la escena que lo trae (si la escena lo pide), si no su lugar de siempre
+  function puestoDe(id) {
+    const e = enEscena[id];
+    if (e?.puesto) return e.puesto;
+    const o = OBJETOS[id];
+    if (o.hacia) return puestoHacia(o, ctx.puntos?.());
+    if (o.soloEscena && !o.punto) return null;
+    return lugarDe(id);
+  }
   function colocar(id) {
-    const q = lugarDe(id);
+    const q = puestoDe(id);
     if (!q) { delete posiciones[id]; if (mallas[id]) mallas[id].visible = false; return null; }
     const antes = posiciones[id];
     posiciones[id] = { x: q.x, z: q.z };
     const o = OBJETOS[id];
     if (o.forma === 'huellas') {
       const k = claveHuellas(q, ctx.puntos?.()?.[o.hasta]);
-      if (mallas[id] && claves[id] !== k) { grupo.remove(mallas[id]); mallas[id].geometry.dispose(); delete mallas[id]; }
+      if (mallas[id] && claves[id] !== k) quitarMalla(id);
       if (!mallas[id] && k) armarMalla(id, q);
       return q;
     }
-    if (!mallas[id]) armarMalla(id, q);
+    const rot = Number.isFinite(q.rot) ? q.rot : Number.isFinite(o.lx) ? (Number(ctx.refugio()?.rot) || 0) + (id === 'puertita' ? 0.4 : 0) : 0;
+    if (mallas[id] && SIGUE_SUELO.has(o.forma) && claves[id] !== `${q.x.toFixed(1)},${q.z.toFixed(1)},${rot.toFixed(2)}`) { const vis = mallas[id].visible; quitarMalla(id); armarMalla(id, q, rot); if (mallas[id]) mallas[id].visible = vis; }
+    if (!mallas[id]) armarMalla(id, q, rot);
     const m = mallas[id];
-    if (m && (!antes || antes.x !== q.x || antes.z !== q.z || m.userData.puesto !== true)) {
+    if (m && (!antes || antes.x !== q.x || antes.z !== q.z || m.userData.puesto !== true || m.rotation.y !== rot)) {
       m.position.set(q.x, alt(q.x, q.z) + (Number(o.y) || 0), q.z);
-      m.rotation.y = Number.isFinite(o.lx) ? (Number(ctx.refugio()?.rot) || 0) + (id === 'puertita' ? 0.4 : 0) : 0;
+      m.rotation.y = rot;
       m.userData.puesto = true;
     }
     return q;
   }
   function armar() { for (const id of Object.keys(OBJETOS)) colocar(id); }
   armar();
-  // Qué se ve: lo que dice la historia (los demás se esconden)
+  let ultimosIds = [];
+  const visibleAhora = (id, set) => {
+    const o = OBJETOS[id], e = enEscena[id];
+    if (e?.apagado) return false;
+    if (Object.values(enEscena).some((x) => x.apaga === id)) return false;
+    return (o.soloEscena ? false : set.has(id)) || (!!e && !o.apaga);
+  };
+  // Qué se ve: lo que dice la historia (los demás se esconden), más lo que puso la escena en curso
   function mostrar(ids) {
-    const set = new Set(ids);
-    for (const id of Object.keys(OBJETOS)) { colocar(id); if (mallas[id]) mallas[id].visible = set.has(id) && !!posiciones[id]; }
+    ultimosIds = Array.isArray(ids) ? ids : [];
+    if (Object.keys(enEscena).length && !enEscenaDom()) for (const k of Object.keys(enEscena)) delete enEscena[k];
+    const set = new Set(ultimosIds);
+    for (const id of Object.keys(OBJETOS)) { colocar(id); if (mallas[id]) mallas[id].visible = visibleAhora(id, set) && !!posiciones[id]; }
+  }
+  // 4.18.0 (C): un efecto de escena (`mundo:<id>` o `duende:<id>`; lo llama main.js): `p` es dónde lo pone la escena (o null), `jug` = { pos, yaw }
+  function efecto(clave, p, jug) {
+    const ids = propsDeEfecto(clave);
+    for (const id of ids) {
+      const o = OBJETOS[id];
+      if (o.apaga) { enEscena[id] = { apaga: o.apaga.prop, hasta: o.apaga.hasta }; continue; }
+      const puesto = o.usaDonde || o.frente ? puestoDeEfecto(o, o.usaDonde ? p : null, jug) : null;
+      enEscena[id] = { puesto };
+    }
+    // el que vuelve a prender lo que otro apagó
+    for (const [k, e] of Object.entries(enEscena)) if (e.hasta === clave) delete enEscena[k];
+    if (ids.length || clave) mostrar(ultimosIds);
+    return ids;
   }
   // el molino viejo se calcula después (necesita el terreno y los árboles): se vuelve a ubicar la raíz
   function reubicar() {
-    for (const m of Object.values(mallas)) { grupo.remove(m); m.geometry?.dispose?.(); }
-    for (const k of Object.keys(mallas)) delete mallas[k];
+    for (const id of Object.keys(mallas)) quitarMalla(id);
     for (const k of Object.keys(claves)) delete claves[k];
     armar();
   }
-  return { mostrar, reubicar, posiciones, mallas, grupo, cercano: (pos, visibles, accion) => objetoCercano(pos, visibles, posiciones, accion) };
+  return { mostrar, reubicar, efecto, enEscena, posiciones, mallas, grupo, cercano: (pos, visibles, accion) => objetoCercano(pos, visibles, posiciones, accion) };
 }
+let matBrillo = null;   // 4.18.0 (C): MeshBasicMaterial con color de vértice, como las brasas de la aldea (el mismo programa)

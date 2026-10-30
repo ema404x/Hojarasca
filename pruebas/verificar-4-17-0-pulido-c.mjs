@@ -131,8 +131,10 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   // ---------------------------------------------------------------- 2. la colocación del jugador
   const entradas = Object.entries(COL.COLOCACION_PULIDO);
   ok(entradas.length >= 20, `hay colocación para ${entradas.length} escenas (mínimo 20)`);
+  // (4.18.0 C: también las del acto III; están en verificar-4-18-0-pulido-c.mjs)
+  const ESC3 = (await import(pathToFileURL(join(raiz, 'src', 'historia-escenas-acto3.js')).href)).ESCENAS_ACTO3;
   for (const [id, c] of entradas) {
-    ok(Object.hasOwn(ESC, id), `${id}: la colocación es de una escena que existe`);
+    ok(Object.hasOwn(ESC, id) || Object.hasOwn(ESC3, id), `${id}: la colocación es de una escena que existe`);
     const v = COL.validarColocacion(c);
     ok(v.ok, `${id}: colocación válida (${v.errores.join(', ')})`);
   }
