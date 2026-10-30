@@ -321,7 +321,7 @@ async function chequear(arch = '', sufijo = '') {
     // cada una de las 21 escenas tiene su disparador, y cada disparador una escena conocida
     const ids1 = D.ESCENAS_ACTO1_IDS;
     ok(ids1.length === 21 && new Set(ids1).size === 21, 'son 21 escenas');
-    const ids = [...ids1, ...A2D.ESCENAS_ACTO2_IDS, ...A3D.ESCENAS_ACTO3_IDS];   // (4.16.0: y las del acto II)
+    const ids = [...ids1, ...A2D.ESCENAS_ACTO2_IDS, ...A3D.ESCENAS_ACTO3_IDS, ...Object.keys((await imp('historia-disparadores-optativas.js')).DISPARADORES_OPTATIVAS)];   // (4.16.0: y las del acto II; 4.18.0: y las de las optativas)
     const conDisp = new Set(Object.entries(D.DISPARADORES).map(([k, d]) => d.escena || k));
     for (const id of ids1) ok(conDisp.has(id), `${id}: tiene su disparador`);
     for (const id of conDisp) ok(ids.includes(id), `${id}: el disparador es de una escena conocida`);
@@ -678,7 +678,7 @@ async function chequear(arch = '', sufijo = '') {
       'if (progreso && !esDesafio && historiaVieja(progreso)) {',
       'if (debeReiniciar(progreso, \'relax\')) {',
       'registrarEfectosHistoria(escenasMundo,',
-      'for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3)])',
+      'for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3), ...Object.values(ESCENAS_OPTATIVAS)])',   // (4.18.0: y las de las optativas)
       "if (!desafio && valle?.alHablarCon?.(npc.clave)) return;",
       'valle?.hablo(npc.clave);',
       'historiaPuerta: () => historiaPuertaCerca(),',

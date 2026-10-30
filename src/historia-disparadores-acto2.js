@@ -10,6 +10,8 @@ const diaVista = (h, id) => Math.max(0, Math.floor(Number(h?.escenas?.vistas && 
 // cuánto se cuenta desde que empezó el capítulo en curso
 const desde = (s, h, k) => Math.max(0, (Number(s[k]) || 0) - (Number(h?.base?.[k]) || 0));
 const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
+// 4.18.0: las seis tablas para Tito (las de coihue del tocón o tablas comunes)
+const tablasParaTito = (s) => (Number(s.tablasCoihue) || 0) >= 6 || (Number(s.tablas) || 0) >= 6;
 
 // Los lugares nuevos de los que el juego pasa la distancia (los arma `puntosDeHistoria` de main.js)
 export const LUGARES_ACTO2 = ['molino-propio', 'galpon-propio', 'aserradero-propio', 'raiz-ramon', 'coihue',
@@ -34,8 +36,9 @@ export const DISPARADORES_ACTO2 = {
   'truchas-nicanor': { cap: 'rueda', modo: 'hablar', clave: 'nicanor', requiere: ['piedras-molino'] },
   // 4.17.0 (C): Tito (el carpintero) no es un vecino al que se le hable siempre: si está en la aldea, la E lo trae; y si pasás por su carpintería de día, sale solo
   // (la escena lo hace aparecer ahí). Sólo si D2 = talarlo y con tabla de coihue en la mano
-  'tablas-tito': { cap: 'rueda', modo: 'auto', requiere: ['piedras-molino'], lugar: en('carpinteria', 12), hora: [8, 19], cond: (s) => s.decisiones.coihue === 'b' },
-  'tablas-tito:hablar': { escena: 'tablas-tito', cap: 'rueda', modo: 'hablar', clave: 'carpintero', requiere: ['piedras-molino'], cond: (s) => s.decisiones.coihue === 'b' },
+  // (4.18.0: con las seis tablas en la mochila: la escena se las vende y cobra; ver historia-disparadores-optativas.js)
+  'tablas-tito': { cap: 'rueda', modo: 'auto', requiere: ['piedras-molino'], lugar: en('carpinteria', 12), hora: [8, 19], cond: (s) => s.decisiones.coihue === 'b' && tablasParaTito(s) },
+  'tablas-tito:hablar': { escena: 'tablas-tito', cap: 'rueda', modo: 'hablar', clave: 'carpintero', requiere: ['piedras-molino'], cond: (s) => s.decisiones.coihue === 'b' && tablasParaTito(s) },
   // ---- capítulo 6 · Lo que se pierde, aparece
   'luces-lago-nicanor': { cap: 'perdido', modo: 'hablar', clave: 'nicanor' },
   'perdidas-devueltas': { cap: 'perdido', modo: 'hablar', clave: 'ercilia', cond: (s) => PERDIDAS_ACTO2.every((x) => s.objetos.has(x)) },

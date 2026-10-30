@@ -230,7 +230,7 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   {
     const quien = (a, extra = {}) => DIS.escenaPendiente(a.h, a.s(), extra);
     // tablas-tito: sólo con D2 = talarlo, de día, junto a su carpintería (o la E sobre él)
-    const t = (est, hora = 10, dec = { coihue: 'b' }) => { const a = armar(4, { dec, est }); a.p.horas = hora; H.marcarTema(a.h, 'x', 'y', 8); EN.marcarVista(a.h, 'piedras-molino', 8); return a; };
+    const t = (est, hora = 10, dec = { coihue: 'b' }) => { const a = armar(4, { dec, est }); a.p.horas = hora; a.p.cosas['tabla-coihue'] = 6; /* (4.18.0: con las seis tablas en la mochila) */ H.marcarTema(a.h, 'x', 'y', 8); EN.marcarVista(a.h, 'piedras-molino', 8); return a; };
     ok(quien(t({ lugares: { carpinteria: 8 } })) === 'tablas-tito', 'tablas-tito sale solo al pasar por la carpintería de día con D2 = talarlo');
     ok(quien(t({ lugares: { carpinteria: 30 } })) !== 'tablas-tito', 'lejos de la carpintería no sale');
     ok(quien(t({ lugares: { carpinteria: 8 } }, 22)) !== 'tablas-tito', 'de noche no sale');
@@ -347,7 +347,7 @@ const MUTACIONES = [
   ['historia-colocacion.js', 'la validación acepta cualquier distancia', "if (c.dist !== undefined && !(Number.isFinite(c.dist) && c.dist >= 1.5 && c.dist <= 30)) e.push('dist fuera de 1,5 a 30 m');", ''],
   ['historia-colocacion.js', 'delante de una persona ignora hacia dónde mira', "if (c.desde === 'frente') base = Number.isFinite(F0.rumbo) ? F0.rumbo : 0;", "if (c.desde === 'frente') base = 0;"],
   ['historia-colocacion.js', 'el corrimiento de la mirada se pierde', 'const M = { x: F.x + num(c.mira?.dx), z: F.z + num(c.mira?.dz) };', 'const M = { x: F.x, z: F.z };'],
-  ['historia-disparadores-acto2.js', 'tablas-tito sale con cualquier decisión', "cond: (s) => s.decisiones.coihue === 'b' },\n  'tablas-tito:hablar'", 'cond: () => true },\n  \'tablas-tito:hablar\''],
+  ['historia-disparadores-acto2.js', 'tablas-tito sale con cualquier decisión', "cond: (s) => s.decisiones.coihue === 'b' && tablasParaTito(s) },\n  'tablas-tito:hablar'", 'cond: () => true },\n  \'tablas-tito:hablar\''],   // (4.18.0: y con las tablas)
   ['historia-disparadores-acto2.js', 'foto-sofia sale sin la foto', "cond: (s) => s.temas.has('obj:foto-movida') },\n  'foto-sofia:hablar'", "cond: () => true },\n  'foto-sofia:hablar'"],
   ['historia-disparadores-acto2.js', 'mulas-belisario es de otra persona', "clave: 'belisario', requiere: ['los-del-cerro'] },", "clave: 'ercilia', requiere: ['los-del-cerro'] },"],
   ['historia-disparadores-acto2.js', 'la foto movida no se ve', "visible: (s) => s.temas.has('obj:foto-movida'),", 'visible: () => false,'],

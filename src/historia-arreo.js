@@ -4,11 +4,16 @@
 export const ARREO = { ovejas: 7, radioLlegada: 16, cerca: 22, sigue: 26, vel: 4.6, velCaballo: 6.5, separacion: 1.5, detras: 3.2, minimas: 5 };
 export const DESTINOS_ARREO = { a: { destino: 'galpon-esquila', punto: 'galpon' }, c: { destino: 'puesto-paso', punto: 'puesto-paso' } };
 
-export function crearArreo({ origen, destino, n = ARREO.ovejas, azar = Math.random }) {
+// 4.18.0: `posiciones` (opcional): dónde arranca cada oveja (la oveja escapada, las desparramadas); `min`: cuántas tienen que llegar (por defecto,
+// ARREO.minimas: con las desparramadas, todas)
+export function crearArreo({ origen, destino, n = ARREO.ovejas, azar = Math.random, posiciones = null, min = null }) {
   const ovejas = [];
-  for (let i = 0; i < n; i++) ovejas.push({ x: origen.x + (azar() - 0.5) * 6, z: origen.z + (azar() - 0.5) * 6, rumbo: azar() * 6.28, vel: 0 });
-  return { destino: { x: destino.x, z: destino.z }, ovejas, llegado: false, sigueA: 0 };
+  if (Array.isArray(posiciones) && posiciones.length) for (const p of posiciones) ovejas.push({ x: p.x, z: p.z, rumbo: azar() * 6.28, vel: 0 });
+  else for (let i = 0; i < n; i++) ovejas.push({ x: origen.x + (azar() - 0.5) * 6, z: origen.z + (azar() - 0.5) * 6, rumbo: azar() * 6.28, vel: 0 });
+  return { destino: { x: destino.x, z: destino.z }, ovejas, llegado: false, sigueA: 0, min: Number.isFinite(min) && min > 0 ? Math.floor(min) : ARREO.minimas };
 }
+// Cuántas ovejas ya están cerca del destino (para el avance de las desparramadas)
+export const cercaDelDestino = (A) => (A ? A.ovejas.filter((o) => Math.hypot(o.x - A.destino.x, o.z - A.destino.z) <= ARREO.cerca).length : 0);
 // `lider`: { x, z, yaw?, aCaballo? }. Devuelve true la primera vez que llega.
 export function pasoArreo(A, lider, dt, alt = null) {
   if (A.llegado) return false;
@@ -37,6 +42,6 @@ export function pasoArreo(A, lider, dt, alt = null) {
   }
   A.sigueA = sigue;
   const cerca = A.ovejas.filter((o) => Math.hypot(o.x - A.destino.x, o.z - A.destino.z) <= ARREO.cerca).length;
-  if (Math.hypot(dx, dz) <= ARREO.radioLlegada && cerca >= Math.min(ARREO.minimas, A.ovejas.length)) { A.llegado = true; return true; }
+  if (Math.hypot(dx, dz) <= ARREO.radioLlegada && cerca >= Math.min(A.min ?? ARREO.minimas, A.ovejas.length)) { A.llegado = true; return true; }
   return false;
 }

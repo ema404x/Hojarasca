@@ -427,7 +427,7 @@ const MUT = [
   ['historia-disparadores-acto3.js', "cond: (s) => s.prestadoN >= 3 },", "cond: (s) => true },", 'recorrer el lado sin lo prestado'],
   ['historia-disparadores-acto3.js', "if (c.bolsa === 'llena' && dia > c.dia) {", "if (c.bolsa === 'llena') {", 'el regalito sale el mismo día'],
   ['historia-arreo.js', "if (dl > ARREO.sigue) return;   // te fuiste muy lejos: esperan", "", 'las ovejas te siguen desde cualquier distancia'],
-  ['historia-arreo.js', "cerca >= Math.min(ARREO.minimas, A.ovejas.length)", "true", 'llega la majada sin ovejas'],
+  ['historia-arreo.js', "cerca >= Math.min(A.min ?? ARREO.minimas, A.ovejas.length)", "true", 'llega la majada sin ovejas'],   // (4.18.0: con el mínimo de cada arreo)
   ['historia-escenas-efectos.js', "if (p.d === 'duendes' && primera) alDecidirDuendes(h, p.v);", "", 'la escena de D6 no arma el trato'],
   ['historia-final.js', "if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);", "", 'la pared mal clavada no aparece'],
 ];

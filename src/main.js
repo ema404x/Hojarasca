@@ -87,7 +87,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
+import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera, fiestaDeCumple } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
@@ -2286,6 +2286,9 @@ function puntosDeHistoria() {
   if (P.plaza) P.predio = { x: P.plaza.x, z: P.plaza.z };
   // la rueda de tu molino de agua (2 m hacia el agua desde el centro: su lado +x) y la puerta (3 m al otro lado): de ahí se ve girar
   { const om = obras?.obras ? obrasTerminadas('molino-agua')[0] : null; if (om) { ponr('rueda-molino', aMundoRefugio(om.datos, 2.0, 0)); ponr('puerta-molino', aMundoRefugio(om.datos, 0.2, -3)); } else { delete P['rueda-molino']; delete P['puerta-molino']; } }
+  // 4.18.0: las optativas: la casa (o la plaza) del cumpleaños de hoy y tu gallinero (las plumas del gallinero)
+  { const c = cumpleDeHoyHistoria(); if (c?.punto) ponr('cumple', c.punto); else delete P.cumple; }
+  obraPunto('gallinero', 'gallinero');
   const molHist = P['molino-propio'] || P['molino-viejo'];
   if (molHist) P['molino-historia'] = { x: molHist.x, z: molHist.z };
   const pu = L.puesto, mv = molinoViejoHist?.raiz;
@@ -2294,6 +2297,19 @@ function puntosDeHistoria() {
     ponr('raiz-ramon', { x: pu.x + ((mv.x - pu.x) / d) * 16, z: pu.z + ((mv.z - pu.z) / d) * 16 });
   }
   return P;
+}
+// 4.18.0: el cumpleaños de hoy en la aldea (la optativa «El cumpleaños que no se suspende»): dónde se festeja; uno por día (se recalcula al cambiar el día)
+let cumpleHist = { dia: -1, v: null };
+function cumpleDeHoyHistoria() {
+  const d = progreso?.dia || 1;
+  if (cumpleHist.dia === d) return cumpleHist.v;
+  let v = null;
+  try {
+    const f = fiestaDeCumple(d, progreso.aldea);
+    if (f) { const q = (f.edificio && edificioEnMundo(f.edificio)) || edificioEnMundo('plaza'); if (q) v = { donde: f.donde, edificio: f.edificio || 'plaza', claves: [...f.claves], punto: { x: q.x, z: q.z } }; }
+  } catch { v = null; }
+  cumpleHist = { dia: d, v };
+  return v;
 }
 // los puntos se vuelven a armar a lo sumo cada 0,4 s (los objetos de historia los piden uno por uno)
 let puntosHistT = -1;
@@ -2359,8 +2375,9 @@ function gastarCosaHistoria(cosa, n) {
   try {
     n = Math.max(0, Math.floor(Number(n) || 0));
     if (cosa === 'vellon') cosa = 'lana';   // 4.17.0: los nombres de las escenas de B
-    else if (cosa === 'tabla-coihue') cosa = 'tabla';
-    if (cosa === 'pluma' || cosa === 'pinon') { const e = progreso.entradas?.[cosa]; if (e) e.cantidad = Math.max(0, (Number(e.cantidad) || 0) - n); }
+    else if (cosa === 'tabla-coihue') cosa = (Number(progreso.cosas?.['tabla-coihue']) || 0) >= n ? 'tabla-coihue' : 'tabla';   // (4.18.0: las de coihue del tocón quedan en las cosas: dar:tabla-coihue)
+    if (cosa === 'tabla-coihue') progreso.cosas[cosa] = Math.max(0, (Number(progreso.cosas[cosa]) || 0) - n);
+    else if (cosa === 'pluma' || cosa === 'pinon') { const e = progreso.entradas?.[cosa]; if (e) e.cantidad = Math.max(0, (Number(e.cantidad) || 0) - n); }
     else if (cosa === 'harina' || cosa === 'yerba' || cosa === 'pan-casero') progreso.cosas[cosa] = Math.max(0, (Number(progreso.cosas[cosa]) || 0) - n);   // (4.17.0: y la yerba y el pan, para las paces con Fermín)   // (4.17.0: y la yerba, para las paces con Fermín)
     else {
       let falta = n;
@@ -2420,7 +2437,7 @@ function soltarAliadosDeNoche() {
 let arreoMundo = null;
 function arreoDeHistoria() {
   if (esDesafio) return null;
-  if (!arreoMundo) arreoMundo = crearArreoMundo({ T, escena, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, historia: () => (valle ? valle.historia() : null), llego: (d) => valle?.arreoLlegado?.(d) });
+  if (!arreoMundo) arreoMundo = crearArreoMundo({ T, escena, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, historia: () => (valle ? valle.historia() : null), llego: (d) => valle?.arreoLlegado?.(d), eventos: () => progreso.eventosValle?.hechos || {} });   // (4.18.0: la oveja escapada mira la opción del evento)
   return arreoMundo;
 }
 // El acompañante de la Historia (Graciela, Tobías): te sigue a pie (ver historia-acompanante.js)
@@ -2609,12 +2626,13 @@ function crearValle() {
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
     libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo') && !escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
-    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null }; },
+    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null, cumple: cumpleDeHoyHistoria() }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id, o) => escenasMundo.disparar(id, o) } : null),
     objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),
     nocheReintentar: () => { /* la elección «Otra vez» de la escena: lo lee la noche (historia-noche-ui.js) */ },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
+    encargosLista: () => TODOS_LOS_ENCARGOS,   // 4.18.0: quién pidió cada encargo (el +1 de lazo de los vecinos con arco)
     // 4.17.0: el acto III: pagar, dar materiales y cosas del suelo, el perro, los puntos con nombre y volver al galpón al amanecer
     pagar: (monto, motivo, con) => pagarPesos(progreso, monto, motivo, con).ok, darMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); },
     darEntrada: (k, n) => { try { const e = progreso.entradas[k] || (progreso.entradas[k] = { dia: progreso.dia, hora: progreso.horas, cantidad: 0 }); e.cantidad = (e.cantidad || 0) + n; refrescarBarra(true); } catch (e) { fallaSistema('historia-dar-entrada', e); } },
@@ -8984,6 +9002,15 @@ function hablar(npc) {
   if (!npc) return;
   // 4.15.0: un tema de historia arriba de todo: si el vecino tiene una escena guionada pendiente, arranca la escena
   if (!desafio && valle?.alHablarCon?.(npc.clave)) return;
+  // 4.18.0: la charla de historia: una línea arriba de todo, una sola vez (la de una optativa hecha o la del capítulo en curso; ver
+  // historia-optativas.js). La E siguiente abre la charla de siempre.
+  const lineaHist = !desafio ? valle?.lineaDeHistoria?.(npc.clave) : null;
+  if (lineaHist) {
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: 'historia-linea', partes: [lineaHist] }, parte: 0, vec: null, menu: null });
+    $('charla').classList.remove('oculto');
+    mostrarCharla();
+    return;
+  }
   // 3.6 (vida): el que invitaste a tomar algo, ya sentado: E te sienta con él; si todavía va
   // para la mesa, te lo dice (ver vecindad-juego.js)
   const enCita = vecindadJuego?.invitado(npc);

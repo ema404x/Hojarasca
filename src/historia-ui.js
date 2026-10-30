@@ -27,6 +27,10 @@ import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
 // 4.13.0 (B): la noche de defensa y los dos finales (historia-noche*.js)
 import { crearNocheUi, CSS_NOCHE } from './historia-noche-ui.js';
+// 4.18.0: las subtramas optativas (el registro, el tablón, los premios, la charla de historia y los encargos con lazo)
+import { revisarOptativas, panDeHoy, revisarEncargos, optativasDelPanel, optativasHechas, lineaDeHistoria, oirLinea } from './historia-optativas.js';
+import { NOTAS_ESCENA_OPTATIVAS } from './historia-disparadores-optativas.js';
+import { NOCHE } from './historia-noche.js';
 
 export const CSS_VALLE = `
 .valle-velo { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.42); z-index: 40; padding: 16px; }
@@ -51,6 +55,11 @@ export const CSS_VALLE = `
 .historia-hud .ramal { margin: 6px 0 2px; font-size: 12px; opacity: .85; }
 .historia-hud .ramal i { display: block; height: 6px; margin-top: 3px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
 .historia-hud .ramal i b { display: block; height: 100%; background: var(--notro, #b8432f); }
+.historia-hud .optativas { margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,.14); font-size: 12px; }
+.historia-hud .optativas small { display: block; opacity: .7; margin-bottom: 2px; }
+.historia-hud .optativas p { opacity: .85; }
+.historia-hud .optativas p.hecho { opacity: .55; }
+.valle-guia ul.optativas { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia ul.lazos { list-style: none; padding: 0; margin: 4px 0; font-size: 13px; opacity: .85; }
 .valle-guia ul.raro { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,.05); }
@@ -134,6 +143,13 @@ function crearTarjetas(doc, ctx) {
 }
 
 // ---------------------------------------------------------------- todo junto
+// Lo que avisa la pantalla cuando un arreo llega (la majada del capítulo 9; 4.18.0: la oveja escapada y las desparramadas)
+const AVISOS_ARREO = {
+  'galpon-esquila': ['La majada llegó al galpón de esquila', 'Fermín se saca el sombrero'],
+  'puesto-paso': ['La majada llegó al Puesto del Paso', 'Belisario cuenta las ovejas dos veces'],
+  'oveja-ramon': ['La oveja llegó al Puesto Alto', 'Porfiada, pero llegó'],
+  'corral-ramon': ['Las ovejas están otra vez en el corral', 'Todas: las contaste dos veces'],
+};
 export function crearValleUi(ctx) {
   const doc = ctx.documento || document;
   const $ = (id) => doc.getElementById(id);
@@ -159,6 +175,7 @@ export function crearValleUi(ctx) {
       defensas: defensasDeNoche(h, [...s.pobladores]),
       aliados: aliadosDe({ lazos: s.lazos, decisiones: s.decisiones, perro: !!ctx.tienePerro?.() }),
       ayudas: modo === 'trato', fuerte: s.decisiones.duendes === 'b', deuda: s.deuda > 0,
+      flechas: NOCHE.flechas + Math.max(0, Math.floor(Number(h.flechasExtra) || 0)),   // 4.18.0: el segundo atado de Tito (optativa «Flechas de más»)
     };
   }
   const noche = crearNocheUi({ ...ctx, nocheContexto: contextoNoche }, tarjetas, { historia });   // 4.13.0 (B)
@@ -179,9 +196,12 @@ export function crearValleUi(ctx) {
     const datos = !ctx.esDesafio && ctx.modo() === 'jugando' && !noche.activa() ? panelHistoria(h, s) : null;   // (4.13.0: y en la noche, el panel es el de la noche)
     panel.classList.toggle('oculto', !datos);
     if (!datos) return;
+    if (h.fase === 'jugando') datos.optativas = optativasDelPanel(h, s);   // 4.18.0
     const html = `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
       + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>`).join('')
-      + (datos.ramal ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '');
+      + (datos.ramal ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '')
+      // 4.18.0: las optativas abiertas (con la estrellita) y las hechas en esta ventana (con la tilde); nunca traban el capítulo
+      + (datos.optativas?.length ? `<div class="optativas"><small>De paso (si querés)</small>${datos.optativas.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : '☆'}</kbd>${escP(o.texto)}</p>`).join('')}</div>` : '');
     if (html !== htmlPanel) { htmlPanel = html; panel.innerHTML = html; ctx.traducir?.(panel); }
     // debajo de la guía del primer día, si está a la vista
     const tut = $('tutorial');
@@ -307,8 +327,10 @@ export function crearValleUi(ctx) {
     const p = ctx.progreso();
     const antes = (h.raro || []).length;
     const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos, dar: (c, n) => ctx.darCosa?.(c, n), tieneCaballo: () => !!p.cosas?.caballo, gastar: (c, n) => ctx.gastar?.(c, n),
-      pagar: (monto, motivo, con) => ctx.pagar?.(monto, motivo, con), regalo: () => ((Number(p.cosas?.harina) || 0) >= 1 ? 'harina' : 'yerba') });
+      pagar: (monto, motivo, con) => ctx.pagar?.(monto, motivo, con), regalo: () => ((Number(p.cosas?.harina) || 0) >= 1 ? 'harina' : 'yerba'),
+      cuanto: (k) => Number(p.cosas?.[k]) || 0, cobrar: (premio) => ctx.cobrar?.(premio) });   // (4.18.0: lo que tenés y lo que te pagan: el pan de Fermín, las tablas de Tito)
     if (hechos.length) {
+      for (const id of hechos) if (Object.hasOwn(NOTAS_ESCENA_OPTATIVAS, id)) { const n = NOTAS_ESCENA_OPTATIVAS[id]; ctx.nota(n[0], n[1], true); }   // 4.18.0
       for (const x of (h.raro || []).slice(antes)) { ctx.nota('El cuaderno anota algo raro', textoRaro(x.id)); ctx.diario?.('evento', textoRaro(x.id)); }
       // 4.16.0: lo que cambió la mecánica sola (el zaino, la harina, las cosas devueltas): se avisa también si la escena no estaba escrita
       for (const id of hechos) if (Object.hasOwn(NOTAS_ESCENA_ACTO2, id)) { const n = NOTAS_ESCENA_ACTO2[id]; ctx.nota(n[0], n[1], true); }
@@ -317,6 +339,53 @@ export function crearValleUi(ctx) {
       ctx.guardar();
     }
     return hechos;
+  }
+  // 4.18.0: las optativas. Las recién hechas se avisan y dan lo que falta del premio (lo de la historia —lazos, ramal, el pan de Rosa, las
+  // flechas— ya lo anotó `revisarOptativas`); los encargos de los vecinos con arco suman +1 al lazo; el pan de Rosa llega a la mañana.
+  function revisarLoOptativo(h) {
+    const p = ctx.progreso();
+    const s = estado();
+    let cambio = false;
+    for (const x of revisarOptativas(h, s, p.dia)) {
+      cambio = true;
+      const pr = x.premio;
+      ctx.nota(`☆ ${x.texto}`, pr?.texto ? `De paso · ${pr.texto}` : 'De paso · la historia del valle', true);
+      ctx.sonido?.()?.anotar?.();
+      ctx.diario?.('evento', `Hice algo de paso: ${x.texto}`);
+      if (pr) {
+        const cosas = { cuenta: pr.cuenta, materiales: pr.materiales, pesos: pr.pesos || 0, texto: pr.texto || x.texto };
+        if (Object.keys(pr.cuenta).length || Object.keys(pr.materiales).length || pr.pesos) ctx.cobrar?.(cosas);
+        for (const [k, n] of Object.entries(pr.entradas || {})) ctx.darEntrada?.(k, n);
+      }
+    }
+    for (const d of revisarEncargos(h, p, ctx.encargosLista?.() || [], p.dia)) {
+      cambio = true;
+      const n = lazosEnPalabras(h).find((l) => l.quien === d.quien);
+      ctx.nota(`${n?.nombre || 'Un vecino'} te tiene más confianza`, 'Por el encargo cumplido');
+    }
+    if (panDeHoy(h, p.dia, p.horas)) { cambio = true; ctx.darCosa?.('pan-casero', 1); ctx.nota('Un pan de Rosa en tu puerta', 'Todavía tibio, envuelto en un repasador', true); }
+    if (cambio) { ctx.refrescarBarra?.(); ctx.guardar(); }
+  }
+  // 4.18.0: la línea de charla de historia que tiene un vecino ahora (una vez cada una): el texto, o null
+  function lineaDeHistoriaCon(clave) {
+    if (ctx.esDesafio) return null;
+    const h = historia();
+    if (!h.activa || h.fase !== 'jugando') return null;
+    const l = lineaDeHistoria(h, estado(), clave);
+    if (!l) return null;
+    oirLinea(h, l.id, ctx.progreso().dia);
+    ctx.guardar();
+    return l.texto;
+  }
+  // 4.18.0: las escenas de la costumbre del trato (final A, después de la historia): se repiten cada año, las dispara el juego a mano. La harina
+  // la gasta la mecánica de la bolsa cada vez: el `quitar:harina:1` de la escena se da por aplicado (si no, la primera vez cobraba dos).
+  function escenaCostumbre(h, id) {
+    const dir = ctx.escenas?.();
+    if (!dir || dir.activa() || typeof dir.hay !== 'function' || !dir.hay(id)) return false;
+    if (!h.aplicadas || typeof h.aplicadas !== 'object' || Array.isArray(h.aplicadas)) h.aplicadas = {};
+    const k = `e:${id}:quitar:harina:1`.slice(0, 63);
+    if (!Object.hasOwn(h.aplicadas, k)) h.aplicadas[k] = Math.max(1, Math.floor(Number(ctx.progreso().dia) || 1));
+    try { return dir.disparar(id) === true; } catch { return false; }
   }
   // La E sobre un vecino con una escena guionada pendiente (un tema de historia arriba de todo): true si la escena arrancó
   function alHablarCon(clave) {
@@ -380,7 +449,7 @@ export function crearValleUi(ctx) {
     if (a.tipo === 'bolsa') {
       if (a.accion === 'llenar') {
         const h2 = historia();
-        if (llenarBolsa(h2, p.dia)) { ctx.gastar?.('harina', 1); ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); }
+        if (llenarBolsa(h2, p.dia)) { ctx.gastar?.('harina', 1); if (!escenaCostumbre(h2, 'costumbre-dejar')) ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); }
       } else ctx.nota(a.nota[0], a.nota[1], true);
       return true;
     }
@@ -429,6 +498,15 @@ export function crearValleUi(ctx) {
   }
   let acum = 0, esperaInicio = 0, tiempoCapitulo = 0, azarEnPruebas = false, aceleracion = 1, forzada = null;
   const MOMENTO_PRONTO = 90;   // segundos jugando el capítulo antes de su momento "pronto"
+  // 4.18.0: la optativa «La oveja de Ramón» (capítulo 2): el evento de la oveja escapada se ofrece una vez, un rato después de empezar el capítulo
+  const OVEJA_TRAS = 150;
+  function ofrecerOveja(h, s) {
+    if (capituloActual(h).id !== 'bolsa' || tiempoCapitulo < OVEJA_TRAS || s.vecinos === false || s.temas.has('optativa:oveja')) return false;
+    if (!eventos.forzar('oveja')) return false;
+    marcarTema(h, 'optativa', 'oveja', ctx.progreso().dia);
+    ctx.guardar();
+    return true;
+  }
   function actualizar(dt) {
     if (ctx.esDesafio) return;
     noche.actualizar(dt);   // 4.13.0 (B): la noche de defensa (cada cuadro) y el panel de la noche
@@ -455,6 +533,8 @@ export function crearValleUi(ctx) {
     }
     // 4.15.0: lo que cambia al ver una escena (una sola vez), lo raro que se anota y los objetos que se ven en el mundo
     if (jugando && h.activa) aplicarEscenas(h);
+    // 4.18.0: las optativas recién hechas (con su premio), el +1 de lazo de los encargos y el pan de Rosa de cada mañana
+    if (jugando && h.activa) revisarLoOptativo(h);
     // 4.16.0: esperar sentado un objetivo de hora acelera el reloj (×8, no ×40: que no se pase de largo la escena) y el clima propio de la historia
     aceleracion = jugando && h.activa ? aceleracionDeEspera(h, s) : 1;
     forzada = h.activa && s ? estacionForzada(h, s) : null;
@@ -477,7 +557,7 @@ export function crearValleUi(ctx) {
     if (ctx.enVehiculo()) return false;
     if (h.activa && h.fase === 'jugando' && noche.interviene(h)) return noche.ofrecer();
     // 4.17.0: la costumbre del trato (final A): a la mañana, el regalito de la bolsa; y la bolsa vuelve cada cosecha
-    if (h.activa || h.fase === 'fin') { const reg = amanecerCostumbre(h, s || estado(), ctx.progreso().dia); if (reg) { ctx.darEntrada?.(reg === 'pinones' ? 'pinon' : reg, 1); ctx.nota('Un regalito en el umbral', 'Dejaron el pago de la bolsa: un canto, piñones o una pluma', true); ctx.guardar(); } }
+    if (h.activa || h.fase === 'fin') { const reg = amanecerCostumbre(h, s || estado(), ctx.progreso().dia); if (reg) { ctx.darEntrada?.(reg === 'pinones' ? 'pinon' : reg, 1); if (!escenaCostumbre(h, 'costumbre-regalito')) ctx.nota('Un regalito en el umbral', 'Dejaron el pago de la bolsa: un canto, piñones o una pluma', true); ctx.guardar(); } }   // (4.18.0: con su escena, si está)
     // 4.15.0: una decisión grande (la bolsa del molinero) y las escenas del capítulo
     if (h.activa && h.fase === 'jugando') {
       const dec = decisionPendiente(h, s);
@@ -496,7 +576,7 @@ export function crearValleUi(ctx) {
       // 3.8.7: ni si ya se decidió en este capítulo (el temporal se tilda al otro día y se repetía cada medio segundo)
       else if (!m && momentoPerdido(h, s) && !eventos.ev().activo && lugarOk) eventos.forzar(def.evento);
       // 4.13.0 (A): las armas se pierden en el camino (la tarjeta que no salió, el seguimiento que no llegó): se vuelve a pedir la que falta
-      else if (!m && !eventos.ev().activo) { const falta = armaPorPedir(h, s, eventos.ev().pendientes.map((x) => x.id)); if (falta) eventos.forzar(falta); }
+      else if (!m && !eventos.ev().activo) { const falta = armaPorPedir(h, s, eventos.ev().pendientes.map((x) => x.id)); if (falta) eventos.forzar(falta); else ofrecerOveja(h, s); }
     }
     return eventos.revisar({ puedeAzar: azarEnPruebas || !ctx.sinAzar?.() });
   }
@@ -575,9 +655,11 @@ export function crearValleUi(ctx) {
     if (cajaGuia) {
       const lazos = lazosEnPalabras(h);
       const raros = (h.raro || []).slice().reverse();
+      const opt = optativasHechas(h);
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
         + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}: ${escP(l.palabra)}</li>`).join('')}</ul>` : '')
         + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
+        + (opt.length ? `<p>Lo que hiciste de paso</p><ul class="optativas">${opt.map((x) => `<li>Día ${x.dia}: ${escP(x.texto)}</li>`).join('')}</ul>` : '')   // 4.18.0
         + (b ? `<button data-historia="${b.accion}">${escP(b.texto)}</button>` : '')
         + `<p>${escP(resumenEventos(eventos.ev()))}.</p>`;
       ctx.traducir?.(cajaGuia);
@@ -621,10 +703,12 @@ export function crearValleUi(ctx) {
     nevada: () => { const h = historia(); return h.activa && nevadaForzada(h, estado()); },
     blanco: (donde) => { const h = historia(); if (!h.activa) return 0; const n = sumarBlanco(h, donde); ctx.guardar(); revisarAhora(); return n; },
     accionBolsa: () => { const h = historia(); return accionBolsaUmbral(h, estado()); },
-    llenarBolsa: () => { const h = historia(); if (!llenarBolsa(h, ctx.progreso().dia)) return false; ctx.gastar?.('harina', 1); ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.guardar(); return true; },
+    llenarBolsa: () => { const h = historia(); if (!llenarBolsa(h, ctx.progreso().dia)) return false; ctx.gastar?.('harina', 1); if (!escenaCostumbre(h, 'costumbre-dejar')) ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.guardar(); return true; },
     mostrarFinal, contextoNoche,
     // la majada llegó al destino del arreo (capítulo 9, D5 = a o c)
-    arreoLlegado: (destino) => { const h = historia(); if (!h.activa) return; if (marcarTema(h, 'arreo', destino, ctx.progreso().dia)) { ctx.nota(destino === 'galpon-esquila' ? 'La majada llegó al galpón de esquila' : 'La majada llegó al Puesto del Paso', destino === 'galpon-esquila' ? 'Fermín se saca el sombrero' : 'Belisario cuenta las ovejas dos veces', true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); } },
+    // (4.18.0: y la oveja escapada del capítulo 2 y las ovejas desparramadas del 9, las de las optativas)
+    arreoLlegado: (destino) => { const h = historia(); if (!h.activa) return; if (marcarTema(h, 'arreo', destino, ctx.progreso().dia)) { const n = AVISOS_ARREO[destino] || AVISOS_ARREO['puesto-paso']; ctx.nota(n[0], n[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); } },
+    lineaDeHistoria: (clave) => lineaDeHistoriaCon(clave),   // 4.18.0: la charla de historia (main.js, al hablar)
     abierta: () => tarjetas.abierta(),
     azar: (v) => { azarEnPruebas = !!v; return azarEnPruebas; },
     // para las pruebas: revisar ya, sin esperar el medio segundo ni el rato del capítulo

@@ -302,7 +302,7 @@ export function crearNocheMundo(ctx) {
     if (opciones.modo === 'trato') armarPozoViejo();
     sim = crearNoche({
       modo: opciones.modo, centro, dx: lado.dx, dz: lado.dz, alt, azar: opciones.azar || Math.random,
-      defensas: opciones.defensas, aliados: opciones.aliados, ayudas: opciones.ayudas, fuerte: opciones.fuerte, deuda: opciones.deuda,
+      defensas: opciones.defensas, aliados: opciones.aliados, ayudas: opciones.ayudas, fuerte: opciones.fuerte, deuda: opciones.deuda, flechas: opciones.flechas,
       resolver: (p, r) => { _p.set(p.x, alt(p.x, p.z), p.z); col.resolver(_p, r, 1.0); p.x = _p.x; p.z = _p.z; },
     });
     dis = sim.dis;

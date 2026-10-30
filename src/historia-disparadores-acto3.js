@@ -42,7 +42,8 @@ export const DISPARADORES_ACTO3 = {
   'pedir-perdon': { cap: ['golpea', 'arco'], modo: 'interaccion', clave: 'raiz-perdon', requiere: ['galpon-encuentro'], cond: (s) => s.trato === 'pelea' && !s.perdon },
   // ---- capítulo 11 · El arco y la honda
   'tito-arco': { cap: 'arco', modo: 'hablar', clave: 'carpintero', cond: (s, h) => diaHecho(h, 'arco', 'lenga') > 0 && s.dia > diaHecho(h, 'arco', 'lenga') },
-  'plumas-bosque': { cap: 'arco', modo: 'auto', lugar: en('refugio', 60), cond: (s) => s.plumas >= 6 && !s.escenas.has('plumas-gallinero') && !s.escenas.has('plumas-josefina') },
+  // (4.18.0: junto a tu gallinero, la de las plumas del gallinero: historia-disparadores-optativas.js)
+  'plumas-bosque': { cap: 'arco', modo: 'auto', lugar: en('refugio', 60), cond: (s) => s.plumas >= 6 && !s.escenas.has('plumas-gallinero') && !s.escenas.has('plumas-josefina') && !(s.terminadas.has('gallinero') && Number(s.lugares?.gallinero) <= 10) },
   'plumas-josefina': { cap: 'arco', modo: 'hablar', clave: 'ema', cond: (s) => s.lazos.ema >= 2 && s.plumas < 6 && !s.escenas.has('plumas-bosque') },
   'elvira-cuerda': { cap: 'arco', modo: 'hablar', clave: 'tejedora', cond: (s) => s.lana >= 2 },
   'anselmo-puntas': { cap: 'arco', modo: 'hablar', clave: 'herrero', cond: (s) => s.pesos >= PRECIO_PUNTAS && !s.entregados.has('herrero:puntas') },

@@ -202,7 +202,7 @@ export function crearNoche(op) {
     puerta: aguante, puertaMax: aguante, ola: 0, defensas: DEF, aliados: ALI, ayudas,
     jefe: null, jefeCaido: 0, enjambreUsado: false, preaviso: null, acumAliados: { perro: 0, josefina: 0, fermin: 0, ramon: 0, cura: 0 },
     travesuras: 0, detenidos: 0, bajas: 0, golpesRecibidos: 0,
-    flechas: NOCHE.flechas, recarga: 0,
+    flechas: Number.isFinite(op.flechas) && op.flechas > 0 ? Math.min(99, Math.floor(op.flechas)) : NOCHE.flechas, recarga: 0,   // (4.18.0: con el segundo atado de Tito, más)
     duendes: [], proyectiles: [], cola: [], eventos: [],
     total, nacidos: 0, siguiente: 1,
   };

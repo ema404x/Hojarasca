@@ -22,10 +22,13 @@ import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2,
 import { DISPARADORES_ACTO3, EFECTOS_ESCENA_ACTO3, OBJETOS_ACTO3, LUGARES_ACTO3, accionBolsaUmbral } from './historia-disparadores-acto3.js';
 // 4.17.0 (C): dónde se pone al jugador antes de las escenas de los actos I y II (historia-colocacion.js)
 import { COLOCACION_PULIDO } from './historia-colocacion.js';
+// 4.18.0: las subtramas optativas: sus disparadores nuevos y el registro (la ventana de capítulos de cada una)
+import { DISPARADORES_OPTATIVAS, EFECTOS_ESCENA_OPTATIVAS, OBJETOS_OPTATIVAS, LUGARES_OPTATIVAS } from './historia-disparadores-optativas.js';
+import { OPTATIVAS, capsDe } from './historia-optativas.js';
 
 // Los lugares con nombre de los que el juego pasa la distancia (los arma `distanciasHistoria` de main.js): los del mundo, los de la aldea y
 // los propios de la historia
-export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'tocon-hacha', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2, ...LUGARES_ACTO3];
+export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'tocon-hacha', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2, ...LUGARES_ACTO3, ...LUGARES_OPTATIVAS];
 
 const en = (nombre, radio) => [nombre, radio];
 
@@ -61,7 +64,14 @@ export const DISPARADORES = {
   ...DISPARADORES_ACTO2,
   // ---- capítulos 9 a 13 (el acto III: historia-disparadores-acto3.js)
   ...DISPARADORES_ACTO3,
+  // ---- 4.18.0: las optativas que no tenían disparador (historia-disparadores-optativas.js)
+  ...DISPARADORES_OPTATIVAS,
 };
+// 4.18.0: cada optativa está abierta de su primer capítulo al último que dice el guion (o al fin del acto): sus disparadores valen en esa
+// ventana. Y van al final de la tabla: con la E sobre un vecino, primero la escena que es objetivo del capítulo y después la optativa.
+export const OPTATIVA_DE_DISPARADOR = {};
+for (const o of OPTATIVAS) for (const k of o.disparadores || []) if (Object.hasOwn(DISPARADORES, k)) { DISPARADORES[k] = { ...DISPARADORES[k], cap: capsDe(o) }; OPTATIVA_DE_DISPARADOR[k] = o.id; }
+for (const k of Object.keys(OPTATIVA_DE_DISPARADOR)) { const d = DISPARADORES[k]; delete DISPARADORES[k]; DISPARADORES[k] = d; }
 // La lista de los 21 ids de escena que escribe el otro agente (historia-escenas-acto1.js)
 export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela'];
 const escenaDe = (clave, d) => d.escena || clave;
@@ -76,7 +86,7 @@ export function escenaPendiente(h, s, ctx = {}) {
     if (d.modo !== modo) continue;
     if (!(Array.isArray(d.cap) ? d.cap.includes(cap) : d.cap === cap)) continue;
     if ((modo === 'hablar' || modo === 'interaccion') && d.clave !== ctx.clave) continue;
-    if (s.escenas.has(id)) continue;
+    if (s.escenas.has(id) && !d.repetible) continue;   // (4.18.0: las repetibles, aunque ya estén vistas)
     if (d.requiere && !d.requiere.every((x) => s.escenas.has(x))) continue;
     if (d.no && d.no.some((x) => s.escenas.has(x))) continue;
     if (d.lugar && !(Number(s.lugares?.[d.lugar[0]]) <= d.lugar[1])) continue;
@@ -117,6 +127,8 @@ export const EFECTOS_ESCENA = {
   ...EFECTOS_ESCENA_ACTO2,
   // 4.17.0: el acto III
   ...EFECTOS_ESCENA_ACTO3,
+  // 4.18.0: las optativas
+  ...EFECTOS_ESCENA_OPTATIVAS,
 };
 
 // Los lazos que mueven las respuestas del jugador en una escena. La respuesta se guarda como `elecciones[escena][eleccion] = opcion`; acá se
@@ -186,6 +198,8 @@ export const OBJETOS = {
   ...OBJETOS_ACTO2,
   // 4.17.0: el acto III
   ...OBJETOS_ACTO3,
+  // 4.18.0: las optativas (el frasco de la repisa, abrir el galpón sin golpear)
+  ...OBJETOS_OPTATIVAS,
 };
 export const RADIO_OBJETO = 2.4;
 

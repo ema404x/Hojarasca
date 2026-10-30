@@ -140,6 +140,14 @@ export function estadoHistoria(p, extra = {}) {
     amor: extra.amor === true, perro: extra.perro === true,
     yerba: ent(p?.cosas?.yerba, 99999), llave79: !!p?.cosas?.['llave-79'],
     prestadoN: prestadosContados(hh.prestado, Array.isArray(p?.aldea?.pobladores) ? p.aldea.pobladores.map((x) => x?.clave) : []),
+    // 4.18.0: lo que miran las optativas (historia-optativas.js): los encargos, la opción de cada evento del valle, el día en que se ofreció
+    // cada optativa (`optativa:<id>` en los temas), el pan casero, el cumpleaños de hoy en la aldea y la cinta del concurso de dulces
+    encargos: { ...obj(p?.encargos) },
+    eventosOpcion: Object.fromEntries(Object.entries(ev).map(([k, x]) => [k, typeof x?.opcion === 'string' ? x.opcion : null])),
+    ofrecidas: Object.fromEntries(Object.entries(obj(hh.temas)).filter(([k]) => k.startsWith('optativa:')).map(([k, d]) => [k.slice(9), ent(d)])),
+    pan: ent(p?.cosas?.['pan-casero'], 9999), tablasCoihue: ent(p?.cosas?.['tabla-coihue'], 9999),
+    cumple: extra.cumple && typeof extra.cumple === 'object' ? extra.cumple : null,
+    cintaDulce: (Array.isArray(p?.concursos?.cintas) ? p.concursos.cintas : []).some((x) => x?.id === 'dulce' && Number(x.puesto) >= 1 && Number(x.puesto) <= 3),
   };
 }
 
@@ -942,6 +950,9 @@ export function historiaNueva() {
     // 4.15.0
     version: VERSION_HISTORIA, lazos: lazosNuevos(), decisiones: decisionesNuevas(), ramal: 0, fletes: 0, entregasVistas: null, molido: 0, fletesHarina: 0, fletesBase: null,
     prestado: prestadosNuevos(), perfil: '', blancos: blancosNuevos(), raro: [], temas: {}, objetos: {}, entregados: {}, reparaciones: {}, acompanante: null, aplicadas: {}, avisoReinicio: false, copiaPrevia: '',
+    // 4.18.0: las optativas hechas ({ id: día }), las líneas de charla de historia ya oídas ({ id: día }), el pan de Rosa ({ quedan, ultimo }),
+    // las flechas de más para la noche y los encargos que ya dieron (o no) su +1 de lazo ({ id: día | 0 }; null: todavía sin base)
+    optativas: {}, oidas: {}, panRosa: null, flechasExtra: 0, encargosLazo: null,
   };
 }
 const FASES = ['intro', 'jugando', 'outro', 'fin'];
@@ -996,6 +1007,18 @@ export function sanearHistoria(v) {
   h.acompanante = typeof v.acompanante === 'string' && ACOMPANANTES.includes(v.acompanante) ? v.acompanante : null;
   h.avisoReinicio = v.avisoReinicio === true;
   h.copiaPrevia = typeof v.copiaPrevia === 'string' && /^[a-z0-9][a-z0-9._-]{0,90}$/i.test(v.copiaPrevia) ? v.copiaPrevia : '';
+  // 4.18.0: las optativas (historia-optativas.js)
+  for (const [g, tope] of [['optativas', 64], ['oidas', 400]]) {
+    let n = 0;
+    for (const [k, d] of Object.entries(obj(v[g]))) { if (n >= tope) break; if (idSeguro(k)) { h[g][k] = Math.max(1, ent(d)); n++; } }
+  }
+  { const pr = obj(v.panRosa); h.panRosa = v.panRosa && typeof v.panRosa === 'object' && !Array.isArray(v.panRosa) ? { quedan: ent(pr.quedan, 9), ultimo: ent(pr.ultimo) } : null; }
+  h.flechasExtra = ent(v.flechasExtra, 99);
+  if (v.encargosLazo && typeof v.encargosLazo === 'object' && !Array.isArray(v.encargosLazo)) {
+    h.encargosLazo = {};
+    let n = 0;
+    for (const [k, d] of Object.entries(v.encargosLazo)) { if (n >= 200) break; if (idSeguro(k)) { h.encargosLazo[k] = ent(d); n++; } }
+  }
   // una historia terminada no vuelve atrás
   if (h.terminada) { h.capitulo = CAPITULOS.length - 1; h.fase = 'fin'; }
   return h;

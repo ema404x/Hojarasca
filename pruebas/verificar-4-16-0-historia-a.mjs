@@ -436,7 +436,7 @@ async function chequear(arch = '', sufijo = '') {
       "import { ESCENAS_ACTO2, EFECTOS_ACTO2 } from './historia-escenas-acto2.js';",
       "import { crearAcompanante } from './historia-acompanante.js';",
       '...Object.values(ESCENAS_ACTO2)',
-      '...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2, ...EFECTOS_ACTO3])',
+      '...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2, ...EFECTOS_ACTO3, ...EFECTOS_OPTATIVAS])',   // (4.18.0: y los de las optativas)
       'conClimaDeHistoria({ oto, inv })',
       "if (f === 'otono' && e.oto < 1)",
       'estacionNatural: estacionNaturalDeHistoria()',
