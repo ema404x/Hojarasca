@@ -273,6 +273,7 @@ import { ESCENAS_OPTATIVAS, EFECTOS_OPTATIVAS } from './historia-escenas-optativ
 import { crearArreoMundo } from './historia-arreo-mundo.js';
 import { crearAcompanante } from './historia-acompanante.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
+import { ferminEnElTecho } from './historia-props-acto3.js';
 // 4.17 C: dónde se pone al jugador antes de una escena (historia-colocacion.js)
 import { resolverColocacion } from './historia-colocacion.js';
 // 4.17 C (sólo para el gancho de depuración __colocarEscena)
@@ -2421,6 +2422,7 @@ function aliadosDeNoche(al, dis) {
       const n = genteCampoMundo?.npcDe(k) || (gente?.gente || []).find((g) => g.clave === k) || null;
       if (!n?.pos) continue;
       aliadosTomados.push({ n, g: { camino: n.camino, velocidad: n.velocidad, conVos: n.conVos, enCita: n.enCita, sinFrenar: n.sinFrenar, dormido: n.dormido, x: n.pos.x, z: n.pos.z } });
+      if (k === 'fermin') { const q = ferminEnElTecho(obras?.obras ? obrasTerminadas('galponcito')[0]?.datos : null, (x, z) => T.altura(x, z), dis); if (q) { n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = []; n.pos.set(q.x, q.y, q.z); n.rumboObjetivo = q.rumbo; if (n.g) n.g.visible = true; continue; } }
       const x = dis.centro.x + dis.ux * atras + dis.px * lado, z = dis.centro.z + dis.uz * atras + dis.pz * lado;
       n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = [];
       n.pos.set(x, alturaDePie(T, col, x, z, T.altura(x, z)), z); n.rumboObjetivo = Math.atan2(dis.ux, dis.uz); if (n.g) n.g.visible = true;
@@ -2453,7 +2455,7 @@ function acompananteDeHistoria() {
   });
   return acompananteMundo;
 }
-function efectoMundoHistoria() { dibujarObjetosHistoriaYa(); }
+function efectoMundoHistoria(id, args) { dibujarObjetosHistoriaYa(); try { objetosHist?.efecto?.(`mundo:${id}`, args?.donde != null ? escenasMundo?.mundo?.posicion(args.donde) : null, jugador?.estado); } catch (e) { fallaSistema('historia-props', e); } }
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
 // 4.16.0: los duendes del acto II (siluetas en las raíces, el lechucero, las lucecitas del lago, los pillos con bellotas): se ven y se mueven (historia-duendes.js)
 const duendesDeEscena = [];
@@ -2515,6 +2517,7 @@ function efectoDuendesActo3(id, a, crear) {
   }
 }
 function efectoDuendeHistoria(id, args) {
+  try { objetosHist?.efecto?.(`duende:${id}`, null, jugador?.estado); } catch { /* ya */ }
   if (id !== 'pillo-cruza') { try { efectoDuendesActo2(id, args); } catch (e) { fallaSistema('historia-duende', e); } return; }
   if (!escenasMundo || !args) return;
   try {

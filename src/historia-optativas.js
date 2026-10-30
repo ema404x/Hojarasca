@@ -39,7 +39,9 @@ export const TABLAS_TITO = 6;
 export const OVEJAS_DESPARRAMADAS = 6;
 // Los lugares lindos de la vuelta para la ingeniera (capítulo 4): dos de tres, con Graciela de acompañante
 export const LUGARES_VUELTA = { mirador: 16, faro: 30, 'casa-te': 14 };
-export const vueltasDe = (s) => Object.keys(LUGARES_VUELTA).filter((k) => s.temas.has(`vuelta:${k}`) || (k === 'casa-te' && s.escenas.has('te-graciela'))).length;
+export const vueltasDe = (s) => Object.keys(LUGARES_VUELTA).filter((k) => s.temas.has(`vuelta:${k}`) || s.escenas.has(`vuelta-${k}`) || (k === 'casa-te' && s.escenas.has('te-graciela'))).length;
+// El frasco de masa madre está en la mochila (el `objeto:` de la escena de B lo anota como tema `obj:`; la mecánica, como objeto)
+export const tieneFrasco = (s) => s.objetos.has('frasco-masa-madre') || s.temas.has('obj:frasco-masa-madre');
 // El pan de Rosa (el frasco de la masa madre): uno cada mañana, tres mañanas
 export const PAN_ROSA_DIAS = 3;
 
@@ -52,9 +54,9 @@ export const OPTATIVAS = [
   // ---- ACTO I
   { id: 'frasco-masa-madre', desde: 'llave', hasta: 'ramal', quien: 'rosa',
     ofrece: (s) => s.escenas.has('nota-eusebio') || s.temas.has('optativa:frasco-masa-madre'),
-    enCurso: (s) => s.objetos.has('frasco-masa-madre'),
-    avance: (s) => (s.pobladores.has('panadera') ? 'llevale el frasco a Rosa, en la panadería (E sobre ella)' : 'el frasco está en tu mochila: Rosa todavía no llegó a la aldea'),
-    hecha: vista('frasco-rosa'), escenas: ['frasco-rosa'], disparadores: ['frasco-rosa'],
+    enCurso: (s) => tieneFrasco(s),
+    avance: (s) => (!tieneFrasco(s) ? 'está en la repisa del refugio (E)' : s.pobladores.has('panadera') ? 'llevale el frasco a Rosa, en la panadería (E sobre ella)' : 'el frasco está en tu mochila: Rosa todavía no llegó a la aldea'),
+    hecha: vista('frasco-rosa'), escenas: ['frasco-repisa', 'frasco-rosa'], disparadores: ['frasco-repisa', 'frasco-rosa'],
     premio: { pan: PAN_ROSA_DIAS, texto: 'Rosa te va a dejar un pan cada mañana, tres mañanas' } },
   { id: 'oveja', desde: 'bolsa', hasta: 'ramal', quien: 'ramon',
     ofrece: (s) => s.temas.has('optativa:oveja'),
@@ -69,13 +71,13 @@ export const OPTATIVAS = [
   { id: 'fermin-pan', desde: 'mesa', hasta: 'ramal', quien: 'fermin',
     ofrece: (s) => s.escenas.has('fermin-galpon') || s.temas.has('optativa:fermin-pan'),
     avance: (s) => (s.pan >= 1 || s.harina >= 1 ? 'llevale un pan o una medida de harina al galpón de esquila (E sobre él)' : 'te falta un pan casero o una medida de harina'),
-    hecha: vista('fermin-pan'), escenas: ['fermin-pan'], disparadores: ['fermin-pan'],
+    hecha: vista('pan-fermin'), escenas: ['pan-fermin'], disparadores: ['pan-fermin'],
     premio: { lazos: { fermin: 1 }, texto: 'Fermín no dice nada, pero te guarda un mate' } },
   { id: 'vuelta-ingeniera', desde: 'ramal', hasta: 'ramal', quien: 'graciela',
     ofrece: (s) => s.escenas.has('anden-graciela'),
     enCurso: (s) => vueltasDe(s) >= 1,
     avance: (s) => `${Math.min(2, vueltasDe(s))} de 2 lugares con Graciela`,
-    hecha: (s) => vueltasDe(s) >= 2, escenas: ['te-graciela', 'vuelta-ingeniera'], disparadores: ['vuelta-ingeniera', 'te-graciela'],
+    hecha: (s) => vueltasDe(s) >= 2, escenas: ['te-graciela', 'vuelta-mirador', 'vuelta-faro'], disparadores: ['vuelta-mirador', 'vuelta-faro', 'te-graciela'],
     premio: { lazos: { graciela: 2 }, ramal: 2, texto: 'Graciela anota algo en el cuaderno que no es una cuenta' } },
   { id: 'vuelta-completa', desde: 'ramal', hasta: 'ramal', quien: 'guarda', ventana: true,
     ofrece: () => true, hecha: encargoHecho('e-vuelta'), premio: null },
@@ -160,7 +162,9 @@ const TEXTOS_CAP = (() => {
   for (const T of [TEXTO_ACTO1, TEXTO_ACTO2, TEXTO_ACTO3]) for (const c of Object.values(obj(T.capitulos))) for (const o of c.optativas || []) if (!t[o.id]) t[o.id] = o.texto;
   return t;
 })();
-export const textoOptativa = (id) => obj(obj(TEXTO_OPTATIVAS.tablon)[id]).texto || TEXTOS_CAP[id] || id;
+// (el tablón de B: { caps, quien, titulo, ofrecida, hecha }: el título va en el panel; la pista y la línea tildada, en la guía)
+export const textoOptativa = (id) => obj(obj(TEXTO_OPTATIVAS.tablon)[id]).titulo || TEXTOS_CAP[id] || id;
+export const pistaOptativa = (id, hecha = false) => obj(obj(TEXTO_OPTATIVAS.tablon)[id])[hecha ? 'hecha' : 'ofrecida'] || TEXTOS_CAP[id] || id;
 
 // El estado de una optativa: 'hecha' | 'en-curso' | 'ofrecida' | 'cerrada'
 export function estadoOptativa(o, s, h) {
@@ -265,14 +269,13 @@ export function optativasDelPanel(h, s) {
     if (e === 'hecha' && !enVentana(o, h)) continue;
     let extra = '';
     if (e !== 'hecha' && o.avance) { try { extra = o.avance(s, h) || ''; } catch { extra = ''; } }
-    const t = obj(obj(TEXTO_OPTATIVAS.tablon)[o.id]);
-    const texto = e === 'hecha' && t.hecha ? t.hecha : e === 'en-curso' && t.enCurso ? t.enCurso : textoOptativa(o.id);
-    r.push({ id: o.id, estado: e, texto: extra && e !== 'hecha' ? `${texto} · ${extra}` : texto, hecho: e === 'hecha' });
+    const texto = textoOptativa(o.id);
+    r.push({ id: o.id, estado: e, texto: extra && e !== 'hecha' ? `${texto} · ${extra}` : texto, pista: pistaOptativa(o.id, e === 'hecha'), hecho: e === 'hecha' });
   }
   return r;
 }
 // Las hechas, para la guía: [{ id, texto, dia }]
-export const optativasHechas = (h) => Object.entries(obj(h?.optativas)).filter(([k]) => Object.hasOwn(OPTATIVA, k)).map(([k, d]) => ({ id: k, texto: textoOptativa(k), dia: ent(d) })).sort((a, b) => a.dia - b.dia);
+export const optativasHechas = (h) => Object.entries(obj(h?.optativas)).filter(([k]) => Object.hasOwn(OPTATIVA, k)).map(([k, d]) => ({ id: k, titulo: textoOptativa(k), texto: pistaOptativa(k, true), dia: ent(d) })).sort((a, b) => a.dia - b.dia);
 
 // ---------------------------------------------------------------- la charla de historia: una línea arriba de todo en la E del vecino
 // El nombre de la persona en los textos (ramon, josefina, rosa…) a la clave que tiene en el juego (ramon, ema, panadera…)
@@ -281,7 +284,8 @@ const CHARLAS = (() => {
   const r = {};
   for (const T of [TEXTO_ACTO1, TEXTO_ACTO2, TEXTO_ACTO3, TEXTO_OPTATIVAS]) for (const [quien, lista] of Object.entries(obj(T.charla))) {
     const clave = CLAVE_DE[quien] || quien;
-    for (const l of Array.isArray(lista) ? lista : []) if (l && typeof l.id === 'string' && typeof l.texto === 'string') (r[clave] ||= []).push(l);
+    // (las de las optativas, marcadas: son «de después» y valen aunque el capítulo ya haya pasado)
+    for (const l of Array.isArray(lista) ? lista : []) if (l && typeof l.id === 'string' && typeof l.texto === 'string') (r[clave] ||= []).push(T === TEXTO_OPTATIVAS ? { ...l, deOptativa: true } : l);
   }
   return r;
 })();
@@ -301,9 +305,10 @@ export function lineaDeHistoria(h, s, clave) {
   if (!h?.activa || h.fase !== 'jugando' || !s) return null;
   const n = Math.max(0, h.capitulo || 0) + 1;
   const oidas = obj(h.oidas);
-  const c = charlasDe(clave).filter((l) => !Object.hasOwn(oidas, l.id) && Number(l.cap) <= n && (Number(l.cap) === n || l.cuando?.optativa) && cuandoOk(l.cuando, s, h));
+  const c = charlasDe(clave).filter((l) => !Object.hasOwn(oidas, l.id) && Number(l.cap) <= n && (Number(l.cap) === n || l.cuando?.optativa || l.deOptativa) && cuandoOk(l.cuando, s, h));
   if (!c.length) return null;
-  c.sort((a, b) => (Number(b.cap) - Number(a.cap)) || ((b.cuando ? 1 : 0) - (a.cuando ? 1 : 0)));
+  // la de capítulo más alto; a igual capítulo, la de una optativa y después la que tiene condición
+  c.sort((a, b) => (Number(b.cap) - Number(a.cap)) || ((b.deOptativa ? 1 : 0) - (a.deOptativa ? 1 : 0)) || ((b.cuando ? 1 : 0) - (a.cuando ? 1 : 0)));
   return c[0];
 }
 export function oirLinea(h, id, dia = 1) {

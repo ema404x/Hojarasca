@@ -659,7 +659,7 @@ export function crearValleUi(ctx) {
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
         + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}: ${escP(l.palabra)}</li>`).join('')}</ul>` : '')
         + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
-        + (opt.length ? `<p>Lo que hiciste de paso</p><ul class="optativas">${opt.map((x) => `<li>Día ${x.dia}: ${escP(x.texto)}</li>`).join('')}</ul>` : '')   // 4.18.0
+        + (opt.length ? `<p>Lo que hiciste de paso</p><ul class="optativas">${opt.map((x) => `<li>Día ${x.dia} · ${escP(x.titulo)}: ${escP(x.texto)}</li>`).join('')}</ul>` : '')   // 4.18.0
         + (b ? `<button data-historia="${b.accion}">${escP(b.texto)}</button>` : '')
         + `<p>${escP(resumenEventos(eventos.ev()))}.</p>`;
       ctx.traducir?.(cajaGuia);

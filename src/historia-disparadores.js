@@ -22,6 +22,7 @@ import { DISPARADORES_ACTO2, EFECTOS_ESCENA_ACTO2, OBJETOS_ACTO2, LUGARES_ACTO2,
 import { DISPARADORES_ACTO3, EFECTOS_ESCENA_ACTO3, OBJETOS_ACTO3, LUGARES_ACTO3, accionBolsaUmbral } from './historia-disparadores-acto3.js';
 // 4.17.0 (C): dónde se pone al jugador antes de las escenas de los actos I y II (historia-colocacion.js)
 import { COLOCACION_PULIDO } from './historia-colocacion.js';
+import { OBJETOS_PROPS_ACTO3 } from './historia-props-acto3.js';
 // 4.18.0: las subtramas optativas: sus disparadores nuevos y el registro (la ventana de capítulos de cada una)
 import { DISPARADORES_OPTATIVAS, EFECTOS_ESCENA_OPTATIVAS, OBJETOS_OPTATIVAS, LUGARES_OPTATIVAS } from './historia-disparadores-optativas.js';
 import { OPTATIVAS, capsDe } from './historia-optativas.js';
@@ -198,6 +199,7 @@ export const OBJETOS = {
   ...OBJETOS_ACTO2,
   // 4.17.0: el acto III
   ...OBJETOS_ACTO3,
+  ...OBJETOS_PROPS_ACTO3,   // 4.18 C: los mundo: que sólo dejaban marca
   // 4.18.0: las optativas (el frasco de la repisa, abrir el galpón sin golpear)
   ...OBJETOS_OPTATIVAS,
 };

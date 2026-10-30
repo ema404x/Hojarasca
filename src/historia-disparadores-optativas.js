@@ -5,7 +5,7 @@
 //
 // `repetible: true` en un disparador: la escena se puede volver a disparar aunque ya esté vista (las de la costumbre y la broma del galpón).
 import { marcarTema, marcarEntrega, marcarObjeto, capituloActual } from './historia.js';
-import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe } from './historia-optativas.js';
+import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco } from './historia-optativas.js';
 
 const en = (nombre, radio) => [nombre, radio];
 const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
@@ -16,14 +16,17 @@ export const LUGARES_OPTATIVAS = ['cumple', 'gallinero'];
 
 export const DISPARADORES_OPTATIVAS = {
   // ---- acto I
-  // el frasco de masa madre de la repisa (levantado con la E en el refugio), a Rosa, en la panadería
-  'frasco-rosa': { cap: 'llave', modo: 'hablar', clave: 'panadera', cond: (s) => s.objetos.has('frasco-masa-madre') && s.pobladores.has('panadera') },
-  // la oveja escapada de Ramón, arreada hasta el Puesto Alto (la marca `arreo:oveja-ramon` la deja el arreo del mundo)
-  'oveja-ramon': { cap: 'bolsa', modo: 'auto', lugar: en('puesto', 30), cond: (s) => s.temas.has('arreo:oveja-ramon') },
-  // pan o harina para Fermín, en el galpón de esquila
-  'fermin-pan': { cap: 'mesa', modo: 'hablar', clave: 'fermin', requiere: ['fermin-galpon'], cond: (s) => s.pan >= 1 || s.harina >= 1 },
-  // el primer lugar lindo de la vuelta con Graciela que no es la casa de té (el mirador del pehuén o el faro)
-  'vuelta-ingeniera': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], cond: (s) => s.acompanante === 'graciela' && (Number(s.lugares?.mirador) <= 16 || Number(s.lugares?.faro) <= 30) },
+  // el frasco de masa madre de la repisa: la E en el refugio lo pone en la mochila (escena de B) y la E sobre Rosa, en la panadería, se lo da
+  'frasco-repisa': { cap: 'llave', modo: 'interaccion', clave: 'frasco-repisa', requiere: ['nota-eusebio'], cond: (s) => !tieneFrasco(s) },
+  'frasco-rosa': { cap: 'llave', modo: 'hablar', clave: 'panadera', cond: (s) => tieneFrasco(s) && s.pobladores.has('panadera') },
+  // la oveja escapada de Ramón, arreada hasta el Puesto Alto (la marca `arreo:oveja-ramon` la deja el arreo del mundo); si mandaste al perro,
+  // la oveja volvió sola y la escena (su variante del perro) sale al pasar por el puesto
+  'oveja-ramon': { cap: 'bolsa', modo: 'auto', lugar: en('puesto', 30), cond: (s) => s.temas.has('arreo:oveja-ramon') || (s.eventosOpcion?.oveja === 'perro' && (Number(s.eventosDia?.oveja) || 0) >= (Number(s.ofrecidas?.oveja) || 1) && s.ofrecidas?.oveja !== undefined) },
+  // pan o harina para Fermín, en el galpón de esquila (la escena de B gasta lo que le diste)
+  'pan-fermin': { cap: 'mesa', modo: 'hablar', clave: 'fermin', requiere: ['fermin-galpon'], cond: (s) => s.pan >= 1 || s.harina >= 1 },
+  // los lugares lindos de la vuelta con Graciela (la casa de té es te-graciela, del acto I): el mirador del pehuén y el faro
+  'vuelta-mirador': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], lugar: en('mirador', 16), cond: (s) => s.acompanante === 'graciela' },
+  'vuelta-faro': { cap: 'ramal', modo: 'auto', requiere: ['anden-graciela'], lugar: en('faro', 30), cond: (s) => s.acompanante === 'graciela' },
   // ---- acto III
   // las ovejas desparramadas, de vuelta en el corral (la marca `arreo:corral-ramon` la deja el arreo del mundo)
   'juntar-ovejas': { cap: 'frios', modo: 'auto', lugar: en('puesto', 40), cond: (s) => s.temas.has('arreo:corral-ramon') },
@@ -38,11 +41,18 @@ export const DISPARADORES_OPTATIVAS = {
 // Lo que cambia al ver cada una (una sola vez; ver aplicarVistas). `ctx`: { gastar(cosa, n), cobrar(premio) } los pone el juego.
 const T = (quien, tema) => (h, dia) => marcarTema(h, quien, tema, dia);
 export const EFECTOS_ESCENA_OPTATIVAS = {
+  'frasco-repisa': (h, dia) => { marcarObjeto(h, 'frasco-masa-madre', dia); },   // (la escena de B lo marca con `objeto:`; esto vale si falta)
   'frasco-rosa': (h, dia) => { marcarEntrega(h, 'panadera', 'frasco', dia); T('rosa', 'frasco')(h, dia); },
   'oveja-ramon': T('ramon', 'oveja'),
-  // un pan casero o, si no hay, una medida de harina
-  'fermin-pan': (h, dia, ctx) => { marcarEntrega(h, 'fermin', 'pan', dia); const pan = (Number(ctx?.cuanto?.('pan-casero')) || 0) >= 1; ctx?.gastar?.(pan ? 'pan-casero' : 'harina', 1); },
-  'vuelta-ingeniera': (h, dia) => { T('graciela', 'vuelta')(h, dia); },
+  // un pan casero o, si no hay, una medida de harina: lo gasta la escena de B (`quitar:`); si la escena no corrió su `quitar`, lo gasta esto
+  'pan-fermin': (h, dia, ctx) => {
+    marcarEntrega(h, 'fermin', 'pan', dia);
+    const ap = h.aplicadas || {};
+    if (Object.hasOwn(ap, 'e:pan-fermin:quitar:pan-casero:1') || Object.hasOwn(ap, 'e:pan-fermin:quitar:harina:1')) return;
+    const pan = (Number(ctx?.cuanto?.('pan-casero')) || 0) >= 1; ctx?.gastar?.(pan ? 'pan-casero' : 'harina', 1);
+  },
+  'vuelta-mirador': T('vuelta', 'mirador'),
+  'vuelta-faro': T('vuelta', 'faro'),
   'juntar-ovejas': T('ramon', 'ovejas'),
   'cumple-nevada': T('ercilia', 'cumple'),
   // 4.18.0: las seis tablas de coihue que le vendés a Tito (la escena es de la 4.16.0 y no cobraba nada)
@@ -52,7 +62,7 @@ export const EFECTOS_ESCENA_OPTATIVAS = {
 export const NOTAS_ESCENA_OPTATIVAS = {
   'frasco-rosa': ['Le llevaste el frasco a Rosa', 'Masa de 1987. Te va a dejar pan tres mañanas'],
   'oveja-ramon': ['La oveja volvió al Puesto Alto', 'Ramón la cuenta con la mirada y no dice nada'],
-  'fermin-pan': ['Le llevaste algo a Fermín', 'Lo guardó sin decir gracias, que en él es decir mucho'],
+  'pan-fermin': ['Le llevaste algo a Fermín', 'Lo guardó sin decir gracias, que en él es decir mucho'],
   'juntar-ovejas': ['Las ovejas volvieron al corral', 'La tranquera quedó atada con alambre, por las dudas'],
   'tablas-tito': ['Le vendiste las tablas a Tito', `Seis tablas de coihue, $${PRECIO_TABLAS_TITO}`],
 };
@@ -60,10 +70,10 @@ export const NOTAS_ESCENA_OPTATIVAS = {
 // Los objetos del mundo que piden (mismo formato que OBJETOS en historia-disparadores.js)
 export const OBJETOS_OPTATIVAS = {
   // el frasco de masa madre de la repisa del refugio: se levanta con la E (capítulos 1 a 4, con la optativa ofrecida)
-  'frasco-repisa': { forma: null, lx: -1.0, lz: -0.9, visible: (s, h) => enCap(h, 'llave', 'bolsa', 'mesa', 'ramal') && s.escenas.has('nota-eusebio') && !s.objetos.has('frasco-masa-madre') && !s.escenas.has('frasco-rosa'),
-    aviso: 'Llevarte el frasco de masa madre', marca: 'frasco-masa-madre', nota: ['El frasco de la repisa', 'Masa madre de 1987, con la letra de Eusebio en la etiqueta. Rosa, la panadera, va a saber qué hacer con esto'] },
+  'frasco-repisa': { forma: null, lx: -1.0, lz: -0.9, visible: (s, h) => enCap(h, 'llave', 'bolsa', 'mesa', 'ramal') && s.escenas.has('nota-eusebio') && !tieneFrasco(s) && !s.escenas.has('frasco-rosa'),
+    aviso: 'Llevarte el frasco de masa madre', escena: 'frasco-repisa' },
   // la puerta del galpón, del otro lado: abrir sin golpear (al lado de la de golpear; ver OBJETOS_ACTO3['puerta-galpon'])
   'puerta-galpon-abrir': { forma: null, punto: 'galpon-noche', dx: 1.8, dz: 0, visible: (s, h) => enCap(h, 'golpea') && !s.escenas.has('galpon-golpe') && deNoche(s),
     aviso: 'Abrir la puerta del galpón sin golpear', escena: 'galpon-sin-golpear' },
 };
-export { vueltasDe };
+export { vueltasDe, tieneFrasco };
