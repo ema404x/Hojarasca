@@ -87,7 +87,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera, fiestaDeCumple } from './aldea.js';
+import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera, fiestaDeCumple, ORDEN_PERSONAS_ALDEA, esCumpleanos, esVecinoAldea } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
@@ -2308,6 +2308,13 @@ function cumpleDeHoyHistoria() {
   try {
     const f = fiestaDeCumple(d, progreso.aldea);
     if (f) { const q = (f.edificio && edificioEnMundo(f.edificio)) || edificioEnMundo('plaza'); if (q) v = { donde: f.donde, edificio: f.edificio || 'plaza', claves: [...f.claves], punto: { x: q.x, z: q.z } }; }
+    // (la fiesta del juego libre sólo la hacen los que son cercanos tuyos; si no, el que cumple hoy y vive en la aldea lo festeja en el almacén de Ercilia, como dice el guion)
+    if (!v) {
+      const pob = new Set((progreso.aldea?.pobladores || []).map((x) => x?.clave));
+      const claves = ORDEN_PERSONAS_ALDEA.filter((k) => esCumpleanos(k, d) && (esVecinoAldea(k) || pob.has(k)));
+      const q = claves.length ? edificioEnMundo('almacen') : null;
+      if (q) v = { donde: 'almacen', edificio: 'almacen', claves, punto: { x: q.x, z: q.z } };
+    }
   } catch { v = null; }
   cumpleHist = { dia: d, v };
   return v;

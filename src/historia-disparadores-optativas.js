@@ -74,7 +74,7 @@ export const OBJETOS_OPTATIVAS = {
   'frasco-repisa': { forma: 'frasco', lx: -0.08, lz: -2.55, y: 1.44, visible: (s, h) => enCap(h, 'llave', 'bolsa', 'mesa', 'ramal') && s.escenas.has('nota-eusebio') && !tieneFrasco(s) && !s.escenas.has('frasco-rosa'),
     aviso: 'Llevarte el frasco de masa madre', escena: 'frasco-repisa' },
   // la puerta del galpón, del otro lado: abrir sin golpear (al lado de la de golpear; ver OBJETOS_ACTO3['puerta-galpon'])
-  'puerta-galpon-abrir': { forma: null, punto: 'galpon-noche', dx: 1.8, dz: 0, visible: (s, h) => enCap(h, 'golpea') && !s.escenas.has('galpon-golpe') && deNoche(s),
+  'puerta-galpon-abrir': { forma: null, punto: 'galpon-noche', dx: 3.0, dz: 0, /* (a 3 m de la de golpear: con las dos a 1,8 m la E elegía siempre «Golpear») */ visible: (s, h) => enCap(h, 'golpea') && !s.escenas.has('galpon-golpe') && deNoche(s),
     aviso: 'Abrir la puerta del galpón sin golpear', escena: 'galpon-sin-golpear' },
 };
 export { vueltasDe, tieneFrasco };

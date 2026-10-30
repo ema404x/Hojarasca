@@ -128,19 +128,46 @@ app.whenReady().then(async () => {
   const hay = (id) => N(`H.__escenas.director.hay(${JSON.stringify(id)})`);
   const hecha = (id) => N(`P.historia.optativas[${JSON.stringify(id)}] !== undefined`);
   // una escena: que salga, que sea la de B (o se diga que faltaba) y que la optativa quede hecha
+  let progUlt = 0;
   const comprobar = async (escena, optativa, que) => {
-    await N('N.despejar(90)'); await N('N.tick(1.2)'); await N('N.despejar(20)'); await N('N.tick(0.8)');
+    await N('N.despejar(90)'); await N('N.tick(1.2)'); await N('N.despejar(20)'); if (await N('H.__escenas.activa()')) { console.log(`  (${escena}: larga; se saltea el resto con Esc)`); await N('N.despejar(30, { esc: true })'); } await N('N.tick(0.8)');
+    { const pr = await N('N.programas()'); if (progUlt && pr !== progUlt) console.log(`  [programas ${progUlt} → ${pr} con ${escena}]`); progUlt = pr; }
     const v = await vista(escena), real = await hay(escena);
     if (!real) noVistas.push(escena);
+    if (!v) console.log('  [diag]', JSON.stringify(await N('({ activa: H.__escenas.activa(), fase: H.__escenas.director.fase(), tarjeta: N.tarjeta() && N.tarjeta().titulo, cap: P.historia.capitulo, fasH: P.historia.fase, horas: P.horas, libre: !document.getElementById("charla") || document.getElementById("charla").classList.contains("oculto") })')));
     ok(v, `${que}: sale ${escena}${real ? ' (escena de B)' : ' (SIN escena escrita: se dio por vista)'}`);
     if (optativa) ok(await hecha(optativa), `${que}: la optativa «${optativa}» queda hecha`);
   };
-  const hablarCon = async (clave) => { const r = await N(`H.__valle.alHablarCon(${JSON.stringify(clave)})`); await N('N.tick(0.6)'); return r; };
+  const hablarCon = async (clave) => { await N('N.despejar(40)'); await cerrarTarjetas(); const r = await N(`H.__valle.alHablarCon(${JSON.stringify(clave)})`); if (!r) console.log(`  [hablar ${clave}] no arrancó escena`, JSON.stringify(await N('({ activa: H.__escenas.activa(), tarjeta: N.tarjeta() && N.tarjeta().titulo, fase: P.historia.fase, cap: P.historia.capitulo })'))); await N('N.tick(0.6)'); return r; };
   const irA = async (punto, dx = 2, dz = 2, seg = 1.2) => { const p = (await pts())[punto]; if (!p) return null; await N(`N.ir(${p.x + dx}, ${p.z + dz}, 0)`); await N(`N.tick(${seg})`); return p; };
   const pararCerca = (id, d = 1.4) => N(`(() => { const o = H.__historiaObjetos(), q = o.posiciones[${JSON.stringify(id)}]; if (!q) return 0; const j = H.jugador.estado; const a = Math.atan2(j.pos.x - q.x, j.pos.z - q.z) || 0; N.ir(q.x + Math.sin(a) * ${d}, q.z + Math.cos(a) * ${d}, a); H.jugador.estado.pitch = -0.28; return 1 })()`);
-  const eCerca = async (id) => { await N('N.tick(0.6)'); await pararCerca(id); await N('N.tick(0.7)'); const a = await N('(() => { const c = H.__objetoHistoriaCerca(); return c ? { id: c.id, aviso: c.aviso } : null })()'); await N('N.tecla("KeyE")'); await N('N.tick(0.6)'); return a; };
+  const eCerca = async (id) => { await N('N.tick(0.6)'); await pararCerca(id); await N('N.tick(0.7)'); const a = await N('(() => { const c = H.__objetoHistoriaCerca(); return c ? { id: c.id, aviso: c.aviso } : null })()'); await N('N.tecla("KeyE")'); await N('N.tick(0.6)');
+    // (si la E la tomó un vecino que pasaba —la E habla antes que los objetos—, se cierra la charla y se usa el objeto)
+    if (a && a.id === id && !(await N('H.__escenas.activa()')) && (await N('!document.getElementById("charla").classList.contains("oculto")'))) {
+      console.log(`  (la E de ${id} la tomó un vecino que pasaba: se usa el objeto)`);
+      await N('N.tecla("Escape")'); await N('N.tick(0.5)'); await pararCerca(id); await N('N.tick(0.5)');
+      await N(`(() => { const c = H.__objetoHistoriaCerca(); if (c && c.id === ${JSON.stringify(id)}) c.hacer(); return 1 })()`); await N('N.tick(0.6)');
+    }
+    return a; };
 
+  let extraLibre = 0;
   try {
+    // ================================================================ D. el control: el Relax libre (sin historia), de noche en la aldea y la panadería
+    if (toca('D')) {
+      donde = 'control';
+      console.log('— D. control: el Relax libre, de noche en la aldea (la hora de «La masa que crece sola»)');
+      await w.loadFile(url, { search: '?debug=1' }); await js(ajustes('libre', { estacion: 'auto' })); await cargar();
+      await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(3000);
+      await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1'); await N('N.tick(2.5)');
+      const l0 = await N('N.programas()');
+      for (const [k, hora] of [['panaderia', 23.6], ['plaza', 23.6], ['plaza', 12], ['estacion', 22.5]]) {
+        await N(`(() => { P.horas = ${hora}; return 1 })()`); const p = (await pts())[k]; if (!p) continue;
+        await N(`N.ir(${p.x + 3}, ${p.z + 3}, 0)`); await N('N.tick(2.5)');
+        console.log(`  [libre] ${k} a las ${hora}: ${await N('N.programas()')}`);
+      }
+      extraLibre = (await N('N.programas()')) - l0;
+      console.log(`  el Relax libre suma ${extraLibre} programas de noche en la aldea (${l0} → ${l0 + extraLibre})`);
+    }
     donde = 'entrar';
     await w.loadFile(url, { search: '?debug=1' }); await js(ajustes('historia', { estacion: 'auto' })); await cargar();
     await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(3000);
@@ -168,7 +195,7 @@ app.whenReady().then(async () => {
       ok(a && /frasco/i.test(a.aviso), `la E en la repisa: «${a && a.aviso}»`);
       await comprobar('frasco-repisa', null, 'el frasco a la mochila');
       ok(await N('!!(P.historia.temas["obj:frasco-masa-madre"] || P.historia.objetos["frasco-masa-madre"])'), 'el frasco está en la mochila');
-      await prep(1, { horas: 11, vistas: ['nota-eusebio', 'frasco-repisa'], temas: ['obj:frasco-masa-madre'] });
+      await prep(1, { horas: 11, vistas: ['nota-eusebio', 'frasco-repisa', 'ramon-tranquera'], temas: ['obj:frasco-masa-madre'] });
       await N('N.tick(0.8)');
       await hablarCon('panadera');
       await comprobar('frasco-rosa', 'frasco-masa-madre', 'el frasco a Rosa');
@@ -181,17 +208,20 @@ app.whenReady().then(async () => {
       // la oveja de Ramón: la historia ofrece el evento, «Arrearla vos», la oveja sigue hasta el puesto
       await cerrarTarjetas();
       await prep(1, { horas: 10, vistas: ['ramon-tranquera'] });
-      await N('(() => { delete P.eventosValle.hechos.oveja; P.eventosValle.activo = null; return 1 })()');
+      await N('(() => { delete P.eventosValle.hechos.oveja; delete P.historia.temas["optativa:oveja"]; P.eventosValle.activo = null; return 1 })()');
+      await N('N.despejar(40)');
       await N('H.__valle.revisarAhora()'); await N('N.tick(1)');
       await N('N.hasta(() => N.tarjeta() && /oveja/i.test(N.tarjeta().titulo), 10)');
       const tv = await N('N.tarjeta()');
+      if (!tv) console.log('  [diag oveja]', JSON.stringify(await N('({ activa: H.__escenas.activa(), ev: P.eventosValle.activo, temas: Object.keys(P.historia.temas).filter((k) => /optativa/.test(k)), fase: P.historia.fase, cap: P.historia.capitulo })')));
       ok(tv && /oveja/i.test(tv.titulo), `la historia ofrece «${tv && tv.titulo}» en el capítulo 2`);
       await foto('1b-evento-oveja');
       await N('N.elegir("buscar")'); await N('N.tick(1)'); await cerrarTarjetas();
       await N('N.hasta(() => H.__arreo() && H.__arreo().activo() && H.__arreo().clave === "opt-oveja", 10)');
       ok(await N('!!(H.__arreo() && H.__arreo().activo() && H.__arreo().clave === "opt-oveja")'), 'aparece la oveja escapada');
-      const ov = await N('(() => { const o = H.__arreo().estado.ovejas[0]; return { x: o.x, z: o.z } })()');
+      const ov = await N('(() => { const a = H.__arreo(); const o = a && a.estado && a.estado.ovejas[0]; return o ? { x: o.x, z: o.z } : null })()');
       const pu = (await pts()).puesto;
+      if (ov) {
       await N(`N.ir(${ov.x + 2}, ${ov.z + 2}, 0)`); await N('N.tick(1.5)');
       await foto('1c-oveja-escapada');
       const pasos = Math.ceil(Math.hypot(pu.x - ov.x, pu.z - ov.z) / 3);
@@ -201,6 +231,7 @@ app.whenReady().then(async () => {
       }
       ok(await N('P.historia.temas["arreo:oveja-ramon"] !== undefined'), 'la oveja llegó al Puesto Alto');
       await comprobar('oveja-ramon', 'oveja', 'la oveja de Ramón');
+      }
       // el pan para Fermín
       await cerrarTarjetas();
       await prep(2, { horas: 12, vistas: ['fermin-galpon'] });
@@ -212,11 +243,11 @@ app.whenReady().then(async () => {
       await cerrarTarjetas();
       await prep(3, { horas: 12, vistas: ['anden-graciela'], acompanante: 'graciela' });
       const g0 = await N('({ l: P.historia.lazos.graciela, r: P.historia.ramal })');
-      await irA('mirador', 3, 3, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["vuelta-mirador"], 10)');
+      await N('(() => { P.historia.momentos.ramal = "lanzado"; P.eventosValle.hechos.derrumbe = { dia: P.dia, opcion: "ayudar" }; return 1 })()'); await irA('mirador', 3, 3, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["vuelta-mirador"], 10)');
       await foto('1d-vuelta-mirador');
       await comprobar('vuelta-mirador', null, 'la vuelta: el mirador');
       await N('(() => { P.historia.acompanante = "graciela"; return 1 })()');
-      await irA('faro', 6, 6, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["vuelta-faro"], 10)');
+      await cerrarTarjetas(); await N('(() => { P.historia.acompanante = "graciela"; return 1 })()'); await irA('faro', 6, 6, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["vuelta-faro"], 10)');
       await comprobar('vuelta-faro', 'vuelta-ingeniera', 'la vuelta: el faro');
       const g1 = await N('({ l: P.historia.lazos.graciela, r: P.historia.ramal })');
       ok(g1.l === Math.min(3, g0.l + 2) && g1.r === g0.r + 2, `Graciela +2 y ramal +2 (${g0.l}→${g1.l}, ${g0.r}→${g1.r})`);
@@ -245,7 +276,7 @@ app.whenReady().then(async () => {
         const pesos0 = await N('(P.economia && P.economia.pesos) || 0');
         const cantos0 = await N('(P.entradas.canto && P.entradas.canto.cantidad) || 0');
         await hablarCon(clave);
-        await comprobar(escena, opt, opt);
+        await comprobar(escena, opt, opt); console.log(`  [programas tras ${opt}] ${await N('N.programas()')}`);
         if (opt === 'tablas-tito') ok((await N('(P.economia && P.economia.pesos) || 0')) > pesos0 && (await N('P.cosas["tabla-coihue"]')) === 6, 'Tito pagó las seis tablas');
         if (opt === 'veta-vuelve') ok((await N('(P.entradas.canto && P.entradas.canto.cantidad) || 0')) === cantos0 + 10, 'diez cantos blancos');
       }
@@ -334,6 +365,8 @@ app.whenReady().then(async () => {
       await comprobar('flechas-de-mas', 'flechas-de-mas', 'flechas de más');
       ok((await N('P.historia.flechasExtra')) >= 15, 'el segundo atado: flechas de más para la noche');
       await prep(10, { horas: 16 });
+      // (no todos los días hay fiesta: con la aldea chica, se busca un día del año de doce en que festeje alguien)
+      for (let k = 0; k < 12 && !(await N('H.__valle.estado().cumple')); k++) { await N('(() => { P.dia += 1; P.historia.base.dia = P.dia; return 1 })()'); await N('N.tick(0.3)'); }
       const cu = await N('H.__valle.estado().cumple');
       ok(!!cu, `hoy hay un cumpleaños en la aldea (${cu && cu.claves && cu.claves.join(', ')} en ${cu && cu.edificio})`);
       if (cu) { await irA('cumple', 3, 3, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["cumple-nevada"], 10)'); await foto('3c-cumple'); await comprobar('cumple-nevada', 'cumple-nevada', 'el cumpleaños que no se suspende'); }
@@ -381,7 +414,7 @@ app.whenReady().then(async () => {
     console.log(`  optativas hechas: ${hechas.length} (${hechas.join(', ')})`);
     if (noVistas.length) console.log(`  escenas sin escribir (dadas por vistas): ${noVistas.join(', ')}`);
     const prog = await N('N.programas()');
-    ok(prog <= Math.max(prog0, 112), `programas de shader: ${prog0} → ${prog} (la base es 111; construir el galponcito o el gallinero puede sumar lo mismo que en el Relax libre)`);
+    ok(prog <= prog0 + extraLibre + 1, `programas de shader: ${prog0} → ${prog} (la base es 111; el Relax libre suma ${extraLibre} de noche en la aldea y construir el galponcito o el gallinero, 1: las optativas, 0)`);
   } catch (err) {
     console.log('ERROR:', err && err.stack || err);
     errores.push(String(err && err.message || err));

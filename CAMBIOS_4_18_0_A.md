@@ -76,9 +76,18 @@ Tocados: `historia.js`, `historia-ui.js`, `historia-disparadores.js`, `historia-
 (4.15 historia, 4.16 historia A, 4.17 historia A, 4.17 pulido C).
 
 ## Pruebas
-- `pruebas/verificar-4-18-0-optativas-a.mjs`: ver el informe final (comprobaciones y mutaciones, cada mutación en un proceso aparte sobre una
-  copia de `src/`).
-- `pruebas/humo-4-18-0-optativas.cjs`: partida real con las escenas de B (resultado en el informe final).
+- `pruebas/verificar-4-18-0-optativas-a.mjs`: 368 comprobaciones, 20 de 20 mutaciones atrapadas (cada una en un proceso aparte sobre una copia de `src/`).
+- `pruebas/humo-4-18-0-optativas.cjs` (Electron, monitor externo, ~25 min entero): con las 7 escenas de B registradas, las 28 optativas hechas al menos
+  una vez (27 en la corrida entera; el cumpleaños falló y se arregló —ver abajo— y la sección 3 se volvió a correr en verde), más abrir sin golpear
+  (dos veces), las plumas del gallinero y la costumbre (dejar la bolsa con una sola medida de harina y el regalito). Programas: 111 → 113; los +2 salen
+  con la escena «La masa que crece sola» (23:36 en la aldea) y el control del Relax libre de noche en la aldea suma 3: no son de las optativas.
+- Las de historia anteriores (4.15, 4.16, 4.17 A y pulido C) y la de B (4.18 escenas), en verde.
+
+## Arreglos que salieron del humo
+- La E de «Abrir sin golpear» quedaba a 1,8 m de la de «Golpear» y ganaba siempre «Golpear»: ahora a 3 m.
+- El cumpleaños: la fiesta del juego libre sólo la hacen los cercanos tuyos, así que casi nunca había. Ahora, si no hay fiesta, el que cumple hoy y
+  vive en la aldea lo festeja en el almacén de Ercilia (como dice el guion); casi todos los días hay uno.
+- La escena «Las mulas de Belisario» es larga: el humo la lee 110 s y saltea el resto con Esc.
 
 ## Lo que no
 - Rosa, Tobías, Tito, Belisario, Herminia, Nicanor y Sofía no tienen lazo en la historia: sus `lazo:` se ignoran (como antes).
