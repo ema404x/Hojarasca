@@ -1,6 +1,6 @@
 // 4.18.0 (B): los textos de las SUBTRAMAS OPTATIVAS de la Historia («El trato del molino», GUION_HISTORIA.md §6 y los bloques «Optativas» de cada
 // capítulo) como DATOS. Módulo puro. Lo escribe el agente B; lo enchufa el agente A (el registro de optativas, el tablón y el cuaderno).
-//   · tablon[id]  = { caps, quien, titulo, ofrecida, hecha }   la entrada del tablón de historia de CADA optativa del guion (las 27): `ofrecida`
+//   · tablon[id]  = { caps, quien, titulo, ofrecida, hecha }   la entrada del tablón de historia de CADA optativa del guion (las 28): `ofrecida`
 //                   es la pista mientras está abierta; `hecha`, la línea que queda tildada. `quien`: la persona del guion (como en la charla).
 //   · objetos[id] = { nombre, texto }                          los objetos de historia nuevos (el frasco de la repisa)
 //   · raro[id]    = { titulo, texto, cap, donde }              el cuaderno de lo raro: los ids son los de los efectos `raro:<id>` de las escenas
