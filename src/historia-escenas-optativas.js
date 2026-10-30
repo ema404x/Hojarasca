@@ -118,7 +118,7 @@ const ovejaRamon = {
 // ---------------------------------------------------------------- capítulo 3 · Pedido de Fermín (pan para el galpón de esquila)
 // (lo que le das lo gasta el disparador de A: un pan casero o, si no hay, una medida de harina; la escena no gasta)
 const ferminPan = {
-  id: 'fermin-pan', titulo: 'Pan en la estepa', acto: 1, capitulo: 3,
+  id: 'pan-fermin', titulo: 'Pan en la estepa', acto: 1, capitulo: 3,
   resumen: 'Le llevaste pan o harina a Fermín al galpón de esquila. Lo compartió «a medias, como las ovejas», y espantó un chimango con un cascote sin mirar.',
   personajes: pj3('fermin', 'narra'),
   pasos: [
@@ -254,7 +254,7 @@ export const ESCENAS_OPTATIVAS = {
   'frasco-repisa': frascoRepisa,
   'frasco-rosa': frascoRosa,
   'oveja-ramon': ovejaRamon,
-  'fermin-pan': ferminPan,
+  'pan-fermin': ferminPan,
   'vuelta-mirador': vueltaMirador,
   'vuelta-faro': vueltaFaro,
   'juntar-ovejas': juntarOvejas,
@@ -275,7 +275,7 @@ export const DISPARO_OPTATIVAS = {
   'frasco-repisa': d(1, 'adentro del refugio, frente a la repisa', 'E en el frasco de la repisa (capítulos 1 a 4, después de nota-eusebio): el frasco va a la mochila. Si A lo levanta sin escena, que dé objeto:frasco-masa-madre igual', null, null),
   'frasco-rosa': d(2, 'frente a Rosa, en la panadería', 'E sobre Rosa (panadera) con el frasco en la mochila, capítulos 1 a 4 (el guion la abre en el 2; sigue hasta el fin del acto I)', 'frasco-masa-madre', 'nota-eusebio'),
   'oveja-ramon': d(2, 'en el Puesto Alto, junto al corral de Ramón', 'después del evento del valle «oveja» (capítulos 2 a 4): con «Arrearla vos», al llegar al Puesto Alto con la oveja; con «perro», la próxima vez que llegues al Puesto Alto (la oveja volvió sola: variante del perro)', 'oveja', null),
-  'fermin-pan': d(3, 'frente a Fermín, en el galpón de esquila', 'E sobre Fermín con un pan casero o una medida de harina, después de fermin-galpon (capítulos 3 y 4); el disparador de A gasta uno (la escena no gasta)', 'fermin-pan', 'fermin-galpon'),
+  'pan-fermin': d(3, 'frente a Fermín, en el galpón de esquila', 'E sobre Fermín con un pan casero o una medida de harina, después de fermin-galpon (capítulos 3 y 4); el disparador de A gasta uno (la escena no gasta)', 'fermin-pan', 'fermin-galpon'),
   'vuelta-mirador': d(4, 'en el mirador del pehuén, con Graciela al lado (acompañante)', 'llegar al mirador del pehuén (16 m) con Graciela de acompañante, después de anden-graciela (capítulo 4); uno de los dos lugares', 'vuelta-ingeniera', null),
   'vuelta-faro': d(4, 'en la orilla, junto al faro, con Graciela al lado (acompañante)', 'llegar al faro (30 m) con Graciela de acompañante, después de anden-graciela (capítulo 4); uno de los dos lugares', 'vuelta-ingeniera', null),
   'juntar-ovejas': d(9, 'en la tranquera del corral del Puesto Alto, con la última oveja entrando', 'cuando las ovejas desparramadas vuelven todas al corral (la mecánica de A, capítulos 9 y 10), sólo si hojas-canelo ofreció la optativa (no convidaste)', 'juntar-ovejas', 'hojas-canelo'),

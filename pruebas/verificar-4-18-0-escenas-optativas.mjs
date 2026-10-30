@@ -27,7 +27,7 @@ let n = 0, fallas = 0;
 const ok = (c, t) => { n++; if (!c) { fallas++; console.log('FALLA ' + t); } };
 
 const ARCH_ESC = 'src/historia-escenas-optativas.js', ARCH_TEX = 'src/historia-texto-optativas.js';
-const IDS_PEDIDOS = ['frasco-repisa', 'frasco-rosa', 'oveja-ramon', 'fermin-pan', 'vuelta-mirador', 'vuelta-faro', 'juntar-ovejas'];
+const IDS_PEDIDOS = ['frasco-repisa', 'frasco-rosa', 'oveja-ramon', 'pan-fermin', 'vuelta-mirador', 'vuelta-faro', 'juntar-ovejas'];
 // las claves nuevas que A tiene que implementar (documentadas en CAMBIOS_4_18_0_B.md y anotadas en el tablero)
 const CLAVES_NUEVAS = ['objeto:frasco-masa-madre', 'entrega:frasco-masa-madre', 'mundo:ovejas-juntas'];
 const CLAVES_PEDIDAS = ['graciela', 'pareja'];
@@ -413,11 +413,11 @@ function todo(ME, MT, textoE, textoT) {
     c(nombres(ov([])).includes('lazo:ramon:1') && nombres(ov([])).includes('mundo:majada-pasa') && nombres(ov([])).includes('raro:la-porfiada'), 'oveja-ramon: Ramón +1, la majada y el cuaderno');
     c(ov([{ id: 'oveja', opcion: 'perro' }]).lineas.some((l) => /arrea como yo bailo/.test(l)) && !ov([{ id: 'oveja', opcion: 'perro' }]).lineas.some((l) => /Se te nota en las botas/.test(l)), 'oveja-ramon: con el perro, Ramón se ríe del perro');
     c(ov([{ id: 'oveja', opcion: 'buscar' }]).lineas.some((l) => /Se te nota en las botas/.test(l)) && !ov([{ id: 'oveja', opcion: 'buscar' }]).lineas.some((l) => /arrea como yo bailo/.test(l)), 'oveja-ramon: si la arreaste vos, te mira las botas');
-    const p0 = corre('fermin-pan', { script: [0] }), p1 = corre('fermin-pan', { script: [1] });
-    c(![...nombres(p0), ...nombres(p1)].some((x) => x.startsWith('quitar:') || x.startsWith('dar:')), 'fermin-pan: la escena no gasta (lo gasta el disparador de A)');
-    c(nombres(p0).includes('lazo:fermin:1') && nombres(p1).includes('lazo:fermin:1') && p0.lineas.some((l) => /espantaba zorros/.test(l)), 'fermin-pan: Fermín +1 y la honda insinuada');
-    c(p0.lineas.some((l) => /A medias/.test(l)) && !p1.lineas.some((l) => /A medias/.test(l)) && p1.lineas.some((l) => /lo guardo/.test(l)), 'fermin-pan: cada respuesta tiene su reacción');
-    c(nombres(corre('fermin-pan', { saltarAl: 3 })).includes('lazo:fermin:1'), 'fermin-pan: saltarla igual sube a Fermín');
+    const p0 = corre('pan-fermin', { script: [0] }), p1 = corre('pan-fermin', { script: [1] });
+    c(![...nombres(p0), ...nombres(p1)].some((x) => x.startsWith('quitar:') || x.startsWith('dar:')), 'pan-fermin: la escena no gasta (lo gasta el disparador de A)');
+    c(nombres(p0).includes('lazo:fermin:1') && nombres(p1).includes('lazo:fermin:1') && p0.lineas.some((l) => /espantaba zorros/.test(l)), 'pan-fermin: Fermín +1 y la honda insinuada');
+    c(p0.lineas.some((l) => /A medias/.test(l)) && !p1.lineas.some((l) => /A medias/.test(l)) && p1.lineas.some((l) => /lo guardo/.test(l)), 'pan-fermin: cada respuesta tiene su reacción');
+    c(nombres(corre('pan-fermin', { saltarAl: 3 })).includes('lazo:fermin:1'), 'pan-fermin: saltarla igual sube a Fermín');
     for (const id of ['vuelta-mirador', 'vuelta-faro']) {
       const q = nombres(corre(id));
       c(!q.some((x) => x.startsWith('lazo:') || x.startsWith('ramal:')), `${id}: no da lazo ni ramal (el premio es de te-graciela o del registro)`);
@@ -503,7 +503,7 @@ const elec = (e, id) => e.pasos.find((p) => p.tipo === 'eleccion' && p.id === id
 const MUT_DATOS = [
   ['falta una escena', (e) => { delete e['juntar-ovejas']; }],
   ['una escena de más', (e) => { e['extra'] = { ...clon(e['vuelta-faro']), id: 'extra' }; }],
-  ['el id no coincide con la clave', (e) => { e['fermin-pan'].id = 'pan-otro'; }],
+  ['el id no coincide con la clave', (e) => { e['pan-fermin'].id = 'pan-otro'; }],
   ['un id que choca con un acto', (e) => { const x = e['vuelta-faro']; delete e['vuelta-faro']; e['te-graciela'] = { ...x, id: 'te-graciela' }; }],
   ['acto mal puesto', (e) => { e['juntar-ovejas'].acto = 1; }],
   ['un plano desconocido', (e) => { e['oveja-ramon'].pasos.find((p) => p.tipo === 'plano').plano = 'cenital'; }],
@@ -515,7 +515,7 @@ const MUT_DATOS = [
   ['cuatro opciones', (e) => { elec(e['vuelta-faro'], 'faro-graciela').opciones.push({ id: 'otra', texto: 'Otra.', sabor: true }); }],
   ['una elección repetida con un acto', (e) => { elec(e['vuelta-mirador'], 'mirador-graciela').id = 'mirador-resp'; }],
   ['una elección repetida entre escenas', (e) => { elec(e['vuelta-mirador'], 'mirador-graciela').id = 'faro-graciela'; }],
-  ['un paso que mira una elección inexistente', (e) => { e['fermin-pan'].pasos.push({ tipo: 'dialogo', quien: 'narra', lineas: ['Hola, hola.'], si: { eleccion: 'no-hay', es: 'a' } }); }],
+  ['un paso que mira una elección inexistente', (e) => { e['pan-fermin'].pasos.push({ tipo: 'dialogo', quien: 'narra', lineas: ['Hola, hola.'], si: { eleccion: 'no-hay', es: 'a' } }); }],
   ['un condicional colado como línea', (e) => { dial(e['frasco-repisa']).lineas.push({ si: { eleccion: 'frasco-hablar', es: 'tela' } }); }],
   ['una línea larguísima', (e) => { dial(e['frasco-rosa']).lineas.push('Larguísimo. '.repeat(30)); }],
   ['una opción larguísima', (e) => { elec(e['juntar-ovejas'], 'ovejas-poste').opciones[0].texto = 'Dejarlo atado porque no es mío y no se toca '.repeat(3); }],
@@ -523,9 +523,9 @@ const MUT_DATOS = [
   ['religión', (e) => { dial(e['oveja-ramon']).lineas.push('Gracias a Dios volvió la oveja.'); }],
   ['algo explícito', (e) => { dial(e['vuelta-faro']).lineas.push('Se dieron un beso largo.'); }],
   ['algo que no existe en el juego', (e) => { dial(e['vuelta-mirador']).lineas.push('Mañana vuelvo al hospedaje.'); }],
-  ['una persona que no existe', (e) => { dial(e['fermin-pan']).lineas.push('Me lo dijo la tía Hortensia.'); }],
+  ['una persona que no existe', (e) => { dial(e['pan-fermin']).lineas.push('Me lo dijo la tía Hortensia.'); }],
   ['un hablante sin declarar', (e) => { dial(e['oveja-ramon']).quien = 'ramoncito'; }],
-  ['una clave que no existe', (e) => { e['fermin-pan'].personajes.fermin.clave = 'fermin2'; }],
+  ['una clave que no existe', (e) => { e['pan-fermin'].personajes.fermin.clave = 'fermin2'; }],
   ['una pose que no existe', (e) => { e['oveja-ramon'].pasos.push({ tipo: 'gesto', quien: 'ramon', accion: 'posar', pose: 'volar' }); }],
   ['un lugar que no existe', (e) => { e['vuelta-faro'].pasos.find((p) => p.tipo === 'plano' && p.a?.lugar).a = { lugar: 'aeropuerto' }; }],
   ['un efecto fuera de la convención', (e) => { e['frasco-rosa'].pasos.push({ tipo: 'efecto', nombre: 'regalo:pan' }); }],
@@ -548,12 +548,12 @@ const MUT_DATOS = [
   ['charla con id repetido de un acto', (e, t) => { t.charla.rosa[0].id = 'rosa-c2-frasco'; }],
   ['falta la tabla de disparo', (e, t, d) => { delete d['oveja-ramon']; }],
   ['disparo con otro capítulo', (e, t, d) => { d['vuelta-faro'].cap = 5; }],
-  ['disparo con una optativa de otro capítulo', (e, t, d) => { d['fermin-pan'].objetivo = 'noventa'; }],
+  ['disparo con una optativa de otro capítulo', (e, t, d) => { d['pan-fermin'].objetivo = 'noventa'; }],
   ['disparo que dice que la ofrece quien no la ofrece', (e, t, d) => { d['vuelta-faro'].ofrece = 'anden-graciela'; }],
   ['frasco-rosa sin la promesa del pan', (e) => { for (const p of e['frasco-rosa'].pasos) if (p.tipo === 'dialogo') p.lineas = p.lineas.filter((l) => !/Tres días/.test(typeof l === 'string' ? l : l.texto)); }],
   ['frasco-rosa con pan duplicado', (e, t, d, ME) => { e['frasco-rosa'].pasos.push({ tipo: 'efecto', nombre: 'dar:pan-casero:1' }); ME.EFECTOS_OPTATIVAS.push('dar:pan-casero:1'); ME.EFECTOS_OPTATIVAS.sort(); }],
   ['oveja-ramon sin la variante del perro', (e) => { const p = e['oveja-ramon'].pasos.find((q) => q.si?.cond === 'evento' && !q.si.no && q.tipo === 'dialogo' && q.quien === 'ramon'); delete p.si; }],
-  ['fermin-pan gasta en la escena (doble con A)', (e, t, d, ME) => { const o = elec(e['fermin-pan'], 'fermin-pan-que').opciones[0]; delete o.sabor; o.efecto = 'quitar:pan-casero:1'; ME.EFECTOS_OPTATIVAS.push('quitar:pan-casero:1'); ME.EFECTOS_OPTATIVAS.sort(); }],
+  ['fermin-pan gasta en la escena (doble con A)', (e, t, d, ME) => { const o = elec(e['pan-fermin'], 'fermin-pan-que').opciones[0]; delete o.sabor; o.efecto = 'quitar:pan-casero:1'; ME.EFECTOS_OPTATIVAS.push('quitar:pan-casero:1'); ME.EFECTOS_OPTATIVAS.sort(); }],
   ['vuelta-faro da lazo', (e, t, d, ME) => { e['vuelta-faro'].pasos.push({ tipo: 'efecto', nombre: 'lazo:graciela:2' }); ME.EFECTOS_OPTATIVAS.push('lazo:graciela:2'); ME.EFECTOS_OPTATIVAS.sort(); }],
   ['juntar-ovejas con Fermín siempre', (e) => { for (const p of e['juntar-ovejas'].pasos) if (p.si?.cond === 'decision' && p.si.args.es === 'a') delete p.si; }],
   ['juntar-ovejas sin cerrar el corral', (e, t, d, ME) => { e['juntar-ovejas'].pasos = e['juntar-ovejas'].pasos.filter((p) => p.nombre !== 'mundo:ovejas-juntas'); }],

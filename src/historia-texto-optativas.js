@@ -80,7 +80,7 @@ export const TEXTO_OPTATIVAS = {
       { id: 'ramon-opt-loma', cap: 13, texto: 'Gracias por subir a la loma. No hablamos nada y fue lo mejor que hablé en todo el año.', cuando: { escena: 'volver-a-subir' } },
     ],
     fermin: [
-      { id: 'fermin-opt-pan', cap: 3, texto: 'Todavía me acuerdo del pan. En la estepa las cosas ricas duran poco y se recuerdan mucho.', cuando: { escena: 'fermin-pan' } },
+      { id: 'fermin-opt-pan', cap: 3, texto: 'Todavía me acuerdo del pan. En la estepa las cosas ricas duran poco y se recuerdan mucho.', cuando: { escena: 'pan-fermin' } },
       { id: 'fermin-opt-ovejas', cap: 9, texto: 'Las ovejas desparramadas no son cosa de zorro. El zorro se lleva una. Esto fue alguien que quería que miremos.', cuando: { escena: 'juntar-ovejas' } },
     ],
     graciela: [
