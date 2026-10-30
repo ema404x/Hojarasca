@@ -398,10 +398,11 @@ export function crearValleUi(ctx) {
   // La E sobre un objeto de historia del mundo: { aviso, hacer } o null
   function accionObjeto(id) {
     const h = historia();
-    if (!h.activa || h.fase !== 'jugando') return null;
+    if (!h.activa || (h.fase !== 'jugando' && h.fase !== 'fin')) return null;
     const s = estado();
     const a = accionDeObjeto(id, h, s);
     if (!a) return null;
+    if (h.fase === 'fin' && a.tipo !== 'bolsa') return null;   // (4.18.0: terminada la historia, sólo la bolsa de la costumbre del trato)
     if (a.tipo === 'reparar' && (s.tablas || 0) < 1) return { aviso: 'Para cambiar una tabla del alero hace falta una tabla', hacer: () => ctx.nota('Te falta una tabla', 'El banco de carpintero y el hacha te dan tablas') };
     if (a.tipo === 'escena' && !escenaPendiente(h, s, { modo: 'interaccion', clave: id })) return null;
     return { aviso: a.aviso, hacer: () => usarObjeto(id, a) };
@@ -499,7 +500,7 @@ export function crearValleUi(ctx) {
   let acum = 0, esperaInicio = 0, tiempoCapitulo = 0, azarEnPruebas = false, aceleracion = 1, forzada = null;
   const MOMENTO_PRONTO = 90;   // segundos jugando el capítulo antes de su momento "pronto"
   // 4.18.0: la optativa «La oveja de Ramón» (capítulo 2): el evento de la oveja escapada se ofrece una vez, un rato después de empezar el capítulo
-  const OVEJA_TRAS = 150;
+  const OVEJA_TRAS = MOMENTO_PRONTO;
   function ofrecerOveja(h, s) {
     if (capituloActual(h).id !== 'bolsa' || tiempoCapitulo < OVEJA_TRAS || s.vecinos === false || s.temas.has('optativa:oveja')) return false;
     if (!eventos.forzar('oveja')) return false;

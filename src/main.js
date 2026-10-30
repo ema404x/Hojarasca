@@ -2340,7 +2340,7 @@ function historiaObjetoCerca() {
   cacheObjetoHist.t = ahora;
   cacheObjetoHist.v = null;
   const h = valle.historia();
-  if (!h.activa || h.fase !== 'jugando') return null;
+  if (!h.activa || (h.fase !== 'jugando' && h.fase !== 'fin')) return null;   // (4.18.0: terminada la historia, la bolsa del umbral de la costumbre del trato)
   const visibles = Object.keys(objetosHist.posiciones);   // (4.16.0: todos los que tienen lugar; `accionObjeto` filtra los que se ven y tienen qué hacer)
   const id = objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
   const a = id ? valle.accionObjeto(id) : null;
