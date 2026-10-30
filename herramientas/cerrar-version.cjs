@@ -97,7 +97,7 @@ function docs(ver) {
 
   aviso(sh('node armar.mjs').trim().split(NL).pop());
   sh('git add -A');
-  cp.execFileSync('git', ['commit', '-m', ver + ': versión, documentos y LEEME' + NL + NL + 'Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'], { cwd: raiz });
+  cp.execFileSync('git', ['commit', '-m', ver + ': versión, documentos y LEEME' + NL + NL + 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'], { cwd: raiz });
   aviso('Documentos de ' + ver + ' listos y confirmados. Ahora el gate: npm run verify (de corrido).');
 }
 

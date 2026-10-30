@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.18.0 (sobre main = 4.17.0): HISTORIA: SUBTRAMAS OPTATIVAS (CAMBIOS_4_18_0.md) — las 28 optativas jugables con su premio, escenas nuevas (frasco, oveja, pan, mirador y faro, ovejas), charla de historia de los vecinos que no se mostraba, mundo del acto III dibujado (Ramón con manta, Fermín en el techo, faroles, lucecitas)
 - 4.17.0 (sobre main = 4.16.0): HISTORIA NUEVA, ACTO III (CAMBIOS_4_17_0.md) — capítulos 9 a 13: 56 escenas, decisiones D5 y D6, noche de la nevada, dos finales, epílogo; pulido de los actos I y II (58 escenas vistas a ojo); la Historia queda completa de punta a punta
 - 4.16.0 (sobre main = 4.15.0): HISTORIA NUEVA, ACTO II (CAMBIOS_4_16_0.md) — capítulos 5 a 8 completos con 37 escenas, decisiones del coihue, la molienda y el cuaderno, coihue grande talable, puerta de estación; pendientes del acto I resueltos; herramienta herramientas/cerrar-version.cjs y skill hojarasca-historia
 - 4.15.0 (sobre main = 4.14.0): HISTORIA NUEVA, ACTO I (`CAMBIOS_4_15_0.md`) — «El trato del molino»: 13 capítulos, 1 a 4 completos con 21 escenas, decisión de la bolsa, Graciela, cuaderno de lo raro y cuenta del ramal; partidas viejas en modo Historia se reinician con copia previa; 5 a 13 con «continuará»
