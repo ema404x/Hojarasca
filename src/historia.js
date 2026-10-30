@@ -27,6 +27,8 @@ import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
 import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 // 4.17.0: y los del acto III (el cuaderno de lo raro)
 import { TEXTO_ACTO3 } from './historia-texto-acto3.js';
+// 4.18.0: y los de las subtramas optativas (los escribe B: el cuaderno de lo raro nuevo)
+import { TEXTO_OPTATIVAS } from './historia-texto-optativas.js';
 
 // 4.15.0: Fermín (el galpón de esquila) se suma a los que se conocen
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia', 'fermin'];
@@ -875,7 +877,7 @@ export function decisionesDe(h) {
   return h.decisiones;
 }
 // el cuaderno de lo raro: indicios con fecha. Cada uno se anota una vez.
-export const RAROS = Object.fromEntries([...Object.entries(TEXTO_ACTO1.raro), ...Object.entries(TEXTO_ACTO2.raro || {}), ...Object.entries(TEXTO_ACTO3.raro || {})].map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
+export const RAROS = Object.fromEntries([...Object.entries(TEXTO_ACTO1.raro), ...Object.entries(TEXTO_ACTO2.raro || {}), ...Object.entries(TEXTO_ACTO3.raro || {}), ...Object.entries(TEXTO_OPTATIVAS.raro || {})].map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
 export function anotarRaro(h, id, dia = 1) {
   if (!Object.hasOwn(RAROS, id)) return false;
   if (!Array.isArray(h.raro)) h.raro = [];

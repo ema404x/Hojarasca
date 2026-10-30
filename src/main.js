@@ -268,6 +268,8 @@ import { ESCENAS_ACTO1, EFECTOS_ACTO1 } from './historia-escenas-acto1.js';
 import { ESCENAS_ACTO2, EFECTOS_ACTO2 } from './historia-escenas-acto2.js';
 // 4.17.0: el acto III (capítulos 9 a 13) y el arreo de la majada
 import { ESCENAS_ACTO3, EFECTOS_ACTO3 } from './historia-escenas-acto3.js';
+// 4.18.0: las escenas de las subtramas optativas (las escribe B, mismo formato)
+import { ESCENAS_OPTATIVAS, EFECTOS_OPTATIVAS } from './historia-escenas-optativas.js';
 import { crearArreoMundo } from './historia-arreo-mundo.js';
 import { crearAcompanante } from './historia-acompanante.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
@@ -947,10 +949,10 @@ async function construir() {
     });
     // 4.15.0: las escenas del acto I (datos: historia-escenas-acto1.js) y los efectos y condiciones con nombre que pueden usar
     try {
-      for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3)]) { const r = escenasMundo.registrar(e); if (!r.ok) console.warn('escena de la historia mal armada', e?.id, r.errores); }
+      for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3), ...Object.values(ESCENAS_OPTATIVAS)]) { const r = escenasMundo.registrar(e); if (!r.ok) console.warn('escena de la historia mal armada', e?.id, r.errores); }
       const ctxEfectos = { historia: () => (valle ? valle.historia() : null), dia: () => progreso.dia, estado: () => (valle ? valle.estado() : null), opcionDeEvento: (id) => progreso.eventosValle?.hechos?.[id]?.opcion };
       registrarEfectosHistoria(escenasMundo, ctxEfectos);
-      registrarEfectosActo1(escenasMundo, { ...ctxEfectos, dar: (cosa, n) => darCosaHistoria(cosa, n), mundo: (id, args, escena) => efectoMundoHistoria(id, args, escena), duende: (id, args) => efectoDuendeHistoria(id, args), quitar: (cosa, n) => gastarCosaHistoria(cosa, n) }, [...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2, ...EFECTOS_ACTO3])]);   // (4.16.0: y los del acto II; 4.17.0: y los del III)
+      registrarEfectosActo1(escenasMundo, { ...ctxEfectos, dar: (cosa, n) => darCosaHistoria(cosa, n), mundo: (id, args, escena) => efectoMundoHistoria(id, args, escena), duende: (id, args) => efectoDuendeHistoria(id, args), quitar: (cosa, n) => gastarCosaHistoria(cosa, n) }, [...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2, ...EFECTOS_ACTO3, ...EFECTOS_OPTATIVAS])]);   // (4.16.0: y los del acto II; 4.17.0: y los del III; 4.18.0: y los de las optativas)
     } catch (e) { fallaSistema('historia-escenas', e); }
     document.addEventListener('keyup', (e) => { escenasMundo?.teclaSuelta(e); });   // (soltar Mayús: la escritura vuelve a su velocidad)
   }
