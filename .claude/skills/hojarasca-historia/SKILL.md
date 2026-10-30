@@ -7,7 +7,7 @@ description: Cómo se escribe y se conecta la Historia nueva de Hojarasca («El 
 
 Fuentes: `GUION_HISTORIA.md` (guion de los 13 capítulos), `DECISIONES_HISTORIA_NUEVA.md`, `DECISIONES_HISTORIA_DUENDES.md`, `CAMBIOS_4_14_0.md` (API del motor de escenas), `CAMBIOS_4_15_0*.md` y `CAMBIOS_4_16_0*.md` (cómo quedaron los actos hechos).
 
-## Reparto de un acto (siempre dos agentes, nunca más)
+## Reparto de un acto (dos o tres agentes: A mecánica, B guiones, C pulido y mundo)
 - **A, mecánica:** objetivos, momentos, premios, desbloqueos, disparadores (`src/historia-disparadores*.js`), aplicador de efectos, objetos del mundo, estado y guardado (`historia.js`, `historia-ui.js`, `guardado.js`, `main.js`), humo de partida real.
 - **B, guiones (datos puros):** `src/historia-escenas-acto<N>.js` (`ESCENAS`, `IDS`, `EFECTOS`, `DISPARO`), `src/historia-texto-acto<N>.js` (tarjetas, notas, cuaderno de lo raro, charlas), prueba `pruebas/verificar-<ver>-escenas-acto<N>.mjs` con mutaciones. Sin Electron.
 - Cada uno en su worktree (`hojarasca-junta`). A deja **archivos hueco** con los nombres exactos de los de B; al juntar queda el de B (`git checkout --theirs` en esos dos, `cerrar-version.cjs juntar` resuelve `package.json`).
@@ -25,7 +25,7 @@ Fuentes: `GUION_HISTORIA.md` (guion de los 13 capítulos), `DECISIONES_HISTORIA_
 - Sólo teclado y ratón. Relax separado del Desafío; la Historia es el Relax con `relaxTipo='historia'`.
 - 0 programas de shader nuevos en juego (110; el molino viejo de día suma 1 y es preexistente).
 - Electron siempre en el monitor externo, candado `C:\Users\Andres\AppData\Local\Temp\hx\electron.lock`, nunca `taskkill /IM electron.exe`.
-- Máximo 2 agentes a la vez. Planificar no es ejecutar: esperar «dale». No mencionar la carpeta scratch.
+- Máximo 3 agentes a la vez (el usuario autorizó el tercero en la 4.17.0); partidas reales de a una por el candado. Planificar no es ejecutar: esperar «dale». No mencionar la carpeta scratch.
 - Ideas rechazadas (`DECISIONES_DISENO_4_10.md`, `CLAUDE.md`) no se vuelven a proponer.
 - Informar siempre: porcentaje honesto, tiempo restante por tramo, qué no se vio a ojo.
 
