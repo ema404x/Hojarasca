@@ -122,7 +122,7 @@ async function suite(sufijo = '', archMut = '') {
       const ef = pasos('prestado-herrero')[iEf];
       const pl = pasos('prestado-herrero').find((p) => p.tipo === 'plano' && p.plano === 'picado');
       ok(ef && ef.args && ef.args.donde && ef.args.donde.frente === 'jugador' && ef.args.donde.dist <= 7 && ef.args.donde.lado === 0, `prestado-herrero: las estacas, a 6 m y de frente (${refTxt(ef && ef.args)})`);
-      ok(pl && pl.sinDespeje === true && pl.alto >= 4, 'prestado-herrero: picado alto y sin despeje (los bancos y la estatua frenaban la cámara)');
+      ok(pl && pl.sinDespeje === true && pl.alto >= 3, 'prestado-herrero: picado alto y sin despeje (los bancos y la estatua frenaban la cámara; 4.19.0: de 3,2 m y no de 5,5, para que las estacas no se lean como manchas)');
       ok(pl && JSON.stringify(pl.a) === JSON.stringify(ef && ef.args && ef.args.donde), 'prestado-herrero: el plano mira donde están las estacas');
     }
     // ---------------------------------------------------------------- galpon-pelea
@@ -170,7 +170,7 @@ async function suite(sufijo = '', archMut = '') {
     }
     // ---------------------------------------------------------------- el cartel y la tranquera, más grandes; el punto con rot orienta la malla
     ok(/\.\.\.\(Number\.isFinite\(p\.rot\) \? \{ rot: p\.rot \} : \{\}\)/.test(objetos), 'un lugar con rot (el cartel del galpón) orienta la malla');
-    ok(/palo\(c, 0\.17, 1\.9, \[-1\.6, 0\.95, 0\]/.test(objetos) && /\[3\.0, 0\.17, 0\.1\]/.test(objetos), 'la tranquera abierta es más gruesa (a 18 m no se veía)');
+    ok(/palo\(c, 0\.17, 1\.9, \[-1\.6, 0\.95, 0\]/.test(objetos) && /\[3\.0, 0\.22, 0\.14\]/.test(objetos), 'la tranquera abierta es más gruesa (a 18 m no se veía; 4.19.0: todavía más, y de madera clara)');
     // 0 programas: nada de materiales ni luces nuevas
     ok(!/Light\(/.test(objetos) && (objetos.match(/new THREE\.\w+Material\(/g) || []).length === 1, 'sin luces ni materiales nuevos en historia-objetos.js (un solo MeshBasicMaterial, el de las brasas de la aldea)');
   } finally { for (const e of extra) rmSync(e, { force: true }); }
