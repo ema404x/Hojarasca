@@ -229,6 +229,14 @@ function correr(escena, h, p, script = []) {
     ok(h.decisiones.majada === 'a' && !H.majadaSinCosto(h), 'si cambió de decisión y vuelve a A con Fermín frío, se mira de nuevo: cuesta');
     void cond;
   }
+  // la marca de la confianza sobrevive al guardado
+  {
+    const { h } = armar('frios', { lazos: { fermin: 3 } });
+    H.alDecidirMajada(h, null, 'a', 6);
+    const cargada = H.sanearHistoria(JSON.parse(JSON.stringify(h)));
+    ok(H.majadaSinCosto(h) && H.majadaSinCosto(cargada), 'la confianza de Fermín anotada al decidir se guarda y se carga');
+    ok(!H.alDecidirMajada(h, null, 'b', 6) && !H.alDecidirMajada(h, 'a', 'a', 6) && !H.alDecidirMajada(null, null, 'a', 6), 'sólo se mira cuando la decisión pasa a A (B, repetir A y sin historia: no)');
+  }
   // las partidas viejas (A ya decidida, sin la marca) siguen igual: cuesta
   {
     const { h, p } = armar('frios', { dec: { majada: 'a' }, lazos: { fermin: 3, ramon: 1 }, vistas: ['ramon-cama', 'fermin-tranquera'] });

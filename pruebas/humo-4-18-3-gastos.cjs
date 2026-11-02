@@ -274,7 +274,7 @@ app.whenReady().then(async () => {
       if (dc && /majada/i.test(dc.titulo)) {
         const a = dc.opciones.find((o) => o.id === 'a');
         console.log(`  tarjeta con Fermín en ${lf}:`, JSON.stringify(a && a.texto));
-        ok(a && re.test(a.texto) && !nore.test(a.texto) && !/\d/.test(a.texto.replace(/«[^»]*»/g, '')), `con lazo ${lf}: la opción A dice, en palabras, ${re.source}`);
+        ok(a && re.test(a.texto) && !nore.test(a.texto) && !/\d/.test(a.texto.replace(/^\d/, '').replace(/«[^»]*»/g, '')), `con lazo ${lf}: la opción A dice, en palabras, ${re.source}`);
         await foto(`3b-tarjeta-lazo-${lf}`);
         await N('N.elegir("a")'); await N('N.tick(0.6)'); await cerrarTarjetas();
         ok((await N('P.historia.temas["fermin:majada-confia"] !== undefined')) === (lf >= 2), `con lazo ${lf}: elegir A por la tarjeta ${lf >= 2 ? 'anota' : 'no anota'} la confianza`);

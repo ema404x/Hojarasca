@@ -38,9 +38,18 @@ Tocados: `src/historia.js` (estado, D5, tarjeta), `historia-escenas-efectos.js` 
 - `majada-sin-costo {}`: cuando decidiste la majada, el lazo de Fermín era +2 o más: que la lleve Fermín no le cuesta nada con Ramón.
 
 ## Pruebas
-- `pruebas/verificar-4-18-3-gastos.mjs`: ver el informe; corre las escenas con el director real y los efectos reales; mutaciones de verdad (cada una en un proceso aparte, sobre una copia de `src/`).
-- `pruebas/humo-4-18-3-gastos.cjs`: partida real (Electron, monitor externo).
-- Las pruebas de la Historia de la 4.15 a la 4.18.2 que se tocaron, en verde.
+- `pruebas/verificar-4-18-3-gastos.mjs` (en `verify:pasos`): 260 comprobaciones, 39 mutaciones atrapadas (cada una en un proceso aparte sobre una copia de `src/`). Corre las escenas de la tranquera, la llegada, B y C y el epílogo con el director real (`escenas.js`) y los efectos y condiciones reales: la penalidad con Fermín < 2 y la ausencia con >= 2 (y que se mire al decidir, no al llegar), que sin el objeto no se dispara, que con el objeto se gasta uno (y sólo uno, aunque la escena se repita o se guarde y recargue), la partida vieja sin gasto, la tarjeta en palabras, los textos del tablón y la guía.
+- `pruebas/humo-4-18-3-gastos.cjs` (Electron, monitor externo, ~6 min): las dos visitas con y sin objeto, la decisión de la majada con Fermín en lazo 1 y en lazo 3 (por la escena real de la tranquera) y la tarjeta de respaldo con Fermín en 1 y en 2, guardar y recargar. Todo en orden; programas de shader 111 al empezar y 111 al final (sube a 112 un rato con `majada-fermin`, el galpón de esquila de día, ya anotado en la 4.17.0).
+- `pruebas/humo-4-18-0-optativas.cjs`: la visita y los noventa ahora dan el objeto antes de hablar. Se corrió con `HUMO_SOLO=2,3`: salen las dos y gastan; fallan «el banco primero» y «la vuelta completa» (encargos de la sección 1, que esa corrida salteó) y los programas de shader (111 a 114: lo de la aldea de noche y el gallinero, anotado desde la 4.18.0).
+- Las pruebas de la Historia 4.15, 4.16, 4.17 (incl. escenas del acto III, pulido y progreso), 4.18.0, 4.18.1 y 4.18.2, en verde. `node armar.mjs` en verde. No se corrió `npm run verify` completo.
 
-## Sin ver / pendiente
-(ver el informe de la corrida)
+## Sin ver a ojo
+- Las capturas del humo (`pruebas/salidas/gastos-4-18-3`) no se miraron: sólo se leyeron los textos y los números.
+- El aviso en pantalla se leyó del DOM, no se vio cómo queda en la esquina junto con las otras notas de la optativa y del cuaderno.
+- La escena de la tranquera con la línea nueva de Fermín no se vio con la cámara (sólo el texto y que corra entera).
+- Con una partida real de ritmo normal: que alguien junte lazo de Fermín en +2 antes del capítulo 9 (fermin-mulas +1, pan para Fermín +1, un encargo suyo +1).
+
+## Pendiente / decidido por el usuario
+- La torta de Herminia es «algo dulce» (dulce de leche, mermelada, dulce de frutilla, miel) porque no hay una torta en el inventario. Si se quiere una torta de verdad, hay que sumar una receta al horno (cocina-pasos, recetario, alacena, mochila y la prueba 3.7.2 que cuenta las recetas) y ponerla primera de `PARA_LA_TORTA`.
+- Los piñones cuentan como un puñado de tres.
+- No se subió la versión (package.json sigue en 4.18.2): lo hace el cierre.
