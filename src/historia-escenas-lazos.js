@@ -104,5 +104,5 @@ export const POR_DEFECTO_LAZOS = {};
 // historia-texto-lazos.js). `ofrece`: la escena que ofrece la optativa (corre `optativa:<id>`); null si la ofrece el registro (con Sofía ya viviendo en la aldea).
 const d = (cap, jugadorEn, cuando, objetivo, ofrece) => ({ cap, jugadorEn, cuando, objetivo, ofrece });
 export const DISPARO_LAZOS = {
-  'foto-valle': d(7, 'frente a Sofía, en el estudio de fotos', 'E sobre Sofía, o llegar al estudio de 9 a 16:30 (capítulos 7 a 10), con Sofía viviendo en la aldea; la escena adelanta la hora hasta las cinco menos diez, la luz que ella espera, y a la vuelta del cuarto oscuro pasa una hora más', 'foto-valle', null),
+  'foto-valle': d(7, 'frente a Sofía, en el estudio de fotos', 'E sobre Sofía, o llegar al estudio de 9 a 16:30 (capítulos 7 y 8), con Sofía viviendo en la aldea; la escena adelanta la hora hasta las cinco menos diez, la luz que ella espera, y a la vuelta del cuarto oscuro pasa una hora más', 'foto-valle', null),
 };

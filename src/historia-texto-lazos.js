@@ -109,7 +109,7 @@ export const TEXTO_LAZOS = {
 
   // la optativa nueva de Sofía, en el tablón «De paso»
   tablon: {
-    'foto-valle': { caps: [7, 8, 9, 10], quien: 'sofia', titulo: 'La foto del valle', ofrecida: 'Sofía, la fotógrafa, quiere sacar el valle entero desde la puerta del estudio. Le falta una persona chiquita en el medio y una tarde sin apuro.', hecha: 'Sofía sacó el valle con vos en el medio, de espaldas, con la luz de las cinco. Quedó en el estudio, entre los casamientos de su abuelo.' },
+    'foto-valle': { caps: [7, 8], quien: 'sofia', titulo: 'La foto del valle', ofrecida: 'Sofía, la fotógrafa, quiere sacar el valle entero desde la puerta del estudio. Le falta una persona chiquita en el medio y una tarde sin apuro.', hecha: 'Sofía sacó el valle con vos en el medio, de espaldas, con la luz de las cinco. Quedó en el estudio, entre los casamientos de su abuelo.' },
   },
 
   raro: {
