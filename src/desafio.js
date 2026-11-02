@@ -3497,7 +3497,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const d = D(), v = d.varada, tr = trenDelDesafio();
     if (!v) return;
     d.varada = null;
-    if (!v.llego) tr?.soltar?.(0);
+    if (!v.llego) tr?.soltarVarada?.(0);   // 4.18.4 (B-01): era `tr.soltar(0)`, la de la caída (4.0.3 las separó): tiraba `Cannot set properties of undefined (setting 'enTren')` y dejaba el tren varado para siempre y el resto del amanecer sin hacer
     if (avisar && !v.llego && !v.roto) ctx.nota('La trochita siguió sola con la luz', 'Elsa esperó a que amaneciera. Esta vez no llegó con vos');
   }
 
