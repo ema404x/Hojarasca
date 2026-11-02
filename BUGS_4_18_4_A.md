@@ -21,8 +21,8 @@ de partida a mitad de la historia y a mitad de escena. Todo en Node: **nada de e
   (`ramon-sanitario`, `harina-ercilia-c`); todo lugar con nombre que piden los disparadores, los objetivos y los objetos del mundo lo arma `main.js`;
   ningún disparador pide una escena de una optativa.
 * Alcanzabilidad: cada escena que pide un objetivo existe y tiene disparador en su capítulo. El jugador de mentira llegó al final de los trece capítulos en
-  los 100 recorridos que se corrieron (semillas distintas, 8 de las 12 combinaciones de decisiones, trato y pelea, con y sin pareja y perro, la hora, el lugar
-  y las cosas del mundo en cualquier orden; una semilla tardó más pasos que el tope por azar y terminó con más tiempo). Con ~150 recargas de partida por recorrido
+  más de 200 recorridos (semillas distintas, decisiones, trato y pelea, con y sin pareja y perro, la hora, el lugar y las cosas del mundo en cualquier orden;
+  unos pocos pasaron del tope de pasos por pura suerte del azar y con más tiempo terminaron). Con ~150 recargas de partida por recorrido
   (a mitad de capítulo y a mitad de escena) también.
 * Escenas: 3.676 corridas (todas las rutas de elección de cada escena, con y sin Esc, sobre estados de lazos, decisiones, trato, noche, ramal y pobladores al azar):
   todas terminan, quedan vistas, sin errores, con lazos y ramal en rango; las seis escenas de decisión dejan la decisión tomada y sólo con lo que se puede
