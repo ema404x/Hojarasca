@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.18.2 (sobre main = 4.18.1): HISTORIA: LAZO PARA LOS VECINOS (CAMBIOS_4_18_2_B.md) — Rosa, Tobías, Tito, Belisario, Herminia, Nicanor y Sofía con lazo guardado y visible en la guía, líneas de final y de charla según el lazo, y la optativa «La foto del valle» de Sofía
 - 4.18.1 (sobre main = 4.18.0): HISTORIA: LAS SEIS ESCENAS FLOJAS (CAMBIOS_4_18_1.md) — papel-elsa, josefina-fin, pedir-perdon, majada-fin, prestado-herrero y galpon-pelea con la cámara, la colocación y los props arreglados y mirados en el juego; plano cercano de las lucecitas del mirador
 - 4.18.0 (sobre main = 4.17.1, el pase de bugs de la Historia hecho en la 4600G: CAMBIOS_4_17_1_PROGRESO.md y CAMBIOS_4_17_1_ESCENAS_NOCHE.md): HISTORIA: SUBTRAMAS OPTATIVAS (CAMBIOS_4_18_0.md) — las 28 optativas jugables con su premio, escenas nuevas (frasco, oveja, pan, mirador y faro, ovejas), charla de historia de los vecinos que no se mostraba, mundo del acto III dibujado (Ramón con manta, Fermín en el techo, faroles, lucecitas)
 - 4.17.0 (sobre main = 4.16.0): HISTORIA NUEVA, ACTO III (CAMBIOS_4_17_0.md) — capítulos 9 a 13: 56 escenas, decisiones D5 y D6, noche de la nevada, dos finales, epílogo; pulido de los actos I y II (58 escenas vistas a ojo); la Historia queda completa de punta a punta
