@@ -50,7 +50,7 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
   for (const T of [T1, T2, T3]) for (const c of Object.values(T.capitulos)) for (const o of c.optativas || []) delGuion.add(o.id);
   ok(delGuion.size === 28, `el guion trae 28 optativas (${delGuion.size})`);
   for (const id of delGuion) ok(Object.hasOwn(O.OPTATIVA, id), `«${id}» está en el registro`);
-  ok(O.OPTATIVAS.length === 28 && new Set(O.IDS_OPTATIVAS_REGISTRO).size === 28, 'el registro tiene 28, sin repetidas');
+  ok(O.OPTATIVAS.length === 29 && new Set(O.IDS_OPTATIVAS_REGISTRO).size === 29, 'el registro tiene 28 del guion y la de Sofía (4.18.2), sin repetidas');
   for (const o of O.OPTATIVAS) {
     ok(Object.hasOwn(IDX, o.desde) && Object.hasOwn(IDX, o.hasta) && IDX[o.desde] <= IDX[o.hasta], `${o.id}: ventana válida`);
     ok(typeof o.ofrece === 'function' && typeof o.hecha === 'function', `${o.id}: ofrece y hecha`);
@@ -292,12 +292,12 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
   vista(hx, 'tablas-tito'); D.aplicarVistas(hx, 6, { cuanto: (k) => Number(px.cosas[k]) || 0, gastar: (c, k) => gx.push([c, k]), cobrar: (pr) => cx.push(pr.pesos) });
   ok(JSON.stringify(gx) === JSON.stringify([['tabla-coihue', 6]]) && cx[0] === O.PRECIO_TABLAS_TITO, `las seis tablas, $${O.PRECIO_TABLAS_TITO}`);
   // los encargos de los vecinos con arco: +1 al lazo de quien lo pidió; la primera vez, lo ya hecho es base
-  const lista = [{ id: 'e-banco', quien: 'ramon' }, { id: 'e-pesca', quien: 'nicanor' }, { id: 'e-vuelta', quien: 'guarda' }, { id: 't-trochita-nieve', quien: 'guarda' }];
+  const lista = [{ id: 'e-banco', quien: 'ramon' }, { id: 'e-pesca', quien: 'nicanor' }, { id: 'e-zorzal', quien: 'zorzal' }, { id: 'e-vuelta', quien: 'guarda' }, { id: 't-trochita-nieve', quien: 'guarda' }];
   const { h: he, p: pe } = armar('bolsa'); pe.encargos = { 'e-vuelta': 'hecho' };
   ok(O.revisarEncargos(he, pe, lista, 6).length === 0 && he.encargosLazo['e-vuelta'] === 0, 'lo ya hecho queda de base, sin lazo');
-  pe.encargos['e-banco'] = 'hecho'; pe.encargos['e-pesca'] = 'hecho';
+  pe.encargos['e-banco'] = 'hecho'; pe.encargos['e-pesca'] = 'hecho'; pe.encargos['e-zorzal'] = 'hecho';
   const d = O.revisarEncargos(he, pe, lista, 7);
-  ok(d.length === 1 && d[0].quien === 'ramon' && H.lazoDe(he, 'ramon') === 1, 'el banco de Ramón: +1 con Ramón (Nicanor no tiene lazo)');
+  ok(d.length === 2 && d[0].quien === 'ramon' && H.lazoDe(he, 'ramon') === 1 && H.lazoDe(he, 'nicanor') === 1 && he.encargosLazo['e-zorzal'] === 0, 'el banco de Ramón y la pesca de Nicanor: +1 a cada uno (4.18.2: Nicanor ya tiene lazo); quien no tiene lazo, nada');
   ok(O.revisarEncargos(he, pe, lista, 8).length === 0 && H.lazoDe(he, 'ramon') === 1, 'una sola vez');
   ok(O.revisarOptativas(he, E(pe), 7).some((x) => x.id === 'banco-primero'), 'y el banco primero queda hecho');
   // la trochita en la nieve: ramal +1, sólo en su ventana
@@ -412,7 +412,7 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
 // ---------------------------------------------------------------- 13. mutaciones (cada una en un proceso aparte, sobre una copia de src/)
 const MUT = [
   ['historia-optativas.js', "if (Object.hasOwn(h.optativas, o.id)) continue;", "", 'una optativa se cuenta dos veces'],
-  ['historia-optativas.js', "if (PERSONAS_LAZO.includes(q) && !ya.lazos.has(q)) r.lazos[q] = n;", "if (PERSONAS_LAZO.includes(q)) r.lazos[q] = n;", 'el lazo de la escena se duplica'],
+  ['historia-optativas.js', "if (LAZOS_TODOS.includes(q) && !ya.lazos.has(q)) r.lazos[q] = n;", "if (LAZOS_TODOS.includes(q)) r.lazos[q] = n;", 'el lazo de la escena se duplica'],
   ['historia-optativas.js', "if (p.ramal && !ya.ramal) r.ramal = p.ramal;", "if (p.ramal) r.ramal = p.ramal;", 'el ramal de la casa de té se duplica'],
   ['historia-optativas.js', "if (ent(dia) <= ent(p.ultimo) ||", "if (", 'el pan de Rosa llega dos veces el mismo día'],
   ['historia-optativas.js', "    for (const k of hechos) h.encargosLazo[k] = 0;\n    return dados;", "    return dados;", 'los encargos viejos dan lazo de golpe'],

@@ -9,7 +9,7 @@
 //
 // Convención de efectos (todos idempotentes y de una sola vez por partida; el director los corre uno a uno, también al saltar):
 //   lazo:<quien>:<n>        sube o baja el lazo (−3 a +3 por efecto). quien: ramon | ema (Josefina) | ercilia | guarda (Elsa) | fermin |
-//                           graciela; y los secundarios rosa | herminia | nicanor | tito | tobias | belisario (si la historia no los lleva, se ignora)
+//                           graciela; y los vecinos rosa | herminia | nicanor | tito | tobias | belisario | sofia (4.18.2: tienen lazo de verdad: se guarda, se ve en la guía y cuenta en el final)
 //   decision:<d>:<a|b|c>    guarda la decisión grande (d: bolsa | coihue | molienda | cuaderno | majada). Pisa la anterior (la última acción manda)
 //   ramal:<n>               suma n a la cuenta del ramal
 //   raro:<id>               anota el indicio en el cuaderno de lo raro (id de TEXTO_ACTO1.raro; no se repite)
@@ -27,7 +27,7 @@
 //   (4.17.0) trato { es: 'trato'|'pelea' } · noche { es: 'ganada'|'perdida' } · convidado { min } · deuda { es: 'pagada'|'debe' } · perdon · prestado { quien } · amor
 
 export const LAZOS_PRINCIPALES = ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'];
-export const LAZOS_SECUNDARIOS = ['rosa', 'herminia', 'nicanor', 'tito', 'tobias', 'belisario'];
+export const LAZOS_SECUNDARIOS = ['rosa', 'herminia', 'nicanor', 'tito', 'tobias', 'belisario', 'sofia'];   // (4.18.2: Sofía también)
 export const DECISIONES = ['bolsa', 'coihue', 'molienda', 'cuaderno', 'majada', 'duendes'];   // (4.17.0: D6 `duendes`: a y b = trato, c = pelea)
 export const TIPOS_EFECTO = ['lazo', 'decision', 'ramal', 'raro', 'objeto', 'entrega', 'dar', 'mundo', 'duende', 'optativa', 'hablado', 'quitar', 'prestado'];   // (4.16.0: quitar:<cosa>:<n> gasta algo; prestado:<id> anota lo prestado)
 export const CONDICIONES_HISTORIA = ['decision', 'lazo', 'evento', 'presente', 'trato', 'noche', 'convidado', 'deuda', 'perdon', 'prestado', 'amor'];   // (4.17.0: las del acto III)   // (4.16.0: presente { quien }: esa persona vive ahora en la aldea)

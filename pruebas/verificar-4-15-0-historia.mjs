@@ -87,7 +87,7 @@ async function chequear(arch = '', sufijo = '') {
   {
     const h = H.historiaNueva();
     ok(h.version === 2 && h.ramal === 0 && h.molido === 0 && h.acompanante === null && h.raro.length === 0, 'defaults de la historia nueva');
-    igual(h.lazos, { ramon: 0, ema: 0, ercilia: 0, guarda: 0, fermin: 0, graciela: 0 }, 'lazos en cero');
+    igual(h.lazos, { ramon: 0, ema: 0, ercilia: 0, guarda: 0, fermin: 0, graciela: 0, rosa: 0, tobias: 0, tito: 0, belisario: 0, herminia: 0, nicanor: 0, sofia: 0 }, 'lazos en cero');   // (4.18.2: y los siete vecinos)
     igual(h.decisiones, { bolsa: null, coihue: null, molienda: null, cuaderno: null, majada: null, duendes: null }, 'decisiones sin tomar');
     igual(h.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: false, zaino: false }, 'nada prestado');
     ok(h.duendes.deuda === 0 && h.duendes.perdon === false && h.duendes.convidado === 0 && h.duendes.trato === null, 'los duendes: trato, deuda, perdón y convidado');
@@ -110,7 +110,7 @@ async function chequear(arch = '', sufijo = '') {
     });
     ok(b.activa === false && b.capitulo === 12 && b.fase === 'intro', 'activa, capítulo y fase con basura');
     ok(b.version === 1, 'una historia con una versión que no es número: la de antes');
-    igual(b.lazos, { ramon: 3, ema: -2, ercilia: 0, guarda: 1, fermin: 0, graciela: 0 }, 'lazos acotados a −2…+3');
+    igual(b.lazos, { ramon: 3, ema: -2, ercilia: 0, guarda: 1, fermin: 0, graciela: 0, rosa: 0, tobias: 0, tito: 0, belisario: 0, herminia: 0, nicanor: 0, sofia: 0 }, 'lazos acotados a −2…+3');
     igual(b.decisiones, { bolsa: null, coihue: 'b', molienda: null, cuaderno: null, majada: null, duendes: null }, 'decisiones sólo a, b o c');
     ok(b.ramal === 0 && b.fletes === 8 && b.entregasVistas === 0 && b.molido === 9999, 'ramal, fletes y molido acotados');
     igual(b.prestado, { herrero: false, apicultor: false, maquinista: false, guarda: false, tobias: true, zaino: false }, 'prestado sólo con true');
@@ -302,7 +302,7 @@ async function chequear(arch = '', sufijo = '') {
     const h = H.historiaNueva();
     ok(H.cambiarLazo(h, 'ramon', 1) === 1 && H.cambiarLazo(h, 'ramon', 9) === 2 && h.lazos.ramon === 3, 'los lazos suben hasta +3');
     ok(H.cambiarLazo(h, 'ema', -9) === -2 && h.lazos.ema === -2, 'y bajan hasta −2');
-    ok(H.cambiarLazo(h, 'nicanor', 1) === 0 && H.cambiarLazo(h, '__proto__', 1) === 0 && H.cambiarLazo(h, 'ramon', 'x') === 0, 'sólo los que tienen lazo, sólo números');
+    ok(H.cambiarLazo(h, 'zorzal', 1) === 0 && H.cambiarLazo(h, '__proto__', 1) === 0 && H.cambiarLazo(h, 'ramon', 'x') === 0, 'sólo los que tienen lazo, sólo números');
     igual([-2, -1, 0, 1, 2, 3].map(H.palabraLazo), ['frío', 'tirante', 'conocido', 'de confianza', 'de confianza', 'de la casa'], 'los lazos en palabras');
     ok(H.lazosEnPalabras(H.historiaNueva()).length === 0, 'sin conocer a nadie, sin lazos que mostrar');
     const g = H.historiaNueva(); g.hablados.ramon = true; H.cambiarLazo(g, 'ema', 2);
@@ -683,7 +683,7 @@ async function chequear(arch = '', sufijo = '') {
       'if (progreso && !esDesafio && historiaVieja(progreso)) {',
       'if (debeReiniciar(progreso, \'relax\')) {',
       'registrarEfectosHistoria(escenasMundo,',
-      'for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3), ...Object.values(ESCENAS_OPTATIVAS)])',   // (4.18.0: y las de las optativas)
+      'for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3), ...Object.values(ESCENAS_OPTATIVAS), ...Object.values(ESCENAS_LAZOS)])',   // (4.18.0: y las de las optativas; 4.18.2: y la de Sofía)
       "if (!desafio && valle?.alHablarCon?.(npc.clave)) return;",
       'valle?.hablo(npc.clave);',
       'historiaPuerta: () => historiaPuertaCerca(),',
@@ -750,7 +750,7 @@ const MUT = [
   ['historia-graciela.js', "export const CAPITULOS_GRACIELA = ['ramal'];", "export const CAPITULOS_GRACIELA = ['ramal', 'mesa'];", 'Graciela en el capítulo 3'],
   ['historia-objetos.js', "if (a.especie !== 'coihue') continue;", "if (a.especie === 'coihue') continue;", 'el coihue grande no es coihue'],
   ['historia-objetos.js', "const radio = Object.hasOwn(OBJETOS, id) && (OBJETOS[id].forma === 'raiz' || OBJETOS[id].lugar === 'molino-viejo') ? 3.4 : RADIO_OBJETO;", "const radio = 100;", 'el objeto se alcanza desde cualquier lado'],
-  ['historia-escenas-efectos.js', "if (h && PERSONAS_LAZO.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n);", "if (h && PERSONAS_LAZO.includes(a?.quien)) cambiarLazo(h, a.quien, a.n);", 'los efectos de lazo no son idempotentes'],
+  ['historia-escenas-efectos.js', "if (h && LAZOS_TODOS.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n);", "if (h && LAZOS_TODOS.includes(a?.quien)) cambiarLazo(h, a.quien, a.n);", 'los efectos de lazo no son idempotentes'],
 ];
 let atrapadas = 0, iMut = 0;
 for (const [archivo, de, a, que] of MUT) {

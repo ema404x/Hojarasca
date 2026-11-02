@@ -29,16 +29,23 @@ import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 import { TEXTO_ACTO3 } from './historia-texto-acto3.js';
 // 4.18.0: y los de las subtramas optativas (los escribe B: el cuaderno de lo raro nuevo)
 import { TEXTO_OPTATIVAS } from './historia-texto-optativas.js';
+// 4.18.2: y los del lazo de los vecinos que no lo tenían (la guía, el final y la charla de después; los escribe B)
+import { TEXTO_LAZOS } from './historia-texto-lazos.js';
 
 // 4.15.0: Fermín (el galpón de esquila) se suma a los que se conocen
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia', 'fermin'];
-const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', ercilia: 'Ercilia', fermin: 'Fermín', guarda: 'Elsa', graciela: 'Graciela' };
+const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', ercilia: 'Ercilia', fermin: 'Fermín', guarda: 'Elsa', graciela: 'Graciela', rosa: 'Rosa', tobias: 'Tobías', tito: 'Tito', belisario: 'Belisario', herminia: 'Herminia', sofia: 'Sofía' };
 
 // La versión de la historia que se guarda con la partida: 2 es «El trato del molino». Una historia de antes no la trae (ver historia-reinicio.js).
 export const VERSION_HISTORIA = 2;
 
 // Los que tienen un lazo con vos (−2 frío … +3 de la casa)
+// PERSONAS_LAZO son los seis con arco (la noche, los encargos de la mesa, los finales largos): no cambia. Los siete de abajo son vecinos con lazo
+// y nada más (4.18.2): entran en `LAZOS_TODOS` (guardado, guía, condición de escena, final y charla de después, encargos y optativas) y NO son
+// aliados de la noche ni acompañantes.
 export const PERSONAS_LAZO = ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'];
+export const PERSONAS_LAZO_VECINOS = ['rosa', 'tobias', 'tito', 'belisario', 'herminia', 'nicanor', 'sofia'];
+export const LAZOS_TODOS = [...PERSONAS_LAZO, ...PERSONAS_LAZO_VECINOS];
 export const LAZO_MIN = -2, LAZO_MAX = 3;
 // 4.16.0: quién puede ir con vos a pie (Graciela desde el capítulo 4; Tobías en el 5)
 export const ACOMPANANTES = [...PERSONAS_LAZO, 'tobias'];
@@ -126,7 +133,7 @@ export function estadoHistoria(p, extra = {}) {
     enKayak: !!extra.enKayak,
     // los aserraderos terminados respecto del coihue grande (`extra.coihue`: { x, z }): alguno a más de 25 m / alguno cerca
     aserradero: aserraderosDe(terminadas, extra.coihue),
-    lazos: Object.fromEntries(PERSONAS_LAZO.map((k) => [k, lazoDe(hh, k)])),
+    lazos: Object.fromEntries(LAZOS_TODOS.map((k) => [k, lazoDe(hh, k)])),   // (4.18.2: y los siete vecinos)
     pobladores: new Set((Array.isArray(p?.aldea?.pobladores) ? p.aldea.pobladores : []).map((x) => x?.clave).filter((x) => typeof x === 'string')),
     // 4.17.0: el acto III (invierno): lo prestado, la deuda del trato, la noche, los blancos de práctica y lo que se junta para el arco y la honda
     prestado: Object.fromEntries(PRESTADOS.map((k) => [k, obj(hh.prestado)[k] === true])),
@@ -654,7 +661,7 @@ export const DEFINICION_DECISIONES = {
     ],
     opciones: [
       { id: 'a', texto: 'Convidarla a la raíz del coihue grande', detalle: 'Como dice la nota. Don Ramón lo va a entender.', lazos: { ramon: 1 }, diario: 'Elegí hacerle caso a la nota de Eusebio y llevar la bolsa a la raíz del coihue.' },
-      { id: 'b', texto: 'Llevarla a Rosa, la panadera', detalle: 'Pan para toda la aldea. Ercilia va a estar contenta.', lazos: { ercilia: 2 }, requiere: (s) => s.pobladores.has('panadera'), sinRequisito: 'Rosa todavía no llegó a la aldea', diario: 'Elegí llevar la bolsa de Eusebio a la panadería, para hacer pan para la aldea.' },
+      { id: 'b', texto: 'Llevarla a Rosa, la panadera', detalle: 'Pan para toda la aldea. Ercilia va a estar contenta.', lazos: { ercilia: 2, rosa: 1 }, requiere: (s) => s.pobladores.has('panadera'), sinRequisito: 'Rosa todavía no llegó a la aldea', diario: 'Elegí llevar la bolsa de Eusebio a la panadería, para hacer pan para la aldea.' },
       { id: 'c', texto: 'Llevársela a Josefina', detalle: 'Ella reconoce la letra de la nota.', lazos: { ema: 2 }, diario: 'Elegí llevarle la bolsa de Eusebio a Josefina, que reconoció la letra.' },
     ],
   },
@@ -667,8 +674,8 @@ export const DEFINICION_DECISIONES = {
     ],
     opciones: [
       { id: 'a', texto: 'Dejarlo en pie y armar el aserradero aguas abajo', detalle: 'Caminás más. Josefina lo va a agradecer.', lazos: { ema: 1 }, diario: 'Dejé el coihue de las puertitas en pie y armé el aserradero aguas abajo.' },
-      { id: 'b', texto: 'Talarlo: Tito paga y hace tablas finas', detalle: 'Seis hachazos. Josefina no te lo va a perdonar fácil.', lazos: { ema: -2 }, diario: 'Decidí talar el coihue de las puertitas. Tito va a pagar bien las tablas.' },
-      { id: 'c', texto: 'Pedirle a Tobías una pirca que proteja la raíz', detalle: 'Diez piedras para Tobías, en la cantera.', lazos: { ema: 1 }, diario: 'Decidí pedirle a Tobías una pirca para proteger la raíz del coihue.' },
+      { id: 'b', texto: 'Talarlo: Tito paga y hace tablas finas', detalle: 'Seis hachazos. Josefina no te lo va a perdonar fácil.', lazos: { ema: -2, tito: 2 }, diario: 'Decidí talar el coihue de las puertitas. Tito va a pagar bien las tablas.' },
+      { id: 'c', texto: 'Pedirle a Tobías una pirca que proteja la raíz', detalle: 'Diez piedras para Tobías, en la cantera.', lazos: { ema: 1, tobias: 2 }, diario: 'Decidí pedirle a Tobías una pirca para proteger la raíz del coihue.' },
     ],
   },
   molienda: {
@@ -735,6 +742,18 @@ export function decisionPendiente(h, s) {
     return { id: d.id, ...DEFINICION_DECISIONES[d.id] };
   }
   return null;
+}
+// 4.18.2: lo que la tarjeta de una decisión dice (en palabras, nunca números) de los vecinos con lazo que la opción mueve: «Tito te va a tener más confianza».
+// Los seis con arco no se nombran acá (su detalle ya lo cuenta a mano); sólo los siete vecinos.
+export function avisoLazosDe(o) {
+  const r = [];
+  for (const [q, n] of Object.entries(obj(o?.lazos))) {
+    if (!PERSONAS_LAZO_VECINOS.includes(q)) continue;
+    const v = Math.trunc(Number(n) || 0);
+    if (v > 0) r.push(`${NOMBRES[q]} te va a tener más confianza`);
+    else if (v < 0) r.push(`${NOMBRES[q]} se te va a enfriar`);
+  }
+  return r.join('. ');
 }
 // Tomar una decisión: la guarda y mueve los lazos. Devuelve la opción o null.
 export function tomarDecision(h, id, opcion, s = null) {
@@ -863,10 +882,10 @@ export const hayPresencia = (h) => !!h?.activa && h.fase !== 'fin' && CAPITULOS_
 // ---------------------------------------------------------------- lazos, decisiones, lo raro (4.15.0)
 export function lazoDe(h, quien) {
   const v = obj(obj(h).lazos)[quien];
-  return PERSONAS_LAZO.includes(quien) ? Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(v) || 0))) : 0;
+  return LAZOS_TODOS.includes(quien) ? Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(v) || 0))) : 0;
 }
 export function cambiarLazo(h, quien, n) {
-  if (!PERSONAS_LAZO.includes(quien)) return 0;
+  if (!LAZOS_TODOS.includes(quien)) return 0;
   if (!h.lazos || typeof h.lazos !== 'object' || Array.isArray(h.lazos)) h.lazos = lazosNuevos();
   const antes = lazoDe(h, quien);
   h.lazos[quien] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, antes + Math.trunc(Number(n) || 0)));
@@ -877,7 +896,7 @@ export function palabraLazo(n) {
   const v = Math.trunc(Number(n) || 0);
   return v <= -2 ? 'frío' : v === -1 ? 'tirante' : v === 0 ? 'conocido' : v >= 3 ? 'de la casa' : 'de confianza';
 }
-export const lazosNuevos = () => Object.fromEntries(PERSONAS_LAZO.map((k) => [k, 0]));
+export const lazosNuevos = () => Object.fromEntries(LAZOS_TODOS.map((k) => [k, 0]));
 export const decisionesNuevas = () => Object.fromEntries(DECISIONES.map((d) => [d, null]));
 export const prestadosNuevos = () => Object.fromEntries(PRESTADOS.map((k) => [k, false]));
 export function decisionesDe(h) {
@@ -977,7 +996,7 @@ export function sanearHistoria(v) {
   // (una historia guardada sin versión es de las de antes de la 4.15.0: versión 1; ver historia-reinicio.js)
   const conRastro = v.activa === true || ent(v.empezada) > 0 || ent(v.terminada) > 0 || Object.keys(obj(v.hechos)).length > 0;
   h.version = Object.hasOwn(v, 'version') ? ent(v.version, 99) || 1 : (conRastro ? 1 : VERSION_HISTORIA);
-  for (const k of PERSONAS_LAZO) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));
+  for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));
   for (const d of DECISIONES) { const x = obj(v.decisiones)[d]; h.decisiones[d] = x === 'a' || x === 'b' || x === 'c' ? x : null; }
   h.ramal = ent(v.ramal, 99);
   h.fletes = ent(v.fletes, RAMAL_MAX_FLETES);
@@ -1221,12 +1240,18 @@ export function panelHistoria(h, s = null) {
   return panel;
 }
 
-// Los lazos en palabras, para la guía: sólo los que ya conocés
+// Los lazos en palabras, para la guía: sólo los que ya conocés. Los seis con arco, como siempre; los siete vecinos (4.18.2) se conocen si hablaste con ellos
+// (Nicanor), si el lazo ya se movió o si algo pasó entre los dos (un tema o una entrega anotados a su nombre). `oficio`: la frase corta que escribió B.
 export function lazosEnPalabras(h) {
   const salida = [];
-  for (const k of PERSONAS_LAZO) {
-    const conocido = obj(h?.hablados)[k] === true || lazoDe(h, k) !== 0 || (k === 'guarda' && !!obj(h?.escenas?.vistas)['trochita-boleto']) || (k === 'graciela' && !!obj(h?.escenas?.vistas)['anden-graciela']);
-    if (conocido) salida.push({ quien: k, nombre: NOMBRES[k], palabra: palabraLazo(lazoDe(h, k)) });
+  const conMarca = (g, k) => Object.keys(obj(obj(h)[g])).some((x) => x.startsWith(`${k}:`));
+  for (const k of LAZOS_TODOS) {
+    const vecino = PERSONAS_LAZO_VECINOS.includes(k);
+    const conocido = obj(h?.hablados)[k] === true || lazoDe(h, k) !== 0 || (k === 'guarda' && !!obj(h?.escenas?.vistas)['trochita-boleto']) || (k === 'graciela' && !!obj(h?.escenas?.vistas)['anden-graciela'])
+      || (vecino && (conMarca('temas', k) || conMarca('entregados', k)));
+    if (!conocido) continue;
+    const oficio = vecino && typeof obj(TEXTO_LAZOS.guia)[k] === 'string' ? TEXTO_LAZOS.guia[k] : '';
+    salida.push({ quien: k, nombre: NOMBRES[k], palabra: palabraLazo(lazoDe(h, k)), oficio });
   }
   return salida;
 }

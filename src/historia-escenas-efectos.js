@@ -1,7 +1,7 @@
 // 4.15.0: los efectos y las condiciones con nombre que las escenas de la Historia pueden usar (`{ tipo: 'efecto', nombre: 'lazo', args }` y
 // `si: { cond: 'decision', args }`). Puro (sin three ni DOM; se prueba en Node). Todos son idempotentes: se anotan en `historia.aplicadas`
 // con la escena que los pidió, así un efecto que corre dos veces (la escena saltada y después vuelta a ver) no cuenta doble.
-import { cambiarLazo, anotarRaro, marcarObjeto, marcarTema, marcarEntrega, sumarRamal, lazoDe, anotarCharla, PERSONAS_LAZO, ACOMPANANTES, PRESTADOS, DECISIONES, alDecidirDuendes, convidadosDe } from './historia.js';
+import { cambiarLazo, anotarRaro, marcarObjeto, marcarTema, marcarEntrega, sumarRamal, lazoDe, anotarCharla, LAZOS_TODOS, ACOMPANANTES, PRESTADOS, DECISIONES, alDecidirDuendes, convidadosDe } from './historia.js';
 import { parsearEfecto } from './historia-escenas-util.js';
 // 4.17.0: los efectos del acto III (duendes:, noche:, armas:, perfil:) y lo que cambian en la partida
 import { parsearEfectoActo3 } from './historia-escenas-acto3-util.js';
@@ -13,7 +13,7 @@ const clave = (...p) => p.map((x) => String(x ?? '')).join(':').slice(0, 63);
 export function registrarEfectosHistoria(reg, ctx) {
   const una = (h, k) => { if (!h.aplicadas || typeof h.aplicadas !== 'object' || Array.isArray(h.aplicadas)) h.aplicadas = {}; if (Object.hasOwn(h.aplicadas, k)) return false; h.aplicadas[k] = Math.max(1, Math.floor(Number(ctx.dia()) || 1)); return true; };
   const H = () => ctx.historia();
-  reg.registrarEfecto('lazo', (a, c) => { const h = H(); if (h && PERSONAS_LAZO.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n); });
+  reg.registrarEfecto('lazo', (a, c) => { const h = H(); if (h && LAZOS_TODOS.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n))) cambiarLazo(h, a.quien, a.n); });
   reg.registrarEfecto('raro', (a) => { const h = H(); if (h) anotarRaro(h, a?.id, ctx.dia()); });
   reg.registrarEfecto('objeto', (a) => { const h = H(); if (h && typeof a?.id === 'string') marcarObjeto(h, a.id, ctx.dia()); });
   reg.registrarEfecto('dar-objeto', (a) => { const h = H(); if (h && typeof a?.id === 'string') marcarObjeto(h, a.id, ctx.dia()); });
@@ -57,7 +57,7 @@ export function registrarEfectosActo1(reg, ctx, nombres) {
       const h = H();
       if (!h) return;
       switch (p.tipo) {
-        case 'lazo': if (PERSONAS_LAZO.includes(p.quien) && una(h, clave(c))) cambiarLazo(h, p.quien, p.n); break;
+        case 'lazo': if (LAZOS_TODOS.includes(p.quien) && una(h, clave(c))) cambiarLazo(h, p.quien, p.n); break;
         case 'decision': if (DECISIONES.includes(p.d)) { if (!h.decisiones || typeof h.decisiones !== 'object') h.decisiones = {}; const primera = h.decisiones[p.d] == null; h.decisiones[p.d] = p.v; if (p.d === 'duendes' && primera) alDecidirDuendes(h, p.v); } break;   // (4.17.0: D6 define el trato o la pelea)
         case 'ramal': if (una(h, clave(c))) sumarRamal(h, p.n); break;
         case 'raro': anotarRaro(h, p.id, ctx.dia()); break;

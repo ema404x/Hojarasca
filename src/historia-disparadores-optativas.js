@@ -5,7 +5,8 @@
 //
 // `repetible: true` en un disparador: la escena se puede volver a disparar aunque ya esté vista (las de la costumbre y la broma del galpón).
 import { marcarTema, marcarEntrega, marcarObjeto, capituloActual } from './historia.js';
-import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco } from './historia-optativas.js';
+import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco, disparosDeLazo, claveDisparoLazo } from './historia-optativas.js';
+import { OPTATIVA_SOFIA } from './historia-escenas-lazos.js';
 
 const en = (nombre, radio) => [nombre, radio];
 const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
@@ -13,6 +14,26 @@ const deNoche = (s) => s.horas >= 19 || s.horas < 6;
 
 // Los lugares nuevos de los que el juego pasa la distancia (main.js, puntosDeHistoria): la casa (o la plaza) del cumpleaños de hoy y tu gallinero
 export const LUGARES_OPTATIVAS = ['cumple', 'gallinero'];
+
+// 4.18.2: los disparadores de la optativa de Sofía (la escena la escribe B: OPTATIVA_SOFIA dice dónde y cuándo). Un disparo `hablar` (E sobre `clave`), `auto` (llegar al
+// `lugar` a menos de `radio` metros, en `hora`) o `interaccion`; todos piden las escenas y los temas que la ofrecen. La ventana de capítulos la pone el registro.
+export function disparadoresDeLazo(d) {
+  const r = {};
+  const ofr = d && typeof d.ofrece === 'object' && d.ofrece ? d.ofrece : {};
+  const temas = Array.isArray(ofr.temas) ? ofr.temas.filter((x) => typeof x === 'string') : [];
+  disparosDeLazo(d).forEach((x, i) => {
+    const k = claveDisparoLazo(d, i);
+    const disp = { cap: d.desde, modo: x.modo };
+    if (k !== d.escena) disp.escena = d.escena;
+    if (x.modo !== 'auto') disp.clave = x.clave;
+    if (Array.isArray(ofr.escenas) && ofr.escenas.length) disp.requiere = ofr.escenas.filter((e) => typeof e === 'string');
+    if (x.lugar) disp.lugar = en(x.lugar, Number(x.radio) || 12);
+    if (Array.isArray(x.hora) && x.hora.length === 2) disp.hora = [Number(x.hora[0]), Number(x.hora[1])];
+    disp.cond = (s) => temas.every((t) => s.temas.has(t)) && (!ofr.trato || s.trato === ofr.trato);
+    r[k] = disp;
+  });
+  return r;
+}
 
 export const DISPARADORES_OPTATIVAS = {
   // ---- acto I
@@ -35,11 +56,15 @@ export const DISPARADORES_OPTATIVAS = {
   // (las plumas del gallinero: su disparador es el de la 4.17.1, en historia-disparadores-acto3.js: con tu gallinero, de día, si te faltan plumas)
   // abrir el galpón sin golpear (capítulo 10, de noche, antes de golpear): una broma de ellos, sin castigo; se repite
   'galpon-sin-golpear': { cap: 'golpea', modo: 'interaccion', clave: 'puerta-galpon-abrir', no: ['galpon-golpe'], repetible: true },
+  // ---- 4.18.2: la de Sofía (la fotógrafa)
+  ...disparadoresDeLazo(OPTATIVA_SOFIA),
 };
 
 // Lo que cambia al ver cada una (una sola vez; ver aplicarVistas). `ctx`: { gastar(cosa, n), cobrar(premio) } los pone el juego.
 const T = (quien, tema) => (h, dia) => marcarTema(h, quien, tema, dia);
 export const EFECTOS_ESCENA_OPTATIVAS = {
+  // 4.18.2: lo de Sofía: queda anotado a su nombre (así la guía ya la conoce aunque el lazo no se haya movido)
+  ...(OPTATIVA_SOFIA && typeof OPTATIVA_SOFIA.escena === 'string' && typeof OPTATIVA_SOFIA.id === 'string' ? { [OPTATIVA_SOFIA.escena]: T('sofia', OPTATIVA_SOFIA.id) } : {}),
   'frasco-repisa': (h, dia) => { marcarObjeto(h, 'frasco-masa-madre', dia); },   // (la escena de B lo marca con `objeto:`; esto vale si falta)
   'frasco-rosa': (h, dia) => { marcarEntrega(h, 'panadera', 'frasco', dia); T('rosa', 'frasco')(h, dia); },
   'oveja-ramon': T('ramon', 'oveja'),

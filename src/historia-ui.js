@@ -9,7 +9,7 @@
 
 import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, momentoPerdido, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
 // 4.15.0: la Historia nueva: decisiones, lazos, lo raro, escenas y objetos del acto I
-import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, lazosEnPalabras, textoRaro, marcarObjeto, marcarTema, sumarReparacion } from './historia.js';
+import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, avisoLazosDe, lazosEnPalabras, textoRaro, marcarObjeto, marcarTema, sumarReparacion } from './historia.js';
 import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO, COLOCACION_ESCENA } from './historia-disparadores.js';
 // 4.17.1: la bolsa del umbral también después del final
 import { conEDespuesDelFinal } from './historia-disparadores.js';
@@ -299,7 +299,7 @@ export function crearValleUi(ctx) {
   function mostrarDecision(h, dec, s) {
     tarjetas.mostrar({
       clase: 'evento', arriba: 'Una decisión', titulo: dec.titulo, texto: dec.texto,
-      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); return { id: o.id, texto: o.texto, detalle: ok ? o.detalle : o.sinRequisito, deshabilitada: !ok }; }),
+      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); const aviso = ok ? avisoLazosDe(o) : ''; return { id: o.id, texto: o.texto, detalle: ok ? (aviso ? `${o.detalle || ''}${o.detalle ? ' · ' : ''}${aviso}` : o.detalle) : o.sinRequisito, deshabilitada: !ok };   // (4.18.2: y lo que le pasa al lazo de los vecinos) }),
       alElegir: (id) => {
         const o = tomarDecision(h, dec.id, id, estado());
         if (!o) return false;
@@ -668,7 +668,7 @@ export function crearValleUi(ctx) {
       const raros = (h.raro || []).slice().reverse();
       const opt = optativasHechas(h);
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
-        + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}: ${escP(l.palabra)}</li>`).join('')}</ul>` : '')
+        + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}${l.oficio ? `, ${escP(l.oficio)}` : ''}: ${escP(l.palabra)}</li>`).join('')}</ul>` : '')
         + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
         + (opt.length ? `<p>Lo que hiciste de paso</p><ul class="optativas">${opt.map((x) => `<li>Día ${x.dia} · ${escP(x.titulo)}: ${escP(x.texto)}</li>`).join('')}</ul>` : '')   // 4.18.0
         + (b ? `<button data-historia="${b.accion}">${escP(b.texto)}</button>` : '')

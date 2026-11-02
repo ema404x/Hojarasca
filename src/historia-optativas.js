@@ -9,8 +9,9 @@
 //     escenas de cada optativa se disparan sólo en esa ventana (historia-disparadores.js pisa el `cap` de sus disparadores con ella).
 //   · Hecha = queda anotada en `historia.optativas[id] = día` una sola vez, y en ese momento se da el premio (una sola vez). Los LAZOS del
 //     guion los da la escena (`lazo:<quién>:<n>`); si la escena vista no trae el lazo de esa persona, lo da el registro. Lo mismo con el ramal.
-//   · Los encargos de los vecinos con arco (los de PERSONAS_LAZO): cada encargo cumplido con la historia en marcha suma +1 al lazo de quien lo pidió.
-import { CAPITULOS, PERSONAS_LAZO, cambiarLazo, sumarRamal } from './historia.js';
+//   · Los encargos de los vecinos con lazo (LAZOS_TODOS: los seis con arco y, desde la 4.18.2, también Nicanor): cada encargo cumplido con la historia en marcha suma +1 al lazo de quien lo pidió.
+import { CAPITULOS, LAZOS_TODOS, cambiarLazo, sumarRamal } from './historia.js';
+import { TEXTO_LAZOS } from './historia-texto-lazos.js';
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
 import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 import { TEXTO_ACTO3 } from './historia-texto-acto3.js';
@@ -19,11 +20,12 @@ import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';
 import { ESCENAS_ACTO2 } from './historia-escenas-acto2.js';
 import { ESCENAS_ACTO3 } from './historia-escenas-acto3.js';
 import { ESCENAS_OPTATIVAS } from './historia-escenas-optativas.js';
+import { ESCENAS_LAZOS, OPTATIVA_SOFIA } from './historia-escenas-lazos.js';
 import { efectosDe, PERSONAJES_HISTORIA } from './historia-escenas-util.js';
 import { PERSONAJES_ACTO2 } from './historia-escenas-acto2-util.js';
 import { PERSONAJES_ACTO3 } from './historia-escenas-acto3-util.js';
 
-const ESCENAS = { ...ESCENAS_ACTO1, ...ESCENAS_ACTO2, ...ESCENAS_ACTO3, ...ESCENAS_OPTATIVAS };
+const ESCENAS = { ...ESCENAS_ACTO1, ...ESCENAS_ACTO2, ...ESCENAS_ACTO3, ...ESCENAS_OPTATIVAS, ...ESCENAS_LAZOS };
 const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
 const ent = (v, max = 1e6) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 const IDX = Object.fromEntries(CAPITULOS.map((c, i) => [c.id, i]));
@@ -140,6 +142,27 @@ export const OPTATIVAS = [
   { id: 'volver-a-subir', desde: 'deshielo', hasta: 'deshielo', quien: 'ramon',
     ofrece: (s) => s.decisiones.majada === 'c' && s.escenas.has('majada-fin'), hecha: vista('volver-a-subir'), escenas: ['volver-a-subir'], disparadores: ['volver-a-subir'], premio: null },
 ];
+// 4.18.2: la optativa de Sofía (la fotógrafa), que es la que le da lazo. Los datos los trae B (historia-escenas-lazos.js: OPTATIVA_SOFIA); acá se arma la
+// entrada del registro con ellos. Si el dato falta o está mal armado (un capítulo que no existe, sin escena), no entra: nada se traba ni se rompe.
+// `disparo`: un disparador o una lista (el primero se llama como la escena; los otros, `<escena>:<modo>`); ver disparadoresDeLazo (historia-disparadores-optativas.js).
+export const disparosDeLazo = (d) => (Array.isArray(d?.disparo) ? d.disparo : d?.disparo ? [d.disparo] : []).filter((x) => x && typeof x === 'object' && ['auto', 'hablar', 'interaccion'].includes(x.modo));
+export const claveDisparoLazo = (d, i) => (i === 0 ? d.escena : `${d.escena}:${disparosDeLazo(d)[i].modo}`);
+export function optativaDeLazo(d) {
+  if (!d || typeof d !== 'object' || typeof d.id !== 'string' || typeof d.escena !== 'string' || !d.id || !d.escena) return null;
+  if (!Object.hasOwn(IDX, d.desde) || !Object.hasOwn(IDX, d.hasta) || IDX[d.desde] > IDX[d.hasta]) return null;
+  const ofr = obj(d.ofrece);
+  const escenas = (Array.isArray(ofr.escenas) ? ofr.escenas : []).filter((x) => typeof x === 'string');
+  const temas = (Array.isArray(ofr.temas) ? ofr.temas : []).filter((x) => typeof x === 'string');
+  const quien = typeof d.quien === 'string' ? d.quien : 'sofia';
+  return {
+    id: d.id, desde: d.desde, hasta: d.hasta, quien,
+    ofrece: (s) => escenas.every((x) => s.escenas.has(x)) && temas.every((x) => s.temas.has(x)) && (!ofr.trato || s.trato === ofr.trato),
+    hecha: vista(d.escena), escenas: [d.escena], disparadores: disparosDeLazo(d).map((_, i) => claveDisparoLazo(d, i)),
+    // (el lazo lo da la escena con `lazo:sofia:n`; si no lo trae, lo da el registro: ver premioDe)
+    premio: LAZOS_TODOS.includes(quien) ? { lazos: { [quien]: 1 } } : null,
+  };
+}
+{ const o = optativaDeLazo(OPTATIVA_SOFIA); if (o && !OPTATIVAS.some((x) => x.id === o.id)) OPTATIVAS.push(o); }
 export const OPTATIVA = Object.fromEntries(OPTATIVAS.map((o) => [o.id, o]));
 export const IDS_OPTATIVAS_REGISTRO = OPTATIVAS.map((o) => o.id);
 
@@ -163,8 +186,10 @@ const TEXTOS_CAP = (() => {
   return t;
 })();
 // (el tablón de B: { caps, quien, titulo, ofrecida, hecha }: el título va en el panel; la pista y la línea tildada, en la guía)
-export const textoOptativa = (id) => obj(obj(TEXTO_OPTATIVAS.tablon)[id]).titulo || TEXTOS_CAP[id] || id;
-export const pistaOptativa = (id, hecha = false) => obj(obj(TEXTO_OPTATIVAS.tablon)[id])[hecha ? 'hecha' : 'ofrecida'] || TEXTOS_CAP[id] || id;
+// (4.18.2: y el de la optativa de Sofía, que escribe B en TEXTO_LAZOS.tablon)
+const entradaDeTablon = (id) => obj(obj(TEXTO_OPTATIVAS.tablon)[id] || obj(TEXTO_LAZOS.tablon)[id]);
+export const textoOptativa = (id) => entradaDeTablon(id).titulo || TEXTOS_CAP[id] || id;
+export const pistaOptativa = (id, hecha = false) => entradaDeTablon(id)[hecha ? 'hecha' : 'ofrecida'] || TEXTOS_CAP[id] || id;
 
 // El estado de una optativa: 'hecha' | 'en-curso' | 'ofrecida' | 'cerrada'
 export function estadoOptativa(o, s, h) {
@@ -199,7 +224,7 @@ export function premioDe(o, s) {
   if (!p) return null;
   const ya = lazosDeEscenas(o, s);
   const r = { lazos: {}, ramal: 0, cuenta: { ...(p.cuenta || {}) }, materiales: { ...(p.materiales || {}) }, entradas: { ...(p.entradas || {}) }, pesos: p.pesos || 0, pan: p.pan || 0, flechas: p.flechas || 0, texto: p.texto || '' };
-  for (const [q, n] of Object.entries(p.lazos || {})) if (PERSONAS_LAZO.includes(q) && !ya.lazos.has(q)) r.lazos[q] = n;
+  for (const [q, n] of Object.entries(p.lazos || {})) if (LAZOS_TODOS.includes(q) && !ya.lazos.has(q)) r.lazos[q] = n;
   if (p.ramal && !ya.ramal) r.ramal = p.ramal;
   return r;
 }
@@ -252,7 +277,7 @@ export function revisarEncargos(h, p, encargos, dia = 1) {
   for (const k of hechos) {
     if (Object.hasOwn(h.encargosLazo, k) || Object.keys(h.encargosLazo).length >= 200) continue;
     const q = quien[k];
-    if (PERSONAS_LAZO.includes(q)) { cambiarLazo(h, q, 1); h.encargosLazo[k] = Math.max(1, ent(dia)); dados.push({ id: k, quien: q }); }
+    if (LAZOS_TODOS.includes(q)) { cambiarLazo(h, q, 1); h.encargosLazo[k] = Math.max(1, ent(dia)); dados.push({ id: k, quien: q }); }
     else h.encargosLazo[k] = 0;
   }
   return dados;
@@ -287,13 +312,30 @@ const CHARLAS = (() => {
     // (las de las optativas, marcadas: son «de después» y valen aunque el capítulo ya haya pasado)
     for (const l of Array.isArray(lista) ? lista : []) if (l && typeof l.id === 'string' && typeof l.texto === 'string') (r[clave] ||= []).push(T === TEXTO_OPTATIVAS ? { ...l, deOptativa: true } : l);
   }
+  // 4.18.2: las del lazo (`cuando: { lazo: { min?, max? } }`): valen de su capítulo en adelante, como las de las optativas, mientras el lazo esté en ese tramo.
+  // Sólo las de los vecinos con lazo (LAZOS_TODOS) y con una condición de lazo bien formada: lo demás se ignora.
+  for (const [quien, lista] of Object.entries(obj(TEXTO_LAZOS.charlas))) {
+    if (!LAZOS_TODOS.includes(quien)) continue;
+    const clave = CLAVE_DE[quien] || quien;
+    for (const l of Array.isArray(lista) ? lista : []) {
+      const w = obj(obj(l?.cuando).lazo);
+      if (!l || typeof l.id !== 'string' || typeof l.texto !== 'string' || (!Number.isFinite(w.min) && !Number.isFinite(w.max))) continue;
+      (r[clave] ||= []).push({ ...l, deLazo: quien });
+    }
+  }
   return r;
 })();
 export const charlasDe = (clave) => (Object.hasOwn(CHARLAS, clave) ? CHARLAS[clave] : []);
 // Las líneas de los actos con `cuando: { optativa }` que son de ANTES (la invitan, no la agradecen): valen mientras está ofrecida y sin hacer
 export const LINEAS_DE_ANTES = ['rosa-c2-frasco'];
-function cuandoOk(w, s, h, id = '') {
+function cuandoOk(w, s, h, id = '', l = null) {
   if (!w) return true;
+  if (w.lazo) {   // 4.18.2: el lazo de esa persona (`l.deLazo`) tiene que estar en el tramo
+    const q = l?.deLazo;
+    if (typeof q !== 'string') return false;
+    const v = Number(s?.lazos?.[q]) || 0;
+    return v >= (Number.isFinite(w.lazo.min) ? w.lazo.min : -9) && v <= (Number.isFinite(w.lazo.max) ? w.lazo.max : 9);
+  }
   if (w.decision) return s.decisiones[w.decision] === w.es;
   if (w.optativa && LINEAS_DE_ANTES.includes(id)) { const o = OPTATIVA[w.optativa]; return !!o && ['ofrecida', 'en-curso'].includes(estadoOptativa(o, s, h)); }
   if (w.optativa) return Object.hasOwn(obj(h.optativas), w.optativa);
@@ -308,10 +350,10 @@ export function lineaDeHistoria(h, s, clave) {
   if (!h?.activa || h.fase !== 'jugando' || !s) return null;
   const n = Math.max(0, h.capitulo || 0) + 1;
   const oidas = obj(h.oidas);
-  const c = charlasDe(clave).filter((l) => !Object.hasOwn(oidas, l.id) && Number(l.cap) <= n && (Number(l.cap) === n || l.cuando?.optativa || l.deOptativa) && cuandoOk(l.cuando, s, h, l.id));
+  const c = charlasDe(clave).filter((l) => !Object.hasOwn(oidas, l.id) && Number(l.cap) <= n && (Number(l.cap) === n || l.cuando?.optativa || l.deOptativa || l.deLazo) && cuandoOk(l.cuando, s, h, l.id, l));
   if (!c.length) return null;
-  // la de capítulo más alto; a igual capítulo, la de una optativa y después la que tiene condición
-  c.sort((a, b) => (Number(b.cap) - Number(a.cap)) || ((b.deOptativa ? 1 : 0) - (a.deOptativa ? 1 : 0)) || ((b.cuando ? 1 : 0) - (a.cuando ? 1 : 0)));
+  // la de capítulo más alto; a igual capítulo, la de una optativa, después la que tiene condición; la del lazo va última (no tapa lo que dice el acto)
+  c.sort((a, b) => (Number(b.cap) - Number(a.cap)) || ((b.deOptativa ? 1 : 0) - (a.deOptativa ? 1 : 0)) || ((a.deLazo ? 1 : 0) - (b.deLazo ? 1 : 0)) || ((b.cuando ? 1 : 0) - (a.cuando ? 1 : 0)));
   return c[0];
 }
 export function oirLinea(h, id, dia = 1) {
