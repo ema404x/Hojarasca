@@ -351,7 +351,10 @@ export function crearEscenasMundo(ctx) {
   let brazo = { id: null, k: 1 };
   function despejarCamara(c, dt, id) {
     const f = c.foco, col = ctx.col;
-    if (!f || !col?.resolver) return c;
+    if (!f || !col?.resolver) {   // 4.18.4: sin foco (la salida de la escena, un plano `sinDespeje`) igual no se baja del terreno
+      const s0 = ctx.T?.altura ? ctx.T.altura(c.x, c.z) : null;
+      return Number.isFinite(s0) && c.y < s0 + DESPEJE.bajo ? { ...c, y: s0 + DESPEJE.bajo } : c;
+    }
     let dx = c.x - f.x, dy = c.y - f.y, dz = c.z - f.z;
     const L = Math.hypot(dx, dy, dz);
     let k = 1;

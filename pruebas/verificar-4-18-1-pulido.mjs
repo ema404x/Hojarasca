@@ -164,7 +164,9 @@ async function suite(sufijo = '', archMut = '') {
       ok(sin && !sin.foco && Number.isFinite(sin.x) && Number.isFinite(sin.yaw), 'con «sinDespeje» no lleva foco: escenas-mundo.js no lo despeja');
       const mez = EN.mezclarPoses({ ...con }, { ...sin }, 0.5);
       ok(!mez.foco, 'y al mezclarse con el plano anterior tampoco');
-      ok(/if \(!f \|\| !col\?\.resolver\) return c;/.test(fuente('escenas-mundo.js')), 'escenas-mundo.js no despeja lo que no lleva foco');
+      // (4.18.4: sin foco la cámara sale antes del despeje contra choques, y sólo se le pone el piso del terreno)
+      const rama = (fuente('escenas-mundo.js').match(/if \(!f \|\| !col\?\.resolver\) (?:return c;|\{([\s\S]*?)\n    \}\n    let dx = c\.x - f\.x)/) || [])[0] || '';
+      ok(rama && !/col\.resolver\(/.test(rama), 'escenas-mundo.js no despeja lo que no lleva foco');
     }
     // ---------------------------------------------------------------- el cartel y la tranquera, más grandes; el punto con rot orienta la malla
     ok(/\.\.\.\(Number\.isFinite\(p\.rot\) \? \{ rot: p\.rot \} : \{\}\)/.test(objetos), 'un lugar con rot (el cartel del galpón) orienta la malla');
