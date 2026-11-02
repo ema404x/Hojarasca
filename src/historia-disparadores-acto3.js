@@ -58,7 +58,7 @@ export const DISPARADORES_ACTO3 = {
   'prestado-apicultor': { cap: 'arco', modo: 'hablar', clave: 'apicultor', cond: (s) => !s.prestado.apicultor },
   'prestado-maquinista': { cap: 'arco', modo: 'hablar', clave: 'martin', cond: (s) => !s.prestado.maquinista },
   'prestado-guarda': { cap: 'arco', modo: 'hablar', clave: 'guarda', cond: (s) => !s.prestado.guarda },
-  'deuda-pagada': { cap: 'arco', modo: 'interaccion', clave: 'raiz-deuda', cond: (s) => s.deuda > 0 },
+  'deuda-pagada': { cap: 'arco', modo: 'interaccion', clave: 'raiz-deuda', cond: (s) => s.deuda > 0 && puedePagarLoQueSeDebe(s) },   // (4.18.4: y alcanza para lo que la escena cobra)
   'prestado-tobias': { cap: 'arco', modo: 'auto', lugar: en('coihue', 30), cond: (s) => s.decisiones.coihue === 'c' && !s.prestado.tobias },
   'recorrer-lado': { cap: 'arco', modo: 'auto', lugar: en('galpon-noche', 28), hora: [16.5, 20.5], cond: (s) => s.prestadoN >= 3 },
   'flechas-de-mas': { cap: 'arco', modo: 'hablar', clave: 'carpintero', requiere: ['tito-arco'], cond: (s) => s.escenas.has('blancos-paso') },
@@ -170,7 +170,7 @@ export const OBJETOS_ACTO3 = {
   'raiz-perdon': { forma: null, lugar: 'molino-viejo', dx: 1.4, dz: 1.0, visible: (s, h) => enCap(h, 'golpea', 'arco') && s.trato === 'pelea' && !s.perdon && s.escenas.has('galpon-encuentro'),
     aviso: 'Dejar algo en la raíz del coihue para pedir perdón', escena: 'pedir-perdon' },
   // pagar la deuda del trato: una bolsa de harina o seis tablas en la raíz (o el tocón)
-  'raiz-deuda': { forma: null, lugar: 'molino-viejo', dx: -1.2, dz: 1.4, visible: (s, h) => enCap(h, 'arco') && s.deuda > 0 && (s.harina >= 1 || s.tablas >= 6),
+  'raiz-deuda': { forma: null, lugar: 'molino-viejo', dx: -1.2, dz: 1.4, visible: (s, h) => enCap(h, 'arco') && s.deuda > 0 && puedePagarLoQueSeDebe(s),
     aviso: 'Pagar lo que debés del trato en la raíz', escena: 'deuda-pagada' },
   // la bolsa vacía del umbral (final A: la costumbre del trato): se llena con una medida de harina y a la mañana hay un regalito
   'bolsa-umbral': { forma: 'bolsa', lx: 0.1, lz: 3.7, visible: (s, h) => h?.duendes?.final === 'trato' && !!costumbreDe(h)?.bolsa, bolsaUmbral: true, aviso: 'La bolsa del umbral' },
@@ -210,6 +210,14 @@ export function llenarBolsa(h, dia) { const c = costumbreDe(h); if (!c || c.bols
 
 // El pago de la deuda: harina o tablas
 export function puedePagarDeuda(s) { return s.harina >= DEUDA_COSTO.harina || s.tablas >= DEUDA_COSTO.tabla; }
+// 4.18.4: la escena «deuda-pagada» cobra lo que se debe según lo decidido (D1 = b: una bolsa de harina; D2 = b: seis tablas de coihue; con las dos, las dos). Antes se ofrecía
+// pagar con «harina o tablas» a secas y la escena cobraba otra cosa: con harina pero sin tablas (o al revés) la deuda se daba por pagada sin cobrar nada. Sin ninguna de las
+// dos decisiones (una deuda anotada a mano), vale la regla de siempre.
+export function puedePagarLoQueSeDebe(s) {
+  const debeHarina = s?.decisiones?.bolsa === 'b', debeTablas = s?.decisiones?.coihue === 'b';
+  if (!debeHarina && !debeTablas) return puedePagarDeuda(s);
+  return (!debeHarina || s.harina >= DEUDA_COSTO.harina) && (!debeTablas || (Number(s.tablasCoihue) || 0) >= DEUDA_COSTO.tabla || s.tablas >= DEUDA_COSTO.tabla);
+}
 export function pagarLaDeuda(h, s, ctx = {}) {
   if (!pagarDeuda(h)) return null;
   if (s.harina >= DEUDA_COSTO.harina) { ctx.gastar?.('harina', DEUDA_COSTO.harina); return 'harina'; }
