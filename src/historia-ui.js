@@ -624,13 +624,16 @@ export function crearValleUi(ctx) {
     if (ctx.esDesafio) return;
     const h = historia();
     const quiere = ctx.ajustes().relaxTipo === 'historia';
+    // 4.18.4: una historia terminada sigue «activa» (la costumbre del trato —la bolsa del umbral y el regalito de cada cosecha— la pide así): entrar con «Libre»
+    // en la portada la dejaba en pausa para siempre (terminada no tiene botón para retomarla). Y la que una versión anterior dejó así, se retoma.
+    if (h.fase === 'fin' && h.terminada && !h.activa) { h.activa = true; ctx.guardar(); }
     if (quiere && !h.activa && h.fase !== 'fin') {
       const nueva = empezarHistoria(h, ctx.progreso().dia);
       if (nueva) comenzar(h);
       ctx.alActivarHistoria?.();   // 4.13.0 (A)
       esperaInicio = 2.5;
       ctx.guardar();
-    } else if (!quiere && h.activa) { pausarHistoria(h); ctx.guardar(); }
+    } else if (!quiere && h.activa && h.fase !== 'fin') { pausarHistoria(h); ctx.guardar(); }
     else if (quiere) { esperaInicio = 2.5; ctx.alActivarHistoria?.(); comenzar(h); }   // 4.13.0 (A)
   }
   // 4.15.0: una Historia que recién empieza (capítulo 1, tarjeta de entrada, sin haber andado) arranca en la Estación del Valle al caer la tarde
