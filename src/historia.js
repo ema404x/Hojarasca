@@ -53,13 +53,17 @@ export const LAZO_MIN = -2, LAZO_MAX = 3;
 export const ACOMPANANTES = [...PERSONAS_LAZO, 'tobias'];
 // 4.17.0: D5 `majada` (capítulo 9) y D6 `duendes` (capítulo 10: a y b = trato, c = pelea)
 export const DECISIONES = ['bolsa', 'coihue', 'molienda', 'cuaderno', 'majada', 'duendes'];
+// 4.19.0: en qué capítulo se toma cada decisión (el objetivo `decision(D)` de ese capítulo). Lo usa el truco «historia capitulo N» para tomar por la primera opción las de los capítulos que salta.
+export const CAPITULO_DE_DECISION = { bolsa: 'bolsa', coihue: 'rueda', molienda: 'cosecha', cuaderno: 'cuaderno', majada: 'frios', duendes: 'golpea' };
 export const PRESTADOS = ['herrero', 'apicultor', 'maquinista', 'guarda', 'tobias', 'zaino'];
 // 4.17.0: las defensas que se piden prestadas para la noche (cadena C del capítulo 11) y quién las presta en la aldea (null: siempre está)
 export const PRESTADOS_NOCHE = ['herrero', 'apicultor', 'maquinista', 'guarda'];
 export const PRESTAMISTA = { herrero: 'herrero', apicultor: 'apicultor', maquinista: null, guarda: null };
 export const AMANECERES = ['amanecer-trato-ganada', 'amanecer-trato-perdida', 'amanecer-pelea-ganada', 'amanecer-pelea-perdida'];
 export const RAMAL_SALVADO = 10, RAMAL_A_PRUEBA = 6, RAMAL_MAX_FLETES = 8, RAMAL_BARRA = 10;
-const TOPE_RARO = 160, TOPE_MARCAS = 200;   // 4.17.1: lo raro, 160 (hay 108 indicios y cada uno se anota una vez: con 60 el cuaderno dejaba de anotar a mitad del acto III)
+const TOPE_RARO = 160;   // 4.17.1: lo raro, 160 (hay 108 indicios y cada uno se anota una vez: con 60 el cuaderno dejaba de anotar a mitad del acto III)
+// 4.19.0: las marcas (temas, objetos, entregados, aplicadas): 400 (eran 200 y las escenas llegaban a ~190: dos escenas más y se pasaba). Una partida vieja tiene menos de 200: no se rompe nada
+export const TOPE_MARCAS = 400;
 
 // Lo que el juego sabe de la partida, en números y banderas. `extra` trae lo que no está en el guardado: el fuego
 // prendido, si manejás la trochita o vas en el velero, las obras terminadas ({ id, x, z }), a qué distancia estás de
@@ -268,7 +272,9 @@ export function aceleracionDeEspera(h, s) {
   return espera ? ACELERACION_ESPERA : 1;
 }
 
-const ent = (v, max = 1e6) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
+// 4.19.0: Number() de algo que viene de un guardado armado a mano: un objeto con "toString": null hace que Number() tire un TypeError (sanearHistoria tiraba)
+const aNum = (v) => { try { return Number(v); } catch { return NaN; } };
+const ent = (v, max = 1e6) => Math.max(0, Math.min(max, Math.floor(aNum(v) || 0)));
 function obj(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
 const idSeguro = (k) => typeof k === 'string' && /^[a-z0-9][a-z0-9_.:-]{0,63}$/i.test(k) && !(k in Object.prototype);
 
@@ -582,7 +588,7 @@ export const CAPITULOS = [
       { id: 'blancos-esquila', tecla: 'E', texto: 'Practicá con la honda: volteá cinco latas de los postes del galpón de esquila', meta: 5, cuenta: (s) => s.blancos.esquila },
       // cadena C · lo prestado
       { id: 'prestado', tecla: 'E', texto: 'Pedí defensas prestadas: Anselmo (estacas), Guido (miel), Martín (la campana) y Elsa (durmientes); alcanzan tres', vecinos: true, meta: 3, cuenta: (s) => s.prestadoN },
-      { id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá lo que debés del trato: una bolsa de harina o seis tablas, en la raíz del coihue (o el tocón)', hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },
+      { id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: (s) => `Pagá lo que debés del trato: ${loQueSeDebe(s)}, en la raíz del coihue (o el tocón)`, hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },
       { id: 'lado', tecla: 'E', texto: 'Recorré el lado del arroyo hasta el galpón, con Ramón o con Josefina (al atardecer)', hecho: escena('recorrer-lado') },
     ],
     outro: [
@@ -806,6 +812,15 @@ export function alDecidirDuendes(h, opcion) {
   d.deuda = (dec.bolsa === 'b' ? 1 : 0) + (dec.coihue === 'b' ? 1 : 0) > 0 ? 1 : 0;
   return d.trato;
 }
+// 4.19.0: lo que dice el objetivo de la deuda. La escena «deuda-pagada» cobra lo que se decidió: D1 = b (la bolsa a Rosa) una bolsa de harina y D2 = b (el coihue talado)
+// seis tablas; con las dos decisiones, las dos cosas. Antes el texto decía siempre «harina o tablas». Una deuda anotada a mano (ninguna de las dos) sigue siendo «o».
+export function loQueSeDebe(s) {
+  const harina = s?.decisiones?.bolsa === 'b', tablas = s?.decisiones?.coihue === 'b';
+  if (harina && tablas) return 'una bolsa de harina y seis tablas de coihue (las dos cosas)';
+  if (harina) return 'una bolsa de harina';
+  if (tablas) return 'seis tablas de coihue';
+  return 'una bolsa de harina o seis tablas';
+}
 // Pagar la deuda del trato (una bolsa de harina o seis tablas, en la raíz): `duendes.deuda = 0`
 // 4.17.0: «Que amanezca» (efecto `noche:perdida` de la escena): la noche queda perdida, sin final de noche
 export function dejarPerdidaDe(h) { const d = duendesDe(h); d.noche = 'perdida'; d.final = null; if (!h.noche || typeof h.noche !== 'object') h.noche = nocheNueva(); h.noche.estado = 'perdida'; h.noche.horasAntes = null; }
@@ -850,16 +865,16 @@ export function sanearDuendes(v) {
   const d = duendesNuevos();
   if (!v || typeof v !== 'object' || Array.isArray(v)) return d;
   d.trato = v.trato === 'trato' || v.trato === 'pelea' ? v.trato : null;
-  d.vistos = Math.max(0, Math.min(999, Math.floor(Number(v.vistos) || 0)));
-  d.regalos = Math.max(0, Math.min(REGALOS_TOPE, Math.floor(Number(v.regalos) || 0)));
+  d.vistos = Math.max(0, Math.min(999, Math.floor(aNum(v.vistos) || 0)));
+  d.regalos = Math.max(0, Math.min(REGALOS_TOPE, Math.floor(aNum(v.regalos) || 0)));
   const a = v.armas && typeof v.armas === 'object' && !Array.isArray(v.armas) ? v.armas : {};
   d.armas.arco = a.arco === true; d.armas.honda = a.honda === true;
   d.noche = NOCHES_DUENDES.includes(v.noche) ? v.noche : 'ninguna';
   d.final = v.final === 'trato' || v.final === 'pelea' ? v.final : null;
-  d.intentos = Math.max(0, Math.min(99, Math.floor(Number(v.intentos) || 0)));
-  d.deuda = Math.max(0, Math.min(99, Math.floor(Number(v.deuda) || 0)));
+  d.intentos = Math.max(0, Math.min(99, Math.floor(aNum(v.intentos) || 0)));
+  d.deuda = Math.max(0, Math.min(99, Math.floor(aNum(v.deuda) || 0)));
   d.perdon = v.perdon === true;
-  d.convidado = Math.max(0, Math.min(99, Math.floor(Number(v.convidado) || 0)));
+  d.convidado = Math.max(0, Math.min(99, Math.floor(aNum(v.convidado) || 0)));
   return d;
 }
 // La parte de los duendes de una historia (la crea si falta: una partida vieja no la tiene)
@@ -1021,7 +1036,7 @@ export function sanearHistoria(v) {
   // (una historia guardada sin versión es de las de antes de la 4.15.0: versión 1; ver historia-reinicio.js)
   const conRastro = v.activa === true || ent(v.empezada) > 0 || ent(v.terminada) > 0 || Object.keys(obj(v.hechos)).length > 0;
   h.version = Object.hasOwn(v, 'version') ? ent(v.version, 99) || 1 : (conRastro ? 1 : VERSION_HISTORIA);
-  for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));
+  for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(aNum(obj(v.lazos)[k]) || 0)));
   for (const d of DECISIONES) { const x = obj(v.decisiones)[d]; h.decisiones[d] = x === 'a' || x === 'b' || x === 'c' ? x : null; }
   h.ramal = ent(v.ramal, 99);
   h.fletes = ent(v.fletes, RAMAL_MAX_FLETES);

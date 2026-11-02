@@ -253,7 +253,7 @@ export function crearCocinaJuego(ctx) {
   const textoCantidad = (id, n) => {
     const nombres = { asado: ['porción de asado', 'porciones de asado'], 'cordero-asado': ['porción de cordero', 'porciones de cordero'], locro: ['plato de locro', 'platos de locro'],
       curanto: ['plato de curanto', 'platos de curanto'], 'chocolate-caliente': ['taza de chocolate', 'tazas de chocolate'], 'dulce-leche': ['frasco de dulce de leche', 'frascos de dulce de leche'],
-      'pan-casero': ['pan casero', 'panes caseros'], empanadas: ['empanada', 'empanadas'], 'frasco-frutilla': ['frasco de dulce de frutilla', 'frascos de dulce de frutilla'] };
+      'torta-casera': ['torta casera', 'tortas caseras'], 'pan-casero': ['pan casero', 'panes caseros'], empanadas: ['empanada', 'empanadas'], 'frasco-frutilla': ['frasco de dulce de frutilla', 'frascos de dulce de frutilla'] };
     const nn = nombres[id] || (id.startsWith('mermelada-') ? ['frasco de mermelada', 'frascos de mermelada'] : [id, id]);
     return `${n} ${n === 1 ? nn[0] : nn[1]}`;
   };

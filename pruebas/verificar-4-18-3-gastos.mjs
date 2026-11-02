@@ -124,7 +124,7 @@ function correr(escena, h, p, script = []) {
   for (const k of R.IDS_REGALO) ok(existe(k), `«${k}» es una cosa que existe en el juego`);
   for (const x of [...R.PARA_RAMON, ...R.PARA_LA_TORTA]) ok(Number.isInteger(x.n) && x.n >= 1 && typeof x.nombre === 'string' && x.nombre.length > 3 && typeof x.corto === 'string', `${x.k}: n, nombre y corto`);
   ok(R.PARA_RAMON.some((x) => x.k === 'trucha-ahumada') && R.PARA_RAMON.some((x) => x.k === 'pinon'), 'para Ramón: trucha ahumada y piñones (lo del guion)');
-  ok(R.PARA_LA_TORTA.every((x) => /dulce|mermelada|miel|torta/.test(x.nombre)), 'para la torta sólo lo dulce');
+  ok(R.PARA_LA_TORTA.every((x) => x.k === 'torta-casera' && /torta/.test(x.nombre)), 'para la torta, la torta casera del horno (4.19.0: antes servía lo dulce que se guarda)');
   ok(!R.PARA_LA_TORTA.some((x) => ['pan-casero', 'empanadas', 'harina', 'pinon'].includes(x.k)), 'la torta no se arma con pan, empanadas, harina ni piñones');
   ok(!R.PARA_RAMON.some((x) => x.k === 'harina' || x.k === 'yerba'), 'a Ramón no se le lleva harina ni yerba');
   // contar: lo juntado más las cosas
@@ -148,14 +148,16 @@ function correr(escena, h, p, script = []) {
   dar(q, 'pinon', 0);
   ok(R.regaloDeProgreso('ramon', q)?.k === 'trucha-ahumada', 'sin piñones, la trucha');
   ok(R.regaloDeProgreso('herminia', q) === null, 'la trucha no es para la torta');
-  dar(q, 'dulce-leche', 1);
-  ok(R.regaloDeProgreso('herminia', q)?.k === 'dulce-leche', 'el dulce de leche sí');
+  dar(q, 'dulce-leche', 1); dar(q, 'miel', 2); dar(q, 'mermelada-pera', 1);
+  ok(R.regaloDeProgreso('herminia', q) === null, 'lo dulce suelto (dulce de leche, miel, mermelada) ya no hace de torta (4.19.0)');
+  dar(q, 'torta-casera', 1);
+  ok(R.regaloDeProgreso('herminia', q)?.k === 'torta-casera', 'la torta casera sí');
   ok(R.regaloDe('nadie', () => 9) === null && R.elegirRegalo(null, () => 9) === null && R.elegirRegalo(R.PARA_RAMON, null) === null, 'quién o lista inexistentes: nada');
   for (const x of R.PARA_RAMON) { const z = progresoBase(); dar(z, x.k, x.n, 'cosas'); ok(R.regaloDeProgreso('ramon', z)?.k === x.k, `Ramón recibe ${x.k} (estando en las cosas)`); }
   for (const x of R.PARA_LA_TORTA) { const z = progresoBase(); dar(z, x.k, x.n); ok(R.regaloDeProgreso('herminia', z)?.k === x.k, `Herminia recibe ${x.k}`); }
   // las pistas en palabras (sin números)
   ok(/pi[ñn]ones/.test(R.QUE_LLEVAR_RAMON) && /trucha ahumada/.test(R.QUE_LLEVAR_RAMON) && !/\d/.test(R.QUE_LLEVAR_RAMON), 'QUE_LLEVAR_RAMON dice piñones y trucha ahumada, sin números');
-  ok(/miel/.test(R.QUE_LLEVAR_TORTA) && /mermelada/.test(R.QUE_LLEVAR_TORTA) && !/\d/.test(R.QUE_LLEVAR_TORTA), 'QUE_LLEVAR_TORTA dice miel y mermelada, sin números');
+  ok(/torta/.test(R.QUE_LLEVAR_TORTA) && /horno/.test(R.COMO_HACER_TORTA) && /harina/.test(R.COMO_HACER_TORTA) && /huevos/.test(R.COMO_HACER_TORTA) && /azúcar/.test(R.COMO_HACER_TORTA) && !/\d/.test(R.QUE_LLEVAR_TORTA), 'QUE_LLEVAR_TORTA dice torta y COMO_HACER_TORTA la receta del horno, sin números (4.19.0)');
 }
 
 // ---------------------------------------------------------------- 2. el estado de la partida ve el regalo (y el pan casero del horno)
@@ -165,7 +167,9 @@ function correr(escena, h, p, script = []) {
   dar(p, 'trucha-ahumada', 1);
   ok(E(p).regaloRamon === 'trucha-ahumada' && E(p).regaloTorta === null, 'una trucha ahumada: regalo para Ramón, no para la torta');
   dar(p, 'miel', 1, 'cosas');
-  ok(E(p).regaloTorta === 'miel', 'la miel (en las cosas) es para la torta');
+  ok(E(p).regaloTorta === null, 'la miel ya no es para la torta (4.19.0)');
+  dar(p, 'torta-casera', 1, 'cosas');
+  ok(E(p).regaloTorta === 'torta-casera', 'la torta casera (en las cosas) es para la torta');
   const z = armar('mesa').p;
   dar(z, 'pan-casero', 2);
   ok(E(z).pan === 2, 'el pan casero del horno (lo juntado) cuenta para Fermín');
@@ -372,31 +376,33 @@ const enCuaderno = (extra = {}) => armar('cuaderno', { horas: 11, ...extra });
 {
   const hablar = (h, p) => quien(h, p, { modo: 'hablar', clave: 'abuela' });
   const { h, p } = enCuaderno();
-  ok(hablar(h, p) !== 'herminia-noventa', 'sin nada dulce: no se dispara');
+  ok(hablar(h, p) !== 'herminia-noventa', 'sin torta: no se dispara');
   dar(p, 'pan-casero', 3); dar(p, 'empanadas', 4); dar(p, 'harina', 6, 'cosas'); dar(p, 'trucha-ahumada', 2); dar(p, 'pinon', 9); dar(p, 'huevo', 4);
   ok(hablar(h, p) !== 'herminia-noventa', 'pan, empanadas, harina, trucha, piñones y huevos no hacen una torta');
-  dar(p, 'miel', 1);
-  ok(hablar(h, p) === 'herminia-noventa', 'con un frasco de miel se dispara');
+  dar(p, 'miel', 1); dar(p, 'dulce-leche', 1); dar(p, 'mermelada-ciruela', 1);
+  ok(hablar(h, p) !== 'herminia-noventa', 'lo dulce suelto (miel, dulce de leche, mermelada) no hace una torta (4.19.0)');
+  dar(p, 'torta-casera', 1);
+  ok(hablar(h, p) === 'herminia-noventa', 'con una torta casera se dispara');
   for (const x of R.PARA_LA_TORTA) { const z = enCuaderno(); dar(z.p, x.k, x.n); ok(hablar(z.h, z.p) === 'herminia-noventa', `con ${x.k} se dispara`); }
   { const z = armar('rueda', { horas: 11 }); dar(z.p, 'miel', 1); ok(hablar(z.h, z.p) !== 'herminia-noventa', 'fuera del capítulo 8 no se dispara'); }
 }
 {
   const { h, p } = enCuaderno();
-  dar(p, 'miel', 2); dar(p, 'dulce-leche', 1); dar(p, 'pinon', 9);
+  dar(p, 'torta-casera', 2); dar(p, 'miel', 2); dar(p, 'dulce-leche', 1); dar(p, 'pinon', 9);
   EN.marcarVista(h, 'herminia-noventa', 6);
   const J = juego(p);
   D.aplicarVistas(h, 6, J.ctx);
-  ok(J.gastos.length === 1 && J.gastos[0][0] === 'miel' && J.gastos[0][1] === 1, 'gasta UNO (un frasco de miel)');
-  ok(p.entradas.miel.cantidad === 1 && p.entradas['dulce-leche'].cantidad === 1 && p.entradas.pinon.cantidad === 9, 'y nada más');
-  ok(J.avisos.length === 1 && /Le llevaste un frasco de miel a Herminia/.test(J.avisos[0][0]) && /torta/.test(J.avisos[0][1]), 'avisa qué le llevaste');
+  ok(J.gastos.length === 1 && J.gastos[0][0] === 'torta-casera' && J.gastos[0][1] === 1, 'gasta UNA (una torta casera)');
+  ok(p.entradas.miel.cantidad === 2 && p.entradas['dulce-leche'].cantidad === 1 && p.entradas.pinon.cantidad === 9, 'y nada más');
+  ok(J.avisos.length === 1 && /Le llevaste una torta casera a Herminia/.test(J.avisos[0][0]) && /torta/.test(J.avisos[0][1]), 'avisa qué le llevaste');
   D.aplicarVistas(h, 7, J.ctx); EN.marcarVista(h, 'herminia-noventa', 7); D.aplicarVistas(h, 7, J.ctx);
   D.aplicarVistas(H.sanearHistoria(JSON.parse(JSON.stringify(h))), 8, J.ctx);
-  ok(J.gastos.length === 1 && p.entradas.miel.cantidad === 1, 'repetida, o guardada y cargada: no gasta de nuevo');
+  ok(J.gastos.length === 1 && p.entradas['torta-casera'].cantidad === 1, 'repetida, o guardada y cargada: no gasta de nuevo');
   O.revisarOptativas(h, E(p), 6);
   ok(Object.hasOwn(h.optativas, 'noventa'), 'la optativa queda hecha');
   const z = enCuaderno(); EN.marcarVista(z.h, 'herminia-noventa', 6); const Jz = juego(z.p); D.aplicarVistas(z.h, 6, Jz.ctx);
   ok(Jz.gastos.length === 0 && Jz.avisos.length === 0 && Object.hasOwn(z.h.aplicadas, 'herminia-noventa'), 'sin nada al aplicarse: no gasta ni avisa y no traba');
-  const v = enCuaderno(); EN.marcarVista(v.h, 'herminia-noventa', 5); v.h.aplicadas['herminia-noventa'] = 5; dar(v.p, 'miel', 3);
+  const v = enCuaderno(); EN.marcarVista(v.h, 'herminia-noventa', 5); v.h.aplicadas['herminia-noventa'] = 5; dar(v.p, 'torta-casera', 3);
   const Jv = juego(v.p); D.aplicarVistas(v.h, 6, Jv.ctx);
   ok(Jv.gastos.length === 0, 'partida vieja con los noventa ya vistos: no gasta');
 }
@@ -411,22 +417,22 @@ const enCuaderno = (extra = {}) => armar('cuaderno', { horas: 11, ...extra });
   ok(b && /llevale una trucha ahumada al puesto sanitario/.test(b.texto), 'con la trucha: dice qué llevarle');
   ok(/algo rico/.test(a.pista) && /pi[ñn]ones/.test(a.pista) && /trucha ahumada/.test(a.pista), 'la pista (la guía) de Ramón dice qué llevar');
   const sinH = enCuaderno(), conH = enCuaderno();
-  dar(conH.p, 'dulce-leche', 1);
+  dar(conH.p, 'torta-casera', 1);
   const c = panel(sinH.h, sinH.p).find((x) => x.id === 'noventa'), d = panel(conH.h, conH.p).find((x) => x.id === 'noventa');
-  ok(c && /te falta algo dulce para la torta/.test(c.texto) && /miel/.test(c.texto) && /mermelada/.test(c.texto), 'tablón de Herminia sin nada: «te falta algo dulce para la torta» y qué llevar');
-  ok(d && /llevale un frasco de dulce de leche a Herminia para la torta/.test(d.texto), 'con el dulce de leche: dice qué llevarle');
-  ok(/dulce/.test(c.pista) && /miel/.test(c.pista) && /mermelada/.test(c.pista), 'la pista de Herminia dice qué llevar');
+  ok(c && /te falta una torta casera/.test(c.texto) && /harina/.test(c.texto) && /huevos/.test(c.texto) && /horno de barro/.test(c.texto), 'tablón de Herminia sin torta: «te falta una torta casera» y cómo se hace (4.19.0)');
+  ok(d && /llevale una torta casera a Herminia/.test(d.texto), 'con la torta: dice qué llevarle');
+  ok(/torta/.test(c.pista) && /horno de barro/.test(c.pista) && /harina/.test(c.pista), 'la pista de Herminia dice qué llevar y cómo se hace');
   for (const t of [a.texto, b.texto, a.pista, c.texto, d.texto, c.pista]) ok(!/\d/.test(t), `sin números: «${t.slice(0, 40)}…»`);
   // los textos de los capítulos (la guía) también
   const t8 = T2.capitulos[8].optativas.find((x) => x.id === 'noventa').texto, t9 = T3.capitulos[9].optativas.find((x) => x.id === 'visita-ramon').texto;
-  ok(/dulce/.test(t8) && /miel/.test(t8) && !/llevale una torta$/.test(t8), 'la guía del capítulo 8 dice qué llevar');
+  ok(/torta casera/.test(t8) && /horno de barro/.test(t8) && /harina/.test(t8), 'la guía del capítulo 8 dice qué llevar y cómo se hace');
   ok(/algo rico/.test(t9) && /pi[ñn]ones/.test(t9) && /trucha ahumada/.test(t9), 'la guía del capítulo 9 dice qué llevar');
   ok(/pi[ñn]ones/.test(TO.tablon['visita-ramon'].ofrecida) && /trucha ahumada/.test(TO.tablon['visita-ramon'].ofrecida), 'el tablón de B (Ramón) dice qué llevar');
-  ok(/dulce/.test(TO.tablon.noventa.ofrecida) && /miel/.test(TO.tablon.noventa.ofrecida), 'el tablón de B (Herminia) dice qué llevar');
+  ok(/torta/.test(TO.tablon.noventa.ofrecida) && /horno de barro/.test(TO.tablon.noventa.ofrecida), 'el tablón de B (Herminia) dice qué llevar');
   // nunca traban: ninguna es objetivo de un capítulo
   ok(H.CAPITULOS.every((cap) => cap.objetivos.every((x) => !['visita-ramon', 'noventa', 'fermin-habla'].includes(x.id))), 'ninguna de las tres es objetivo de un capítulo');
   // en castellano, sin inglés ni cosas sagradas
-  const todo = [a.texto, c.texto, a.pista, c.pista, t8, t9, TO.tablon['fermin-habla'].ofrecida, R.QUE_LLEVAR_RAMON, R.QUE_LLEVAR_TORTA, ...R.PARA_RAMON.map((x) => x.nombre), ...R.PARA_LA_TORTA.map((x) => x.nombre), H.PALABRAS_MAJADA_CONFIA, H.PALABRAS_MAJADA_NO_CONFIA].join(' ');
+  const todo = [a.texto, c.texto, a.pista, c.pista, t8, t9, TO.tablon['fermin-habla'].ofrecida, R.QUE_LLEVAR_RAMON, R.QUE_LLEVAR_TORTA, ...R.PARA_RAMON.map((x) => x.nombre), ...R.PARA_LA_TORTA.map((x) => x.nombre), R.COMO_HACER_TORTA, H.PALABRAS_MAJADA_CONFIA, H.PALABRAS_MAJADA_NO_CONFIA].join(' ');
   ok(!/\b(the|and|with|you|your|of|for|please|thanks)\b/i.test(todo), 'sin inglés');
   ok(!/\b(dios|santo|santa|virgen|ángel|cruz|oración|iglesia|misa|bendic\p{L}*)\b/iu.test(todo), 'sin palabras religiosas');
 }
@@ -490,11 +496,11 @@ const MUT = [
   ['historia.js', "pan: Math.min(9999, cuentaDe(p, 'pan-casero'))", "pan: ent(p?.cosas?.['pan-casero'], 9999)", 'el pan del horno no cuenta para Fermín'],
   ['historia.js', "regaloRamon: regaloDeProgreso('ramon', p)?.k || null,", "regaloRamon: null,", 'el estado nunca ve un regalo para Ramón'],
   ['historia-optativas.js', "`te falta algo rico para llevarle: ${QUE_LLEVAR_RAMON} o un plato de tu cocina`", "'hay algo para llevar'", 'el tablón de Ramón no dice qué llevar'],
-  ['historia-optativas.js', "`te falta algo dulce para la torta: ${QUE_LLEVAR_TORTA}`", "'hay algo para llevar'", 'el tablón de Herminia no dice qué llevar'],
+  ['historia-optativas.js', "`te falta una torta casera: se hornea con ${COMO_HACER_TORTA}`", "'hay algo para llevar'", 'el tablón de Herminia no dice qué llevar'],
   ['historia-texto-optativas.js', "Llevale algo rico: piñones, una trucha ahumada, pan casero, miel o un plato de tu cocina.", "Llevale algo rico.", 'la pista de Ramón no dice qué llevar'],
-  ['historia-texto-optativas.js', "llevale algo dulce para hacerla, un frasco de dulce de leche, de mermelada o de frutilla, o miel.", "llevale algo.", 'la pista de Herminia no dice qué llevar'],
+  ['historia-texto-optativas.js', "horneala en el horno de barro (dos medidas de harina, dos huevos y una de azúcar) y llevásela.", "llevale algo.", 'la pista de Herminia no dice qué llevar'],
   ['historia-texto-acto3.js', "con algo rico: piñones, una trucha ahumada, pan casero, miel o un plato de tu cocina'", "con algo rico'", 'la guía del capítulo 9 no dice qué llevar'],
-  ['historia-texto-acto2.js', "llevale algo dulce para la torta (un frasco de dulce de leche, de mermelada o de frutilla, o miel)'", "llevale una torta'", 'la guía del capítulo 8 sigue pidiendo una torta que no existe'],
+  ['historia-texto-acto2.js', "llevale una torta casera (se hornea en el horno de barro con harina, huevos y azúcar)'", "llevale una torta'", 'la guía del capítulo 8 no dice cómo se hace la torta'],
   ['historia-texto-optativas.js', "Si te gana la confianza, más adelante lo de la majada de Ramón va a doler menos.", "", 'Fermín quiere hablar no avisa que sirve'],
   ['historia-ui.js', "cuanto: (k) => cuentaDe(p, k), ", "cuanto: (k) => Number(p.cosas?.[k]) || 0, ", 'el juego sólo cuenta las cosas'],
   ['historia-ui.js', "aviso: (titulo, detalle) => ctx.nota(titulo, detalle, true) ", "", 'el juego no muestra el aviso'],

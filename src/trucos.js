@@ -15,7 +15,7 @@
 import { MAX_PESOS, hayEconomia, pesosDe } from './economia.js';
 import { ALMACENES, sanearAlmacen, libreDe, guardar as guardarEnAlmacen } from './almacen.js';
 import { UMBRALES, NIVEL_MAX, ORDEN_OFICIOS, OFICIOS, esOficio } from './oficios.js';
-import { CAPITULOS, historiaNueva } from './historia.js';
+import { CAPITULOS, DECISIONES, DEFINICION_DECISIONES, CAPITULO_DE_DECISION, decisionesDe, tomarDecision, historiaNueva } from './historia.js';
 import { PERSONAS_VECINDAD, NIVELES_AMISTAD, nombreCorto, sumarAmistadDe, nivelDe as nivelDeAmistad, esPersonaVecindad } from './vecindad.js';
 import { ENTRADAS, ENTRADA, SECCIONES } from './cuaderno.js';
 import { R, AYUDA, GRUPOS, NOMBRE_ESTACION, NOMBRE_CLIMA, pesos, cantidad } from './trucos-textos.js';
@@ -376,6 +376,24 @@ function cmdOficios(args, m) {
 // 4.10.1: el código deja la historia activa y TAMBIÉN el tipo de partida (relaxTipo): si no, al volver a la portada y apretar «Seguir», alEntrar() la ponía en pausa sin avisar
 function activaLaHistoria(m) { const aj = m.ajustes?.(); if (aj && typeof aj === 'object') aj.relaxTipo = 'historia'; }
 function diaDe(p) { return Math.max(1, Math.floor(Number(p?.dia) || 1)); }
+// 4.19.0: las decisiones de los capítulos anteriores a `idx` que todavía no se tomaron, por la primera opción. Devuelve las que tomó.
+const capituloDeDecision = (d) => CAPITULOS.findIndex((c) => c.id === CAPITULO_DE_DECISION[d]);
+function tomarPorDefecto(h, idx, dia) {
+  const r = [];
+  for (const d of DECISIONES) {
+    const ci = capituloDeDecision(d);
+    if (ci < 0 || ci >= idx || decisionesDe(h)[d] != null) continue;
+    if (tomarDecision(h, d, 'a', null, dia)) r.push(d);
+  }
+  return r;
+}
+const nombreDecision = (d) => DEFINICION_DECISIONES[d]?.titulo || d;
+function avisoDecisiones(tomadas, quedan) {
+  let t = '';
+  if (tomadas.length) t += `. Se tomaron por la primera opción: ${tomadas.map(nombreDecision).join(', ')} (las escenas de esos capítulos no se marcan como vistas)`;
+  if (quedan.length) t += `. Siguen tomadas las de más adelante: ${quedan.map(nombreDecision).join(', ')}`;
+  return t;
+}
 function cmdHistoria(args, m) {
   const p = progresoDe(m); if (!p) return no(R.noHayPartida);
   const d = relax(m, 'La historia'); if (d) return d;
@@ -394,15 +412,21 @@ function cmdHistoria(args, m) {
     CAPITULOS.forEach((c, i) => marcar(c, i < idx));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = 0; h.capitulo = idx; h.fase = 'intro'; h.base = {};
     h.acompanante = null;   // 4.17.1: quien te acompañaba en otro capítulo (Graciela, Ramón) no te sigue para siempre
+    // 4.19.0: las decisiones de los capítulos que se saltan se toman por la primera opción (con sus lazos): sin eso, el capítulo 9 o el final salían sin D1 ni D2 y la historia
+    // quedaba en un estado que jugando no se alcanza. Las escenas de esos capítulos NO se marcan como vistas (lo avisa el mensaje). Las de los capítulos que quedan por delante,
+    // si ya estaban tomadas, siguen tomadas (también se avisa).
+    const tomadas = tomarPorDefecto(h, idx, dia);
+    const quedan = DECISIONES.filter((d) => capituloDeDecision(d) >= idx && decisionesDe(h)[d] != null);
     activaLaHistoria(m);
-    return ok(R.historiaCapitulo(lec.valor, CAPITULOS[idx].titulo || CAPITULOS[idx].nombre || ''));
+    return ok(R.historiaCapitulo(lec.valor, CAPITULOS[idx].titulo || CAPITULOS[idx].nombre || '') + avisoDecisiones(tomadas, quedan));
   }
   if (a === 'completar' || a === 'terminar' || a === 'fin') {
     const sobra = unico(args); if (sobra) return sobra;
     CAPITULOS.forEach((c) => marcar(c, true));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = h.terminada || dia; h.capitulo = n - 1; h.fase = 'fin'; h.base = {};
+    const tomadas = tomarPorDefecto(h, n, dia);   // 4.19.0: igual que «capitulo N»
     activaLaHistoria(m);
-    return ok(R.historiaCompleta);
+    return ok(R.historiaCompleta + avisoDecisiones(tomadas, []));
   }
   if (a === 'reiniciar' || a === 'empezar') {
     const sobra = unico(args); if (sobra) return sobra;

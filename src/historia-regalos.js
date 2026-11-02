@@ -7,9 +7,8 @@
 // un premio (el pan de Rosa, la harina) a veces queda en `progreso.cosas[id]`. Se cuentan las dos, como la cocina (`cuantoHay` de cocina-pasos.js), y se gasta
 // primero de lo juntado.
 //
-// No existe una «torta» como cosa del inventario: la torta frita se come al fuego (no queda guardada) y la torta negra galesa se come en la casa de té.
-// Por eso la torta de Herminia se arma con lo dulce que sí se guarda (dulce de leche, mermelada, dulce de frutilla, miel). Si algún día hay una torta
-// de verdad en el horno, va primera de PARA_LA_TORTA.
+// 4.19.0: la torta de Herminia es una torta de verdad: la «torta casera» del horno de barro (cocina-pasos.js: harina, huevos y azúcar; rinde dos y se guarda).
+// Antes (4.18.3) no existía una torta guardable (la frita se come al fuego y la negra galesa en la casa de té) y se llevaba lo dulce que sí se guarda.
 
 const n = (v) => Math.max(0, Math.floor(Number(v) || 0));
 
@@ -39,15 +38,7 @@ export const PARA_RAMON = [
   { k: 'cordero-asado', n: 1, nombre: 'una porción de cordero', corto: 'cordero al asador' },
 ];
 export const PARA_LA_TORTA = [
-  { k: 'miel', n: 1, nombre: 'un frasco de miel', corto: 'miel' },
-  { k: 'frasco-frutilla', n: 1, nombre: 'un frasco de dulce de frutilla', corto: 'dulce de frutilla' },
-  { k: 'dulce-leche', n: 1, nombre: 'un frasco de dulce de leche', corto: 'dulce de leche' },
-  { k: 'mermelada-frambuesa', n: 1, nombre: 'un frasco de mermelada de frambuesa', corto: 'mermelada' },
-  { k: 'mermelada-cereza', n: 1, nombre: 'un frasco de mermelada de cereza', corto: 'mermelada' },
-  { k: 'mermelada-ciruela', n: 1, nombre: 'un frasco de mermelada de ciruela', corto: 'mermelada' },
-  { k: 'mermelada-manzana', n: 1, nombre: 'un frasco de mermelada de manzana', corto: 'mermelada' },
-  { k: 'mermelada-pera', n: 1, nombre: 'un frasco de mermelada de pera', corto: 'mermelada' },
-  { k: 'mermelada-grosella', n: 1, nombre: 'un frasco de mermelada de grosella', corto: 'mermelada' },
+  { k: 'torta-casera', n: 1, nombre: 'una torta casera', corto: 'torta casera' },
 ];
 export const REGALOS = { ramon: PARA_RAMON, herminia: PARA_LA_TORTA };
 // Todos los ids de mochila que pueden gastarse como regalo
@@ -78,5 +69,6 @@ export function gastarRegalo(p, k, cant) {
 const unico = (lista) => [...new Set(lista.map((x) => x.corto))];
 const unir = (l) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} o ${l[l.length - 1]}` : l[0] || '');
 export const QUE_LLEVAR_RAMON = unir(unico(PARA_RAMON.slice(0, 7)));   // piñones, trucha ahumada, pan casero, empanadas, miel, dulce de frutilla o dulce de leche
-export const QUE_LLEVAR_TORTA = unir(unico(PARA_LA_TORTA));            // miel, dulce de frutilla, dulce de leche o mermelada
+export const QUE_LLEVAR_TORTA = unir(unico(PARA_LA_TORTA));            // torta casera
+export const COMO_HACER_TORTA = 'dos medidas de harina, dos huevos y una de azúcar, en el horno de barro';   // 4.19.0
 export const nombreDeRegalo = (lista, k) => lista.find((x) => x.k === k)?.nombre || '';

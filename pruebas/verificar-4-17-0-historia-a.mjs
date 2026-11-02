@@ -140,8 +140,9 @@ async function chequear(arch = '', sufijo = '') {
     // la deuda no traba y se paga con harina o seis tablas
     h.duendes.deuda = 1; ok(!hecho(h, p, 'deuda'), 'la deuda sin pagar'); vista(h, 'recorrer-lado'); ok(hecho(h, p, 'deuda'), 'pero recorrer el lado la deja pasar');
     const pa = armar(10, { duendes: { deuda: 1 } }); ok(!A3.puedePagarDeuda(E(pa.p)), 'sin harina ni tablas no se paga'); pa.p.cosas.harina = 1; ok(A3.puedePagarDeuda(E(pa.p)), 'con una harina sí');
-    const gastos = []; ok(A3.pagarLaDeuda(pa.h, E(pa.p), { gastar: (c, k) => gastos.push([c, k]) }) === 'harina' && pa.h.duendes.deuda === 0 && gastos[0][0] === 'harina', 'se paga con harina');
-    const pb = armar(10, { duendes: { deuda: 1 } }); pb.p.materiales.tabla = 6; const g2 = []; ok(A3.pagarLaDeuda(pb.h, E(pb.p), { gastar: (c, k) => g2.push([c, k]) }) === 'tablas' && g2[0][1] === 6, 'o con seis tablas');
+    // 4.19.0: el pago directo (`pagarLaDeuda`, el tipo de objeto `pago`) era código muerto: la deuda se paga por la escena «deuda-pagada» y se sacó
+    ok(!Object.hasOwn(A3, 'pagarLaDeuda'), 'ya no está el pago directo de la deuda (código muerto)');
+    { const pb = armar(10, { duendes: { deuda: 1 } }); pb.p.materiales.tabla = 6; ok(A3.puedePagarDeuda(E(pb.p)), 'con seis tablas también se puede pagar'); }
     // la defensa de la noche
     const df = H.defensasDeNoche({ prestado: { herrero: true, apicultor: false, maquinista: true, guarda: false }, decisiones: { coihue: 'c' }, objetos: {} }, ['herrero', 'apicultor']);
     ok(df.estacas && !df.miel && df.campana && !df.empalizada && df.pirca, 'las defensas salen de lo prestado y de la pirca');
@@ -383,7 +384,7 @@ async function chequear(arch = '', sufijo = '') {
   {
     const main = leer('src/main.js'), ui = leer('src/historia-ui.js'), nui = leer('src/historia-noche-ui.js'), mundo = leer('src/historia-noche-mundo.js');
     for (const frag of ["import { ESCENAS_ACTO3, EFECTOS_ACTO3 } from './historia-escenas-acto3.js';", '...Object.values(ESCENAS_ACTO3)', '...EFECTOS_ACTO3', "ponr('puesto-paso', PUESTO_PASO);", "P['galpon-noche']", 'arreoDeHistoria()?.actualizar(dt)', "if (f === 'invierno' && e.inv < 1)", 'valle?.nevada?.()', 'darEntrada:', "else if (cosa === 'harina' || cosa === 'yerba' || cosa === 'pan-casero')"]) ok(main.includes(frag), `main.js: ${frag.slice(0, 60)}`);
-    for (const frag of ['noche.interviene(h)', 'mostrarFinal()', "a.tipo === 'pago'", "a.tipo === 'cuidar'", 'noche.practicar(dt, dondePractica)', 'alCumplirObjetivo(']) ok(ui.includes(frag), `historia-ui.js: ${frag}`);
+    for (const frag of ['noche.interviene(h)', 'mostrarFinal()', "a.tipo === 'cuidar'", 'noche.practicar(dt, dondePractica)', 'alCumplirObjetivo(']) ok(ui.includes(frag), `historia-ui.js: ${frag}`);
     ok(nui.includes("id: 'otra', texto: 'Otra vez'") && nui.includes("id: 'amanezca', texto: 'Que amanezca'") && nui.includes('dejarPerdida(h)'), 'la tarjeta de perder: Otra vez y Que amanezca');
     ok(!/mostrarFinal|TEXTOS_NOCHE\.final/.test(nui), 'los finales de la 4.13.0 se retiraron');
     ok(mundo.includes('crearDuende(tipo, { viejo })') && mundo.includes('armarPozoViejo') && mundo.includes('practicar'), 'los del cerro son la variante Viejo y hay práctica');
@@ -415,7 +416,7 @@ const MUT = [
   ['historia.js', "  d.deuda = (dec.bolsa === 'b' ? 1 : 0) + (dec.coihue === 'b' ? 1 : 0) > 0 ? 1 : 0;", "  d.deuda = 0;", 'el trato no deja deuda'],
   ['historia.js', "  h.blancos[donde] = Math.min(99, ent(h.blancos[donde], 99) + 1);\n  if (h.blancos[donde] >= BLANCOS_PARA_ARMA)", "  h.blancos[donde] = Math.min(99, ent(h.blancos[donde], 99) + 1);\n  if (false)", 'cinco blancos no dan el arma'],
   ['historia.js', "if (obj(prestado)[k] === true || (PRESTAMISTA[k] && !vive.has(PRESTAMISTA[k]))) n++;", "if (obj(prestado)[k] === true) n++;", 'los prestamistas ausentes traban'],
-  ['historia.js', "{ id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá lo que debés del trato: una bolsa de harina o seis tablas, en la raíz del coihue (o el tocón)', hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },", "{ id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá', hecho: (s) => s.deuda === 0 },", 'la deuda sin pagar traba el capítulo'],
+  ['historia.js', "{ id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: (s) => `Pagá lo que debés del trato: ${loQueSeDebe(s)}, en la raíz del coihue (o el tocón)`, hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },", "{ id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: 'Pagá', hecho: (s) => s.deuda === 0 },", 'la deuda sin pagar traba el capítulo'],
   ['historia.js', "if (d === 'b') return s.cuidados >= 3 && s.escenas.has('majada-vos');", "if (d === 'b') return s.cuidados >= 1 && s.escenas.has('majada-vos');", 'cuidar la majada un día alcanza'],
   ['historia.js', "  if (c.puerta.dias) return diasEsperados(h, s, 'nevada') >= c.puerta.dias ? null : c.puerta;", "", 'el epílogo no espera días'],
   ['historia.js', "return enHora(s.horas, 17, 24) || enHora(s.horas, 0, 7);", "return false;", 'nunca nieva la noche de la nevada'],

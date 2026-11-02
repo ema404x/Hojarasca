@@ -144,7 +144,7 @@ export const TEXTO_ACTO2 = {
       optativas: [
         { id: 'veta-vuelve', texto: 'La veta que vuelve: Tobías te espera de noche en la cantera' },
         { id: 'mulas', texto: 'Las mulas de Belisario: acompañá la tropa a caballo hasta el mallín' },
-        { id: 'noventa', texto: 'Herminia y los noventa: llevale algo dulce para la torta (un frasco de dulce de leche, de mermelada o de frutilla, o miel)' },
+        { id: 'noventa', texto: 'Herminia y los noventa: llevale una torta casera (se hornea en el horno de barro con harina, huevos y azúcar)' },
       ],
       premio: {
         texto: 'Yerba y una pluma de cóndor, que aparece en tu umbral esa noche', cuenta: { yerba: 4 }, objetos: ['pluma-condor'], desbloqueo: 'horario-de-invierno',

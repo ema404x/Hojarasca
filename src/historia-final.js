@@ -31,7 +31,27 @@ export function piezasLazos(h) {
   return (Array.isArray(r) ? r : []).map((t) => (typeof t === 'string' ? t : t?.texto)).filter((t) => typeof t === 'string' && t);
 }
 
-// { titulo, subtitulo, texto: [párrafos], final: 'trato' | 'pelea' } para un historial dado (`h` = progreso.historia)
+// 4.19.0: con los siete vecinos de la casa la tarjeta final suma siete párrafos más y quedaba con scroll. Se parte en páginas: cada una con el largo que se lee cómodo
+// en la tarjeta sin barra (TOPE_PAGINA caracteres), sin cortar nunca un párrafo y con el cierre («La historia termina acá…») siempre en la última, junto con lo que
+// lo precede. Una tarjeta corta (el final sin vecinos) queda en una sola página, como antes.
+export const TOPE_PAGINA = 620;
+export function paginarFinal(texto, tope = TOPE_PAGINA) {
+  const t = (Array.isArray(texto) ? texto : []).filter((x) => typeof x === 'string' && x);
+  const max = Math.max(200, Math.floor(Number(tope) || TOPE_PAGINA));
+  const paginas = [];
+  let actual = [], largo = 0;
+  for (const p of t) {
+    if (actual.length && largo + p.length > max) { paginas.push(actual); actual = []; largo = 0; }
+    actual.push(p); largo += p.length;
+  }
+  if (actual.length) paginas.push(actual);
+  // el cierre no queda solo: si lo único que hay en la última es el párrafo de cierre y la anterior tiene más de uno, se baja el último de la anterior
+  const n = paginas.length;
+  if (n > 1 && paginas[n - 1].length === 1 && paginas[n - 2].length > 1) paginas[n - 1].unshift(paginas[n - 2].pop());
+  return paginas;
+}
+
+// { titulo, subtitulo, texto: [párrafos], paginas: [[párrafos]], final: 'trato' | 'pelea' } para un historial dado (`h` = progreso.historia)
 export function tarjetaFinal(h) {
   const trato = h?.duendes?.trato === 'pelea' ? 'pelea' : 'trato';
   const texto = [...(trato === 'trato' ? FINAL_A : FINAL_B)];
@@ -44,5 +64,5 @@ export function tarjetaFinal(h) {
   texto.push(...piezasLazos(h));   // 4.18.2
   if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);
   texto.push(PIEZAS_FINAL.siempre);
-  return { titulo: trato === 'trato' ? 'El trato' : 'La pelea', arriba: 'La historia del valle · final', texto, final: trato };
+  return { titulo: trato === 'trato' ? 'El trato' : 'La pelea', arriba: 'La historia del valle · final', texto, paginas: paginarFinal(texto), final: trato };
 }

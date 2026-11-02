@@ -261,7 +261,6 @@ export function accionDeObjeto(id, h, s) {
   if (!o.visible(s, h)) return null;
   if (o.reparacion) return { tipo: 'reparar', id: o.reparacion.id, n: o.reparacion.n, aviso: `${o.aviso} (${Math.min(o.reparacion.n, s.reparaciones[o.reparacion.id] || 0) + 1} de ${o.reparacion.n}) · 1 tabla` };
   if (o.bolsaUmbral) { const a = accionBolsaUmbral(h, s); return a ? { tipo: 'bolsa', accion: a.tipo, aviso: a.aviso, nota: a.nota } : null; }   // 4.17.0: la costumbre del trato
-  if (o.pago) return { tipo: 'pago', aviso: o.aviso };   // 4.17.0: la deuda del trato
   if (o.cuidar) return { tipo: 'cuidar', aviso: `${o.aviso} (${Math.min(3, s.cuidados) + 1} de 3)` };   // 4.17.0: la majada de Ramón
   if (o.escena) return { tipo: 'escena', escena: o.escena, aviso: o.aviso };
   if (o.pagina) return { tipo: 'pagina', aviso: `${o.aviso} (página ${Math.min(3, [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`)).length + 1)} de 3)` };

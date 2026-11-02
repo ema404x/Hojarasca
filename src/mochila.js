@@ -97,6 +97,49 @@ function icono(tipo) {
       x.fillStyle = '#d8cfbe';
       x.beginPath(); x.moveTo(44, 14); x.quadraticCurveTo(22, 20, 22, 48); x.quadraticCurveTo(38, 38, 44, 14); x.fill();
     },
+    // 4.19.0: las cuatro cosas de la Historia que se dan como premio y no tenían casilla: la llave del molino viejo, el canto blanco gemelo, la lámpara de Eusebio y la pluma de cóndor
+    llaveMolino() {
+      x.strokeStyle = '#a07a3a'; x.lineWidth = 5;
+      x.beginPath(); x.arc(22, 22, 9, 0, 6.3); x.stroke();
+      x.beginPath(); x.moveTo(29, 29); x.lineTo(52, 52); x.stroke();
+      x.lineWidth = 4; x.beginPath(); x.moveTo(44, 44); x.lineTo(50, 38); x.moveTo(50, 50); x.lineTo(56, 44); x.stroke();
+      x.fillStyle = '#c9a25a'; x.beginPath(); x.arc(22, 22, 3, 0, 6.3); x.fill();
+    },
+    cantoBlanco() {
+      x.fillStyle = '#d9d4c8';
+      x.beginPath(); x.ellipse(32, 36, 19, 14, 0.15, 0, 6.3); x.fill();
+      x.fillStyle = '#f0ece2';
+      x.beginPath(); x.ellipse(26, 30, 9, 6, 0.3, 0, 6.3); x.fill();
+      x.strokeStyle = '#b8b2a4'; x.lineWidth = 1.5;
+      x.beginPath(); x.ellipse(32, 36, 19, 14, 0.15, 0.4, 2.6); x.stroke();
+    },
+    lamparaAceite() {
+      x.fillStyle = '#8a6a32';
+      x.beginPath(); x.moveTo(18, 52); x.lineTo(46, 52); x.lineTo(42, 40); x.lineTo(22, 40); x.closePath(); x.fill();
+      x.fillStyle = '#a8a08c'; x.globalAlpha = 0.55;
+      x.beginPath(); x.moveTo(23, 40); x.lineTo(41, 40); x.lineTo(38, 22); x.lineTo(26, 22); x.closePath(); x.fill(); x.globalAlpha = 1;
+      x.fillStyle = '#f0c060';
+      x.beginPath(); x.ellipse(32, 34, 4, 7, 0, 0, 6.3); x.fill();
+      x.strokeStyle = '#8a6a32'; x.lineWidth = 3;
+      x.beginPath(); x.moveTo(24, 22); x.lineTo(40, 22); x.moveTo(32, 22); x.lineTo(32, 14); x.stroke();
+      x.beginPath(); x.arc(32, 12, 4, Math.PI, 0); x.stroke();
+    },
+    plumaCondor() {
+      x.strokeStyle = '#2e2a26'; x.lineWidth = 3;
+      x.beginPath(); x.moveTo(14, 56); x.lineTo(50, 8); x.stroke();
+      x.fillStyle = '#34302c';
+      x.beginPath(); x.moveTo(48, 10); x.quadraticCurveTo(24, 14, 20, 46); x.quadraticCurveTo(40, 40, 48, 10); x.fill();
+      x.fillStyle = '#ece8de';
+      x.beginPath(); x.moveTo(48, 10); x.quadraticCurveTo(40, 12, 36, 24); x.quadraticCurveTo(44, 22, 48, 10); x.fill();
+    },
+    torta() {
+      x.fillStyle = '#e4dccb'; x.beginPath(); x.ellipse(32, 48, 24, 7, 0, 0, 6.3); x.fill();
+      x.fillStyle = '#c9954a'; x.fillRect(16, 28, 32, 18);
+      x.beginPath(); x.ellipse(32, 46, 16, 5, 0, 0, 6.3); x.fill();
+      x.fillStyle = '#e0b66a'; x.beginPath(); x.ellipse(32, 28, 16, 6, 0, 0, 6.3); x.fill();
+      x.fillStyle = '#f4e8c8'; x.beginPath(); x.ellipse(32, 27, 12, 4, 0, 0, 6.3); x.fill();
+      x.strokeStyle = '#8a5a2a'; x.lineWidth = 2; x.beginPath(); x.moveTo(26, 22); x.lineTo(26, 17); x.moveTo(38, 22); x.lineTo(38, 17); x.stroke();
+    },
     canto() {
       x.fillStyle = '#8d8579';
       x.beginPath(); x.ellipse(32, 38, 20, 14, 0.2, 0, 6.3); x.fill();
@@ -506,6 +549,19 @@ const SEMILLAS_VIVERO = [['coihue', 'coihue'], ['lenga', 'lenga'], ['nire', 'ñi
 const PLANTINES_VIVERO = [['coihue', 'coihue'], ['lenga', 'lenga'], ['nire', 'ñire'], ['cipres', 'ciprés'], ['pehuen', 'pehuén']]
   .map(([esp, nombre]) => ({ id: `plantin-${esp}`, nombre: `Plantines de ${nombre}` }));
 
+// 4.19.0: las cosas de la Historia que se llevan encima (el premio las deja en `progreso.cosas`). Sin materiales ni luces nuevos: son recuerdos.
+export const COSAS_HISTORIA_MOCHILA = [
+  { id: 'llave-molino', nombre: 'Llave del molino viejo', icono: 'llaveMolino', texto: 'De hierro y bronce, gastada por muchas manos. Abre el molino viejo, y eso es todo lo que se sabe.' },
+  { id: 'canto-gemelo', nombre: 'Canto blanco gemelo', icono: 'cantoBlanco', texto: 'Liso como un huevo: el hermano del que dormía en tu repisa. Pesan lo mismo.' },
+  { id: 'lampara-eusebio', nombre: 'Lámpara de Eusebio', icono: 'lamparaAceite', texto: 'De aceite, con el vidrio ahumado de tanta noche. Todavía huele a harina.' },
+  { id: 'pluma-condor', nombre: 'Pluma de cóndor', icono: 'plumaCondor', texto: 'Larga como un antebrazo, negra, con la punta blanca. Está en la lista de Eusebio.' },
+];
+export function ranurasHistoria(progreso) {
+  const r = [];
+  for (const c of COSAS_HISTORIA_MOCHILA) if (Number(progreso?.cosas?.[c.id]) > 0) r.push({ id: c.id, nombre: c.nombre, icono: c.icono, texto: c.texto });
+  return r;
+}
+
 // Qué hay en la mochila, en orden: primero las herramientas, después lo juntado.
 export function armarMochila(progreso, estado) {
   const cant = (k) => progreso.entradas[k]?.cantidad || 0;
@@ -526,6 +582,8 @@ export function armarMochila(progreso, estado) {
   if (cant('calafate')) ranuras.push({ id: 'calafate', nombre: 'Calafate', icono: 'calafate', cuenta: cant('calafate'), accion: 'plantar-coihue', texto: 'Para hacer dulce, o para plantar un renoval de coihue.' });
   if (cant('frutilla')) ranuras.push({ id: 'frutilla', nombre: 'Frutillas', icono: 'frutilla', cuenta: cant('frutilla'), accion: 'cocinar', texto: 'Al rescoldo quedan dulcísimas.' });
   if (progreso.cosas?.yerba) ranuras.push({ id: 'yerba', nombre: 'Yerba', icono: 'yerba', cuenta: progreso.cosas.yerba, accion: 'cocinar', texto: 'Alcanza para cebar unos cuantos mates en cualquier fuego.' });
+  // 4.19.0: lo que la Historia da como premio (progreso.cosas): hasta ahora sólo estaba en el cuaderno de lo raro y en el texto del premio
+  if (progreso.modo !== 'desafio') for (const r of ranurasHistoria(progreso)) ranuras.push(r);
   if (cant('pluma')) ranuras.push({ id: 'pluma', nombre: 'Plumas', icono: 'pluma', cuenta: cant('pluma'), texto: 'En el almacén se cambian por cosas útiles.' });
   // 2.1: lo que se seca en el tendal y las conservas (ver `conservas.js`)
   if (cant('llaollao')) ranuras.push({ id: 'llaollao', nombre: 'Llao llao', icono: 'hongo', cuenta: cant('llaollao'), texto: 'Tres, colgados en un tendal, se secan en medio día de sol.' });

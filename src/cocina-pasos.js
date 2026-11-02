@@ -169,6 +169,20 @@ export const RECETAS_PASOS = [
     texto: 'Masa de harina y grasa, rellena de lo que haya: acá, papa y huevo. En el horno de barro se doran parejas. Se llevan envueltas para el trabajo, y la cuadrilla de la vía las cambia por lo que sea.',
     efecto: 'Una en el camino saca el frío.',
   },
+  // 4.19.0: la torta de horno: la de los cumpleaños. Se guarda (a diferencia de la torta frita, que se come al fuego, y de la torta negra, que se come en la casa de té)
+  // y es la que se le lleva a Herminia en «Los noventa» de la Historia.
+  {
+    id: 'torta-casera', nombre: 'Torta casera', estacion: 'horno', deEntrada: true, olor: 'pan',
+    pide: [{ k: 'harina', n: 2 }, { k: 'huevo', n: 2 }, { k: 'azucar', n: 1 }],
+    da: { id: 'torta-casera', n: 2 },
+    pasos: [
+      { id: 'fuego', accion: 'Prender el horno', hecho: 'Prendiste el horno', sub: 'Mientras, se bate la masa con el azúcar', espera: 1, mientras: 'El barro toma temperatura' },
+      { id: 'poner', accion: 'Meter la torta en el horno', hecho: 'La torta ya está adentro', sub: 'En una lata enmantecada, con el horno más bien suave', espera: 1.25, mientras: 'Se está horneando, y no hay que abrir la puerta' },
+      { id: 'sacar', accion: 'Sacar la torta', hecho: 'Sacaste la torta', fin: true },
+    ],
+    texto: 'Harina, huevos y azúcar, batidos hasta que la masa cae en cinta. Al horno de barro, con el calor ya suave, y sin abrir la puerta hasta que huele a torta. Sale dorada, esponjosa, y se guarda envuelta en un repasador para el que cumple años.',
+    efecto: 'Una porción saca el frío y da una hora de buen paso.',
+  },
   {
     id: 'mermeladas', nombre: 'Mermelada', estacion: 'cocina-lena', olor: 'dulce', ensena: 'madre',
     pide: [{ k: 'fruta', n: 4 }, { k: 'azucar', n: 1 }],
@@ -270,6 +284,7 @@ export const COMIDAS = {
   curanto: { nombre: 'Curanto', porcion: 'un plato de curanto', forma: 'olla', color: '#8a7a5a', efecto: { descanso: 3, calor: true }, sub: 'Con el caldito del fondo de la olla' },
   'chocolate-caliente': { nombre: 'Chocolate caliente', porcion: 'una taza de chocolate', forma: 'jarra', color: '#5a3424', efecto: { descanso: 1, calor: true, invierno: 2 }, sub: 'Espeso, de los que se toman con cuchara' },
   'dulce-leche': { nombre: 'Dulce de leche', porcion: 'una cucharada de dulce de leche', forma: 'frasco', color: '#8a5228', efecto: { descanso: 1 }, sub: 'Del frasco, con la cuchara: no lo ve nadie' },
+  'torta-casera': { nombre: 'Torta casera', porcion: 'una porción de torta', forma: 'torta', color: '#d8a65a', efecto: { descanso: 1, calor: true }, sub: 'Esponjosa, con el azúcar tostado arriba' },
   'mermelada-frambuesa': { nombre: 'Mermelada de frambuesa', porcion: 'pan con mermelada de frambuesa', forma: 'frasco', color: '#8a1e3a', efecto: { descanso: 1 }, sub: 'Untada en pan' },
   'mermelada-cereza': { nombre: 'Mermelada de cereza', porcion: 'pan con mermelada de cereza', forma: 'frasco', color: '#6a1420', efecto: { descanso: 1 }, sub: 'Untada en pan' },
   'mermelada-ciruela': { nombre: 'Mermelada de ciruela', porcion: 'pan con mermelada de ciruela', forma: 'frasco', color: '#4a1a3a', efecto: { descanso: 1 }, sub: 'Untada en pan' },
@@ -294,7 +309,7 @@ export const ALACENA_EXTRA = {
 };
 // La alacena: lo que hay, en el orden en que se acomoda (frascos arriba, fuentes y ollas abajo, paquetes al medio).
 // Devuelve [{ id, nombre, forma, color, n }] con lo que tenga algo.
-const ORDEN_FORMA = { frasco: 0, jarra: 1, paquete: 2, pan: 3, empanada: 3, fuente: 4, olla: 4 };
+const ORDEN_FORMA = { frasco: 0, jarra: 1, paquete: 2, pan: 3, empanada: 3, torta: 3, fuente: 4, olla: 4 };
 export function alacenaDe(p) {
   const lista = [];
   for (const [id, c] of [...Object.entries(COMIDAS), ...Object.entries(ALACENA_EXTRA)]) {
@@ -632,6 +647,8 @@ export const ENTRADAS_COCINA = [
     texto: RECETA_PASOS['cordero-asador'].texto },
   { id: 'locro', seccion: 'recetas', nombre: 'Locro', modo: 'cocinar', pista: 'Maíz pisado, porotos, zapallo, carne de cerdo y chorizo, en la cocina a leña. La abuela Herminia te enseña.',
     texto: RECETA_PASOS.locro.texto },
+  { id: 'torta-casera', seccion: 'recetas', nombre: 'Torta casera', modo: 'cocinar', pista: 'Dos medidas de harina, dos huevos y una de azúcar, en el horno de barro.',
+    texto: RECETA_PASOS['torta-casera'].texto },
   { id: 'curanto', seccion: 'recetas', nombre: 'Curanto en olla', modo: 'cocinar', pista: 'Mariscos, carne de cerdo, chorizo y papas, en la cocina a leña. Ernesto te enseña.',
     texto: RECETA_PASOS.curanto.texto },
   { id: 'chocolate-caliente', seccion: 'recetas', nombre: 'Chocolate caliente de la cocina', modo: 'cocinar', pista: 'Leche, cacao y azúcar, en la cocina a leña. Ceinwen te enseña.',
@@ -659,7 +676,7 @@ export const ENTRADAS_COCINA = [
 // ---------------------------------------------------------------- la mochila
 // Las casillas de lo de la cocina que se lleva encima (main.js las suma al final de la mochila, sin repetir lo
 // que ya tenga casilla: la granja puede poner las suyas). `icono`: los de mochila.js.
-const ICONO = { fuente: 'asado', olla: 'olla', jarra: 'taza', frasco: 'frasco', pan: 'pan', empanada: 'empanada', paquete: 'harina' };
+const ICONO = { fuente: 'asado', olla: 'olla', jarra: 'taza', frasco: 'frasco', pan: 'pan', empanada: 'empanada', paquete: 'harina', torta: 'torta' };
 export function ranurasCocina(p, ya = null) {
   const r = [];
   const tiene = (id) => (ya ? ya.has(id) : false);

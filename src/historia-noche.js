@@ -27,6 +27,8 @@
 
 import { TIPOS_ALIEN, ARMAS } from './desafio-reglas.js';
 import { factorTension } from './desafio-arsenal.js';
+// 4.19.0: Number() sin tirar con un guardado armado a mano (un objeto con "toString": null)
+const aNum = (v) => { try { return Number(v); } catch { return NaN; } };
 
 export const MODOS_NOCHE = ['pelea', 'trato'];
 // 4.17.0: los aliados que tiene la noche según los lazos y lo decidido: el perro (si tenés), Ramón (lazo ≥ 1 y no vendiste la majada), Josefina (lazo ≥ 1) y
@@ -42,10 +44,10 @@ export function sanearNoche(v) {
   const n = nocheNueva();
   if (!v || typeof v !== 'object' || Array.isArray(v)) return n;
   if (ESTADOS_NOCHE.includes(v.estado)) n.estado = v.estado;
-  n.intentos = Math.max(0, Math.min(999, Math.floor(Number(v.intentos) || 0)));
+  n.intentos = Math.max(0, Math.min(999, Math.floor(aNum(v.intentos) || 0)));
   if (MODOS_NOCHE.includes(v.modo)) n.modo = v.modo;
   // el reloj que había antes de salir a la noche (si se cerró el juego en medio, se devuelve al volver)
-  const h = Number(v.horasAntes);
+  const h = aNum(v.horasAntes);
   if (v.horasAntes !== null && v.horasAntes !== undefined && Number.isFinite(h)) n.horasAntes = ((h % 24) + 24) % 24;
   return n;
 }

@@ -20,7 +20,7 @@ import { revisarNoche, armaPorPedir } from './historia.js';
 import { puertaDeEstacion, estacionForzada, premioDeCapitulo, aceleracionDeEspera, anotarRaro } from './historia.js';
 // 4.17.0: el acto III: la nevada, lo prestado, los blancos, la deuda, la majada de Ramón, la costumbre del trato y la tarjeta final
 import { nevadaForzada, alCumplirObjetivo, sumarBlanco, defensasDeNoche } from './historia.js';
-import { NOTAS_ESCENA_ACTO3, pagarLaDeuda, accionBolsaUmbral, amanecerCostumbre, llenarBolsa, costumbreDe } from './historia-disparadores-acto3.js';
+import { NOTAS_ESCENA_ACTO3, accionBolsaUmbral, amanecerCostumbre, llenarBolsa, costumbreDe } from './historia-disparadores-acto3.js';
 import { aliadosDe } from './historia-noche.js';
 import { tarjetaFinal } from './historia-final.js';
 import { leerPagina, proximaPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO, ESCENAS_DESDE_VEHICULO } from './historia-disparadores-acto2.js';
@@ -245,24 +245,32 @@ export function crearValleUi(ctx) {
     const h = historia();
     const c = capituloActual(h);
     const F = tarjetaFinal(h);
-    tarjetas.mostrar({
-      clase: 'capitulo', arriba: F.arriba, titulo: F.titulo, texto: F.texto, premio: premioDeCapitulo(c, h)?.texto ? `Te queda: ${premioDeCapitulo(c, h).texto}` : '',
-      opciones: [
-        { id: 'seguir', texto: 'Seguir en el valle', detalle: 'La historia termina; el juego no' },
-        { id: 'creditos', texto: 'Ver los créditos', detalle: 'Y después, a tu ritmo' },
-      ],
-      alElegir: (id) => {
-        const r = cerrarCapitulo(h, ctx.progreso().dia);
-        if (r?.premio) ctx.cobrar(r.premio);
-        ctx.diario('capitulo', `terminé «${c.titulo}»`);
-        ctx.sonido?.()?.anotar?.();
-        ctx.guardar();
-        tarjetas.cerrar();
-        ctx.nota('Terminaste la historia del valle', 'Todo sigue abierto: andá a tu ritmo', true);
-        if (id === 'creditos') ctx.creditos?.();
-        return true;
-      },
-    });
+    const paginas = F.paginas?.length ? F.paginas : [F.texto];
+    // 4.19.0: la tarjeta final en páginas (ver paginarFinal): «Seguir leyendo» pasa a la que sigue; sólo la última trae el premio y las dos salidas
+    const pagina = (i) => {
+      const ultima = i >= paginas.length - 1;
+      tarjetas.mostrar({
+        clase: 'capitulo', arriba: paginas.length > 1 ? `${F.arriba} · ${i + 1} de ${paginas.length}` : F.arriba, titulo: F.titulo, texto: paginas[i],
+        premio: ultima && premioDeCapitulo(c, h)?.texto ? `Te queda: ${premioDeCapitulo(c, h).texto}` : '',
+        opciones: ultima ? [
+          { id: 'seguir', texto: 'Seguir en el valle', detalle: 'La historia termina; el juego no' },
+          { id: 'creditos', texto: 'Ver los créditos', detalle: 'Y después, a tu ritmo' },
+        ] : [{ id: 'sigue', texto: 'Seguir leyendo', detalle: `${i + 1} de ${paginas.length}` }],
+        alElegir: (id) => { if (id === 'sigue') { pagina(i + 1); return true; } return cerrarFinal(id); },
+      });
+    };
+    const cerrarFinal = (id) => {
+      const r = cerrarCapitulo(h, ctx.progreso().dia);
+      if (r?.premio) ctx.cobrar(r.premio);
+      ctx.diario('capitulo', `terminé «${c.titulo}»`);
+      ctx.sonido?.()?.anotar?.();
+      ctx.guardar();
+      tarjetas.cerrar();
+      ctx.nota('Terminaste la historia del valle', 'Todo sigue abierto: andá a tu ritmo', true);
+      if (id === 'creditos') ctx.creditos?.();
+      return true;
+    };
+    pagina(0);
   }
   function mostrarOutro() {
     const h = historia();
@@ -443,14 +451,7 @@ export function crearValleUi(ctx) {
       if (pag) { ctx.nota(pag[0], pag[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); }
       return true;
     }
-    // 4.17.0: pagar lo que se debe del trato (una bolsa de harina o seis tablas, en la raíz) y cuidar la majada de Ramón (una vez por día)
-    if (a.tipo === 'pago') {
-      const s = estado();
-      if (!(s.harina >= 1 || s.tablas >= 6)) { ctx.nota('Te falta con qué pagar', 'Una bolsa de harina o seis tablas de coihue'); return false; }
-      const con = pagarLaDeuda(h, s, { gastar: (c, n) => ctx.gastar?.(c, n) });
-      if (con) { ctx.nota('Pagaste lo del trato', con === 'harina' ? 'Una bolsa de harina en la raíz' : 'Seis tablas en la raíz'); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); }
-      return true;
-    }
+    // 4.17.0: cuidar la majada de Ramón (una vez por día). (4.19.0: el pago de la deuda va por la escena «deuda-pagada»; el tipo `pago` y `pagarLaDeuda` eran código muerto y se sacaron)
     if (a.tipo === 'cuidar') {
       if (marcarTema(h, 'majada', `dia${p.dia}`, p.dia)) {
         ctx.darMaterial?.('lana', 1);

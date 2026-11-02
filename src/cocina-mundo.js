@@ -181,6 +181,11 @@ function piezaAlacena(c, it, cx, y, z) {
     bola(c, [cx, y + 0.06, z], 0.085, it.color, [1.1, 0.65, 0.8]);
   } else if (it.forma === 'empanada') {
     bola(c, [cx, y + 0.025, z], 0.055, it.color, [1, 0.45, 0.65]);
+  } else if (it.forma === 'torta') {
+    // 4.19.0: una torta redonda sobre su plato, con el azúcar tostado arriba
+    cil(c, [cx, y + 0.012, z], 0.105, 0.095, 0.024, '#d8d0c0', [0, 0, 0], 10);
+    cil(c, [cx, y + 0.06, z], 0.085, 0.085, 0.07, it.color, [0, 0, 0], 10);
+    cil(c, [cx, y + 0.098, z], 0.08, 0.08, 0.012, '#f0e2c0', [0, 0, 0], 10);
   } else if (it.forma === 'fuente') {
     cil(c, [cx, y + 0.015, z], 0.13, 0.11, 0.03, '#d8d0c0', [0, 0, 0], 10);
     bola(c, [cx, y + 0.05, z], 0.09, it.color, [1.2, 0.45, 0.8]);
@@ -190,7 +195,7 @@ function piezaAlacena(c, it, cx, y, z) {
     cil(c, [cx, y + 0.165, z], 0.102, 0.102, 0.012, '#4a4642', [0, 0, 0], 10);
   }
 }
-const ANCHO_PIEZA = { fuente: 0.27, olla: 0.22, pan: 0.18, paquete: 0.115, empanada: 0.11, frasco: 0.095, jarra: 0.1 };
+const ANCHO_PIEZA = { fuente: 0.27, olla: 0.22, pan: 0.18, torta: 0.22, paquete: 0.115, empanada: 0.11, frasco: 0.095, jarra: 0.1 };
 // Arma lo de adentro según `lista` (alacenaDe): arriba los frascos y las jarras, al medio los paquetes, abajo los panes
 // y las empanadas, y en el bajomesada las fuentes y las ollas. Cada estante tiene dos filas (atrás y adelante).
 // Primero va una de cada cosa (así todo lo que hay se ve) y después las demás, hasta llenar. Una sola geometría.
@@ -198,7 +203,7 @@ function geoAlacena(lista) {
   const c = new Constructor();
   const A = ALACENA, ancho = A.ancho - 0.1;
   const estantes = [A.base, ...A.estantes];   // 0: el bajomesada, 1: abajo, 2: al medio, 3: arriba
-  const filaDe = (f) => (f === 'frasco' || f === 'jarra' ? 3 : f === 'paquete' ? 2 : f === 'pan' || f === 'empanada' ? 1 : 0);
+  const filaDe = (f) => (f === 'frasco' || f === 'jarra' ? 3 : f === 'paquete' ? 2 : f === 'pan' || f === 'empanada' || f === 'torta' ? 1 : 0);
   estantes.forEach((y, fi) => {
     const items = lista.filter((x) => filaDe(x.forma) === fi);
     if (!items.length) return;

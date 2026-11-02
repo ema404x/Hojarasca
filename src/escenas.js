@@ -11,7 +11,8 @@
 //  · una escena sólo se marca vista al terminar (o al saltarla): guardar a mitad de una escena la deja pendiente (`paraGuardar`).
 
 const PI = Math.PI;
-const num = (v, d = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' && typeof v !== 'boolean' ? Number(v) : d);
+// 4.19.0: sin tirar con un objeto que no se puede convertir (un guardado armado a mano con "toString": null)
+const num = (v, d = 0) => { if (v === null || v === '' || typeof v === 'boolean') return d; let x; try { x = Number(v); } catch { return d; } return Number.isFinite(x) ? x : d; };
 const acotar = (v, a, b) => Math.max(a, Math.min(b, v));
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const lerp = (a, b, u) => a + (b - a) * u;

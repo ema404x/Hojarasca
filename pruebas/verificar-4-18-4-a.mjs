@@ -84,12 +84,12 @@ if (va('ref')) {
   const unaVez = new Set();
   for (const [id, e] of Object.entries(ESC)) for (const nom of efectosDe(e)) { const tp = nom.split(':')[0]; if (['lazo', 'ramal', 'dar', 'quitar'].includes(tp) || nom === 'duendes:trato-fuerte' || nom.startsWith('duendes:deuda') || nom === 'duendes:vistos') unaVez.add(`e:${id}:${nom}`.slice(0, 63)); }
   const porEscena = Object.keys(D.EFECTOS_ESCENA).length;
-  ok(unaVez.size + porEscena + 4 <= 196, `las marcas «aplicadas» posibles (${unaVez.size + porEscena + 4}) caben en el tope de 200 con margen`);
+  ok(unaVez.size + porEscena + 4 <= H.TOPE_MARCAS - 4, `las marcas «aplicadas» posibles (${unaVez.size + porEscena + 4}) caben en el tope de ${H.TOPE_MARCAS} con margen`);   // 4.19.0: el tope subió de 200 a 400 (ver H.TOPE_MARCAS)
   // (los temas: todas las escenas, con cuatro rutas distintas, sobre una misma historia; más lo que anotan el arreo, la majada y el cuaderno)
   const Sm = crear({ semilla: 9 }), hm = Sm.hist();
   for (const pas of [0, 1, 2, 3]) for (const id of Object.keys(ESC)) { delete hm.escenas.vistas[id]; correrEscena(Sm, id, { forzar: true, saltar: false, elige: (m) => Math.min(pas, m - 1) }); }
   ok(Sm.errores.length === 0, 'todas las escenas corren seguidas sobre una misma historia');
-  ok(Object.keys(hm.temas).length + 12 <= 180, `los «temas» posibles (${Object.keys(hm.temas).length + 12}) caben en el tope de 200 con margen`);
+  ok(Object.keys(hm.temas).length + 12 <= H.TOPE_MARCAS - 20, `los «temas» posibles (${Object.keys(hm.temas).length + 12}) caben en el tope de ${H.TOPE_MARCAS} con margen`);   // 4.19.0
   // los personajes de las escenas existen en la tabla del director o en los de la escena
   ok(Object.keys(ES.PERSONAJES_BASE).length >= 8, 'hay personajes base');
 }
@@ -319,7 +319,7 @@ const MUT = [
   ['historia-disparadores-acto3.js', "'prestado-tobias': { cap: 'arco',", "'prestado-tobias-x': { cap: 'arco',", 'barrido: un disparador con una escena que no existe', 'ref'],
   ['historia-disparadores.js', "'alero': { forma: 'alero', lx: 2.6, lz: 3.3, visible: (s) => (s.reparaciones.alero || 0) < 4,", "'alero': { forma: 'alero', lx: 2.6, lz: 3.3, escena: 'alero-no-existe', visible: (s) => (s.reparaciones.alero || 0) < 4,", 'barrido: un objeto con una escena que no existe', 'ref'],
   ['historia.js', "h.capitulo = Math.min(CAPITULOS.length - 1, ent(v.capitulo, CAPITULOS.length));", "h.capitulo = ent(v.capitulo, 999);", 'saneado: el capítulo se pasa de rango', 'sanear'],
-  ['historia.js', "for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));", "for (const k of LAZOS_TODOS) h.lazos[k] = Math.trunc(Number(obj(v.lazos)[k]) || 0);", 'saneado: los lazos se salen de rango', 'sanear'],
+  ['historia.js', "for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(aNum(obj(v.lazos)[k]) || 0)));", "for (const k of LAZOS_TODOS) h.lazos[k] = Math.trunc(aNum(obj(v.lazos)[k]) || 0);", 'saneado: los lazos se salen de rango', 'sanear'],
   ['historia-disparadores-acto2.js', "'perdidas-devueltas': { cap: 'perdido', modo: 'hablar', clave: 'ercilia',", "'perdidas-devueltas': { cap: 'perdido-x', modo: 'hablar', clave: 'ercilia',", 'alcanzabilidad: una escena del objetivo sin disparador en su capítulo', 'obj,jugador'],
   ['historia-disparadores-acto2.js', "'rueda-gira': { cap: 'rueda', modo: 'auto', requiere: ['tito-coihue'],", "'rueda-gira': { cap: 'rueda', modo: 'auto', requiere: ['tito-coihue', 'trigo-abuelo'],", 'alcanzabilidad: una escena que pide otra que no siempre se hace', 'ref,jugador'],
 ];

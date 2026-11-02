@@ -90,7 +90,7 @@ export const EFECTOS_ESCENA_OPTATIVAS = {
   },
   // 4.18.3: visitar a Ramón con algo rico, y los noventa de Herminia con lo dulce de la torta: se gasta uno (la escena ya pedía el regalo en su texto, pero no se gastaba nada)
   'visita-ramon': (h, dia, ctx) => { marcarTema(h, 'ramon', 'chocolate', dia); llevarRegalo(h, 'ramon', dia, ctx, (r) => `Le llevaste ${r.nombre} a Ramón`, 'Dice que es un soborno y lo acepta'); },
-  'herminia-noventa': (h, dia, ctx) => { llevarRegalo(h, 'herminia', dia, ctx, (r) => `Le llevaste ${r.nombre} a Herminia`, 'Para la torta de los noventa'); },
+  'herminia-noventa': (h, dia, ctx) => { llevarRegalo(h, 'herminia', dia, ctx, (r) => `Le llevaste ${r.nombre} a Herminia`, 'Para los noventa: una torta de tu horno'); },
   'vuelta-mirador': T('vuelta', 'mirador'),
   'vuelta-faro': T('vuelta', 'faro'),
   'juntar-ovejas': T('ramon', 'ovejas'),

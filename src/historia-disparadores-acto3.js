@@ -3,7 +3,7 @@
 // `historia-disparadores.js` y `historia-disparadores-acto2.js` (que junta estas tablas con las del acto I): ver el encabezado del primero.
 //
 // Regla de siempre: una escena que es objetivo se alcanza con la E sobre el vecino o el objeto, o llegando al lugar; ninguna traba un capítulo.
-import { marcarTema, marcarEntrega, cambiarLazo, duendesDe, capituloActual, hacerTrato, pagarDeuda, necesitaPaces, esConvidado } from './historia.js';
+import { marcarTema, marcarEntrega, cambiarLazo, duendesDe, capituloActual, hacerTrato, necesitaPaces, esConvidado } from './historia.js';
 
 const en = (nombre, radio) => [nombre, radio];
 const diaVista = (h, id) => Math.max(0, Math.floor(Number(h?.escenas?.vistas && Object.hasOwn(h.escenas.vistas, id) ? h.escenas.vistas[id] : 0) || 0));
@@ -217,11 +217,5 @@ export function puedePagarLoQueSeDebe(s) {
   const debeHarina = s?.decisiones?.bolsa === 'b', debeTablas = s?.decisiones?.coihue === 'b';
   if (!debeHarina && !debeTablas) return puedePagarDeuda(s);
   return (!debeHarina || s.harina >= DEUDA_COSTO.harina) && (!debeTablas || (Number(s.tablasCoihue) || 0) >= DEUDA_COSTO.tabla || s.tablas >= DEUDA_COSTO.tabla);
-}
-export function pagarLaDeuda(h, s, ctx = {}) {
-  if (!pagarDeuda(h)) return null;
-  if (s.harina >= DEUDA_COSTO.harina) { ctx.gastar?.('harina', DEUDA_COSTO.harina); return 'harina'; }
-  ctx.gastar?.('tabla', DEUDA_COSTO.tabla);
-  return 'tablas';
 }
 export { esConvidado };

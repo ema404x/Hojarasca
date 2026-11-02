@@ -27,9 +27,9 @@ const ok = (c, t) => { n++; assert.ok(c, t); };
 
 // ---------------------------------------------------------------- las recetas que pidió el usuario
 const R = C.RECETA_PASOS;
-const pedidas = { asado: 'parrilla', 'cordero-asador': 'parrilla', 'pan-casero': 'horno', empanadas: 'horno', mermeladas: 'cocina-lena', 'dulce-leche': 'cocina-lena', locro: 'cocina-lena', 'chocolate-caliente': 'cocina-lena', curanto: 'cocina-lena' };
+const pedidas = { asado: 'parrilla', 'cordero-asador': 'parrilla', 'pan-casero': 'horno', empanadas: 'horno', mermeladas: 'cocina-lena', 'dulce-leche': 'cocina-lena', locro: 'cocina-lena', 'chocolate-caliente': 'cocina-lena', curanto: 'cocina-lena', 'torta-casera': 'horno' };   // 4.19.0: la torta casera del horno (la décima receta; la prueba contaba nueve)
 for (const [id, est] of Object.entries(pedidas)) ok(R[id]?.estacion === est, `${id} va en ${est}`);
-ok(C.RECETAS_PASOS.length === Object.keys(pedidas).length, 'nueve recetas en pasos');
+ok(C.RECETAS_PASOS.length === Object.keys(pedidas).length, 'diez recetas en pasos (4.19.0: con la torta casera)');
 ok(new Set(C.RECETAS_PASOS.map((r) => r.id)).size === C.RECETAS_PASOS.length, 'sin ids repetidos');
 ok(C.TIPOS_ESTACION.join() === 'parrilla,horno,cocina-lena', 'tres estaciones: parrilla con cruz, horno de barro, cocina a leña');
 for (const rc of C.RECETAS_PASOS) {

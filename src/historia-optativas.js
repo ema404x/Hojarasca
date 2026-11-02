@@ -13,7 +13,7 @@
 import { CAPITULOS, LAZOS_TODOS, PERSONAS_LAZO_VECINOS, cambiarLazo, sumarRamal } from './historia.js';
 import { TEXTO_LAZOS } from './historia-texto-lazos.js';
 // 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce para la torta de Herminia)
-import { PARA_RAMON, PARA_LA_TORTA, QUE_LLEVAR_RAMON, QUE_LLEVAR_TORTA, nombreDeRegalo } from './historia-regalos.js';
+import { PARA_RAMON, PARA_LA_TORTA, QUE_LLEVAR_RAMON, QUE_LLEVAR_TORTA, COMO_HACER_TORTA, nombreDeRegalo } from './historia-regalos.js';
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
 import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 import { TEXTO_ACTO3 } from './historia-texto-acto3.js';
@@ -113,8 +113,8 @@ export const OPTATIVAS = [
     ofrece: (s) => s.escenas.has('los-del-cerro'), hecha: vista('mulas-belisario'), escenas: ['mulas-belisario'], disparadores: ['mulas-belisario'], premio: null },
   { id: 'noventa', desde: 'cuaderno', hasta: 'cuaderno', quien: 'herminia',
     ofrece: () => true,
-    // 4.18.3: hace falta algo dulce para la torta (no hay una torta guardada en el inventario: ver historia-regalos.js); se gasta uno al verla
-    avance: (s) => (s.regaloTorta ? `llevale ${nombreDeRegalo(PARA_LA_TORTA, s.regaloTorta)} a Herminia para la torta (E sobre ella)` : `te falta algo dulce para la torta: ${QUE_LLEVAR_TORTA}`),
+    // 4.19.0: hace falta una torta casera (la receta nueva del horno de barro: ver historia-regalos.js); se gasta una al verla
+    avance: (s) => (s.regaloTorta ? `llevale ${nombreDeRegalo(PARA_LA_TORTA, s.regaloTorta)} a Herminia para sus noventa (E sobre ella)` : `te falta una torta casera: se hornea con ${COMO_HACER_TORTA}`),
     hecha: vista('herminia-noventa'), escenas: ['herminia-noventa'], disparadores: ['herminia-noventa'], premio: null },
   // ---- ACTO III
   { id: 'papel-elsa', desde: 'frios', hasta: 'arco', quien: 'guarda',
