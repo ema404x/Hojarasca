@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (02-11-2026, notebook): VERSIÓN 4.19.0 en `main`, etiqueta `v4.19.0`** — Mejoras del juego (CAMBIOS_4_19_0_A/B/C.md). **Sigue:** 4.20.0 con tres auditorías (visual con capturas y presupuesto de ms, equilibrio y economía, ritmo y primera hora de la Historia), después las versiones de mecánicas y el salto gráfico semirrealista sin efectos nuevos. Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).
+
 > **ÚLTIMO (02-11-2026, notebook): VERSIÓN 4.18.4 en `main`, etiqueta `v4.18.4`** — Búsqueda de bugs (BUGS_4_18_4_A/B/C.md): 5 bugs arreglados y el resto de lo barrido limpio. **Sigue:** que una persona juegue la Historia de punta a punta; responder las preguntas de diseño de los informes; luego Steam (fuses de Electron, steamworks, logros nuevos) y el inglés al final. Los humos de la Historia tardan (-Espera 2700). Pendiente de antes: W2 sombras cercanas, audio al minimizar, puente con carro.
 
 > **ÚLTIMO (02-11-2026, notebook): VERSIÓN 4.18.3 en `main`, etiqueta `v4.18.3`** — Historia: D5 A con costo según el lazo de Fermín, y la visita a Ramón y la torta de Herminia piden y gastan lo que se lleva (CAMBIOS_4_18_3.md). **Sigue:** que una persona juegue la Historia de punta a punta; luego Steam (fuses de Electron, steamworks, logros nuevos) y el inglés al final. Los humos de la Historia tardan (-Espera 2700). Pendiente de antes: W2 sombras cercanas, audio al minimizar, puente con carro.

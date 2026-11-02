@@ -1,0 +1,40 @@
+{
+  "anterior": "4.18.4",
+  "fecha": "02-11-2026",
+  "titulo": "Mejoras del juego: la torta, la mochila, el final largo y el pase a ojo",
+  "cambios": [
+    "Ramas v4190-a (mecánica y sistemas), v4190-b (guiones) y v4190-c (mundo y pulido a ojo), juntadas. Detalle en CAMBIOS_4_19_0_A.md, _B.md y _C.md.",
+    "",
+    "- Torta casera: receta nueva del horno (harina ×2, huevos ×2, azúcar ×1, un tronco), se sabe de entrada y rinde dos; se guarda y se come. La torta de Herminia pide una de esas (la miel y las mermeladas ya no valen) y la escena vuelve a decir «¿Una torta? ¿Para mí?».",
+    "- Mochila: dibuja la llave del molino, el canto gemelo, la lámpara de Eusebio y la pluma de cóndor, cada una con su icono y sin ocupar casillas de la barra.",
+    "- Final de la Historia: con los siete vecinos la tarjeta queda larga; ahora se parte en páginas con «Seguir leyendo» (sin scroll a 1366x768 ni a 1024x600) y sólo la última trae el premio y las dos salidas.",
+    "- Objetivo de la deuda del trato: dice «una bolsa de harina», «seis tablas de coihue» o «las dos cosas», según lo decidido.",
+    "- Vecinos: Belisario y Sofía llegan a lazo 3 como los demás con una escena optativa chica cada uno (`ultimo-cruce` y `del-otro-lado`, capítulos 9 a 11, sin premios de objetos ni de dinero). La línea de Nicanor sobre las luces del lago sale sólo con el trato; con la pelea dice otra.",
+    "- Gente lejana: los personajes de una escena activa se dibujan aunque estén a más de 130 m (antes Herminia no aparecía en su casa en `umbral-fin` con la pelea). Cuesta 2 llamadas de dibujo y unos 13 mil triángulos sobre un cuadro de 335 y 843 mil; 0 programas de shader nuevos.",
+    "- Pase a ojo de escenas nunca vistas (75 hojas de contacto antes y después): planos de mano que dejaban un torso sin cabeza, `frasco-repisa`, `pareja-noche-antes`, `mulas-belisario`, estacas del herrero, barro de `galpon-pelea`, oveja del cartel de `majada-fin`, hoja de la tranquera. Bug: la pareja no aparecía en sus escenas si no estaba ya en la lista de gente.",
+    "- Anotados de la 4.18.4: `sanearHistoria` ya no tira con «toString»: null; el tope de marcas guardadas pasó de 200 a 400; código muerto `pago` y `pagarLaDeuda` fuera; el truco `historia capitulo N` toma por la primera opción las decisiones que salta y lo avisa. `ramon-sanitario` no era un bug: es una mecánica sin guion y el juego la da por vista al llegar a la plaza con Ramón.",
+    "- Pendientes viejos: audio al minimizar y puente con carro andan en Electron real. W2 (sombras cercanas) investigado y sin cambios: un arreglo de verdad pide cascadas de sombras, es decir otro mapa de sombras o un shader nuevo.",
+    "- Las dos sospechas de cámara de la 4.18.4 (galpón y coihue) no eran bugs: el galponcito no estaba levantado en ese barrido y la bolita de colisión roza el tronco.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-19-0-a (118 comprobaciones, 30 mutaciones), -b (238; 135 mutaciones de datos y 36 de código) y -c (57; 12 mutaciones, falla con el código de la 4.18.4); humos de partida real de A y C. Programas de shader: 111.",
+    "",
+    "## Sin ver / pendiente",
+    "- No se vio a ojo: la torta en la alacena del mundo; los paneles del horno y de la mochila (sólo por el DOM y una hoja de iconos); las dos escenas nuevas de B en el juego (se juntaron después de la pasada de C); `elvira-cuerda` y `plumas-gallinero`; una partida de amor de punta a punta; la noche entera jugada; el carro contra árboles y paredes; mezclador de volumen y Win+L; audio y mando.",
+    "- Escenas flojas que quedaron sin arreglar: `veta-vuelve` (casi negra; pide un `mundo:` con brillo), `oveja-ramon`, `cumple-nevada`, `vuelta-faro`, `juntar-ovejas`, `llave-79`, `carpeta-celeste` y el picado de `umbral-fin`.",
+    "- Sigue sin hacer: logros de Steam; textos sólo en castellano."
+  ],
+  "release": "MEJORAS DEL JUEGO (CAMBIOS_4_19_0_A/B/C.md) — torta de horno guardable, mochila con los cuatro recuerdos, final de la Historia en páginas, Belisario y Sofía a lazo 3 con una escena cada uno, Nicanor según el final, la gente de una escena se dibuja aunque esté lejos y pase a ojo de las escenas nunca vistas",
+  "seguir": "Mejoras del juego (CAMBIOS_4_19_0_A/B/C.md). **Sigue:** 4.20.0 con tres auditorías (visual con capturas y presupuesto de ms, equilibrio y economía, ritmo y primera hora de la Historia), después las versiones de mecánicas y el salto gráfico semirrealista sin efectos nuevos. Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).",
+  "leemeNovedades": [
+    "- Hay una torta casera que se hace en el horno y se guarda; la torta de Herminia pide una.",
+    "- La mochila muestra la llave del molino, el canto gemelo, la lámpara de Eusebio y la pluma de cóndor.",
+    "- El final de la Historia se lee por páginas.",
+    "- Belisario y Sofía tienen cada uno una escena chica más; Nicanor dice una cosa con el trato y otra con la pelea.",
+    "- La gente de una escena se ve aunque esté lejos, y varias escenas tienen mejor cámara y luz."
+  ],
+  "leemeMirar": [
+    "- Si la torta se hace en el horno, se guarda y Herminia la recibe con «¿Una torta? ¿Para mí?».",
+    "- Si el final largo se lee cómodo por páginas, con las dos salidas en la última.",
+    "- Si las escenas de Belisario y Sofía aparecen en el momento justo y suenan bien.",
+    "- Si en la pelea Herminia aparece en su casa al terminar."
+  ]
+}

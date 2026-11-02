@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.19.0 (sobre main = 4.18.4): MEJORAS DEL JUEGO (CAMBIOS_4_19_0_A/B/C.md) — torta de horno guardable, mochila con los cuatro recuerdos, final de la Historia en páginas, Belisario y Sofía a lazo 3 con una escena cada uno, Nicanor según el final, la gente de una escena se dibuja aunque esté lejos y pase a ojo de las escenas nunca vistas
 - 4.18.4 (sobre main = 4.18.3): BÚSQUEDA DE BUGS (BUGS_4_18_4_A/B/C.md) — el Desafío ya no deja la trochita varada para siempre, la Historia terminada no queda en pausa, la deuda del trato cobra lo que ofrece, el objetivo del arco se cumple con las tablas, y la cámara no atraviesa el cerro al salir de una escena
 - 4.18.3 (sobre main = 4.18.2): HISTORIA: LO QUE NO HACÍA NADA (CAMBIOS_4_18_3.md) — la majada de Fermín cuesta a Ramón según el lazo, y visitar a Ramón y los noventa de Herminia piden y gastan lo que se lleva
 - 4.18.2 (sobre main = 4.18.1): HISTORIA: LAZO PARA LOS VECINOS (CAMBIOS_4_18_2_B.md) — Rosa, Tobías, Tito, Belisario, Herminia, Nicanor y Sofía con lazo guardado y visible en la guía, líneas de final y de charla según el lazo, y la optativa «La foto del valle» de Sofía
