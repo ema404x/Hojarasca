@@ -486,8 +486,8 @@ const MUT = [
   ['historia.js', "lazos: { ema: 1, tobias: 2 }, diario", "lazos: { ema: 1 }, diario", 'la pirca no le suma a Tobías'],
   ['historia-ui.js', "const aviso = ok ? avisoLazosDe(o) : '';", "const aviso = '';", 'la tarjeta no dice nada de los vecinos'],
   // final
-  ['historia-final.js', "  texto.push(...piezasLazos(h));   // 4.18.2\n", "", 'el final no trae las líneas de los vecinos'],
-  ['historia-final.js', "  texto.push(...piezasLazos(h));   // 4.18.2\n  if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);", "  if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);\n  texto.push(...piezasLazos(h));", 'las líneas de vecinos van después de la noche perdida'],
+  ['historia-final.js', "  texto.push(...piezasLazos(h, trato));   // 4.18.2 (4.19.0: con el final, para las líneas que sólo valen con uno)\n", "", 'el final no trae las líneas de los vecinos'],
+  ['historia-final.js', "  texto.push(...piezasLazos(h, trato));   // 4.18.2 (4.19.0: con el final, para las líneas que sólo valen con uno)\n  if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);", "  if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);\n  texto.push(...piezasLazos(h, trato));", 'las líneas de vecinos van después de la noche perdida'],
   // charla de después
   ['historia-optativas.js', "|| l.deOptativa || l.deLazo) && cuandoOk", "|| l.deOptativa) && cuandoOk", 'la charla de lazo sólo vale en su capítulo'],
   ['historia-optativas.js', "&& v <= (Number.isFinite(w.lazo.max) ? w.lazo.max : 9);", ";", 'la charla tirante sale con buen lazo'],

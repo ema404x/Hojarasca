@@ -32,23 +32,30 @@ export function piezasLazos(h, trato = 'trato') {
   return (Array.isArray(r) ? r : []).map((t) => (typeof t === 'string' ? t : t?.texto)).filter((t) => typeof t === 'string' && t);
 }
 
-// 4.19.0: con los siete vecinos de la casa la tarjeta final suma siete párrafos más y quedaba con scroll. Se parte en páginas: cada una con el largo que se lee cómodo
-// en la tarjeta sin barra (TOPE_PAGINA caracteres), sin cortar nunca un párrafo y con el cierre («La historia termina acá…») siempre en la última, junto con lo que
-// lo precede. Una tarjeta corta (el final sin vecinos) queda en una sola página, como antes.
-export const TOPE_PAGINA = 620;
+// 4.19.0: con los siete vecinos de la casa la tarjeta final suma siete párrafos más y quedaba con scroll. Se parte en páginas: cada una con el largo que se lee cómodo en la
+// tarjeta sin barra (TOPE_PAGINA caracteres), sin cortar nunca un párrafo, con el cierre («La historia termina acá…») siempre en la última, acompañado, y con lugar en la última para
+// el premio y los dos botones. Una tarjeta corta (el final sin vecinos, hasta TOPE_UNICA caracteres) queda en una sola página, como antes.
+export const TOPE_PAGINA = 560;
+// lo que ocupan en la última página el premio y los dos botones, medido en caracteres de texto (la última tiene que dejarles lugar)
+export const RESERVA_ULTIMA = 160;
+export const TOPE_UNICA = 620;
 export function paginarFinal(texto, tope = TOPE_PAGINA) {
   const t = (Array.isArray(texto) ? texto : []).filter((x) => typeof x === 'string' && x);
   const max = Math.max(200, Math.floor(Number(tope) || TOPE_PAGINA));
+  if (!t.length) return [];
+  if (t.reduce((s, x) => s + x.length, 0) <= TOPE_UNICA) return [t];
+  // la última página se arma desde el cierre hacia atrás, con lugar para el premio y las dos salidas (el cierre va siempre, y acompañado si entra algo más)
+  let i = t.length - 1, largo = t[i].length;
+  while (i > 0 && largo + t[i - 1].length + RESERVA_ULTIMA <= max) { i--; largo += t[i].length; }
+  const ultima = t.slice(i);
   const paginas = [];
-  let actual = [], largo = 0;
-  for (const p of t) {
-    if (actual.length && largo + p.length > max) { paginas.push(actual); actual = []; largo = 0; }
-    actual.push(p); largo += p.length;
+  let actual = [], suma = 0;
+  for (const p of t.slice(0, i)) {
+    if (actual.length && suma + p.length > max) { paginas.push(actual); actual = []; suma = 0; }
+    actual.push(p); suma += p.length;
   }
   if (actual.length) paginas.push(actual);
-  // el cierre no queda solo: si lo único que hay en la última es el párrafo de cierre y la anterior tiene más de uno, se baja el último de la anterior
-  const n = paginas.length;
-  if (n > 1 && paginas[n - 1].length === 1 && paginas[n - 2].length > 1) paginas[n - 1].unshift(paginas[n - 2].pop());
+  paginas.push(ultima);
   return paginas;
 }
 

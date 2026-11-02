@@ -115,6 +115,9 @@ if (va('mochila')) {
   const p = base(); for (const id of ids) p.cosas[id] = 1;
   const con = MO.armarMochila(p, {});
   for (const id of ids) { const r = con.find((x) => x.id === id); ok(!!r && r.nombre.length > 4 && r.texto.length > 20 && typeof r.icono === 'string', `«${id}»: casilla con nombre, texto e icono`); }
+  // van al final de la lista (son recuerdos: al principio se comían las casillas de la barra de lo que sí se usa)
+  { const p2 = base(); for (const id of ids) p2.cosas[id] = 1; p2.cosas.yerba = 2; p2.cosas.harina = 3; p2.entradas.miel = { dia: 1, hora: 1, cantidad: 2 }; const orden = MO.armarMochila(p2, {}).map((r) => r.id);
+    ok(orden.slice(-4).join() === ids.join() && orden.indexOf('yerba') < orden.indexOf('llave-molino') && orden.indexOf('miel') < orden.indexOf('llave-molino'), 'van al final de la mochila: no le sacan lugar a la yerba, la harina o la miel en la barra'); }
   const iconos = ids.map((id) => con.find((x) => x.id === id)?.icono);
   ok(new Set(iconos).size === 4 && iconos.join() === 'llaveMolino,cantoBlanco,lamparaAceite,plumaCondor', 'cada una con su propio icono (la lámpara no usa el del farol)');
   const src = leer('mochila.js');
@@ -139,6 +142,7 @@ if (va('final')) {
   ok(T.paginas.every((pg) => pg.length >= 1 && pg.reduce((s, x) => s + x.length, 0) <= FIN.TOPE_PAGINA + Math.max(...T.texto.map((x) => x.length))), 'ninguna página pasa del tope (más el párrafo que no se corta)');
   ok(T.paginas.every((pg, i) => i === T.paginas.length - 1 || pg.reduce((s, x) => s + x.length, 0) <= FIN.TOPE_PAGINA), 'las páginas que no son la última entran enteras en el tope');
   ok(T.paginas[T.paginas.length - 1].at(-1) === FIN.PIEZAS_FINAL.siempre && T.paginas[T.paginas.length - 1].length >= 2, 'el cierre va en la última, acompañado');
+  { const u = T.paginas[T.paginas.length - 1]; ok(u.length === 1 || u.reduce((s, x) => s + x.length, 0) + 160 <= FIN.TOPE_PAGINA, 'la última deja lugar al premio y a los dos botones (160 caracteres)'); }
   const corta = FIN.tarjetaFinal(H.historiaNueva());
   ok(corta.paginas.length === 1, 'el final sin vecinos sigue en una sola página');
   ok(FIN.paginarFinal([]).length === 0 && FIN.paginarFinal(null).length === 0 && FIN.paginarFinal(['a', '', null, 7]).length === 1, 'entradas raras: sin romper');
@@ -328,7 +332,8 @@ const MUT = [
   ['mochila.js', "if (progreso.modo !== 'desafio') for (const r of ranurasHistoria(progreso)) ranuras.push(r);", "", 'la mochila no muestra las cosas de la Historia', 'mochila'],
   ['mochila.js', "{ id: 'pluma-condor', nombre: 'Pluma de cóndor', icono: 'plumaCondor',", "{ id: 'pluma-condo', nombre: 'Pluma de cóndor', icono: 'plumaCondor',", 'la pluma de cóndor no tiene su casilla', 'mochila'],
   ['mochila.js', "icono: 'lamparaAceite', texto:", "icono: 'farol', texto:", 'la lámpara usa el icono del farol', 'mochila'],
-  ['historia-final.js', "export const TOPE_PAGINA = 620;", "export const TOPE_PAGINA = 99999;", 'la tarjeta final no se parte', 'final'],
+  ['historia-final.js', "export const TOPE_PAGINA = 560;", "export const TOPE_PAGINA = 99999;", 'la tarjeta final no se parte', 'final'],
+  ['historia-final.js', "export const RESERVA_ULTIMA = 160;", "export const RESERVA_ULTIMA = 0;", 'la última página no deja lugar al premio y los botones', 'final'],
   ['historia-ui.js', "premio: ultima && premioDeCapitulo(c, h)?.texto ?", "premio: premioDeCapitulo(c, h)?.texto ?", 'el premio sale en todas las páginas', 'final'],
   ['historia-ui.js', "alElegir: (id) => { if (id === 'sigue') { pagina(i + 1); return true; } return cerrarFinal(id); },", "alElegir: (id) => cerrarFinal(id),", 'Seguir leyendo cierra el capítulo', 'final'],
   ['historia.js', "  if (harina && tablas) return 'una bolsa de harina y seis tablas de coihue (las dos cosas)';\n", "", 'la deuda con las dos decisiones no dice las dos', 'deuda'],

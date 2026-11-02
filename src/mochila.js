@@ -582,8 +582,6 @@ export function armarMochila(progreso, estado) {
   if (cant('calafate')) ranuras.push({ id: 'calafate', nombre: 'Calafate', icono: 'calafate', cuenta: cant('calafate'), accion: 'plantar-coihue', texto: 'Para hacer dulce, o para plantar un renoval de coihue.' });
   if (cant('frutilla')) ranuras.push({ id: 'frutilla', nombre: 'Frutillas', icono: 'frutilla', cuenta: cant('frutilla'), accion: 'cocinar', texto: 'Al rescoldo quedan dulcísimas.' });
   if (progreso.cosas?.yerba) ranuras.push({ id: 'yerba', nombre: 'Yerba', icono: 'yerba', cuenta: progreso.cosas.yerba, accion: 'cocinar', texto: 'Alcanza para cebar unos cuantos mates en cualquier fuego.' });
-  // 4.19.0: lo que la Historia da como premio (progreso.cosas): hasta ahora sólo estaba en el cuaderno de lo raro y en el texto del premio
-  if (progreso.modo !== 'desafio') for (const r of ranurasHistoria(progreso)) ranuras.push(r);
   if (cant('pluma')) ranuras.push({ id: 'pluma', nombre: 'Plumas', icono: 'pluma', cuenta: cant('pluma'), texto: 'En el almacén se cambian por cosas útiles.' });
   // 2.1: lo que se seca en el tendal y las conservas (ver `conservas.js`)
   if (cant('llaollao')) ranuras.push({ id: 'llaollao', nombre: 'Llao llao', icono: 'hongo', cuenta: cant('llaollao'), texto: 'Tres, colgados en un tendal, se secan en medio día de sol.' });
@@ -630,6 +628,9 @@ export function armarMochila(progreso, estado) {
 
   // 3.7.2: lo de la cocina (lo cocinado, lo del almacén, lo de los vecinos y lo de la granja), sin repetir casilla
   if (progreso.modo !== 'desafio') { const ya = new Set(ranuras.map((r) => r.id)); for (const r of ranurasCocina(progreso, ya)) ranuras.push(r); }
+  // 4.19.0: lo que la Historia da como premio (progreso.cosas): hasta ahora sólo estaba en el cuaderno de lo raro y en el texto del premio. Van al FINAL: son recuerdos (no hacen nada
+  // al elegirlos) y al principio se comían las casillas de la barra de las cosas que sí se usan
+  if (progreso.modo !== 'desafio') for (const r of ranurasHistoria(progreso)) ranuras.push(r);
   // Modo Desafío: armas y curas van adelante, para tenerlas en 1–4 al empezar la noche
   const D = progreso.modo === 'desafio' ? progreso.desafio : null;
   if (D) {

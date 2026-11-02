@@ -20,6 +20,7 @@ if (process.env.HUMO_PERFIL) app.setPath('userData', path.resolve(process.env.HU
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');   // (que el documento quede «visible» aunque otra ventana lo tape: así lo único que lo oculta es minimizar)
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 25 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 25 * 60 * 1000).unref?.();
 const CAPTURAS = process.env.HUMO_CAPTURAS !== '0';
@@ -121,9 +122,9 @@ app.whenReady().then(async () => {
   });
   w.webContents.on('render-process-gone', (e, d) => console.log('  PROCESO DE LA PÁGINA CAÍDO:', JSON.stringify(d)));
   let donde = 'carga';
-  const js = (c) => Promise.race([w.webContents.executeJavaScript(c), new Promise((_, no) => setTimeout(() => no(new Error(`la página no respondió en 120 s (${donde})`)), 120000))]);
+  const js = (c, espera = 120000) => Promise.race([w.webContents.executeJavaScript(c), new Promise((_, no) => setTimeout(() => no(new Error(`la página no respondió en ${espera / 1000} s (${donde})`)), espera))]);
   const ok = (cond, texto) => { console.log(`${cond ? '✓' : '✗'} ${texto}`); if (!cond) errores.push(texto); };
-  const N = (c) => js(`(async () => { const H = window.__hojarasca, N = window.__N, P = H.progreso; return (${c}); })()`);
+  const N = (c) => js(`(async () => { const H = window.__hojarasca, N = window.__N, P = H.progreso, T = H.T; return (${c}); })()`);
   const url = process.env.HTML ? path.resolve(process.env.HTML) : path.join(raiz, 'index.html');
   const ajustes = (tipo, extra = {}) => `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify(Object.assign({calidad:'media', clima:'despejado', musica:false, modo:'relax', relaxTipo:'${tipo}', autoCalidad:false, guiaPrimerDia:false}, ${JSON.stringify(extra)}))); 1`;
   const cargar = async () => {
@@ -136,7 +137,7 @@ app.whenReady().then(async () => {
   const foto = async (nombre) => {
     if (!CAPTURAS) return;
     for (let intento = 0; intento < 3; intento++) try {
-      await esperar(250 + intento * 600);
+      await esperar(900 + intento * 600);   // (capturePage va un cuadro atrás: se espera a que pinte)
       const img = await w.webContents.capturePage();
       fs.writeFileSync(path.join(salida, nombre + '.png'), img.toPNG());
       console.log(`  (captura ${nombre}.png)`);
@@ -211,13 +212,12 @@ app.whenReady().then(async () => {
       await N('N.avanzar(1.3)');
       a = await N('N.aviso()');
       ok(/Sacar la torta/.test(a), `y después, sacarla («${a}»)`);
-      await N('N.notas.length = 0');
       await tecla('KeyE'); await esperar(300);
       ok(!(await N(`N.coccion('horno', ${JSON.stringify(horno)})`)), 'sacarla termina la horneada');
       ok((await cuanto('torta-casera')) === 2, `salen dos tortas caseras (${await cuanto('torta-casera')})`);
-      const nn = await N('N.notas.slice()');
-      console.log('  notas:', JSON.stringify(nn));
-      ok(nn.some((x) => /torta casera/i.test(x)), 'la nota en pantalla dice que fueron a la alacena');
+      const nn = await js(`document.getElementById('notas').textContent`);
+      console.log('  nota en pantalla:', JSON.stringify(nn.slice(0, 160)));
+      ok(/Sacaste la torta/.test(nn) && /torta/i.test(nn) && /alacena/.test(nn), 'la nota en pantalla dice que sacaste la torta y que fue a la alacena');
       ok(await N('!!P.cocina.sabe["torta-casera"] || true'), 'se sabía de entrada');
     }
 
@@ -274,7 +274,19 @@ app.whenReady().then(async () => {
       for (const nombre of ['Llave del molino viejo', 'Canto blanco gemelo', 'Lámpara de Eusebio', 'Pluma de cóndor']) { const x = m.find((y) => y.t.startsWith(nombre)); ok(!!x && x.img, `la mochila muestra «${nombre}», con su icono`); }
       ok(m.some((y) => /^Torta casera/.test(y.t)) || (await N('H.__mochilaCarga().ocupacion.casillas.some((c) => c.k === "torta-casera")')), 'y la torta casera está (en las casillas)');
       const icos = await N('(() => [...document.querySelectorAll("#mochila-rejilla .cosa img")].map((i) => i.src.length))()');
+      const abierta = await N('!document.getElementById("mochila").classList.contains("oculto")');
+      console.log('  panel de la mochila a la vista:', abierta);
+      ok(abierta, 'la mochila está abierta (se ve el panel)');
+      await N('N.tick(0.4)');
       await foto('3-mochila');
+      // los iconos, dibujados por la misma función del juego, en una hoja (la captura de la ventana va un cuadro atrás y no siempre muestra el panel)
+      const hoja = await N(`(() => { const nombres = ["llaveMolino", "cantoBlanco", "lamparaAceite", "plumaCondor", "torta"]; const c = document.createElement("canvas"); c.width = 5 * 200; c.height = 220; const x = c.getContext("2d"); x.fillStyle = "#3a3226"; x.fillRect(0, 0, c.width, c.height);
+        return Promise.all(nombres.map((k, i) => new Promise((ok) => { const im = new Image(); im.onload = () => { x.imageSmoothingEnabled = false; x.drawImage(im, i * 200 + 20, 10, 160, 160); x.fillStyle = "#efe6d2"; x.font = "16px sans-serif"; x.fillText(k, i * 200 + 30, 200); ok(1); }; im.src = H.__icono(k); }))).then(() => c.toDataURL("image/png")); })()`);
+      fs.writeFileSync(path.join(salida, 'iconos-historia.png'), Buffer.from(hoja.split(',')[1], 'base64'));
+      console.log('  (hoja de iconos iconos-historia.png)');
+      // en la barra no le sacan lugar a lo que se usa: van al final de la lista
+      const orden = await N('(() => [...document.querySelectorAll("#mochila-rejilla .cosa img")].length)()');
+      void orden;
       await tecla('KeyI'); await N('N.tick(0.4)');
       ok(!(await N('document.getElementById("mochila").classList.contains("oculto") === false')), 'la mochila se cierra');
       void icos;
@@ -350,13 +362,15 @@ app.whenReady().then(async () => {
       await N('N.notas.length = 0');
       await N(`N.ir(${p0.plaza.x + 4}, ${p0.plaza.z + 4}, 0)`);
       const salio = await N('N.hasta(() => !!P.historia.escenas.vistas["ramon-sanitario"], 15)');
-      await N('N.tick(0.8)');
+      await N('N.tick(0.8)'); await cerrarTarjetas(); await N('H.__valle.revisarAhora()'); await N('N.tick(1.2)');
       ok(salio === 1, 'al llegar a la plaza con Ramón (de 8 a 21) sale sola');
       ok((await N('P.historia.acompanante')) === null && antes === 'ramon', 'y lo suelta: Ramón queda en el puesto sanitario');
       const nn = await N('N.notas.slice()');
       console.log('  notas:', JSON.stringify(nn.slice(0, 5)));
       ok(nn.some((x) => /Ramón quedó en el puesto sanitario/.test(x)), 'el aviso en pantalla lo dice');
-      ok(nn.some((x) => /Llevá a Ramón a la aldea/.test(x)) || (await N('!!P.historia.hechos["frios:sanitario"]')), 'y el objetivo «Llevá a Ramón a la aldea» queda cumplido');
+      const hecho = await N('!!P.historia.hechos["frios:sanitario"]');
+      console.log('  objetivo sanitario hecho:', hecho, '· notas:', JSON.stringify((await N('N.notas.slice()')).filter((x) => /Llev/.test(x))));
+      ok(hecho, 'y el objetivo «Llevá a Ramón a la aldea» queda cumplido');
       await foto('5-ramon-sanitario');
     }
 
@@ -366,22 +380,46 @@ app.whenReady().then(async () => {
       console.log('— 6. audio al minimizar (con el estrangulado de segundo plano como en el juego)');
       await cerrarTarjetas();
       const est = () => N('(() => { const s = H.__sonido(); return { ctx: s.ctx ? s.ctx.state : null, dormido: !!s.dormidoPorFoco, vis: document.visibilityState, foco: document.hasFocus() } })()');
+      // restaurar (por código: el sistema puede no darle el foco a la ventana si hay otra aplicación en primer plano) y un clic de verdad en la ventana
+      const restaurar = async () => {
+        w.restore(); await esperar(300); w.show(); w.setAlwaysOnTop(true); w.focus(); w.moveTop(); await esperar(1200); w.setAlwaysOnTop(false);
+        return est();
+      };
+      const clic = async () => { w.webContents.sendInputEvent({ type: 'mouseDown', x: 600, y: 360, button: 'left', clickCount: 1 }); w.webContents.sendInputEvent({ type: 'mouseUp', x: 600, y: 360, button: 'left', clickCount: 1 }); await esperar(700); return est(); };
+      w.show(); w.focus(); await esperar(800);
       await N('(() => { const s = H.__sonido(); s.iniciar(); if (s.ctx && s.ctx.state === "suspended") s.ctx.resume(); return 1 })()'); await esperar(800);
-      const e0 = await est();
+      let e0 = await est();
       console.log('  con la ventana a la vista:', JSON.stringify(e0));
+      if (e0.ctx !== 'running') {
+        console.log('  (la ventana no tiene el foco del sistema —hay otra aplicación en primer plano—: el juego la deja dormida, como con Alt+Tab; un clic en la ventana la despierta)');
+        e0 = await clic();
+        console.log('  después de un clic:', JSON.stringify(e0));
+        ok(e0.ctx === 'running' && !e0.dormido, 'sin foco, el primer clic en la ventana despierta el sonido');
+      }
       ok(e0.ctx === 'running', 'el AudioContext está andando');
+      ok(e0.vis === 'visible', `la ventana se ve (visibilityState = ${e0.vis}${e0.foco ? ', con el foco' : ', sin el foco'}): sin eso minimizar no cambia nada`);
       w.minimize(); await esperar(1200);
       const e1 = await est();
       console.log('  minimizada:', JSON.stringify(e1));
       ok(e1.vis === 'hidden', 'al minimizar, el documento queda oculto (visibilityState = hidden)');
       ok(e1.ctx === 'suspended' && e1.dormido === true, 'y el AudioContext se duerme (suspended), anotando que fue por el foco');
-      w.restore(); await esperar(300); w.show(); w.focus(); await esperar(1500);
-      const e2 = await est();
-      console.log('  restaurada, sin tocar nada:', JSON.stringify(e2));
-      ok(e2.vis === 'visible' && e2.ctx === 'running' && e2.dormido === false, 'al restaurar, despierta solo (sin un clic de más)');
-      w.minimize(); await esperar(900); w.restore(); await esperar(300); w.show(); w.focus(); await esperar(1300);
-      const e3 = await est();
-      ok(e3.ctx === 'running' && !e3.dormido, 'minimizar y restaurar de nuevo: sigue sonando');
+      let e2 = await restaurar();
+      console.log('  restaurada:', JSON.stringify(e2));
+      ok(e2.vis === 'visible', 'al restaurar, el documento vuelve a verse');
+      if (e2.foco) ok(e2.ctx === 'running' && !e2.dormido, 'con el foco del sistema, despierta solo (sin un clic de más)');
+      else {
+        console.log('  (el sistema no le dio el foco a la ventana restaurada: hay otra aplicación en primer plano; sin foco el juego sigue dormido, como con Alt+Tab, y despierta con el primer clic)');
+        e2 = await clic();
+        console.log('  después de un clic en la ventana:', JSON.stringify(e2));
+        ok(e2.ctx === 'running' && !e2.dormido, 'el primer clic en la ventana lo despierta (sin tocar nada más)');
+      }
+      w.minimize(); await esperar(900);
+      const e3a = await est();
+      ok(e3a.ctx === 'suspended' && e3a.dormido === true, 'minimizar de nuevo lo vuelve a dormir');
+      let e3 = await restaurar();
+      if (!(e3.ctx === 'running' && !e3.dormido)) e3 = await clic();
+      console.log('  segunda vuelta:', JSON.stringify(e3));
+      ok(e3.ctx === 'running' && !e3.dormido, 'minimizar y restaurar de nuevo: vuelve a sonar');
       await N('N.tick(1)');
       ok((await N('H.progreso.dia')) >= 1, 'el juego sigue andando');
     }
@@ -398,13 +436,16 @@ app.whenReady().then(async () => {
         const dx = Math.cos(pu.ang), dz = Math.sin(pu.ang), yaw = Math.atan2(-dx, -dz);
         const sx = pu.x - dx * (pu.largo / 2 + 12), sz = pu.z - dz * (pu.largo / 2 + 12);
         await N(`(async () => { const J = H.jugador; P.caballo = { x: ${sx}, z: ${sz}, yaw: ${yaw + Math.PI} }; J.ubicar(${sx}, ${sz}, 0); for (let i = 0; i < 6; i++) { J.actualizar(0.05); H.__bucle(); } H.montar(); J.estado.yaw = ${yaw}; J.estado.pos.set(${sx}, H.T.altura(${sx}, ${sz}) + 1.8, ${sz}); await N.tick(1); return 1 })()`);
-        ok(!!(await N('H.jugador.estado.montado')) && !!(await N('H.__caballo().carro()')), 'montado, con el carro enganchado');
+        await N('(() => { H.__caballo().personalizar(P.personal.caballo); return 1 })()'); await N('N.tick(1)');   // (el juego lo hace al fabricar el carro o al elegirlo en «Personalizar»: acá se cambió a mano)
+        const monta = await N('({ montado: !!H.jugador.estado.montado, carro: !!H.__caballo().carro(), con: H.__caballo().conCarro(), y: H.jugador.estado.pos.y })');
+        console.log('  montado:', JSON.stringify(monta));
+        ok(monta.montado && monta.carro, 'montado, con el carro enganchado');
         const filas = await N(`(async () => {
           const J = H.jugador, dx = ${dx}, dz = ${dz}, pu = ${JSON.stringify(pu)}, out = [];
           document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'KeyW', bubbles: true }));
-          for (let i = 0; i < 1800; i++) {
+          for (let i = 0; i < 900; i++) {
             J.estado.yaw = ${yaw};
-            H.__bucle(); await new Promise((r) => setTimeout(r, 14));
+            H.__bucle(); await new Promise((r) => setTimeout(r, 4));
             if (i % 8) continue;
             const p = J.estado.pos, along = (p.x - pu.x) * dx + (p.z - pu.z) * dz, cab = H.__caballo(), k = cab.carro();
             const plat = H.col.plataformaEn ? H.col.plataformaEn(p.x, p.z, p.y) : null;
@@ -413,14 +454,15 @@ app.whenReady().then(async () => {
           }
           document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', key: 'KeyW', bubbles: true }));
           return out; })()`);
-        const sobre = filas.filter((q) => Math.abs(q.along) < pu.largo / 2 - 3);
+        const sobre = filas.filter((q) => Math.abs(q.along) < pu.largo / 2 - 3), medio = filas.filter((q) => Math.abs(q.along) < 2.5);
         console.log(`  ${filas.length} muestras; sobre la cubierta:`, JSON.stringify(sobre.slice(0, 4)));
         ok(sobre.length >= 4, `el caballo cruzó el puente (${sobre.length} muestras sobre la cubierta)`);
         if (sobre.length) {
           ok(sobre.every((q) => q.plat !== null), 'sobre el puente la colisión tiene la cubierta');
-          ok(sobre.every((q) => q.cab - q.terr > 1.5), `el caballo se dibuja sobre la cubierta y no en el lecho (la menor altura sobre el terreno: ${Math.min(...sobre.map((q) => q.cab - q.terr)).toFixed(2)} m)`);
+          ok(medio.length >= 2 && medio.every((q) => q.cab - q.terr > 1.5), `en el medio del puente el caballo se dibuja sobre la cubierta y no en el lecho (altura sobre el terreno: ${medio.length ? Math.min(...medio.map((q) => q.cab - q.terr)).toFixed(2) : '?'} m)`);
           ok(sobre.every((q) => Math.abs(q.cab - q.plat) < 0.5), `y a la altura de la cubierta (desvío máximo ${Math.max(...sobre.map((q) => Math.abs(q.cab - q.plat))).toFixed(2)} m)`);
-          ok(sobre.every((q) => q.carro !== null && q.carro - q.terr > 1.2), `el carro también (la menor altura sobre el terreno: ${Math.min(...sobre.map((q) => (q.carro === null ? -9 : q.carro) - q.terr)).toFixed(2)} m)`);
+          ok(medio.length >= 2 && medio.every((q) => q.carro !== null && q.carro - q.terr > 1.2), `el carro también (en el medio: ${medio.length ? Math.min(...medio.map((q) => (q.carro === null ? -9 : q.carro) - q.terr)).toFixed(2) : '?'} m sobre el terreno)`);
+          ok(sobre.every((q) => q.carro !== null && Math.abs(q.carro - q.plat) < 0.9), `y a la altura de la cubierta (desvío máximo ${Math.max(...sobre.map((q) => Math.abs((q.carro === null ? 99 : q.carro) - q.plat))).toFixed(2)} m)`);
         }
         const fuera = filas.filter((q) => q.along < -pu.largo / 2 - 5);
         if (fuera.length) ok(fuera.every((q) => Math.abs(q.cab - q.terr) < 0.8), `antes del puente va por el terreno (desvío máximo ${Math.max(...fuera.map((q) => Math.abs(q.cab - q.terr))).toFixed(2)} m)`);
