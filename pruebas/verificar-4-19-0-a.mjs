@@ -283,7 +283,7 @@ if (va('anotados')) {
 // ---------------------------------------------------------------- 7. la conexión con lo de B (las dos optativas nuevas y el final con `solo`)
 // B entrega `OPTATIVAS_LAZOS` (historia-escenas-lazos.js) y `finalDeLazos(lazoDe, final)` (historia-texto-lazos.js); el hueco de esta rama no trae las optativas. Acá se prueba la
 // conexión con una copia de src/ a la que se le ponen los datos del tablero (las dos optativas, con los ids y las ventanas que B fijó) y un `finalDeLazos` mínimo que dice el final.
-if (SEC && SEC.has('conexion')) {   // (sólo en el hijo con los datos de B)
+if (va('conexion')) {   // con el código real de B (juntado en esta rama)
   const OB = OP.OPTATIVAS.find((o) => o.id === 'ultimo-cruce'), OS = OP.OPTATIVAS.find((o) => o.id === 'del-otro-lado');
   ok(!!OB && !!OS, 'las dos optativas de B entran al registro');
   ok(OB && OS && OP.capsDe(OB).join() === 'frios,golpea,arco' && OP.capsDe(OS).join() === 'frios,golpea,arco', 'con la ventana del capítulo 9 al 11 (sin cruzar de acto)');
@@ -294,33 +294,11 @@ if (SEC && SEC.has('conexion')) {   // (sólo en el hijo con los datos de B)
   const h = H.historiaNueva();
   D.EFECTOS_ESCENA['ultimo-cruce'](h, 40, {}); D.EFECTOS_ESCENA['del-otro-lado'](h, 40, {});
   ok(h.temas['belisario:ultimo-cruce'] !== undefined && h.temas['sofia:del-otro-lado'] !== undefined, 'al verlas queda anotado el tema de cada una');
-  const x = H.historiaNueva(); x.duendes.trato = 'pelea';
-  ok(FIN.tarjetaFinal(x).texto.includes('final:pelea') && !FIN.tarjetaFinal(x).texto.includes('final:trato'), 'tarjetaFinal le pasa el final de la pelea a finalDeLazos');
-  const y = H.historiaNueva(); y.duendes.trato = 'trato';
-  ok(FIN.tarjetaFinal(y).texto.includes('final:trato') && !FIN.tarjetaFinal(y).texto.includes('final:pelea'), 'y el del trato');
+  const x = H.historiaNueva(); x.duendes.trato = 'pelea'; x.lazos = { nicanor: 3 };
+  const tx = FIN.tarjetaFinal(x).texto.join(' '), ty = (() => { const y = H.historiaNueva(); y.duendes.trato = 'trato'; y.lazos = { nicanor: 3 }; return FIN.tarjetaFinal(y).texto.join(' '); })();
+  ok(tx.includes('ya no salen luces') && !tx.includes('luces vuelven al lago'), 'con la pelea, Nicanor dice la línea del valle tranquilo y no la de las luces');
+  ok(ty.includes('luces vuelven al lago') && !ty.includes('ya no salen luces'), 'con el trato, la de las luces');
 }
-// la copia de src/ con los datos de B (el hueco de esta rama no los trae)
-function datosDeB(dir) {
-  const fe = join(dir, 'historia-escenas-lazos.js');
-  writeFileSync(fe, readFileSync(fe, 'utf8').replace('export const OPTATIVAS_LAZOS = [];', `export const OPTATIVAS_LAZOS = [
-  { id: 'ultimo-cruce', escena: 'ultimo-cruce', desde: 'frios', hasta: 'arco', quien: 'belisario', ofrece: { escenas: ['los-del-cerro'] }, disparo: [{ modo: 'hablar', clave: 'belisario', hora: [8, 18] }] },
-  { id: 'del-otro-lado', escena: 'del-otro-lado', desde: 'frios', hasta: 'arco', quien: 'sofia', ofrece: { escenas: ['foto-valle'], pobladores: ['fotografa'] }, disparo: [{ modo: 'auto', lugar: 'estudio-fotos', radio: 12, hora: [9, 16.5] }, { modo: 'hablar', clave: 'fotografa', hora: [9, 16.5] }] },
-];`));
-  const ft = join(dir, 'historia-texto-lazos.js');
-  writeFileSync(ft, readFileSync(ft, 'utf8').replace('export function finalDeLazos(lazoDe) {', 'export function finalDeLazos(lazoDe, final) {\n  return [`final:${final}`];\n}\nfunction finalDeLazosViejo(lazoDe) {'));
-}
-if (!process.env.A4184_SRC) {
-  const tmp = mkdtempSync(join(tmpdir(), 'a4190c-'));
-  try {
-    const dir = join(tmp, 'src');
-    cpSync(join(raiz, 'src'), dir, { recursive: true });
-    datosDeB(dir);
-    const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], { env: { ...process.env, A4184_SRC: dir, A4190_SECCIONES: 'conexion' }, encoding: 'utf8', timeout: 240000 });
-    if (r.status !== 0) console.log(r.stdout.slice(-1500));
-    ok(r.status === 0, 'la conexión con lo de B anda (optativas, disparadores, efectos y el final con su firma nueva)');
-  } finally { rmSync(tmp, { recursive: true, force: true }); }
-}
-
 // ---------------------------------------------------------------- mutaciones (cada una en su proceso, sobre una copia de src/)
 const MUT = [
   ['cocina-pasos.js', "id: 'torta-casera', nombre: 'Torta casera', estacion: 'horno',", "id: 'torta-casera', nombre: 'Torta casera', estacion: 'cocina-lena',", 'la torta se hace en la cocina a leña', 'torta'],
@@ -349,22 +327,21 @@ const MUT = [
   ['trucos.js', "    if (tomarDecision(h, d, 'a', null, dia)) r.push(d);", "    if (tomarDecision(h, d, 'b', null, dia)) r.push(d);", 'el truco toma la segunda opción', 'anotados'],
   ['trucos.js', "  if (quedan.length) t += ", "  if (false) t += ", 'el truco no avisa de las que siguen tomadas', 'anotados'],
   ['historia-disparadores.js', "  if (o.cuidar) return {", "  if (o.pago) return { tipo: 'pago', aviso: o.aviso };\n  if (o.cuidar) return {", 'vuelve el tipo de objeto «pago»', 'anotados'],
-  ['historia-optativas.js', "for (const d of OPTATIVAS_LAZOS) { const o = optativaDeLazo(d); if (o && !OPTATIVAS.some((x) => x.id === o.id)) OPTATIVAS.push(o); }", "", 'las optativas de B no entran al registro', 'conexion', true],
-  ['historia-disparadores-optativas.js', "  ...OPTATIVAS_LAZOS.reduce((r, d) => ({ ...r, ...disparadoresDeLazo(d) }), {}),", "", 'las optativas de B no tienen disparador', 'conexion', true],
-  ['historia-disparadores-optativas.js', "map((d) => [d.escena, T(d.quien, d.id)])),", "map((d) => [d.escena, T('ramon', d.id)])),", 'el tema de las optativas de B va a nombre de Ramón', 'conexion', true],
-  ['historia-final.js', "r = finalDeLazos((q) => lazoDe(h, q), trato === 'pelea' ? 'pelea' : 'trato');", "r = finalDeLazos((q) => lazoDe(h, q));", 'finalDeLazos no sabe el final', 'conexion', true],
+  ['historia-optativas.js', "for (const d of OPTATIVAS_LAZOS) { const o = optativaDeLazo(d); if (o && !OPTATIVAS.some((x) => x.id === o.id)) OPTATIVAS.push(o); }", "", 'las optativas de B no entran al registro', 'conexion'],
+  ['historia-disparadores-optativas.js', "  ...OPTATIVAS_LAZOS.reduce((r, d) => ({ ...r, ...disparadoresDeLazo(d) }), {}),", "", 'las optativas de B no tienen disparador', 'conexion'],
+  ['historia-disparadores-optativas.js', "map((d) => [d.escena, T(d.quien, d.id)])),", "map((d) => [d.escena, T('ramon', d.id)])),", 'el tema de las optativas de B va a nombre de Ramón', 'conexion'],
+  ['historia-final.js', "r = finalDeLazos((q) => lazoDe(h, q), trato === 'pelea' ? 'pelea' : 'trato');", "r = finalDeLazos((q) => lazoDe(h, q));", 'finalDeLazos no sabe el final', 'conexion'],
 ];
 let atrapadas = 0;
 if (!HIJO) {
   const tmp = mkdtempSync(join(tmpdir(), 'a4190-'));
   try {
-    for (const [arch, de, a, que, secc, conB] of MUT) {
+    for (const [arch, de, a, que, secc] of MUT) {
       const orig = leer(`${arch}`);
       if (!orig.includes(de)) { ok(false, `mutación inaplicable: ${que}`); continue; }
       const dir = join(tmp, `m${atrapadas}-${Math.random().toString(36).slice(2, 7)}`, 'src');
       mkdirSync(dirname(dir), { recursive: true });
       cpSync(join(raiz, 'src'), dir, { recursive: true });
-      if (conB) datosDeB(dir);
       writeFileSync(join(dir, arch), orig.replace(de, () => a));
       const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], { env: { ...process.env, A4184_SRC: dir, A4190_CALLADO: '1', A4190_SECCIONES: secc }, encoding: 'utf8', timeout: 240000 });
       if (r.status !== 0) atrapadas++; else console.log(`NO ATRAPADA: ${que}`);

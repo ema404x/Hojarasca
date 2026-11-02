@@ -389,7 +389,7 @@ if (HIJO) {
   {
     const o = O.OPTATIVA['foto-valle'];
     ok(!!o && o.quien === 'sofia' && o.desde === 'cosecha' && o.hasta === 'cuaderno', 'está en el registro: acto II, capítulos 7 y 8');
-    ok(O.OPTATIVAS.length === 29 && new Set(O.IDS_OPTATIVAS_REGISTRO).size === 29, 'el registro tiene 29 sin repetir');
+    ok(O.OPTATIVAS.length === 31 && new Set(O.IDS_OPTATIVAS_REGISTRO).size === 31, 'el registro tiene 31 sin repetir (29 y las dos de la 4.19.0)');
     ok(H.CAPITULOS[IDX[o.desde]].acto === H.CAPITULOS[IDX[o.hasta]].acto, 'no cruza de acto');
     ok(typeof o.ofrece === 'function' && typeof o.hecha === 'function', 'tiene ofrece y hecha');
     ok(O.textoOptativa('foto-valle') === 'La foto del valle' && O.pistaOptativa('foto-valle') === 'TABLON-OFRECIDA' && O.pistaOptativa('foto-valle', true) === 'TABLON-HECHA', 'el tablón sale de TEXTO_LAZOS');

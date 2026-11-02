@@ -220,10 +220,6 @@ export const ESCENAS_LAZOS = {
 };
 export const IDS_LAZOS = Object.keys(ESCENAS_LAZOS);
 
-// 4.19.0 (hueco de A: al juntar queda el archivo de B, que trae las dos optativas nuevas, Belisario y Sofía): las optativas de lazo con la forma de `OPTATIVA_SOFIA`
-// (historia-optativas.js). El registro las convierte con `optativaDeLazo`, los disparadores con `disparadoresDeLazo` y los efectos anotan su tema.
-export const OPTATIVAS_LAZOS = [];
-
 // Todos los efectos que usa (para registrar uno por uno en el aplicador de la historia)
 export const EFECTOS_LAZOS = [...new Set(Object.values(ESCENAS_LAZOS).flatMap((e) => efectosDe(e)))].sort();
 
