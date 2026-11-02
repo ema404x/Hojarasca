@@ -230,8 +230,40 @@ function dosExports(linea) {
   return false;
 }
 
+// 4.19.0 (B): esta suite es la de la 4.18.2 (la escena `foto-valle` y los textos de los siete). La 4.19.0 suma dos escenas optativas del acto III (`ultimo-cruce` de
+// Belisario y `del-otro-lado` de Sofía), sus líneas de final, charla, tablón y raro, y un final de Nicanor para la pelea: lo nuevo lo prueba verificar-4-19-0-b.mjs.
+// Acá se mira la VISTA de la 4.18.2: los datos sin esas piezas (las funciones, `finalDeLazos` incluida, son las reales). Las mutaciones de datos y de código que
+// siguen apuntan a las líneas viejas (que en las listas de Belisario y Sofía pasaron a ser la segunda: la primera es la de 3).
+const NUEVAS_ESC = ['ultimo-cruce', 'del-otro-lado'];
+const NUEVOS_EFECTOS = ['lazo:belisario:1', 'raro:mulas-saludan', 'raro:foto-de-sofia'];
+const NUEVOS_RAROS = ['mulas-saludan', 'foto-de-sofia'];
+const NUEVAS_LINEAS_FINAL = ['final-belisario-casa', 'final-sofia-casa', 'final-nicanor-pelea'];
+const NUEVAS_CHARLAS = ['belisario-opt-cruce', 'sofia-opt-frente'];
+function vista4182(ME, MT) {
+  const sin = (o, ks) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k]) => !ks.includes(k)));
+  const T = MT.TEXTO_LAZOS || {};
+  const lista = (l, ids) => (Array.isArray(l) ? l.filter((x) => !ids.includes(x?.id)) : l);
+  const ME2 = {
+    ...ME,
+    ESCENAS_LAZOS: sin(ME.ESCENAS_LAZOS, NUEVAS_ESC), DISPARO_LAZOS: sin(ME.DISPARO_LAZOS, NUEVAS_ESC),
+    IDS_LAZOS: Array.isArray(ME.IDS_LAZOS) ? ME.IDS_LAZOS.filter((x) => !NUEVAS_ESC.includes(x)) : ME.IDS_LAZOS,
+    EFECTOS_LAZOS: Array.isArray(ME.EFECTOS_LAZOS) ? ME.EFECTOS_LAZOS.filter((x) => !NUEVOS_EFECTOS.includes(x)) : ME.EFECTOS_LAZOS,
+  };
+  const MT2 = {
+    ...MT,
+    TEXTO_LAZOS: {
+      ...T,
+      final: Object.fromEntries(Object.entries(T.final || {}).map(([q, l]) => [q, lista(l, NUEVAS_LINEAS_FINAL)])),
+      charlas: Object.fromEntries(Object.entries(T.charlas || {}).map(([q, l]) => [q, lista(l, NUEVAS_CHARLAS)])),
+      tablon: sin(T.tablon, NUEVAS_ESC), raro: sin(T.raro, NUEVOS_RAROS),
+    },
+  };
+  return [ME2, MT2];
+}
+
 // ---------------------------------------------------------------- LA SUITE: recibe los módulos (reales o mutados) y devuelve lo que falló
-function todo(ME, MT, textoE, textoT) {
+function todo(MEreal, MTreal, textoE, textoT) {
+  const [ME, MT] = vista4182(MEreal, MTreal);
   const f = [];
   const c = (cond, t) => { if (!cond) f.push(t); };
   const ESC = ME.ESCENAS_LAZOS || {}, DIS = ME.DISPARO_LAZOS || {}, EFS = ME.EFECTOS_LAZOS || [];
@@ -388,8 +420,8 @@ function todo(ME, MT, textoE, textoT) {
     c(ft({}).length === 0 && ft({ rosa: 2, tobias: 2, tito: 0, sofia: 1, belisario: 1 }).length === 0, 'finalDeLazos: con lazos bajos o conocidos no sale nada');
     c(ft({ rosa: 3 }).join() === txt('rosa') && ft({ rosa: 3, tito: 3 }).join('|') === [txt('rosa'), txt('tito')].join('|'), 'finalDeLazos: el de la casa de Rosa, y el de Tito después');
     c(ft({ tito: -1 }).join() === txt('tito', 1) && ft({ tito: -2 }).join() === txt('tito', 1) && ft({ tito: 0 }).length === 0 && ft({ tito: 3 }).join() === txt('tito', 0), 'finalDeLazos: Tito tirante con lazo −1 o menos, nada con 0, el alto con 3');
-    c(ft({ belisario: 2 }).join() === txt('belisario') && ft({ sofia: 2 }).join() === txt('sofia') && ft({ sofia: 3 }).join() === txt('sofia') && ft({ belisario: 1 }).length === 0 && ft({ sofia: 1 }).length === 0, 'finalDeLazos: Belisario y Sofía con 2 o más');
-    const todos = ft({ rosa: 3, tito: 3, tobias: 3, herminia: 3, nicanor: 3, belisario: 3, sofia: 3 });
+    c(ft({ belisario: 2 }).join() === txt('belisario') && ft({ sofia: 2 }).join() === txt('sofia') && ft({ belisario: 1 }).length === 0 && ft({ sofia: 1 }).length === 0, 'finalDeLazos: Belisario y Sofía con 2 (la línea de 3 de la 4.19.0 la prueba verificar-4-19-0-b.mjs)');
+    const todos = MT.finalDeLazos(L({ rosa: 3, tito: 3, tobias: 3, herminia: 3, nicanor: 3, belisario: 2, sofia: 2 }), 'trato');
     c(todos.length === 7 && todos.join('|') === VECINOS.map((q) => txt(q)).join('|'), 'finalDeLazos: los siete, en el orden fijo');
     c(MT.finalDeLazos().length === 0 && MT.finalDeLazos(null).length === 0 && MT.finalDeLazos(() => NaN).length === 0, 'finalDeLazos: sin función o con basura no rompe ni inventa');
   }
@@ -494,11 +526,11 @@ async function cargar(dir) {
 const real = await cargar(join(raiz, 'src'));
 const reales = todo(real.ME, real.MT, real.textoE, real.textoT);
 ok(reales.length === 0, 'la suite pasa sobre los datos reales: ' + reales.slice(0, 15).join(' | ') + (reales.length > 15 ? ` (+${reales.length - 15})` : ''));
-ok(real.ME.IDS_LAZOS.length === 1, 'una escena nueva (la de Sofía)');
+ok(real.ME.IDS_LAZOS[0] === 'foto-valle', 'la escena de Sofía de la 4.18.2 sigue primera (las de la 4.19.0, en verificar-4-19-0-b.mjs)');
 
-// la cota que usa la suite, a la vista: Belisario sólo llega a 1, Sofía a 2, y sólo Tito puede quedar tirante (D2 = dejar el coihue en pie)
+// la cota que usa la suite, a la vista: Belisario sólo llega a 2, Sofía a 2, y sólo Tito puede quedar tirante (D2 = dejar el coihue en pie)
 {
-  const k = cotas(real.ME.ESCENAS_LAZOS);
+  const k = cotas(vista4182(real.ME, real.MT)[0].ESCENAS_LAZOS);   // (la cota de la 4.18.2: sin las dos escenas nuevas; con ellas, Belisario y Sofía llegan a 3)
   ok(k.arriba.sofia === 2 && k.arriba.belisario === 2, `cota: Sofía 2 y Belisario 2 (${k.arriba.sofia}, ${k.arriba.belisario})`);
   ok(k.arriba.nicanor >= 3 && k.arriba.rosa >= 3 && k.arriba.tito >= 3 && k.arriba.tobias >= 3 && k.arriba.herminia >= 3, 'cota: Nicanor (con encargos), Rosa, Tito, Tobías y Herminia llegan a 3');
   ok(Object.keys(k.abajo).filter((q) => VECINOS.includes(q)).join() === 'tito', `cota: de los siete, el único que puede quedar tirante es Tito (${Object.keys(k.abajo).join()})`);
@@ -510,7 +542,7 @@ ok(real.ME.IDS_LAZOS.length === 1, 'una escena nueva (la de Sofía)');
   ok(cambios.length > 2500, 'existe CAMBIOS_4_18_2_B.md');
   for (const x of ['foto-valle', 'lazo:sofia:2', 'lazo:sofia:1', 'raro:foto-del-valle', 'TEXTO_LAZOS', 'finalDeLazos', 'lazoCumple', 'fraseDeGuia', 'VECINOS_LAZO', 'LAZOS_SECUNDARIOS', 'foto-sofia', 'sanearHistoria', 'cuando']) ok(cambios.includes(x), `CAMBIOS_4_18_2_B.md explica «${x}»`);
   for (const q of VECINOS) ok(cambios.includes('`' + q + '`'), `CAMBIOS_4_18_2_B.md nombra a «${q}»`);
-  for (const id of Object.values(real.MT.TEXTO_LAZOS.charlas).flat().map((l) => l.id)) ok(cambios.includes(id), `CAMBIOS_4_18_2_B.md lista la línea de charla «${id}»`);
+  for (const id of Object.values(vista4182(real.ME, real.MT)[1].TEXTO_LAZOS.charlas).flat().map((l) => l.id)) ok(cambios.includes(id), `CAMBIOS_4_18_2_B.md lista la línea de charla «${id}»`);
   ok(!/scratch/i.test(cambios) && !INGLES.test(cambios.replace(/`[^`]*`/g, '')), 'los cambios, en castellano y sin mencionar lo que no se menciona');
   const pkg = JSON.parse(leer('package.json'));
   ok(/node pruebas\/verificar-4-18-2-lazos-escenas\.mjs/.test(pkg.scripts?.['verify:pasos'] || ''), 'la prueba está en verify:pasos');
@@ -560,7 +592,7 @@ const MUT_DATOS = [
   ['un efecto fuera de la convención', (e) => { e.pasos.push({ tipo: 'efecto', nombre: 'regalo:foto' }); }],
   ['un lazo exagerado', (e, t, d, ME) => { elec(e, 'valle-luz').opciones[0].efecto = 'lazo:sofia:7'; }],
   ['una condición fuera de la convención', (e) => { e.pasos.push({ tipo: 'dialogo', quien: 'narra', lineas: ['Hola, hola.'], si: { cond: 'magia', args: {} } }); }],
-  ['EFECTOS desactualizado', (e, t, d, ME) => { ME.EFECTOS_LAZOS.pop(); }],
+  ['EFECTOS desactualizado', (e, t, d, ME) => { ME.EFECTOS_LAZOS = ME.EFECTOS_LAZOS.filter((x) => x !== 'lazo:sofia:2'); }],
   // lo que la escena da
   ['esperar da +1 en vez de +2', (e) => { elec(e, 'valle-luz').opciones[0].efecto = 'lazo:sofia:1'; }],
   ['apurar da +2', (e) => { elec(e, 'valle-luz').opciones[1].efecto = 'lazo:sofia:2'; }],
@@ -599,8 +631,8 @@ const MUT_DATOS = [
   ['la guía sin rol', (e, t) => { delete t.guia.tobias.rol; }],
   // el final
   ['el final sin un vecino', (e, t) => { delete t.final.nicanor; }],
-  ['el final de Belisario pide 3 (no llega)', (e, t) => { t.final.belisario[0].min = 3; }],
-  ['el final de Sofía pide 3 (con las escenas no llega)', (e, t) => { t.final.sofia[0].min = 3; }],
+  ['el final de Belisario pide 3 (con las escenas de la 4.18.2 no llega)', (e, t) => { t.final.belisario[1].min = 3; }],
+  ['el final de Sofía pide 3 (con las escenas de la 4.18.2 no llega)', (e, t) => { t.final.sofia[1].min = 3; }],
   ['el final de Rosa pide 4', (e, t) => { t.final.rosa[0].min = 4; }],
   ['el final de Rosa con un mínimo y un máximo', (e, t) => { t.final.rosa[0].max = 3; }],
   ['el final de Rosa sin rango', (e, t) => { delete t.final.rosa[0].min; }],
@@ -609,8 +641,8 @@ const MUT_DATOS = [
   ['la tirante de Tito sin máximo', (e, t) => { delete t.final.tito[1].max; t.final.tito[1].min = 1; }],
   ['dos finales con el mismo id', (e, t) => { t.final.tobias[0].id = t.final.rosa[0].id; }],
   ['un final largo', (e, t) => { t.final.herminia[0].texto += ' Y además dice cosas largas sobre otras cosas largas de la vida entera.'.repeat(3); }],
-  ['un final con un número', (e, t) => { t.final.nicanor[0].texto = 'Nicanor te silba tres veces desde el muelle cuando salen las luces sobre el lago.'.replace('tres', '3'); }],
-  ['un final con inglés', (e, t) => { t.final.belisario[0].texto = 'Belisario baja con la tropa and se detiene en tu puerta aunque no le quede de camino.'; }],
+  ['un final con un número', (e, t) => { t.final.nicanor[0].texto = 'Nicanor te silba tres veces desde el muelle cuando las luces vuelven al lago.'.replace('tres', '3'); }],
+  ['un final con inglés', (e, t) => { t.final.belisario[1].texto = 'Belisario baja con la tropa and se detiene en tu puerta aunque no le quede de camino.'; }],
   ['un final con un nombre que no existe', (e, t) => { t.final.tobias[0].texto = 'Tobías te deja un canto liso en el umbral, y dice que se lo mandó la tía Hortensia desde lejos.'; }],
   // las charlas
   ['la charla sin un vecino', (e, t) => { delete t.charlas.belisario; }],
@@ -665,7 +697,7 @@ const MUT_CODIGO = [
   ['lazoCumple ignora el máximo', 'T', (t) => t.replace('return v >= min && v <= max;', 'return v >= min;')],
   ['lazoCumple con mínimo exclusivo', 'T', (t) => t.replace('return v >= min && v <= max;', 'return v > min && v <= max;')],
   ['lazoCumple sin tomar el lazo entero', 'T', (t) => t.replace('const v = Math.trunc(Number(n) || 0);', 'const v = Number(n);')],
-  ['finalDeLazos toma siempre la primera línea', 'T', (t) => t.replace('lista.find((x) => lazoCumple(x, f(quien)))', 'lista[0]')],
+  ['finalDeLazos toma siempre la primera línea', 'T', (t) => t.replace('lista.find((x) => lazoCumple(x, f(quien)) && (x.solo === undefined || x.solo === cual))', 'lista[0]')],
   ['finalDeLazos en otro orden', 'T', (t) => t.replace('for (const quien of VECINOS_LAZO) {\n    const lista', 'for (const quien of [...VECINOS_LAZO].reverse()) {\n    const lista')],
   ['finalDeLazos devuelve las líneas enteras y no los textos', 'T', (t) => t.replace('if (l) salida.push(l.texto);', 'if (l) salida.push(l);')],
   ['finalDeLazos que no soporta basura', 'T', (t) => t.replace("const f = typeof lazoDe === 'function' ? lazoDe : () => 0;", 'const f = lazoDe;')],
