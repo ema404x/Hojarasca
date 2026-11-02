@@ -39,7 +39,7 @@ const PAGINA = String.raw`(() => {
     const m = performance.memory || {};
     return { fps: +fps.toFixed(1), heapMB: +((m.usedJSHeapSize || 0) / 1048576).toFixed(1), geo: H.renderer.info.memory.geometries, tex: H.renderer.info.memory.textures, prog: H.renderer.info.programs.length,
       dom: document.getElementsByTagName('*').length, escena: H.__escenas.activa() ? dir().idActual() : null, cap: P.historia.capitulo + 1, fase: P.historia.fase, dia: P.dia, horas: +P.horas.toFixed(1),
-      escenasVistas: Object.keys(P.historia.escenas.vistas).length, modo: H.__caidas.modo(), fallas: H.__caidas.fallas().length };
+      escenasVistas: Object.keys(P.historia.escenas.vistas).length, modo: H.__caidas.modo(), fallas: H.__caidas.fallas().length, ult: L.ult || null, noche: !!(H.__noche && H.__noche() && H.__noche().activa()), arreo: !!(H.__arreo && H.__arreo() && H.__arreo().activo && H.__arreo().activo()), obj: H.objetos && H.objetos.obras ? H.objetos.obras.length : null };
   };
   L.malas = () => {
     const mal = [], js = H.jugador.estado, p = js.pos;
@@ -54,7 +54,7 @@ const PAGINA = String.raw`(() => {
   };
   // un paso del jugador: a los saltos por el valle, pasa horas y días, contesta lo que salga
   L.lugares = () => { const o = H.__puntosHistoria(), q = [], l = T.lugares; for (const k of Object.keys(o)) if (o[k] && Number.isFinite(o[k].x)) q.push([k, o[k].x, o[k].z]); for (const k of Object.keys(l)) if (l[k] && Number.isFinite(l[k].x)) q.push([k, l[k].x, l[k].z]); return q; };
-  L.ir = (i) => { const q = L.lugares(); if (!q.length) return 'nada'; const [k, x, z] = q[i % q.length]; const a = (i * 2.399) % 6.283; if (H.jugador.estado.enKayak || H.jugador.estado.enTren || H.jugador.estado.montado) return 'en vehículo'; H.jugador.ubicar(x + Math.cos(a) * 4, z + Math.sin(a) * 4, a); L.saltos++; return k; };
+  L.ir = (i) => { const q = L.lugares(); if (!q.length) return 'nada'; const [k, x, z] = q[i % q.length]; const a = (i * 2.399) % 6.283; if (H.jugador.estado.enKayak || H.jugador.estado.enTren || H.jugador.estado.montado) return 'en vehículo'; H.jugador.ubicar(x + Math.cos(a) * 4, z + Math.sin(a) * 4, a); L.saltos++; L.ult = k; return k; };
   L.avanzarTiempo = (horas) => { P.horas += horas; while (P.horas >= 24) { P.horas -= 24; P.dia += 1; } return 1; };
   L.atender = () => {
     const d = dir();
@@ -107,6 +107,7 @@ app.whenReady().then(async () => {
     const muestras = [];
     const t0 = Date.now(), fin = t0 + MINUTOS * 60000;
     let ultimaMuestra = t0, paso = 0, capitulo = 0, ultimoCapitulo = Date.now(), ultimoSalto = 0, ultimaHora = 0, ultimoGuardar = Date.now();
+    if (process.env.LARGO_CAP) { const r0 = await L(`L.truco('historia capitulo ${Number(process.env.LARGO_CAP)}')`); console.log('  arranca en el capítulo ' + process.env.LARGO_CAP + ' → ' + String(JSON.stringify((r0 && r0.texto) || r0 || '')).slice(0, 80)); capitulo = Number(process.env.LARGO_CAP); ultimoCapitulo = Date.now() + 99999999; }
     const base = await L('L.muestra()');
     console.log(`inicio: ${JSON.stringify(base)}`);
     muestras.push({ t: 0, ...base });
@@ -119,7 +120,7 @@ app.whenReady().then(async () => {
         if (ahora - ultimoSalto > 3500) { ultimoSalto = ahora; const k = await L(`L.ir(${paso})`); paso++; if (paso % 8 === 0) console.log(`  salto ${paso}: ${k}`); }
         if (ahora - ultimaHora > 2500) { ultimaHora = ahora; await L('L.avanzarTiempo(' + (0.5 + azar() * 2.5).toFixed(2) + ')'); }
         // cada 100 s, un capítulo nuevo con el código (con lo de antes dado por hecho)
-        if (ahora - ultimoCapitulo > 100000) { ultimoCapitulo = ahora; capitulo = (capitulo % 13) + 1; const r = await L(`L.truco('historia capitulo ${capitulo}')`); console.log(`  código «historia capitulo ${capitulo}» → ${JSON.stringify(r && r.texto || r).slice(0, 100)}`); }
+        if (ahora - ultimoCapitulo > 100000) { ultimoCapitulo = ahora; capitulo = (capitulo % 13) + 1; const r = await L(`L.truco('historia capitulo ${capitulo}')`); console.log(`  código «historia capitulo ${capitulo}» → ${String(JSON.stringify((r && r.texto) || r || "")).slice(0, 100)}`); }
         if (ahora - ultimoGuardar > 45000) { ultimoGuardar = ahora; await L('H.guardar()'); }
       }
       const mal = await L('L.malas()'); for (const m of mal) { const k = `[${donde}] ${m}`; if (!problemas.includes(k)) { problemas.push(k); console.log('  ✗ ' + k); } }
