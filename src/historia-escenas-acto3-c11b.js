@@ -69,7 +69,7 @@ const prestadoHerrero = {
     ]),
     efecto('mundo:estacas-prestadas', { donde: FRENTE(6, 0) }),   // (4.18.1 C: a 6 m y de frente; antes a 12 m y de costado, detrás de los bancos y la estatua)
     // (picado: la plaza está llena de bancos y de una estatua; de costado la cámara se pegaba a las estacas porque los bancos la frenaban)
-    plano('picado', FRENTE(6, 0), { desde: 'jugador', dist: 3, alto: 5.5, miraY: 0.4, dur: 3.2, mezcla: 0.9, sinDespeje: true }),
+    plano('picado', FRENTE(6, 0), { desde: 'jugador', dist: 4.2, alto: 3.2, miraY: 0.55, dur: 3.2, mezcla: 0.9, sinDespeje: true }),   // (4.19.0: de 5,5 m de alto en vertical se leían como manchas: más bajo y de frente se ven los «dientes del peine»)
     narra('Una fila de estacas negras, inclinadas hacia afuera, cruza el lado del arroyo como los dientes de un peine. Parecen sacadas de un cuento de abuelos.'),
     eleccion('estacas-resp', '¿Qué le decís a Anselmo?', [
       opcion('gracias', 'Gracias. Las cuido como si fueran mías.', { sabor: true }),
@@ -249,7 +249,7 @@ const flechasDeMas = {
       linea('Otro atado. Con lo que sobró de plumas y de puntas me alcanzó para veinte más.', { gesto: gs('senalar', 2) }),
       'Salen derechas. Las probé una por una contra el tablón. Si alguna sale chueca, es culpa del viento.',
     ]),
-    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 0.8, alto: 1.1, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.7, alto: 1.5, miraY: 1.3, dur: 3, mezcla: 0.8 }),   // (4.19.0: a la altura del pecho y más atrás: antes se veían las piernas de Tito)
     narra('Un atado de flechas nuevas, de astil claro, con las plumas bien pegadas y las puntas negras de Anselmo. Huelen a cola de carpintero y a lenga.'),
     eleccion('flechas-resp', '¿Qué le decís a Tito?', [
       opcion('gracias', 'Con esto alcanzamos hasta el alba.', { sabor: true }),

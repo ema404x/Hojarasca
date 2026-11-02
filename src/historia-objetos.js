@@ -246,8 +246,9 @@ const FORMAS = {
   'tranquera-abierta': (c) => {
     palo(c, 0.17, 1.9, [-1.6, 0.95, 0], [0, 0, 0], '#4a3624'); palo(c, 0.17, 1.9, [1.6, 0.95, 0], [0, 0, 0], '#4a3624');   // (4.18.1 C: más gruesos: a 18 m, de 9 cm de radio no se veían)
     const giro = 1.25;   // la hoja abierta, colgada del poste de la izquierda
-    for (let i = 0; i < 4; i++) caja(c, [3.0, 0.17, 0.1], [-1.6 + Math.cos(giro) * 1.5, 0.35 + i * 0.3, Math.sin(giro) * 1.5], '#6e5236', [0, -giro, 0], 0.1);
-    caja(c, [0.08, 1.1, 0.08], [-1.6 + Math.cos(giro) * 2.95, 0.75, Math.sin(giro) * 2.95], '#8a6b48', [0, -giro, 0], 0.1);
+    // 4.19.0: la hoja abierta casi no se distinguía a 12-18 m (de canto era una raya oscura): más gruesa y más alta, de madera clara contra la nieve, con un poste de punta blanqueado
+    for (let i = 0; i < 5; i++) caja(c, [3.0, 0.22, 0.14], [-1.6 + Math.cos(giro) * 1.5, 0.3 + i * 0.26, Math.sin(giro) * 1.5], '#b08c5c', [0, -giro, 0], 0.08);
+    caja(c, [0.14, 1.3, 0.14], [-1.6 + Math.cos(giro) * 2.95, 0.72, Math.sin(giro) * 2.95], '#d8c29a', [0, -giro, 0], 0.06);
   },
   // el farol en el piso del galpón (el vidrio, en la malla de brillo)
   'farol-galpon': (c) => {
@@ -262,8 +263,8 @@ const FORMAS = {
     esfera(c, 0.022, [-0.07, 0.62, 0.085], '#e7ddc6', [1, 1, 1], 0.02);
   },
   'barro-bellotas': (c) => {
-    [[-0.3, 1.25, 0.25], [0.05, 1.05, 0.33], [0.32, 1.38, 0.2], [-0.05, 1.5, 0.16], [0.4, 0.95, 0.22]].forEach(([x, y, r]) => esfera(c, r, [x, y, 0.02], '#4a3726', [1, 0.8, 0.12], 0.12));
-    for (let i = 0; i < 9; i++) { const x = (i - 4) * 0.13, z = 0.15 + (i % 3) * 0.08; esfera(c, 0.035, [x, 0.035, z], '#8a5a2b', [1, 1.3, 1], 0.08); esfera(c, 0.033, [x, 0.065, z], '#5a4028', [1, 0.45, 1], 0.06); }
+    [[-0.3, 1.25, 0.25], [0.05, 1.05, 0.33], [0.32, 1.38, 0.2], [-0.05, 1.5, 0.16], [0.4, 0.95, 0.22]].forEach(([x, y, r]) => esfera(c, r, [x, y, 0.02], '#8a6a47', [1, 0.8, 0.12], 0.1));   // (4.19.0: barro seco más claro: de madrugada, el #4a3726 se perdía contra los troncos oscuros del refugio)
+    for (let i = 0; i < 9; i++) { const x = (i - 4) * 0.13, z = 0.15 + (i % 3) * 0.08; esfera(c, 0.04, [x, 0.04, z], '#c2883f', [1, 1.3, 1], 0.08); esfera(c, 0.038, [x, 0.072, z], '#8a6a42', [1, 0.45, 1], 0.06); }
   },
   mapa: (c) => {
     cajaM(c, [0.72, 0.006, 0.5], [0, 0.003, 0], '#c9b07e', [0, 0.15, 0], 0.03);   // (más oscuro: el papel claro se perdía contra la tabla)
@@ -285,7 +286,13 @@ const FORMAS = {
   },
   // lo prestado, durante la escena que lo trae (en la noche lo arma historia-noche-mundo.js)
   estacas: (c, info) => {
-    for (let i = 0; i < 7; i++) { const x = (i - 3) * 0.9, y = info.suelo(x, 0); palo(c, 0.06, 1.4, [x, y + 0.5, 0.15], [0.55, 0, 0], '#6b5238'); c.agregar(new THREE.ConeGeometry(0.065, 0.2, 6), { color: '#5d5f63', tipo: 4, variar: 0.06, matriz: matriz([x, y + 1.13, 0.53], [0.55, 0, 0]) }); }
+    // 4.19.0: desde el picado se leían como rayas finas: ahora son 6, de 11 cm de radio (hierro viejo, el guion las dice negras), con la punta oxidada que se ve contra la nieve y un montoncito de piedras al pie
+    for (let i = 0; i < 6; i++) {
+      const x = (i - 2.5) * 1.05, y = info.suelo(x, 0);
+      palo(c, 0.11, 1.55, [x, y + 0.55, 0.17], [0.55, 0, 0], '#2f2c29');
+      c.agregar(new THREE.ConeGeometry(0.12, 0.36, 6), { color: '#8a4a2a', tipo: 4, variar: 0.08, matriz: matriz([x, y + 1.3, 0.62], [0.55, 0, 0]) });
+      for (const [dx, dz] of [[-0.2, -0.05], [0.18, 0.02], [0, -0.22]]) esfera(c, 0.13, [x + dx, y + 0.08, dz], '#8f8b82', [1, 0.7, 1], 0.1);
+    }
   },
   'frascos-miel': (c) => {
     for (const x of [-0.25, 0.25]) { palo(c, 0.1, 0.22, [x, 0.11, 0], [0, 0, 0], '#c98a2a'); palo(c, 0.105, 0.03, [x, 0.235, 0], [0, 0, 0], '#e9e2d0'); }
@@ -315,8 +322,14 @@ const FORMAS = {
   },
   'cartel-tabla': (c) => {
     palo(c, 0.06, 1.7, [-0.75, 0.85, 0], [0, 0, 0], '#5f4a33'); palo(c, 0.06, 1.7, [0.75, 0.85, 0], [0, 0, 0], '#5f4a33');
-    caja(c, [1.75, 0.42, 0.05], [0, 1.45, 0.05], '#a07a4a', [0, 0, 0], 0.08);
-    for (let i = 0; i < 6; i++) caja(c, [0.16 + (i % 3) * 0.05, 0.12, 0.012], [-0.65 + i * 0.26, 1.47, 0.08], '#3a2a1c', [0, 0, 0], 0.04);   // «Puesto Catrileo», a pincel
+    // 4.19.0: la tabla más alta: arriba el nombre, y debajo la oveja dibujada a pincel (el guion: «una oveja dibujada con cuatro patas y una sonrisa»)
+    caja(c, [1.75, 0.98, 0.05], [0, 1.18, 0.05], '#a07a4a', [0, 0, 0], 0.08);
+    for (let i = 0; i < 6; i++) caja(c, [0.16 + (i % 3) * 0.05, 0.12, 0.012], [-0.65 + i * 0.26, 1.52, 0.08], '#3a2a1c', [0, 0, 0], 0.04);   // «Puesto Catrileo», a pincel
+    esfera(c, 0.21, [-0.02, 1.02, 0.082], '#efe9d8', [1.4, 0.95, 0.05], 0.02);   // el vellón
+    for (const [dx, dy] of [[-0.2, 0.1], [0.02, 0.15], [0.2, 0.1]]) esfera(c, 0.1, [dx, 1.02 + dy, 0.084], '#efe9d8', [1, 1, 0.05], 0.02);   // los bultos de lana
+    esfera(c, 0.085, [0.3, 1.0, 0.09], '#3a2a1c', [1, 1.15, 0.05], 0.02);   // la cabeza (mira a la derecha)
+    caja(c, [0.075, 0.014, 0.006], [0.325, 0.965, 0.096], '#efe3cf', [0, 0, -0.25], 0.02);   // la sonrisa
+    for (const x of [-0.19, -0.07, 0.08, 0.19]) caja(c, [0.04, 0.17, 0.012], [x, 0.84, 0.084], '#3a2a1c', [0, 0, 0], 0.03);   // las cuatro patas
   },
   'cartel-chapa': (c, info) => {
     const r = Math.max(0.8, Number(info?.r) || 1.4), a = Number.isFinite(info?.hacia) ? info.hacia : 1.2, x = Math.cos(a) * (r + 0.06), z = Math.sin(a) * (r + 0.06);

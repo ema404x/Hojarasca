@@ -1138,7 +1138,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       if (g.dormido) { if (g.g.visible) g.g.visible = false; continue; }
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
       // (3.6: el que está adentro de un edificio de la aldea se ve sólo de cerca, `soloCerca`)
-      g.g.visible = g.aBordo ? !!g.enViaje && d < 40 : d < (g.soloCerca || 130);
+      // 4.19.0: el que está en una escena de la Historia (`enEscena`, lo pone escenas-mundo.js) se dibuja a la distancia que sea: Herminia en su casa, a 700 m del refugio
+      g.g.visible = g.aBordo ? !!g.enViaje && d < 40 : (!!g.enEscena || d < (g.soloCerca || 130));
       limitarSombrasPorDistancia(g.g, d, 48);
       if (!g.g.visible) continue;
       g.fase += dt;
@@ -1193,7 +1194,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       // lejanos se recalculan a menor frecuencia. Cerca o charlando = tiempo real.
       g.paso += dt * (2.6 + g.vel * 5);
       g.__poseAcum = (g.__poseAcum || 0) + dt;
-      const pasoPose = (charlando || d < 38) ? 0 : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
+      const pasoPose = (charlando || d < 38 || g.enEscena) ? 0 : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
       const actualizarPose = pasoPose === 0 || g.__poseAcum >= pasoPose;
       if (actualizarPose) {
         g.__poseAcum = 0;

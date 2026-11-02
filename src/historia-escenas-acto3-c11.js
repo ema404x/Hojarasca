@@ -23,7 +23,7 @@ const titoArco = {
       linea('Lenga. Flexible y terca, como la gente de acá.', { gesto: gs('hacer-broma', 2) }),
       'No lo deje al sol ni lo deje en la nieve. Trátelo como a un perro viejo: con paciencia y sin hacerle trampa.',
     ]),
-    plano('detalle', FRENTE(1.2), { desde: 'jugador', dist: 0.8, alto: 1.1, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1.2), { desde: 'jugador', dist: 1.7, alto: 1.5, miraY: 1.3, dur: 3, mezcla: 0.8 }),   // (4.19.0: a la altura del pecho y más atrás: antes se veían las piernas de Tito)
     narra('Te entrega el arco sin cuerda. Pesa casi nada y vibra apenas en las manos, como un animal que todavía no se decidió a despertar.'),
     eleccion('arco-resp', '¿Qué le decís a Tito?', [
       opcion('gracias', 'Es el mejor arco que vi en mi vida.', { efecto: 'lazo:tito:1' }),

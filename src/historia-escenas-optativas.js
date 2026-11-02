@@ -23,7 +23,7 @@ const frascoRepisa = {
   personajes: pj3('nota', 'narra'),
   pasos: [
     plano('general', 'jugador', { dist: 4.6, alto: 2.4, dur: 2.2 }),
-    plano('detalle', FRENTE(0.9), { dist: 0.7, alto: 1.5, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(0.9), { dist: 0.7, alto: 1.5, miraY: 1.55, dur: 3, mezcla: 0.8 }),   // (4.19.0: con la colocación el frasco queda a 0,9 m: antes la cámara miraba la pared lisa)
     narra('Un frasco de vidrio grueso, con una tela atada con piolín por tapa. Adentro, una masa gris que respira: cada tanto sube una burbuja y revienta sin apuro.'),
     narra('Tiene una etiqueta con la letra inclinada de Eusebio: «1987». Abajo del frasco, doblado en cuatro, hay otro papelito.'),
     sonido('anotar'),
@@ -55,7 +55,7 @@ const frascoRosa = {
       linea('¿Eso es lo que creo? ¡Dame, dame!', { gesto: gs('sorprenderse', 1.6) }),
       linea('Masa de Eusebio. Del ochenta y siete. Y está viva, la muy terca.', { gesto: gs('amasar', 2.2), plano: { plano: 'primer', a: 'rosa', desde: 'jugador', mezcla: 0.7, dur: 30, sinEsperar: true } }),
     ]),
-    plano('detalle', FRENTE(1.1), { desde: 'jugador', dist: 0.8, alto: 1.2, dur: 2.6, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1.1), { desde: 'jugador', dist: 1.7, alto: 1.5, miraY: 1.3, dur: 2.6, mezcla: 0.8 }),   // (4.19.0: a la altura del pecho y más atrás: antes se veían las piernas)
     narra('Rosa desata el piolín, levanta la tela y mete la nariz. Cierra los ojos. Así se huele una carta de alguien que ya no está.'),
     dlg('rosa', [linea('Primero la harina, ahora la masa. Me vas a terminar trayendo al molinero entero, en cuotas.', { gesto: gs('hacer-broma', 1.8) })], { si: siDecision('bolsa', 'b') }),
     con(dlg('rosa', ['Me la prometió el invierno que se enfermó. Pensé que se la había llevado con él, adonde sea que van los molineros.']), { ...siDecision('bolsa', 'b'), no: true }),

@@ -356,7 +356,7 @@ const mulasBelisario = {
     camina('belisario', { lugar: 'mallin', dx: 6, dz: 4 }, { vel: 1.8 }),
     plano('general', { lugar: 'mallin' }, { dist: 16, alto: 3.6, dur: 3.2, mezcla: 0.9 }),
     narra('Siete mulas en fila, con la carga bien atada, y vos en el zaino, al final, como cola de cometa. El zaino camina más derecho de lo que recordabas. Sabe quién lo mira.'),
-    plano('medio', 'belisario', { desde: 'jugador', mezcla: 0.9, dur: 1, sinEsperar: true }),
+    plano('medio', 'belisario', { desde: 'jugador', dist: 4.6, alto: 2.5, giro: 30, mezcla: 0.9, dur: 1, sinEsperar: true }),   // (4.19.0: con la tropa pasando, la cámara quedaba pegada al lomo de una mula: más atrás, más alta y de costado)
     dlg('belisario', [
       linea('Mire cómo marcha. Eso es de buena sangre.', { gesto: gs('senalar', 2) }),
       'El zaino es hijo de la yegua que le vendí a Ramón. La «mansa». Salió más manso que la madre y más bruto que el padre. Lo mejor de los dos mundos.',
@@ -395,7 +395,7 @@ const herminiaNoventa = {
       'Esperá. Tengo algo para vos. Lo guardé setenta y siete años por si alguien lo merecía.',
       linea('Yo era una nena. Estaba jugando entre las raíces del coihue grande, y debajo de una, en la tierra, encontré esto. Chiquito como una uña.', { gesto: gs('contar', 2.6) }),
     ]),
-    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 0.8, alto: 1.2, dur: 3, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.7, alto: 1.5, miraY: 1.3, dur: 3, mezcla: 0.8 }),   // (4.19.0: a la altura del pecho y más atrás: antes se veían las piernas)
     narra('Una llave de bronce, chiquita, con el ojo en forma de hoja. Pesa casi nada. Está tibia, aunque la sacó de un cajón.'),
     dlg('herminia', ['La llavecita. No sé a qué puerta abre. Pero tengo una idea de dónde queda la puerta.']),
     efecto('objeto:llavecita'),

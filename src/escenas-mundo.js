@@ -103,12 +103,15 @@ export function crearEscenasMundo(ctx) {
     if (!clave || captura.has(clave)) return;
     let n = actor(clave);
     // 4.17.0 (C): Fermín, Belisario y Tobías sólo se arman cuando te acercás a su lugar; si la escena los pide desde lejos (la minga, la veta), se arman ya
-    if (!n && ctx.armarYa) { try { n = ctx.armarYa(clave) || actor(clave); } catch (e) { ctx.fallo?.(e, 'escenas-armar'); n = null; } }
+    // 4.19.0 (C): «pareja» es la persona real con la que estás: se la arma con su clave de verdad (antes se pedía «pareja» y nadie la sabía armar: la pareja no aparecía en sus escenas si todavía no estaba en la lista de gente)
+    const real = clave === 'pareja' ? (ctx.parejaClave?.() || clave) : clave;
+    if (!n && ctx.armarYa) { try { n = ctx.armarYa(real) || actor(clave); } catch (e) { ctx.fallo?.(e, 'escenas-armar'); n = null; } }
     if (!n) { captura.set(clave, { n: null }); return; }
     const guardado = {};
-    for (const k of ['conVos', 'enCita', 'pose', 'asiento', 'soloCerca', 'dormido', 'charlaVecinos', 'sinFrenar', 'camino', 'velocidad', 'miraFinal', '__quietud', 'alAmor', 'aBordo', 'enViaje']) guardado[k] = { tiene: Object.hasOwn(n, k), v: n[k] };
+    for (const k of ['conVos', 'enCita', 'pose', 'asiento', 'soloCerca', 'dormido', 'charlaVecinos', 'sinFrenar', 'camino', 'velocidad', 'miraFinal', '__quietud', 'alAmor', 'aBordo', 'enViaje', 'enEscena']) guardado[k] = { tiene: Object.hasOwn(n, k), v: n[k] };
     captura.set(clave, { n, guardado, propia: null, pose: null });
     n.conVos = true; n.enCita = true; n.pose = null; n.asiento = undefined; n.soloCerca = 0; n.dormido = false; n.charlaVecinos = false; n.sinFrenar = true;
+    n.enEscena = true;   // 4.19.0: gente.js lo dibuja aunque esté a más de 130 m del jugador (Herminia en su casa, desde el refugio); `soltar` lo devuelve a su estado
     n.aBordo = false; n.enViaje = false;   // 4.16.0: Elsa (la guarda) vive «a bordo» de la trochita y no se dibuja fuera de ella: en una escena sí
     n.camino = []; n.__quietud = null; n.alAmor = false;
     delete n.miraFinal;
