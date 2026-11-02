@@ -300,7 +300,7 @@ export function crearValleUi(ctx) {
   function mostrarDecision(h, dec, s) {
     tarjetas.mostrar({
       clase: 'evento', arriba: 'Una decisión', titulo: dec.titulo, texto: dec.texto,
-      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); const aviso = ok ? avisoLazosDe(o) : ''; return { id: o.id, texto: o.texto, detalle: ok ? (aviso ? `${o.detalle || ''}${o.detalle ? ' · ' : ''}${aviso}` : o.detalle) : o.sinRequisito, deshabilitada: !ok };   // (4.18.2: y lo que le pasa al lazo de los vecinos) }),
+      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); const aviso = ok ? avisoLazosDe(o) : ''; return { id: o.id, texto: o.texto, detalle: ok ? (aviso ? `${o.detalle || ''}${o.detalle ? ' · ' : ''}${aviso}` : o.detalle) : o.sinRequisito, deshabilitada: !ok }; }),   // (4.18.2: y lo que le pasa al lazo de los vecinos)
       alElegir: (id) => {
         const o = tomarDecision(h, dec.id, id, estado());
         if (!o) return false;

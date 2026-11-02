@@ -140,6 +140,15 @@ if (!HIJO) {
   const delFinal = TL.finalDeLazos((q) => H.lazoDe(hAlto, q));
   ok(delFinal.every((t) => conTodos.includes(t)), 'el final con lazo de la casa trae todas las líneas de B');
   igual(TL.finalDeLazos(() => 0).filter((t) => sinNadie.includes(t)), [], 'con lazos en cero no sale ninguna línea de vecino en el final');
+  // el juego armado tiene que parsear (una vez un comentario a mitad de línea se comió el cierre de una llamada y la página no cargaba)
+  {
+    const html = readFileSync(join(raiz, 'index.html'), 'utf8');
+    const { Script } = await import('node:vm');
+    const bloques = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    let bien = bloques.length > 0;
+    for (const b of bloques) { try { new Script(b); } catch (e) { bien = false; console.log('  no parsea:', e.message); } }
+    ok(bien, 'el index.html armado parsea (todos sus bloques de script)');
+  }
   // la escena de Sofía
   const esc = EL.ESCENAS_LAZOS;
   ok(Object.hasOwn(esc, 'foto-valle') && esc['foto-valle'].id === 'foto-valle', 'está la escena foto-valle');
