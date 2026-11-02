@@ -1,8 +1,8 @@
 // 4.17.0: la tarjeta final de la Historia («El trato del molino»), armada con piezas según el estado (GUION_HISTORIA.md, capítulo 13). Módulo PURO (se prueba en Node).
 // Las dos mitades son los dos finales: A (el trato: se sigue con la costumbre de la bolsa) y B (la pelea: el valle quedó tranquilo). Después se agregan las piezas
 // que corresponden (el ramal, la majada, la escuela, Graciela, la noche perdida) y, siempre, la última.
-import { estadoRamal, lazoDe, PERSONAS_LAZO_VECINOS } from './historia.js';
-import { TEXTO_LAZOS } from './historia-texto-lazos.js';
+import { estadoRamal, lazoDe } from './historia.js';
+import { finalDeLazos } from './historia-texto-lazos.js';
 
 export const FINAL_A = [
   'El valle sigue raro. Las herramientas a veces amanecen en otro lado, el pan de Rosa crece de más, Nicanor ve luces sobre el lago y ya nadie se ríe de él. Cada cosecha, una bolsa del molino se deja en el umbral. Nadie la ve irse.',
@@ -23,19 +23,12 @@ export const PIEZAS_FINAL = {
   siempre: 'La historia termina acá, pero el valle no. Queda todo por andar. Tomate tu tiempo: acá nadie tiene apuro, y el que tiene, se le pasa.',
 };
 
-// 4.18.2: una línea corta de epílogo por cada vecino con lazo de la casa (>= 3) y, donde el guion lo justifique (B), una tirante con lazo < 0. Las escribe B
-// (TEXTO_LAZOS.final[clave] = { casa, tirante }); si falta la del vecino, no sale nada. Van en el orden de PERSONAS_LAZO_VECINOS y antes de la última pieza.
+// 4.18.2: una línea corta de epílogo por cada vecino con lazo de la casa (>= 3 casi todos) y, donde el guion lo justifique (Tito), una tirante (lazo < 0). Las escribe B
+// (TEXTO_LAZOS.final[quien] = [{ id, min?, max?, texto }]) y `finalDeLazos` las elige y las ordena; si falta un vecino, no sale nada. Van después de la de Graciela.
 export function piezasLazos(h) {
-  const r = [];
-  const T = TEXTO_LAZOS.final && typeof TEXTO_LAZOS.final === 'object' ? TEXTO_LAZOS.final : {};
-  for (const k of PERSONAS_LAZO_VECINOS) {
-    const t = Object.hasOwn(T, k) && T[k] && typeof T[k] === 'object' ? T[k] : null;
-    if (!t) continue;
-    const l = lazoDe(h, k);
-    if (l >= 3 && typeof t.casa === 'string' && t.casa) r.push(t.casa);
-    else if (l < 0 && typeof t.tirante === 'string' && t.tirante) r.push(t.tirante);
-  }
-  return r;
+  let r = [];
+  try { r = finalDeLazos((q) => lazoDe(h, q)); } catch { r = []; }
+  return (Array.isArray(r) ? r : []).map((t) => (typeof t === 'string' ? t : t?.texto)).filter((t) => typeof t === 'string' && t);
 }
 
 // { titulo, subtitulo, texto: [párrafos], final: 'trato' | 'pelea' } para un historial dado (`h` = progreso.historia)

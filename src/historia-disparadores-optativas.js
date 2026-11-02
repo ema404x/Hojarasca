@@ -5,8 +5,7 @@
 //
 // `repetible: true` en un disparador: la escena se puede volver a disparar aunque ya esté vista (las de la costumbre y la broma del galpón).
 import { marcarTema, marcarEntrega, marcarObjeto, capituloActual } from './historia.js';
-import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco, disparosDeLazo, claveDisparoLazo } from './historia-optativas.js';
-import { OPTATIVA_SOFIA } from './historia-escenas-lazos.js';
+import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco, disparosDeLazo, claveDisparoLazo, OPTATIVA_SOFIA } from './historia-optativas.js';
 
 const en = (nombre, radio) => [nombre, radio];
 const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
@@ -21,6 +20,7 @@ export function disparadoresDeLazo(d) {
   const r = {};
   const ofr = d && typeof d.ofrece === 'object' && d.ofrece ? d.ofrece : {};
   const temas = Array.isArray(ofr.temas) ? ofr.temas.filter((x) => typeof x === 'string') : [];
+  const pobladores = Array.isArray(ofr.pobladores) ? ofr.pobladores.filter((x) => typeof x === 'string') : [];
   disparosDeLazo(d).forEach((x, i) => {
     const k = claveDisparoLazo(d, i);
     const disp = { cap: d.desde, modo: x.modo };
@@ -29,7 +29,7 @@ export function disparadoresDeLazo(d) {
     if (Array.isArray(ofr.escenas) && ofr.escenas.length) disp.requiere = ofr.escenas.filter((e) => typeof e === 'string');
     if (x.lugar) disp.lugar = en(x.lugar, Number(x.radio) || 12);
     if (Array.isArray(x.hora) && x.hora.length === 2) disp.hora = [Number(x.hora[0]), Number(x.hora[1])];
-    disp.cond = (s) => temas.every((t) => s.temas.has(t)) && (!ofr.trato || s.trato === ofr.trato);
+    disp.cond = (s) => temas.every((t) => s.temas.has(t)) && pobladores.every((x) => s.pobladores.has(x)) && (!ofr.trato || s.trato === ofr.trato);
     r[k] = disp;
   });
   return r;

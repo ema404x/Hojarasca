@@ -904,7 +904,7 @@ export function decisionesDe(h) {
   return h.decisiones;
 }
 // el cuaderno de lo raro: indicios con fecha. Cada uno se anota una vez.
-export const RAROS = Object.fromEntries([...Object.entries(TEXTO_ACTO1.raro), ...Object.entries(TEXTO_ACTO2.raro || {}), ...Object.entries(TEXTO_ACTO3.raro || {}), ...Object.entries(TEXTO_OPTATIVAS.raro || {})].map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
+export const RAROS = Object.fromEntries([...Object.entries(TEXTO_ACTO1.raro), ...Object.entries(TEXTO_ACTO2.raro || {}), ...Object.entries(TEXTO_ACTO3.raro || {}), ...Object.entries(TEXTO_OPTATIVAS.raro || {}), ...Object.entries(TEXTO_LAZOS.raro || {})].map(([k, v]) => [k, v.texto]));   // (los 12 indicios del acto I, con el texto que escribió B: historia-texto-acto1.js)
 export function anotarRaro(h, id, dia = 1) {
   if (!Object.hasOwn(RAROS, id)) return false;
   if (!Array.isArray(h.raro)) h.raro = [];
@@ -1241,7 +1241,7 @@ export function panelHistoria(h, s = null) {
 }
 
 // Los lazos en palabras, para la guía: sólo los que ya conocés. Los seis con arco, como siempre; los siete vecinos (4.18.2) se conocen si hablaste con ellos
-// (Nicanor), si el lazo ya se movió o si algo pasó entre los dos (un tema o una entrega anotados a su nombre). `oficio`: la frase corta que escribió B.
+// (Nicanor), si el lazo ya se movió o si algo pasó entre los dos (un tema o una entrega anotados a su nombre). `oficio` y `frase`: lo que escribió B (TEXTO_LAZOS.guia[quien] = { nombre, rol, frases: { <palabra del lazo>: frase } }).
 export function lazosEnPalabras(h) {
   const salida = [];
   const conMarca = (g, k) => Object.keys(obj(obj(h)[g])).some((x) => x.startsWith(`${k}:`));
@@ -1250,8 +1250,9 @@ export function lazosEnPalabras(h) {
     const conocido = obj(h?.hablados)[k] === true || lazoDe(h, k) !== 0 || (k === 'guarda' && !!obj(h?.escenas?.vistas)['trochita-boleto']) || (k === 'graciela' && !!obj(h?.escenas?.vistas)['anden-graciela'])
       || (vecino && (conMarca('temas', k) || conMarca('entregados', k)));
     if (!conocido) continue;
-    const oficio = vecino && typeof obj(TEXTO_LAZOS.guia)[k] === 'string' ? TEXTO_LAZOS.guia[k] : '';
-    salida.push({ quien: k, nombre: NOMBRES[k], palabra: palabraLazo(lazoDe(h, k)), oficio });
+    const g = vecino ? obj(obj(TEXTO_LAZOS.guia)[k]) : {};
+    const palabra = palabraLazo(lazoDe(h, k));
+    salida.push({ quien: k, nombre: NOMBRES[k], palabra, oficio: typeof g.rol === 'string' ? g.rol : '', frase: typeof obj(g.frases)[palabra] === 'string' ? g.frases[palabra] : '' });
   }
   return salida;
 }

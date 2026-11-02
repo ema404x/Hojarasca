@@ -10,7 +10,7 @@
 //   · Hecha = queda anotada en `historia.optativas[id] = día` una sola vez, y en ese momento se da el premio (una sola vez). Los LAZOS del
 //     guion los da la escena (`lazo:<quién>:<n>`); si la escena vista no trae el lazo de esa persona, lo da el registro. Lo mismo con el ramal.
 //   · Los encargos de los vecinos con lazo (LAZOS_TODOS: los seis con arco y, desde la 4.18.2, también Nicanor): cada encargo cumplido con la historia en marcha suma +1 al lazo de quien lo pidió.
-import { CAPITULOS, LAZOS_TODOS, cambiarLazo, sumarRamal } from './historia.js';
+import { CAPITULOS, LAZOS_TODOS, PERSONAS_LAZO_VECINOS, cambiarLazo, sumarRamal } from './historia.js';
 import { TEXTO_LAZOS } from './historia-texto-lazos.js';
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
 import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
@@ -20,7 +20,7 @@ import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';
 import { ESCENAS_ACTO2 } from './historia-escenas-acto2.js';
 import { ESCENAS_ACTO3 } from './historia-escenas-acto3.js';
 import { ESCENAS_OPTATIVAS } from './historia-escenas-optativas.js';
-import { ESCENAS_LAZOS, OPTATIVA_SOFIA } from './historia-escenas-lazos.js';
+import { ESCENAS_LAZOS } from './historia-escenas-lazos.js';
 import { efectosDe, PERSONAJES_HISTORIA } from './historia-escenas-util.js';
 import { PERSONAJES_ACTO2 } from './historia-escenas-acto2-util.js';
 import { PERSONAJES_ACTO3 } from './historia-escenas-acto3-util.js';
@@ -142,9 +142,16 @@ export const OPTATIVAS = [
   { id: 'volver-a-subir', desde: 'deshielo', hasta: 'deshielo', quien: 'ramon',
     ofrece: (s) => s.decisiones.majada === 'c' && s.escenas.has('majada-fin'), hecha: vista('volver-a-subir'), escenas: ['volver-a-subir'], disparadores: ['volver-a-subir'], premio: null },
 ];
-// 4.18.2: la optativa de Sofía (la fotógrafa), que es la que le da lazo. Los datos los trae B (historia-escenas-lazos.js: OPTATIVA_SOFIA); acá se arma la
-// entrada del registro con ellos. Si el dato falta o está mal armado (un capítulo que no existe, sin escena), no entra: nada se traba ni se rompe.
+// 4.18.2: la optativa de Sofía (la fotógrafa), que es la que le da lazo. La escena `foto-valle` y su tablón son de B (historia-escenas-lazos.js y
+// historia-texto-lazos.js); acá está el dato del registro y la entrada se arma con él. Si el dato está mal armado (un capítulo que no existe, sin escena), no entra:
+// nada se traba ni se rompe. El lazo lo da la escena (`lazo:sofia:1` o `:2`, nunca los dos): si no lo trae, lo da el registro (premioDe).
 // `disparo`: un disparador o una lista (el primero se llama como la escena; los otros, `<escena>:<modo>`); ver disparadoresDeLazo (historia-disparadores-optativas.js).
+export const OPTATIVA_SOFIA = {
+  id: 'foto-valle', escena: 'foto-valle', desde: 'cosecha', hasta: 'cuaderno', quien: 'sofia',   // (hasta el fin del acto II: el guion no dice más y ninguna optativa cruza de acto)
+  ofrece: { pobladores: ['fotografa'] },   // (Sofía ya vive en la aldea)
+  // E sobre Sofía o llegar al estudio, de 9 a 16:30 (la escena adelanta la hora hasta las cinco menos diez, la luz que ella espera)
+  disparo: [{ modo: 'auto', lugar: 'estudio-fotos', radio: 12, hora: [9, 16.5] }, { modo: 'hablar', clave: 'fotografa', hora: [9, 16.5] }],
+};
 export const disparosDeLazo = (d) => (Array.isArray(d?.disparo) ? d.disparo : d?.disparo ? [d.disparo] : []).filter((x) => x && typeof x === 'object' && ['auto', 'hablar', 'interaccion'].includes(x.modo));
 export const claveDisparoLazo = (d, i) => (i === 0 ? d.escena : `${d.escena}:${disparosDeLazo(d)[i].modo}`);
 export function optativaDeLazo(d) {
@@ -153,10 +160,11 @@ export function optativaDeLazo(d) {
   const ofr = obj(d.ofrece);
   const escenas = (Array.isArray(ofr.escenas) ? ofr.escenas : []).filter((x) => typeof x === 'string');
   const temas = (Array.isArray(ofr.temas) ? ofr.temas : []).filter((x) => typeof x === 'string');
+  const pobladores = (Array.isArray(ofr.pobladores) ? ofr.pobladores : []).filter((x) => typeof x === 'string');
   const quien = typeof d.quien === 'string' ? d.quien : 'sofia';
   return {
     id: d.id, desde: d.desde, hasta: d.hasta, quien,
-    ofrece: (s) => escenas.every((x) => s.escenas.has(x)) && temas.every((x) => s.temas.has(x)) && (!ofr.trato || s.trato === ofr.trato),
+    ofrece: (s) => escenas.every((x) => s.escenas.has(x)) && temas.every((x) => s.temas.has(x)) && pobladores.every((x) => s.pobladores.has(x)) && (!ofr.trato || s.trato === ofr.trato),
     hecha: vista(d.escena), escenas: [d.escena], disparadores: disparosDeLazo(d).map((_, i) => claveDisparoLazo(d, i)),
     // (el lazo lo da la escena con `lazo:sofia:n`; si no lo trae, lo da el registro: ver premioDe)
     premio: LAZOS_TODOS.includes(quien) ? { lazos: { [quien]: 1 } } : null,
@@ -312,14 +320,14 @@ const CHARLAS = (() => {
     // (las de las optativas, marcadas: son «de después» y valen aunque el capítulo ya haya pasado)
     for (const l of Array.isArray(lista) ? lista : []) if (l && typeof l.id === 'string' && typeof l.texto === 'string') (r[clave] ||= []).push(T === TEXTO_OPTATIVAS ? { ...l, deOptativa: true } : l);
   }
-  // 4.18.2: las del lazo (`cuando: { lazo: { min?, max? } }`): valen de su capítulo en adelante, como las de las optativas, mientras el lazo esté en ese tramo.
-  // Sólo las de los vecinos con lazo (LAZOS_TODOS) y con una condición de lazo bien formada: lo demás se ignora.
+  // 4.18.2: las del lazo (`cuando: { lazo: { min?, max? } }`) y, de Sofía, la «de después» de su escena (`cuando: { escena }`): valen de su capítulo en adelante, como
+  // las de las optativas, mientras el lazo esté en ese tramo. Sólo las de los siete vecinos (PERSONAS_LAZO_VECINOS: los seis con arco no cambian) y con una condición bien formada: lo demás se ignora.
   for (const [quien, lista] of Object.entries(obj(TEXTO_LAZOS.charlas))) {
-    if (!LAZOS_TODOS.includes(quien)) continue;
+    if (!PERSONAS_LAZO_VECINOS.includes(quien)) continue;
     const clave = CLAVE_DE[quien] || quien;
     for (const l of Array.isArray(lista) ? lista : []) {
-      const w = obj(obj(l?.cuando).lazo);
-      if (!l || typeof l.id !== 'string' || typeof l.texto !== 'string' || (!Number.isFinite(w.min) && !Number.isFinite(w.max))) continue;
+      const w = obj(obj(l?.cuando).lazo), deEscena = typeof l?.cuando?.escena === 'string';
+      if (!l || typeof l.id !== 'string' || typeof l.texto !== 'string' || (!deEscena && !Number.isFinite(w.min) && !Number.isFinite(w.max))) continue;
       (r[clave] ||= []).push({ ...l, deLazo: quien });
     }
   }

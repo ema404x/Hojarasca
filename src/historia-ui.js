@@ -63,6 +63,7 @@ export const CSS_VALLE = `
 .historia-hud .optativas p.hecho { opacity: .55; }
 .valle-guia ul.optativas { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia ul.lazos { list-style: none; padding: 0; margin: 4px 0; font-size: 13px; opacity: .85; }
+.valle-guia ul.lazos small { display: block; font-size: 12px; opacity: .8; margin-bottom: 3px; }
 .valle-guia ul.raro { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,.05); }
 .valle-guia h3 { margin: 0 0 4px; font-size: 18px; }
@@ -668,7 +669,7 @@ export function crearValleUi(ctx) {
       const raros = (h.raro || []).slice().reverse();
       const opt = optativasHechas(h);
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
-        + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}${l.oficio ? `, ${escP(l.oficio)}` : ''}: ${escP(l.palabra)}</li>`).join('')}</ul>` : '')
+        + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}${l.oficio ? `, ${escP(l.oficio)}` : ''}: ${escP(l.palabra)}${l.frase ? `<small>${escP(l.frase)}</small>` : ''}</li>`).join('')}</ul>` : '')
         + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
         + (opt.length ? `<p>Lo que hiciste de paso</p><ul class="optativas">${opt.map((x) => `<li>Día ${x.dia} · ${escP(x.titulo)}: ${escP(x.texto)}</li>`).join('')}</ul>` : '')   // 4.18.0
         + (b ? `<button data-historia="${b.accion}">${escP(b.texto)}</button>` : '')
