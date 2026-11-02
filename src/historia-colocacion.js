@@ -63,6 +63,8 @@ export const COLOCACION_PULIDO = {
   'amanecer-pelea-perdida': { punto: 'galpon-noche', dist: 6, desde: 'sendero' },
   'prestado-herrero': { npc: 'herrero', dist: 3.6, desde: 'frente' },   // (Anselmo de cara a vos; las estacas, 7,5 m adelante, detrás de él)
   'majada-fin': { punto: 'galpon-cartel', dist: 6, desde: 'galpon-afuera', alto: -0.05 },   // (de frente al portón del galpón de esquila, con el cartel a un costado)
+  'frasco-repisa': { lx: -0.08, lz: -1.65, mira: [-0.08, -2.55] },   // (4.19.0: la estantería del fondo del refugio, a 0,9 m: la escena anclaba la cámara a FRENTE(0,9) y miraba la pared)
+  'pareja-noche-antes': { lx: 0.1, lz: 7.4, mira: [0.1, 3.7] },   // (4.19.0: de frente al umbral, a 7 m: la pareja aparece 3 m delante tuyo, en el escalón; sin esto la cámara quedaba pegada al muro de un costado)
   'umbral-fin': { lx: 0.1, lz: 5.6, mira: [0.1, 3.7] },   // (el picado del primer día: el umbral 2 m adelante)
   'costumbre-dejar': { lx: 0.1, lz: 5.6, mira: [0.1, 3.7] },
   'costumbre-regalito': { lx: 0.1, lz: 5.6, mira: [0.1, 3.7] },

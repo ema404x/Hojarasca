@@ -263,7 +263,7 @@ const trigoAbuelo = {
       linea('Venías por lo del trigo, ¿no? Esperá.', { gesto: gs('pensar', 1.8) }),
       'Está en el cajón de abajo, junto a los mapas de los senderos. No lo mostré nunca.',
     ]),
-    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 0.9, alto: 1.2, dur: 3.2, mezcla: 0.8 }),
+    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.9, alto: 1.5, miraY: 1.3, dur: 3.2, mezcla: 0.8 }),   // (4.19.0: a la altura del pecho y más atrás: antes se veía un torso sin cabeza)
     narra('Una foto gastada, en blanco y negro: un carro grande, dos bueyes, bolsas hasta arriba y un hombre de bigote que mira a la cámara con cara de apurado.'),
     dlg('josefina', [
       linea('Ese es. Mi abuelo. Tres días de viaje con el carro y el trigo.', { gesto: gs('senalar', 2) }),

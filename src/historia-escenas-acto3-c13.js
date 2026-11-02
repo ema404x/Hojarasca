@@ -70,7 +70,7 @@ const majadaFin = {
   disparador: { hora: [10, 18] },
   pasos: [
     // 4.18.1 (C): el plano ancla al cartel de verdad, de frente al portón (antes miraba el galpón desde 18 m, con la cámara metida adentro y a oscuras)
-    plano('general', { lugar: 'galpon-cartel' }, { desde: 'jugador', dist: 5.5, alto: 2.4, miraY: 1.4, dur: 30, mezcla: 0.9, sinEsperar: true, sinDespeje: true }),
+    plano('general', { lugar: 'galpon-cartel' }, { desde: 'jugador', dist: 4.4, alto: 2.5, miraY: 1.2, dur: 30, mezcla: 0.9, sinEsperar: true, sinDespeje: true }),   // (4.19.0: más cerca, más alto (por encima del cerco del corral) y centrado entre el nombre y la oveja dibujada debajo)
     salto('rama-b', siDecision('majada', 'b')),
     salto('rama-c', siDecision('majada', 'c')),
     // D5 = A (o sin decidir): Fermín llevó la majada (el cartel se ve desde el primer plano)

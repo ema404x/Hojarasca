@@ -133,8 +133,11 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   ok(entradas.length >= 20, `hay colocación para ${entradas.length} escenas (mínimo 20)`);
   // (4.18.0 C: también las del acto III; están en verificar-4-18-0-pulido-c.mjs)
   const ESC3 = (await import(pathToFileURL(join(raiz, 'src', 'historia-escenas-acto3.js')).href)).ESCENAS_ACTO3;
+  // (4.19.0 C: también las optativas: el frasco de la repisa y la noche con tu pareja tienen colocación)
+  const ESCO = (await import(pathToFileURL(join(raiz, 'src', 'historia-escenas-optativas.js')).href)).ESCENAS_OPTATIVAS;
+  const ESCB = (await import(pathToFileURL(join(raiz, 'src', 'historia-escenas-acto3.js')).href)).ESCENAS_ACTO3;
   for (const [id, c] of entradas) {
-    ok(Object.hasOwn(ESC, id) || Object.hasOwn(ESC3, id), `${id}: la colocación es de una escena que existe`);
+    ok(Object.hasOwn(ESC, id) || Object.hasOwn(ESC3, id) || Object.hasOwn(ESCO, id) || Object.hasOwn(ESCB, id), `${id}: la colocación es de una escena que existe`);
     const v = COL.validarColocacion(c);
     ok(v.ok, `${id}: colocación válida (${v.errores.join(', ')})`);
   }

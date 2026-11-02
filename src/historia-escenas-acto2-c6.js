@@ -245,7 +245,7 @@ const fotoSofia = {
       linea('Dejame ver eso.', { gesto: gs('mirar', 1.6) }),
       'Está movida. Muy movida. Bien movida: no hay una sola cosa nítida.',
     ]),
-    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.3, alto: 1.6, miraY: 1.15, dur: 3.2, mezcla: 0.8 }),   // (4.17.0: a 1,2 m del suelo el pasto tapaba la foto)
+    plano('detalle', FRENTE(1), { desde: 'jugador', dist: 1.9, alto: 1.5, miraY: 1.3, dur: 3.2, mezcla: 0.8 }),   // (4.17.0: a 1,2 m del suelo el pasto tapaba la foto; 4.19.0: la cámara más atrás y a la altura del pecho: antes quedaba un torso sin cabeza)
     narra('Sofía acerca la foto a la luz de la ventana, la aleja, la acerca otra vez. Con una lupa señala una de las manchas doradas.'),
     dlg('sofia', [
       linea('Esto no es una mancha.', { gesto: gs('senalar', 2) }),
