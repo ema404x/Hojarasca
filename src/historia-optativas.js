@@ -22,7 +22,7 @@ import { ESCENAS_ACTO1 } from './historia-escenas-acto1.js';
 import { ESCENAS_ACTO2 } from './historia-escenas-acto2.js';
 import { ESCENAS_ACTO3 } from './historia-escenas-acto3.js';
 import { ESCENAS_OPTATIVAS } from './historia-escenas-optativas.js';
-import { ESCENAS_LAZOS } from './historia-escenas-lazos.js';
+import { ESCENAS_LAZOS, OPTATIVAS_LAZOS } from './historia-escenas-lazos.js';
 import { efectosDe, PERSONAJES_HISTORIA } from './historia-escenas-util.js';
 import { PERSONAJES_ACTO2 } from './historia-escenas-acto2-util.js';
 import { PERSONAJES_ACTO3 } from './historia-escenas-acto3-util.js';
@@ -179,6 +179,8 @@ export function optativaDeLazo(d) {
   };
 }
 { const o = optativaDeLazo(OPTATIVA_SOFIA); if (o && !OPTATIVAS.some((x) => x.id === o.id)) OPTATIVAS.push(o); }
+// 4.19.0: las de B (Belisario y Sofía, para que lleguen a lazo 3): las dos entran por el mismo camino; si un dato está mal armado, no entra (nada se traba)
+for (const d of OPTATIVAS_LAZOS) { const o = optativaDeLazo(d); if (o && !OPTATIVAS.some((x) => x.id === o.id)) OPTATIVAS.push(o); }
 export const OPTATIVA = Object.fromEntries(OPTATIVAS.map((o) => [o.id, o]));
 export const IDS_OPTATIVAS_REGISTRO = OPTATIVAS.map((o) => o.id);
 

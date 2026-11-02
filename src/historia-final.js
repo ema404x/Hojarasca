@@ -25,9 +25,10 @@ export const PIEZAS_FINAL = {
 
 // 4.18.2: una línea corta de epílogo por cada vecino con lazo de la casa (>= 3 casi todos) y, donde el guion lo justifique (Tito), una tirante (lazo < 0). Las escribe B
 // (TEXTO_LAZOS.final[quien] = [{ id, min?, max?, texto }]) y `finalDeLazos` las elige y las ordena; si falta un vecino, no sale nada. Van después de la de Graciela.
-export function piezasLazos(h) {
+// 4.19.0: `finalDeLazos(lazoDe, final)` sabe el final (trato o pelea): hay líneas que sólo valen con uno (la de Nicanor y las luces del lago, con el valle tranquilo, no).
+export function piezasLazos(h, trato = 'trato') {
   let r = [];
-  try { r = finalDeLazos((q) => lazoDe(h, q)); } catch { r = []; }
+  try { r = finalDeLazos((q) => lazoDe(h, q), trato === 'pelea' ? 'pelea' : 'trato'); } catch { r = []; }
   return (Array.isArray(r) ? r : []).map((t) => (typeof t === 'string' ? t : t?.texto)).filter((t) => typeof t === 'string' && t);
 }
 
@@ -61,7 +62,7 @@ export function tarjetaFinal(h) {
   if (h?.decisiones?.majada === 'a') texto.push(PIEZAS_FINAL.majadaA);
   if (h?.decisiones?.cuaderno === 'a') texto.push(PIEZAS_FINAL.escuela);
   if (lazoDe(h, 'graciela') >= 3) texto.push(PIEZAS_FINAL.graciela);
-  texto.push(...piezasLazos(h));   // 4.18.2
+  texto.push(...piezasLazos(h, trato));   // 4.18.2 (4.19.0: con el final, para las líneas que sólo valen con uno)
   if (h?.duendes?.noche === 'perdida') texto.push(PIEZAS_FINAL.nochePerdida);
   texto.push(PIEZAS_FINAL.siempre);
   return { titulo: trato === 'trato' ? 'El trato' : 'La pelea', arriba: 'La historia del valle · final', texto, paginas: paginarFinal(texto), final: trato };

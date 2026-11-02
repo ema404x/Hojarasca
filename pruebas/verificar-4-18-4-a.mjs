@@ -78,7 +78,8 @@ if (va('ref')) {
   for (const l of lugaresPedidos()) ok(armados.has(l), `main.js arma el lugar «${l}» (si no, la distancia queda en NaN y nada que lo pida se cumple)`);
   // ningun disparador pide una escena de una optativa (las optativas no se hacen siempre: lo que las pide queda imposible para quien no las hizo)
   const deOptativas = new Set(O.OPTATIVAS.flatMap((o) => o.escenas || []));
-  for (const [k, d] of Object.entries(D.DISPARADORES)) for (const x of [...(d.requiere || [])]) ok(!deOptativas.has(x), `disparador ${k}: pide la escena ${x}, que es de una optativa (nunca traba un capítulo)`);
+  // (4.19.0: una optativa que sigue a otra optativa —«Del otro lado» sigue a «La luz de las cinco»— está bien: las dos son opcionales; lo que no puede pasar es que un disparador de la historia que no es una optativa pida una)
+  for (const [k, d] of Object.entries(D.DISPARADORES)) if (!Object.hasOwn(D.OPTATIVA_DE_DISPARADOR, k)) for (const x of [...(d.requiere || [])]) ok(!deOptativas.has(x), `disparador ${k}: pide la escena ${x}, que es de una optativa (nunca traba un capítulo)`);
   // las marcas de lo guardado tienen tope (TOPE_MARCAS = 200 por grupo: al cargar, lo que pasa del tope se pierde y los efectos se aplican de nuevo):
   // lo que las escenas pueden anotar cabe con margen
   const unaVez = new Set();

@@ -1,0 +1,7 @@
+[
+  { "id": "10-refugio-desde-el-norte-15h30", "pitch": -0.14, "fov": 60, "donde": "(()=>{ const L = H.T.lugares.refugio; const dx = 0, dz = -11; return { x: L.x + dx, z: L.z + dz, yaw: Math.atan2(dx, dz), horas: 15.5 } })()" },
+  { "id": "11-refugio-desde-el-este-15h30", "pitch": -0.14, "fov": 60, "donde": "(()=>{ const L = H.T.lugares.refugio; const dx = 11, dz = 0; return { x: L.x + dx, z: L.z + dz, yaw: Math.atan2(dx, dz), horas: 15.5 } })()" },
+  { "id": "12-refugio-desde-el-sur-15h30", "pitch": -0.14, "fov": 60, "donde": "(()=>{ const L = H.T.lugares.refugio; const dx = 0, dz = 11; return { x: L.x + dx, z: L.z + dz, yaw: Math.atan2(dx, dz), horas: 15.5 } })()" },
+  { "id": "13-refugio-desde-el-oeste-15h30", "pitch": -0.14, "fov": 60, "donde": "(()=>{ const L = H.T.lugares.refugio; const dx = -11, dz = 0; return { x: L.x + dx, z: L.z + dz, yaw: Math.atan2(dx, dz), horas: 15.5 } })()" },
+  { "id": "14-pasto-en-sombra-15h30", "pitch": -0.5, "fov": 60, "donde": "(()=>{ const L = H.T.lugares.refugio; const dx = -16, dz = 14; return { x: L.x + dx, z: L.z + dz, yaw: Math.atan2(dx, dz), horas: 15.5 } })()" }
+]

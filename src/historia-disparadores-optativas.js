@@ -6,6 +6,8 @@
 // `repetible: true` en un disparador: la escena se puede volver a disparar aunque ya esté vista (las de la costumbre y la broma del galpón).
 import { marcarTema, marcarEntrega, marcarObjeto, capituloActual } from './historia.js';
 import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco, disparosDeLazo, claveDisparoLazo, OPTATIVA_SOFIA } from './historia-optativas.js';
+// 4.19.0: las optativas de lazo de B
+import { OPTATIVAS_LAZOS } from './historia-escenas-lazos.js';
 // 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce para la torta de Herminia)
 import { regaloDe } from './historia-regalos.js';
 
@@ -60,6 +62,8 @@ export const DISPARADORES_OPTATIVAS = {
   'galpon-sin-golpear': { cap: 'golpea', modo: 'interaccion', clave: 'puerta-galpon-abrir', no: ['galpon-golpe'], repetible: true },
   // ---- 4.18.2: la de Sofía (la fotógrafa)
   ...disparadoresDeLazo(OPTATIVA_SOFIA),
+  // ---- 4.19.0: las dos de B (Belisario y Sofía, acto III)
+  ...OPTATIVAS_LAZOS.reduce((r, d) => ({ ...r, ...disparadoresDeLazo(d) }), {}),
 };
 
 // Lo que cambia al ver cada una (una sola vez; ver aplicarVistas). `ctx`: { gastar(cosa, n), cuanto(cosa), cobrar(premio), aviso(titulo, detalle) } los pone el juego.
@@ -78,6 +82,8 @@ export function llevarRegalo(h, quien, dia, ctx, titulo, detalle) {
 export const EFECTOS_ESCENA_OPTATIVAS = {
   // 4.18.2: lo de Sofía: queda anotado a su nombre (así la guía ya la conoce aunque el lazo no se haya movido)
   ...(OPTATIVA_SOFIA && typeof OPTATIVA_SOFIA.escena === 'string' && typeof OPTATIVA_SOFIA.id === 'string' ? { [OPTATIVA_SOFIA.escena]: T('sofia', OPTATIVA_SOFIA.id) } : {}),
+  // 4.19.0: lo mismo con las de B (el tema queda anotado a nombre de quien corresponda)
+  ...Object.fromEntries(OPTATIVAS_LAZOS.filter((d) => d && typeof d.escena === 'string' && typeof d.id === 'string' && typeof d.quien === 'string').map((d) => [d.escena, T(d.quien, d.id)])),
   'frasco-repisa': (h, dia) => { marcarObjeto(h, 'frasco-masa-madre', dia); },   // (la escena de B lo marca con `objeto:`; esto vale si falta)
   'frasco-rosa': (h, dia) => { marcarEntrega(h, 'panadera', 'frasco', dia); T('rosa', 'frasco')(h, dia); },
   'oveja-ramon': T('ramon', 'oveja'),

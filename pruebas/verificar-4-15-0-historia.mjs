@@ -722,7 +722,7 @@ ok(base === 0, 'el código de verdad pasa todo');
 // Se rompe una cosa a la vez y se vuelve a correr todo: tiene que fallar.
 const MUT = [
   ['historia.js', 'export const LAZO_MIN = -2, LAZO_MAX = 3;', 'export const LAZO_MIN = -2, LAZO_MAX = 9;', 'el lazo sin techo'],
-  ['historia.js', "h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));", "h.lazos[k] = Math.trunc(Number(obj(v.lazos)[k]) || 0);", 'el saneo deja pasar cualquier lazo'],
+  ['historia.js', "h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(aNum(obj(v.lazos)[k]) || 0)));", "h.lazos[k] = Math.trunc(aNum(obj(v.lazos)[k]) || 0);", 'el saneo deja pasar cualquier lazo'],
   ['historia.js', "h.decisiones[d] = x === 'a' || x === 'b' || x === 'c' ? x : null;", "h.decisiones[d] = x ?? null;", 'el saneo acepta cualquier decisión'],
   ['historia.js', "(conRastro ? 1 : VERSION_HISTORIA)", "VERSION_HISTORIA", 'sin versión y con rastro ya no es vieja'],
   ['historia.js', "export const llegar = (lugar, radio = 12) => (s) => Number(s.lugares?.[lugar]) <= radio;", "export const llegar = (lugar, radio = 12) => (s) => Number(s.lugares?.[lugar]) <= radio * 10;", 'llegar sin respetar el radio'],

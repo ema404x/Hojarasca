@@ -466,8 +466,8 @@ const MUT = [
   ['historia.js', "export const ACOMPANANTES = [...PERSONAS_LAZO, 'tobias'];", "export const ACOMPANANTES = [...LAZOS_TODOS, 'tobias'];", 'los siete van de acompañantes'],
   ['historia.js', "export const lazosNuevos = () => Object.fromEntries(LAZOS_TODOS.map(", "export const lazosNuevos = () => Object.fromEntries(PERSONAS_LAZO.map(", 'la historia nueva no trae los siete'],
   // guardado
-  ['historia.js', "for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));", "for (const k of PERSONAS_LAZO) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));", 'el saneado no guarda los siete'],
-  ['historia.js', "for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(Number(obj(v.lazos)[k]) || 0)));", "for (const k of LAZOS_TODOS) h.lazos[k] = Math.trunc(Number(obj(v.lazos)[k]) || 0);", 'el saneado no acota los lazos'],
+  ['historia.js', "for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(aNum(obj(v.lazos)[k]) || 0)));", "for (const k of PERSONAS_LAZO) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(aNum(obj(v.lazos)[k]) || 0)));", 'el saneado no guarda los siete'],
+  ['historia.js', "for (const k of LAZOS_TODOS) h.lazos[k] = Math.max(LAZO_MIN, Math.min(LAZO_MAX, Math.trunc(aNum(obj(v.lazos)[k]) || 0)));", "for (const k of LAZOS_TODOS) h.lazos[k] = Math.trunc(aNum(obj(v.lazos)[k]) || 0);", 'el saneado no acota los lazos'],
   ['historia.js', "lazos: Object.fromEntries(LAZOS_TODOS.map((k) => [k, lazoDe(hh, k)])),", "lazos: Object.fromEntries(PERSONAS_LAZO.map((k) => [k, lazoDe(hh, k)])),", 'las condiciones no ven a los siete'],
   // efectos
   ['historia-escenas-efectos.js', "if (h && LAZOS_TODOS.includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n)))", "if (h && ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'].includes(a?.quien) && una(h, clave('lazo', c?.escena, a.quien, a.n)))", 'el efecto con argumentos ignora a los siete'],
