@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.18.4 (sobre main = 4.18.3): BÚSQUEDA DE BUGS (BUGS_4_18_4_A/B/C.md) — el Desafío ya no deja la trochita varada para siempre, la Historia terminada no queda en pausa, la deuda del trato cobra lo que ofrece, el objetivo del arco se cumple con las tablas, y la cámara no atraviesa el cerro al salir de una escena
 - 4.18.3 (sobre main = 4.18.2): HISTORIA: LO QUE NO HACÍA NADA (CAMBIOS_4_18_3.md) — la majada de Fermín cuesta a Ramón según el lazo, y visitar a Ramón y los noventa de Herminia piden y gastan lo que se lleva
 - 4.18.2 (sobre main = 4.18.1): HISTORIA: LAZO PARA LOS VECINOS (CAMBIOS_4_18_2_B.md) — Rosa, Tobías, Tito, Belisario, Herminia, Nicanor y Sofía con lazo guardado y visible en la guía, líneas de final y de charla según el lazo, y la optativa «La foto del valle» de Sofía
 - 4.18.1 (sobre main = 4.18.0): HISTORIA: LAS SEIS ESCENAS FLOJAS (CAMBIOS_4_18_1.md) — papel-elsa, josefina-fin, pedir-perdon, majada-fin, prestado-herrero y galpon-pelea con la cámara, la colocación y los props arreglados y mirados en el juego; plano cercano de las lucecitas del mirador
