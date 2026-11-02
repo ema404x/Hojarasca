@@ -283,6 +283,8 @@ export function compilarPlano(p, ctx) {
       return poseMirando(c, { x: A.x, y: A.y + miraY, z: A.z }, tipo === 'empuje' ? lerp(fov, num(p.fovFin, fov), u) : fov);
     };
   }
+  // 4.18.1 (C): `sinDespeje: true`: la pose no lleva foco y escenas-mundo.js no la despeja (un plano alto sobre un lugar con bancos o una estatua pegados: la bolita se chocaba con ellos y dejaba la cámara a 1,3 m del foco)
+  if (p.sinDespeje === true && f) { const g = f; f = (u) => { const q = g(u); if (q) delete q.foco; return q; }; }
   return f;
 }
 

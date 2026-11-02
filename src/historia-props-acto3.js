@@ -66,7 +66,7 @@ export const OBJETOS_PROPS_ACTO3 = {
   'lucecitas-mirador': { forma: 'lucecitas-tres', brillo: true, soloEscena: true, usaDonde: true, frente: { adelante: 2.4, lado: 0.7 }, efecto: 'duende:lucecitas-mirador', visible: () => false },
   'lucecitas-galpon': { forma: 'lucecitas-ronda', brillo: true, soloEscena: true, punto: 'galpon-noche', efecto: 'duende:lucecitas-rodean-galpon', visible: () => false },
   // ---- capítulo 13: los carteles, la puertita nueva o las puertitas vacías en la raíz, la bellota derecha, el umbral y la pared del refugio
-  'cartel-catrileo': { forma: 'cartel-tabla', punto: 'galpon', dx: 3.2, dz: 2.6, efecto: 'mundo:cartel-puesto-catrileo', visible: (s) => tema(s, 'cartel-puesto-catrileo') },
+  'cartel-catrileo': { forma: 'cartel-tabla', punto: 'galpon-cartel', dx: 0, dz: 0, efecto: 'mundo:cartel-puesto-catrileo', visible: (s) => tema(s, 'cartel-puesto-catrileo') },
   'cartel-notable': { forma: 'cartel-chapa', lugar: 'coihue', efecto: 'mundo:cartel-arbol-notable', visible: (s) => tema(s, 'cartel-arbol-notable') },
   'puertita-nueva': { forma: 'puertita-nueva', lugar: 'molino-viejo', dx: 0.5, dz: 0.3, efecto: 'mundo:puertita-nueva-en-la-raiz', visible: (s) => tema(s, 'puertita-nueva-en-la-raiz') },
   'puertitas-vacias': { forma: 'puertitas-abiertas', lugar: 'coihue', efecto: 'mundo:puertitas-vacias', visible: (s) => tema(s, 'puertitas-vacias') },

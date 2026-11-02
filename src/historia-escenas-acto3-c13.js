@@ -69,10 +69,12 @@ const majadaFin = {
   personajes: pj3('ramon', 'fermin', 'narra'),
   disparador: { hora: [10, 18] },
   pasos: [
-    plano('general', { lugar: 'galpon' }, { dist: 18, alto: 4, miraY: 2, dur: 3.6, mezcla: 0.9 }),
+    // 4.18.1 (C): el plano ancla al cartel de verdad, de frente al portón (antes miraba el galpón desde 18 m, con la cámara metida adentro y a oscuras)
+    plano('general', { lugar: 'galpon-cartel' }, { desde: 'jugador', dist: 5.5, alto: 2.4, miraY: 1.4, dur: 30, mezcla: 0.9, sinEsperar: true, sinDespeje: true }),
     salto('rama-b', siDecision('majada', 'b')),
     salto('rama-c', siDecision('majada', 'c')),
-    // D5 = A (o sin decidir): Fermín llevó la majada
+    // D5 = A (o sin decidir): Fermín llevó la majada (el cartel se ve desde el primer plano)
+    efecto('mundo:cartel-puesto-catrileo'),
     narra('En el galpón de esquila hay un cartel nuevo, pintado a mano, con letras desparejas: «Puesto Catrileo». Debajo, una oveja dibujada con cuatro patas y una sonrisa.'),
     aparece('ramon', FRENTE(3.4, -1.8)),
     aparece('fermin', FRENTE(9, 4)),
@@ -84,7 +86,6 @@ const majadaFin = {
     ]),
     narra('Fermín, a lo lejos, se ríe. Es la primera vez que se lo oís reír sin taparse la boca.'),
     efecto('lazo:ramon:3'),
-    efecto('mundo:cartel-puesto-catrileo'),
     salto('cierre-majada'),
     // D5 = B: la cuidaste vos
     etq(aparece('ramon', FRENTE(3.4, -1.8)), 'rama-b'),
@@ -177,8 +178,11 @@ const josefinaFin = {
     // D4 = C
     con(narra('Baja del tren una mujer de campera naranja con una cinta métrica en la mano y una cámara colgada al cuello. Es la bióloga de Bariloche. Mide el coihue en tres pasos y lo anota todo.'), siDecision('cuaderno', 'c')),
     con(efecto('mundo:cartel-arbol-notable', { donde: FRENTE(7, 2) }), siDecision('cuaderno', 'c')),
+    // 4.18.1 (C): el cartelito de chapa, en el tronco del lado de donde llegás (mira para el refugio), a 4 m y a su altura: se lee de cerca
+    con(plano('medio', { lugar: 'coihue' }, { desde: 'jugador', dist: 4.4, alto: 1.5, miraY: 1.45, dur: 30, mezcla: 0.9, sinEsperar: true }), siDecision('cuaderno', 'c')),
     con(narra('El coihue tiene un cartelito nuevo, de chapa esmaltada: «Árbol notable. No tocar.»'), siDecision('cuaderno', 'c')),
     con(dlg('josefina', [linea('Ahora es oficial. Ahora sí da miedo.', { gesto: gs('reir', 2.4) })]), siDecision('cuaderno', 'c')),
+    con(plano('medio', 'josefina', { desde: 'jugador', dist: 3.2, mezcla: 0.8, dur: 30, sinEsperar: true }), siDecision('cuaderno', 'c')),
     eleccion('josefina-fin-resp', '¿Qué le decís a Josefina?', [
       opcion('gracias', 'Gracias por mostrarme el valle.', { efecto: 'lazo:ema:1' }),
       opcion('cuaderno', '¿Y la próxima hoja del cuaderno?', { sabor: true }),
@@ -260,8 +264,9 @@ const umbralFin = {
     con(narra('En la raíz hay una sola bellota, puesta derecha, como un soldadito. Nadie sabe qué quiere decir.'), siPerdon()),
     // (4.18.0 C: Herminia en la aldea, de verdad en la puerta de su casa: antes aparecía 8 m delante tuyo, adentro del refugio)
     ...apagon([
-      aparece('herminia', { lugar: 'casa-herminia', dx: 1.5, dz: 1.5 }),
-      plano('medio', 'herminia', { desde: { lugar: 'plaza' }, dist: 4.5, mezcla: 0, dur: 30 }),
+      aparece('herminia', { lugar: 'casa-herminia-puerta' }, { lugar: 'casa-herminia-calle' }),   // (en el umbral de su casa, mirando a la calle)
+      // (el plano se ancla a la puerta y no a Herminia: la gente a más de 130 m del jugador no se dibuja y el refugio queda a 700 m de la aldea; la puerta entornada y el escalón se ven igual)
+      plano('medio', { lugar: 'casa-herminia-puerta' }, { desde: { lugar: 'casa-herminia-calle' }, dist: 4.5, miraY: 1.3, mezcla: 0, dur: 30 }),
     ], { dur: 0.8 }).map((p) => con(p, siTrato('pelea'))),
     con(narra('En la aldea, Herminia deja la puerta de su casa entornada. Sale al escalón con la taza y mira hacia el cerro. Cree, y no lo dice, que los vecinos que se van, a veces vuelven.'), siTrato('pelea')),
     // (4.18.0 C: de vuelta al umbral)

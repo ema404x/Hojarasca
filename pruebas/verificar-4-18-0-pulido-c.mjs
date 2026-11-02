@@ -223,7 +223,7 @@ async function suite(sufijo = '', archMut = '') {
     const iNueva = top.findIndex((p) => p.tipo === 'dialogo' && /puertita nueva, de madera clara/.test(JSON.stringify(p.lineas)));
     ok(iSalto >= 0 && iNueva > iSalto && iEtq > iNueva, `umbral-fin: con la pelea se saltea la puertita nueva (${iSalto}, ${iNueva}, ${iEtq})`);
     const her = pasos('umbral-fin').find((p) => p.tipo === 'gesto' && p.quien === 'herminia' && p.accion === 'aparecer');
-    ok(her && her.a && her.a.lugar === 'casa-herminia', 'umbral-fin: Herminia aparece en la puerta de su casa');
+    ok(her && her.a && ['casa-herminia', 'casa-herminia-puerta'].includes(her.a.lugar), 'umbral-fin: Herminia aparece en la puerta de su casa');
     const det = pasos('costumbre-regalito').find((p) => p.tipo === 'plano' && p.plano === 'detalle');
     ok(det && det.miraY <= 0.2, 'costumbre-regalito: el detalle mira el escalón');
   }

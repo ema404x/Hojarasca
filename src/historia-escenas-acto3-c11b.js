@@ -67,8 +67,9 @@ const prestadoHerrero = {
       linea('Son de un arado viejo. Duras como el que las forjó.', { gesto: gs('barba', 2) }),
       'Las clavás en la nieve con la maza y no se mueven ni con un toro. Llevátelas. Cuando pase todo, me las devolvés. O no. Para eso son.',
     ]),
-    efecto('mundo:estacas-prestadas', { donde: FRENTE(12, 4) }),
-    plano('general', FRENTE(12, 4), { desde: 'jugador', dist: 14, alto: 2.8, dur: 3.2, mezcla: 0.9 }),
+    efecto('mundo:estacas-prestadas', { donde: FRENTE(6, 0) }),   // (4.18.1 C: a 6 m y de frente; antes a 12 m y de costado, detrás de los bancos y la estatua)
+    // (picado: la plaza está llena de bancos y de una estatua; de costado la cámara se pegaba a las estacas porque los bancos la frenaban)
+    plano('picado', FRENTE(6, 0), { desde: 'jugador', dist: 3, alto: 5.5, miraY: 0.4, dur: 3.2, mezcla: 0.9, sinDespeje: true }),
     narra('Una fila de estacas negras, inclinadas hacia afuera, cruza el lado del arroyo como los dientes de un peine. Parecen sacadas de un cuento de abuelos.'),
     eleccion('estacas-resp', '¿Qué le decís a Anselmo?', [
       opcion('gracias', 'Gracias. Las cuido como si fueran mías.', { sabor: true }),

@@ -230,7 +230,7 @@ const papelElsa = {
   personajes: pj3('elsa', 'narra'),
   pasos: [
     plano('general', { lugar: 'estacion' }, { dist: 12, alto: 3.2, dur: 3, mezcla: 0.9 }),
-    aparece('elsa', { lugar: 'estacion', dx: -2, dz: 2.4 }),
+    aparece('elsa', FRENTE(5.4, 1.2)),   // (4.18.1 C: sobre el andén, de tu lado de la estación; antes quedaba del otro lado del edificio y la cámara la miraba contra el muro)
     narra('Entre los durmientes, medio escondido por la nieve sucia, hay un papel doblado en cuatro. Dice «Solicito traslado a Esquel». Tiene la firma de Elsa.'),
     plano('detalle', FRENTE(1.2), { desde: 'jugador', dist: 0.8, alto: 1.1, dur: 2.8, mezcla: 0.8 }),
     plano('medio', 'elsa', { desde: 'jugador', dist: 3.2, mezcla: 0.8, dur: 30, sinEsperar: true }),

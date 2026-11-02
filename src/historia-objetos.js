@@ -240,13 +240,13 @@ const FORMAS = {
   },
   'atado-canelo': (c) => {
     for (let i = 0; i < 7; i++) palo(c, 0.012, 0.7, [Math.cos(i) * 0.05, 0.35, Math.sin(i) * 0.05], [0.1 * Math.sin(i * 2), 0, 0.1 * Math.cos(i * 3)], '#5a4a2a');
-    for (let i = 0; i < 9; i++) esfera(c, 0.09, [Math.cos(i * 2.1) * 0.09, 0.62 + (i % 3) * 0.08, Math.sin(i * 2.1) * 0.09], i % 3 ? '#3f6b35' : '#a9b07a', [0.7, 1.5, 0.4], 0.12);
+    for (let i = 0; i < 9; i++) esfera(c, 0.15, [Math.cos(i * 2.1) * 0.12, 0.6 + (i % 3) * 0.1, Math.sin(i * 2.1) * 0.12], i % 3 ? '#4f8a3e' : '#b9c07a', [0.7, 1.5, 0.4], 0.12);   // (4.18.1 C: hojas más grandes)
     caja(c, [0.14, 0.03, 0.14], [0, 0.42, 0], '#b8432f', [0, 0, 0], 0.04);
   },
   'tranquera-abierta': (c) => {
-    palo(c, 0.09, 1.4, [-1.6, 0.7, 0], [0, 0, 0], '#5f4a33'); palo(c, 0.09, 1.4, [1.6, 0.7, 0], [0, 0, 0], '#5f4a33');
+    palo(c, 0.17, 1.9, [-1.6, 0.95, 0], [0, 0, 0], '#4a3624'); palo(c, 0.17, 1.9, [1.6, 0.95, 0], [0, 0, 0], '#4a3624');   // (4.18.1 C: más gruesos: a 18 m, de 9 cm de radio no se veían)
     const giro = 1.25;   // la hoja abierta, colgada del poste de la izquierda
-    for (let i = 0; i < 4; i++) caja(c, [3.0, 0.1, 0.06], [-1.6 + Math.cos(giro) * 1.5, 0.35 + i * 0.28, Math.sin(giro) * 1.5], '#8a6b48', [0, -giro, 0], 0.1);
+    for (let i = 0; i < 4; i++) caja(c, [3.0, 0.17, 0.1], [-1.6 + Math.cos(giro) * 1.5, 0.35 + i * 0.3, Math.sin(giro) * 1.5], '#6e5236', [0, -giro, 0], 0.1);
     caja(c, [0.08, 1.1, 0.08], [-1.6 + Math.cos(giro) * 2.95, 0.75, Math.sin(giro) * 2.95], '#8a6b48', [0, -giro, 0], 0.1);
   },
   // el farol en el piso del galpón (el vidrio, en la malla de brillo)
@@ -319,9 +319,9 @@ const FORMAS = {
     for (let i = 0; i < 6; i++) caja(c, [0.16 + (i % 3) * 0.05, 0.12, 0.012], [-0.65 + i * 0.26, 1.47, 0.08], '#3a2a1c', [0, 0, 0], 0.04);   // «Puesto Catrileo», a pincel
   },
   'cartel-chapa': (c, info) => {
-    const r = Math.max(0.8, Number(info?.r) || 1.4), a = 1.2, x = Math.cos(a) * (r + 0.06), z = Math.sin(a) * (r + 0.06);
-    caja(c, [0.42, 0.26, 0.015], [x, 1.45, z], '#9aa3a8', [0, Math.PI / 2 - a, 0], 0.04);
-    for (let i = 0; i < 3; i++) caja(c, [0.3 - i * 0.06, 0.03, 0.006], [x + Math.cos(a) * 0.012, 1.52 - i * 0.06, z + Math.sin(a) * 0.012], '#2d3236', [0, Math.PI / 2 - a, 0], 0.03);
+    const r = Math.max(0.8, Number(info?.r) || 1.4), a = Number.isFinite(info?.hacia) ? info.hacia : 1.2, x = Math.cos(a) * (r + 0.06), z = Math.sin(a) * (r + 0.06);
+    caja(c, [0.62, 0.4, 0.02], [x, 1.45, z], '#9aa3a8', [0, Math.PI / 2 - a, 0], 0.04);
+    for (let i = 0; i < 3; i++) caja(c, [0.46 - i * 0.1, 0.045, 0.006], [x + Math.cos(a) * 0.016, 1.55 - i * 0.09, z + Math.sin(a) * 0.016], '#2d3236', [0, Math.PI / 2 - a, 0], 0.03);
   },
   'puertita-nueva': (c) => {
     caja(c, [0.28, 0.42, 0.035], [0, 0.22, 0], '#c8a274', [-0.12, 0, 0], 0.06);
@@ -403,9 +403,9 @@ const FORMAS_BRILLO = {
   lucecitas: (c, info) => {
     for (let i = 0; i < 20; i++) { const a = Math.PI * (0.08 + 0.84 * (i / 19)), r = 3.2 + Math.sin(i * 2.3) * 0.5, x = Math.cos(a) * r, z = Math.sin(a) * r * 0.7; brilla(c, 0.05 + (i % 3) * 0.01, [x, info.suelo(x, z) + 0.25 + (i % 4) * 0.12, z], i % 2 ? '#ffbe4d' : '#ffd27a'); }
   },
-  'lucecitas-tres': (c) => { for (let i = 0; i < 3; i++) brilla(c, 0.045, [(i - 1) * 0.18, 0.55 + (i % 2) * 0.08, Math.sin(i) * 0.05], '#ffc25a'); },
+  'lucecitas-tres': (c) => { for (let i = 0; i < 3; i++) brilla(c, 0.055, [(i - 1) * 0.3, 0.95 + (i % 2) * 0.12, Math.sin(i) * 0.08], '#ffc25a'); },   // (4.18.1 C: más grandes y a la altura de los ojos: de 4,5 cm a 1 m de altura no se veían)
   'lucecitas-ronda': (c, info) => {
-    for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2, x = Math.cos(a) * 3.6, z = Math.sin(a) * 3.6; brilla(c, 0.05, [x, info.suelo(x, z) + 0.7 + (i % 5) * 0.25, z], i % 2 ? '#ffbe4d' : '#ffd27a'); }
+    for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2, x = Math.cos(a) * 3.6, z = Math.sin(a) * 3.6; brilla(c, 0.085, [x, info.suelo(x, z) + 0.7 + (i % 5) * 0.25, z], i % 2 ? '#ffbe4d' : '#ffd27a'); }
   },
 };
 // las formas que siguen el suelo (anchas: una fila de 24 m sobre la loma) se rearman cuando cambian de lugar
@@ -430,7 +430,7 @@ export function crearObjetosHistoria(ctx) {
     const o = OBJETOS[id];
     if (o.lugar === 'molino-viejo') { const m = ctx.molino?.(); return m ? { x: m.raiz.x + (o.dx || 0), z: m.raiz.z + (o.dz || 0) } : null; }
     if (o.lugar === 'coihue') { const m = ctx.molino?.(); return m?.arbol ? { x: m.arbol.x, z: m.arbol.z } : null; }
-    if (o.punto) { const p = ctx.puntos?.()?.[o.punto]; return p ? { x: p.x + (o.dx || 0), z: p.z + (o.dz || 0) } : null; }
+    if (o.punto) { const p = ctx.puntos?.()?.[o.punto]; return p ? { x: p.x + (o.dx || 0), z: p.z + (o.dz || 0), ...(Number.isFinite(p.rot) ? { rot: p.rot } : {}) } : null; }   // (4.18.1 C: un punto con rot orienta la malla)
     if (Number.isFinite(o.lx)) { const ref = ctx.refugio(); return ref ? aMundoRefugio(ref, o.lx, o.lz) : null; }
     return null;
   }
@@ -456,7 +456,8 @@ export function crearObjetosHistoria(ctx) {
     const o = OBJETOS[id];
     const conForma = !!o.forma && Object.hasOwn(FORMAS, o.forma), conBrillo = !!o.forma && Object.hasOwn(FORMAS_BRILLO, o.forma);
     if (!o.forma || (o.forma !== 'huellas' && !conForma && !conBrillo)) return;   // (la nota de la mesa, el cuaderno de la mesa y las raíces sin malla se usan con la E)
-    const info = { r: ctx.molino?.()?.arbol?.r, suelo: SIGUE_SUELO.has(o.forma) ? sueloLocal(q, rot) : () => 0 };
+    const rf = ctx.puntos?.()?.refugio;
+    const info = { r: ctx.molino?.()?.arbol?.r, hacia: rf ? Math.atan2(rf.z - q.z, rf.x - q.x) : undefined, suelo: SIGUE_SUELO.has(o.forma) ? sueloLocal(q, rot) : () => 0 };   // (4.18.1 C: hacia = hacia dónde queda el refugio, de donde llegás: el cartel del coihue mira para allá)
     let m = null;
     if (o.forma === 'huellas' || conForma) {
       const c = new Constructor();

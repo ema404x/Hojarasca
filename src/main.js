@@ -2299,6 +2299,11 @@ function puntosDeHistoria() {
   obraPunto('gallinero-propio', 'gallinero');   // 4.17.1: las plumas del arco (plumas-gallinero)
   // 4.17.0: el acto III: el Puesto del Paso y el galpón de la noche (tu galponcito o, si no hay, la puerta del refugio)
   ponr('puesto-paso', PUESTO_PASO);
+  // 4.18.1 C: el cartel del galpón de esquila (a un costado del portón, de cara a afuera), un punto lejos hacia afuera (sólo da la dirección de la colocación) y la ventana del refugio (con un punto de vista 3 m adelante)
+  { const g = L.galpon; if (g && Number.isFinite(g.x)) { const c = aMundoRefugio(g, 3.6, -5.25); P['galpon-cartel'] = { x: c.x, z: c.z, rot: (Number(g.rot) || 0) + Math.PI }; ponr('galpon-afuera', aMundoRefugio(g, 3.6, -30)); } else { delete P['galpon-cartel']; delete P['galpon-afuera']; } }
+  if (ref) { ponr('ventana-refugio', aMundoRefugio(ref, 1.35, 3.0)); ponr('ventana-refugio-vista', aMundoRefugio(ref, 1.35, 6.2)); }
+  // 4.18.1 C: la puerta de la casa de Herminia y un punto en la calle, 6 m hacia afuera de la puerta (para el cierre del año de la pelea)
+  try { const pu = puntosMundo('casa-abuela')?.puerta; if (pu && Number.isFinite(pu.x)) { ponr('casa-herminia-puerta', pu); const gr = Number(pu.rot) || 0; ponr('casa-herminia-calle', { x: pu.x + Math.sin(gr) * 6, z: pu.z + Math.cos(gr) * 6 }); } } catch { /* sin aldea */ }
   if (P['galpon-propio']) P['galpon-noche'] = P['galpon-propio']; else if (P['refugio-puerta']) P['galpon-noche'] = P['refugio-puerta']; else delete P['galpon-noche'];
   ponr('coihue', molinoViejoHist?.arbol);
   // 4.17 C: más lugares con nombre (los que nombran las escenas y los objetivos): la cantera, los puestos, la seccional, la panadería, la carpintería, la casa de
@@ -2579,7 +2584,7 @@ function efectoDuendeHistoria(id, args) {
 // o lejos): si una escena los pide y no hay nadie con esa clave, se arma una figura con la ficha de la aldea (POBLADORES_ALDEA o VECINOS_ALDEA) sólo mientras dura la
 // escena; si ya viven ahí, es la de siempre.
 // (sólo los que una escena necesita ver y no está: Tito, Sofía, Herminia y Rosa; los que sólo se miran de pasada, como Nélida en el almacén, no se arman: taparían la cámara)
-const INVITABLES_HIST = new Set(['carpintero', 'fotografa', 'abuela', 'panadera', 'graciela']);   // (Graciela: sólo existe en el capítulo 4 y vuelve en las escenas del capítulo 7)
+const INVITABLES_HIST = new Set(['carpintero', 'fotografa', 'abuela', 'panadera', 'graciela', 'herrero']);   // (4.18.1 C: y Anselmo, para las estacas de arado cuando todavía no vive en la aldea)   // (Graciela: sólo existe en el capítulo 4 y vuelve en las escenas del capítulo 7)
 const invitadosHist = new Map();
 function invitadoDeHistoria(clave) {
   try {

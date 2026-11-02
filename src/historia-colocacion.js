@@ -54,9 +54,15 @@ export const COLOCACION_PULIDO = {
   'pedir-perdon': { punto: 'molino-viejo', dist: 3.4, desde: 'refugio' },
   'prestado-tobias': { punto: 'coihue', dist: 6, desde: 'refugio' },   // (la pirca del coihue, reforzada)
   'noche-espera': { punto: 'galpon-noche', dist: 6, desde: 'sendero' },   // (frente al galpón: Fermín en el techo, Ramón y Josefina a los lados)
-  'majada-fin': { punto: 'puesto', dist: 11, desde: 'refugio', giro: 55 },
   'hojas-canelo': { punto: 'puesto', dist: 11, desde: 'refugio', giro: 55 },   // (el atado aparece contra la «puerta», 1,6 m adelante: lejos de los pilotes del puesto)
   'josefina-fin': { punto: 'coihue', dist: 5, desde: 'refugio' },   // (el cartelito de chapa en el tronco, con D4 = c)
+  // ---- 4.18.1 (C): las seis que quedaron flojas en la 4.18.0
+  'amanecer-trato-ganada': { punto: 'galpon-noche', dist: 6, desde: 'sendero' },   // (las lucecitas rodean el galpón: de frente, a 6 m)
+  'amanecer-trato-perdida': { punto: 'galpon-noche', dist: 6, desde: 'sendero' },
+  'amanecer-pelea-ganada': { punto: 'galpon-noche', dist: 6, desde: 'sendero' },
+  'amanecer-pelea-perdida': { punto: 'galpon-noche', dist: 6, desde: 'sendero' },
+  'prestado-herrero': { npc: 'herrero', dist: 3.6, desde: 'frente' },   // (Anselmo de cara a vos; las estacas, 7,5 m adelante, detrás de él)
+  'majada-fin': { punto: 'galpon-cartel', dist: 6, desde: 'galpon-afuera', alto: -0.05 },   // (de frente al portón del galpón de esquila, con el cartel a un costado)
   'umbral-fin': { lx: 0.1, lz: 5.6, mira: [0.1, 3.7] },   // (el picado del primer día: el umbral 2 m adelante)
   'costumbre-dejar': { lx: 0.1, lz: 5.6, mira: [0.1, 3.7] },
   'costumbre-regalito': { lx: 0.1, lz: 5.6, mira: [0.1, 3.7] },

@@ -12,7 +12,7 @@ const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
 
 // Los lugares nuevos de los que el juego pasa la distancia (los arma `puntosDeHistoria` de main.js): el galpón de la noche (tu galponcito o, si no
 // hay, la puerta del refugio) y el Puesto del Paso (los blancos de paja de Belisario)
-export const LUGARES_ACTO3 = ['galpon-noche', 'puesto-paso', 'gallinero-propio'];   // (4.17.1: tu gallinero, para las plumas del arco)
+export const LUGARES_ACTO3 = ['galpon-noche', 'puesto-paso', 'gallinero-propio', 'galpon-cartel', 'galpon-afuera', 'ventana-refugio', 'ventana-refugio-vista', 'casa-herminia-puerta', 'casa-herminia-calle'];   // (4.17.1: tu gallinero, para las plumas del arco)
 // Lo que cuestan las dos entregas con plata y el costo en harina y tablas de la deuda del trato
 export const PRECIO_PUNTAS = 400;
 export const DEUDA_COSTO = { harina: 1, tabla: 6 };

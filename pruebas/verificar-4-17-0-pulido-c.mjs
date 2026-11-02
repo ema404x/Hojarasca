@@ -24,7 +24,7 @@ const dist3 = (a, b) => Math.hypot(a.x - b.x, (a.y ?? 0) - (b.y ?? 0), a.z - b.z
 // el jugador en (0, 0) mirando al norte (adelante = −z); cada lugar con nombre a una distancia fija; cada personaje a unos metros
 // los lugares con nombre que existen: los del mundo (T.lugares) y los puntos de la historia (main.js: puntosDeHistoria). Una escena sólo puede anclarse a uno de estos.
 const NOMBRES_LUGAR = ['estacion', 'galpon', 'muelle', 'faro', 'mallin', 'refugio', 'mirador', 'puesto', 'molino', 'casa-te', 'refugio-puerta', 'tocon-hacha', 'sendero', 'aldea', 'plaza', 'ramos', 'molino-viejo',
-  'molino-propio', 'galpon-propio', 'aserradero-propio', 'raiz-ramon', 'coihue', 'cantera', 'puesto-paso', 'puesto-alto', 'seccional', 'panaderia', 'carpinteria', 'casa-herminia', 'estudio-fotos', 'predio', 'molino-historia', 'rueda-molino', 'puerta-molino'];
+  'molino-propio', 'galpon-propio', 'aserradero-propio', 'raiz-ramon', 'coihue', 'cantera', 'puesto-paso', 'puesto-alto', 'seccional', 'panaderia', 'carpinteria', 'casa-herminia', 'estudio-fotos', 'predio', 'molino-historia', 'rueda-molino', 'puerta-molino', 'galpon-cartel', 'galpon-afuera', 'ventana-refugio', 'ventana-refugio-vista', 'casa-herminia-puerta', 'casa-herminia-calle'];
 const LUGARES_FALSOS = Object.fromEntries(NOMBRES_LUGAR.map((k, i) => [k, { x: Math.round(Math.cos(i * 0.9) * (14 + (i % 3) * 5)), z: Math.round(Math.sin(i * 0.9) * (14 + (i % 3) * 5)) }]));
 const mundoCamara = (claves) => ({
   suelo: () => 0,
@@ -278,7 +278,7 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== undefin
   ok(/col\.resolver\(bola, DESPEJE\.radio, 0\.7\)/.test(em) && /minimo: 1\.3/.test(em) && /bajo: 0\.45/.test(em), 'con una bolita contra las colisiones del juego, un mínimo de 1,3 m y sin bajar del suelo');
   ok(/if \(!n && ctx\.armarYa\)/.test(em), 'capturar pide a Fermín, Belisario, Tobías y los invitados si no están armados');
   ok(/armarYa: \(k\) => genteCampoMundo\?\.armarYa\?\.\(k\) \|\| invitadoDeHistoria\(k\)/.test(main) && /alTerminar: \(\) => \{ quitarInvitadosHistoria\(\); despedirDuendesDeEscena\(\);/.test(main) && /function despedirDuendesDeEscena\(\) \{\s*while \(duendesDeEscena\.length\) \{ const d = duendesDeEscena\.pop\(\); try \{ d\.huir\(null, \{ desaparecer: true \}\)/.test(main), 'main.js los pasa, quita a los invitados y despide a los duendes de la escena al terminar');
-  ok(/const INVITABLES_HIST = new Set\(\['carpintero', 'fotografa', 'abuela', 'panadera', 'graciela'\]\);[\s\S]{0,300}!INVITABLES_HIST\.has\(clave\)\) return null/.test(main) && /clave === 'graciela' \? DEF_GRACIELA/.test(main), 'sólo se arman invitados para Tito, Sofía, Herminia, Rosa y Graciela (los que una escena necesita ver; Nélida de pasada taparía la cámara)');
+  ok(/const INVITABLES_HIST = new Set\(\['carpintero', 'fotografa', 'abuela', 'panadera', 'graciela', 'herrero'\]\);[\s\S]{0,400}!INVITABLES_HIST\.has\(clave\)\) return null/.test(main) && /clave === 'graciela' \? DEF_GRACIELA/.test(main), 'sólo se arman invitados para Tito, Sofía, Herminia, Rosa y Graciela (los que una escena necesita ver; Nélida de pasada taparía la cámara)');
   ok(/function armarYa\(k\)/.test(leer('src/gente-campo-mundo.js')) && /return \{ actualizar, npcDe, armarYa,/.test(leer('src/gente-campo-mundo.js')), 'gente-campo-mundo.js sabe armar a uno ya');
   {
     // por conducta: crearEscenasMundo con un mundo de mentira cuya colisión empieza a 3 m de la cámara

@@ -154,7 +154,8 @@ const pelea = {
     plano('contrapicado', FRENTE(2), { desde: 'jugador', dist: 3, mezcla: 0.9, dur: 3 }),
     narra('En la puerta se da vuelta. Primer plano: los ojos viejos, la barba de musgo. No hay enojo. No hay miedo. Hay algo más pesado que las dos cosas. Y se va.'),
     ...apagon([hora(7.2, { dur: 0 }), efecto('mundo:ventana-barro-y-bellotas', { donde: FRENTE(6, -2) }), efecto('mundo:puertita-al-reves', { donde: FRENTE(7) })], { dur: 2 }),
-    plano('detalle', FRENTE(7), { desde: 'jugador', dist: 0.9, alto: 1.1, dur: 3.4, mezcla: 0.9 }),
+    // 4.18.1 (C): la ventana con barro y bellotas es la del refugio (a 18 m del galpón): la cámara parte de ahí y viaja hasta la puertita clavada al revés
+    { tipo: 'plano', plano: 'libre', pos: { lugar: 'ventana-refugio-vista', dy: 1.6 }, mira: { ref: 'ventana-refugio', dy: 1.4 }, posFin: { ...FRENTE(4.2, 0.7), dy: 1.5 }, miraFin: FRENTE(7), fov: 50, dur: 8, mezcla: 0.2, sinEsperar: true },
     narra('A la mañana, la ventana del refugio tiene barro y bellotas contra el vidrio. Y en la puerta del galpón, clavada con cuidado, una puertita de juguete. Al revés.'),
     eleccion('pelea-resp', '¿Qué hacés con la puertita?', [
       opcion('dejar', 'Dejarla como está, clavada al revés.', { sabor: true }),
@@ -183,6 +184,8 @@ const cerro = {
     efecto('duende:viejos-en-la-nieve', { tipo: 'bruto', n: 5, viejo: true, enFila: true, desde: 'cerro' }),
     narra('En la nieve, muy arriba, hay formas oscuras que se mueven en fila, más grandes que los de las raíces. Barbudos, de liquen gris, caminan despacio hundiéndose hasta la cintura.'),
     con(efecto('duende:lucecitas-mirador', { tipo: 'enjambre', n: 3, sobre: 'piedra-mirador', tiemblan: true }), no(siTrato('pelea'))),
+    // 4.18.1 (C): el plano largo del cerro seguía durante todo esto y las tres lucecitas, a tu lado, quedaban fuera de cuadro
+    con(plano('medio', FRENTE(2.4, 0.7), { desde: 'jugador', dist: 1.8, alto: 1.4, miraY: 1.0, dur: 30, mezcla: 0.8, sinEsperar: true }), no(siTrato('pelea'))),
     con(narra('Sobre la piedra del mirador, a tu lado, tres lucecitas ámbar que tiemblan. No se acercan ni se van: están ahí, apretadas, mirando al cerro con vos.'), no(siTrato('pelea'))),
     con(efecto('duende:chicos-suben-cerro', { tipo: 'rastreador', n: 8, suben: true, desde: 'raices' }), siTrato('pelea')),
     con(narra('Y desde abajo, por la ladera, otras formas más chicas suben a juntarse con las grandes. Corren en zigzag. Se acomodan en la fila, de a una, sin mirar para atrás.'), siTrato('pelea')),
@@ -309,9 +312,10 @@ const pedirPerdon = {
   resumen: 'Después de echarlos, fuiste a la raíz del coihue y dejaste algo: una bolsa, piñones o la puertita. No cambió lo que hiciste, pero la raíz lo recibió.',
   personajes: pj3('narra'),
   pasos: [
-    plano('general', FRENTE(7, 2), { desde: 'jugador', dist: 14, alto: 3.2, dur: 3.2, mezcla: 0.9 }),
+    // 4.18.1 (C): los planos se anclan a la raíz de verdad (antes, a 7 m delante tuyo, con la cámara metida entre los troncos: no se distinguía)
+    plano('general', { lugar: 'molino-viejo' }, { desde: 'jugador', dist: 6, alto: 2.4, miraY: 0.4, dur: 3.2, mezcla: 0.9 }),
     narra('La raíz del coihue grande está cubierta de escarcha. Las puertitas, cerradas, no dejan pasar ni un hilo de luz. Hace frío y hay un silencio que pesa.'),
-    plano('medio', FRENTE(2.4), { desde: 'jugador', dist: 3.2, alto: 1.4, dur: 3, mezcla: 0.9 }),
+    plano('medio', { lugar: 'molino-viejo' }, { desde: 'jugador', dist: 3.4, alto: 1.5, miraY: 0.3, dur: 3, mezcla: 0.9 }),
     narra('Te arrodillás en la nieve. No sabés qué decir, así que no decís nada. Sacás de la mochila lo que tenés y lo ponés adelante tuyo, en el hueco alisado.'),
     eleccion('perdon-resp', '¿Qué dejás en la raíz?', [
       opcion('harina', 'Una bolsa de harina, de la tuya.', { sabor: true }),
@@ -321,7 +325,7 @@ const pedirPerdon = {
     con(efecto('quitar:harina:1'), siEleg('perdon-resp', 'harina')),
     con(efecto('quitar:pinon:3'), siEleg('perdon-resp', 'pinones')),
     con(efecto('entrega:puertita'), siEleg('perdon-resp', 'puertita')),
-    plano('detalle', FRENTE(2.4), { desde: 'jugador', dist: 0.9, alto: 1, dur: 3, mezcla: 0.9 }),
+    plano('detalle', { lugar: 'molino-viejo' }, { desde: 'jugador', dist: 1.4, alto: 0.9, miraY: 0.15, dur: 30, mezcla: 0.9, sinEsperar: true }),
     narra('Lo dejás y te quedás un rato más, esperando algo. No pasa nada. Ni una risa, ni una bellota. Pero cuando te levantás, sentís que alguien se movió del otro lado de la tierra.'),
     efecto('duendes:perdon'),
     efecto('raro:pedi-perdon'),
