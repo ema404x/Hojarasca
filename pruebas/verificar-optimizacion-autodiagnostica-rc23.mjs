@@ -39,7 +39,7 @@ assert.match(main, /aves\.actualizar\([^\n]+factorEfectos/);
 // NPCs lejanos conservan rutina/locomoción pero espacian sólo pose/gestos.
 assert.match(gente, /presupuestoNivel = 0/);
 assert.match(gente, /g\.__poseAcum/);
-assert.match(gente, /const pasoPose = \(charlando \|\| d < 38\)/);
+assert.match(gente, /const pasoPose = \(charlando \|\| d < 38 \|\| g\.enEscena\)/);   // 4.19.0: el personaje de una escena siempre anima su pose
 assert.match(main, /gente\.actualizar\(dt, js, camara, charla\.npc, presupuestoAdaptativo\.nivel\)/);
 
 // Búsqueda de coleccionables sin arrays/vector nuevo por cada candidato.
