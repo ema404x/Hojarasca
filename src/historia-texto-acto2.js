@@ -104,7 +104,7 @@ export const TEXTO_ACTO2 = {
       ],
       optativas: [
         { id: 'concurso', texto: 'Concurso del dulce de otoño, con dulce de calafate' },
-        { id: 'fermin-habla', texto: 'Fermín quiere hablar: buscalo en el galpón de esquila después de la minga' },
+        { id: 'fermin-habla', texto: 'Fermín quiere hablar: buscalo en el galpón de esquila después de la minga (si confía en vos, más adelante lo de la majada de Ramón duele menos)' },
       ],
       premio: { texto: 'Ninguno material: el cuaderno de Eusebio, que se lee en el diario, página por página', objetos: ['cuaderno-eusebio'], desbloqueo: 'pagina-de-tratos' },
       cierre: {
@@ -144,7 +144,7 @@ export const TEXTO_ACTO2 = {
       optativas: [
         { id: 'veta-vuelve', texto: 'La veta que vuelve: Tobías te espera de noche en la cantera' },
         { id: 'mulas', texto: 'Las mulas de Belisario: acompañá la tropa a caballo hasta el mallín' },
-        { id: 'noventa', texto: 'Herminia y los noventa: llevale una torta' },
+        { id: 'noventa', texto: 'Herminia y los noventa: llevale algo dulce para la torta (un frasco de dulce de leche, de mermelada o de frutilla, o miel)' },
       ],
       premio: {
         texto: 'Yerba y una pluma de cóndor, que aparece en tu umbral esa noche', cuenta: { yerba: 4 }, objetos: ['pluma-condor'], desbloqueo: 'horario-de-invierno',

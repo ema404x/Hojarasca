@@ -31,6 +31,8 @@ import { TEXTO_ACTO3 } from './historia-texto-acto3.js';
 import { TEXTO_OPTATIVAS } from './historia-texto-optativas.js';
 // 4.18.2: y los del lazo de los vecinos que no lo tenían (la guía, el final y la charla de después; los escribe B)
 import { TEXTO_LAZOS } from './historia-texto-lazos.js';
+// 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce para la torta de Herminia)
+import { cuentaDe, regaloDeProgreso } from './historia-regalos.js';
 
 // 4.15.0: Fermín (el galpón de esquila) se suma a los que se conocen
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia', 'fermin'];
@@ -152,7 +154,9 @@ export function estadoHistoria(p, extra = {}) {
     encargos: { ...obj(p?.encargos) },
     eventosOpcion: Object.fromEntries(Object.entries(ev).map(([k, x]) => [k, typeof x?.opcion === 'string' ? x.opcion : null])),
     ofrecidas: Object.fromEntries(Object.entries(obj(hh.temas)).filter(([k]) => k.startsWith('optativa:')).map(([k, d]) => [k.slice(9), ent(d)])),
-    pan: ent(p?.cosas?.['pan-casero'], 9999), tablasCoihue: ent(p?.cosas?.['tabla-coihue'], 9999),
+    pan: Math.min(9999, cuentaDe(p, 'pan-casero')), tablasCoihue: ent(p?.cosas?.['tabla-coihue'], 9999),
+    // 4.18.3: el regalo que llevarías ahora (el id de la mochila, o null): algo rico para Ramón y lo dulce para la torta de Herminia
+    regaloRamon: regaloDeProgreso('ramon', p)?.k || null, regaloTorta: regaloDeProgreso('herminia', p)?.k || null,
     cumple: extra.cumple && typeof extra.cumple === 'object' ? extra.cumple : null,
     cintaDulce: (Array.isArray(p?.concursos?.cintas) ? p.concursos.cintas : []).some((x) => x?.id === 'dulce' && Number(x.puesto) >= 1 && Number(x.puesto) <= 3),
   };
@@ -713,7 +717,7 @@ DEFINICION_DECISIONES.majada = {
     '¿Qué hacés con la majada?',
   ],
   opciones: [
-    { id: 'a', texto: 'Que se la lleve Fermín', detalle: 'Lo ayudás a arrearla al galpón de esquila. Ramón dice «no me la devuelvas flaca».', lazos: { fermin: 1 }, diario: 'Dejé que Fermín se lleve la majada de Ramón al galpón de esquila.' },
+    { id: 'a', texto: 'Que se la lleve Fermín', detalle: 'Lo ayudás a arrearla al galpón de esquila. Ramón dice «no me la devuelvas flaca».', lazos: { fermin: 1 }, palabras: (s) => palabrasMajadaA(s), diario: 'Dejé que Fermín se lleve la majada de Ramón al galpón de esquila.' },
     { id: 'b', texto: 'Cuidarla vos', detalle: 'Tres mañanas con agua y forraje en el corral. Ramón: «Vos».', lazos: { ramon: 1, fermin: -1 }, diario: 'Decidí cuidar yo la majada de Ramón.' },
     { id: 'c', texto: 'Venderla a Belisario', detalle: 'Se la llevás al Puesto del Paso. Ramón no te mira: «Andá».', lazos: { ramon: -3, fermin: -1 }, diario: 'Decidí venderle la majada de Ramón a Belisario.' },
   ],
@@ -731,6 +735,10 @@ DEFINICION_DECISIONES.duendes = {
   ],
 };
 
+// 4.18.3: lo que la tarjeta dice, en palabras (sin números), de lo que le cuesta a Ramón que se la lleve Fermín; depende de cuánto confíe Fermín en vos ahora
+export const PALABRAS_MAJADA_CONFIA = 'Fermín ya confía en vos y Ramón lo va a entender';
+export const PALABRAS_MAJADA_NO_CONFIA = 'Fermín todavía te mira con reserva: a Ramón le va a doler, aunque después se le pase';
+export const palabrasMajadaA = (s) => ((Number(s?.lazos?.fermin) || 0) >= MAJADA_CONFIA ? PALABRAS_MAJADA_CONFIA : PALABRAS_MAJADA_NO_CONFIA);
 // Una decisión pendiente en el capítulo en curso: el objetivo `decision(D)` sin hacer y con su escena de antes vista
 export function decisionPendiente(h, s) {
   if (!h?.activa || h.fase !== 'jugando') return null;
@@ -755,14 +763,31 @@ export function avisoLazosDe(o) {
   }
   return r.join('. ');
 }
+// 4.18.3: D5 A («que la lleve Fermín») le cuesta a Ramón −1 salvo que Fermín ya confíe en vos: con el lazo de Fermín en +2 o más AL DECIDIR (la optativa «Fermín quiere
+// hablar» le suma uno), Ramón lo entiende y la escena de la llegada (`majada-fermin`) no le resta nada. Cuando la decisión pasa a A se anota si Fermín confiaba (el tema
+// `fermin:majada-confia`): lo que pase con el lazo de Fermín después (la propia escena le suma tres) no cambia la cuenta; si la decisión cambia (gana la última acción) y
+// vuelve a ser A, se mira de nuevo. El cobro de Ramón sigue siendo de la escena de llegada, que sólo corre si la decisión quedó en A.
+export const MAJADA_CONFIA = 2;
+export const TEMA_MAJADA_CONFIA = 'fermin:majada-confia';
+export const ferminConfia = (h) => lazoDe(h, 'fermin') >= MAJADA_CONFIA;
+// `antes`: lo que estaba decidido (null si nada); `ahora`: la opción que se toma. Devuelve true si Fermín confiaba.
+export function alDecidirMajada(h, antes, ahora, dia = 1) {
+  if (!h || ahora !== 'a' || antes === 'a') return false;   // (sólo cuando pasa a A: repetir la escena no vuelve a mirar)
+  if (h.temas && typeof h.temas === 'object' && !Array.isArray(h.temas)) delete h.temas[TEMA_MAJADA_CONFIA];
+  if (!ferminConfia(h)) return false;
+  marcarTema(h, 'fermin', 'majada-confia', dia);
+  return true;
+}
+export const majadaSinCosto = (h) => Object.hasOwn(obj(obj(h).temas), TEMA_MAJADA_CONFIA);
 // Tomar una decisión: la guarda y mueve los lazos. Devuelve la opción o null.
-export function tomarDecision(h, id, opcion, s = null) {
+export function tomarDecision(h, id, opcion, s = null, dia = 1) {
   if (!Object.hasOwn(DEFINICION_DECISIONES, id) || !DECISIONES.includes(id)) return null;
   const o = DEFINICION_DECISIONES[id].opciones.find((x) => x.id === opcion);
   if (!o) return null;
   if (o.requiere && s && !o.requiere(s)) return null;
   const d = decisionesDe(h);
   if (d[id] != null) return null;   // una sola vez
+  if (id === 'majada') alDecidirMajada(h, d[id], o.id, dia);   // (4.18.3: antes de mover ningún lazo)
   d[id] = o.id;
   for (const [q, n] of Object.entries(o.lazos || {})) cambiarLazo(h, q, n);
   if (o.ramal) sumarRamal(h, o.ramal);   // (4.16.0: la molienda a Esquel o partida suma a la cuenta del ramal)

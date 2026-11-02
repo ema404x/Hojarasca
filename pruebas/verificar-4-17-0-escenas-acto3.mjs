@@ -731,7 +731,9 @@ const dice = (id, o, re) => dichas(id, o).some((l) => re.test(l));
   ok(cambios.length > 4000, 'existe CAMBIOS_4_17_0_B.md');
   for (const id of IDS_ACTO3) ok(cambios.includes('`' + id + '`'), `CAMBIOS_4_17_0_B.md lista la escena «${id}» en la tabla de ids`);
   for (const nombre of EFECTOS_ACTO3.map((x) => x.split(':')[0]).filter((x, i, a) => a.indexOf(x) === i)) ok(cambios.includes(`${nombre}:`), `CAMBIOS_4_17_0_B.md documenta la convención «${nombre}:»`);
-  for (const cond of CONDICIONES_ACTO3) ok(cambios.includes(cond), `CAMBIOS_4_17_0_B.md documenta la condición «${cond}»`);
+  // 4.18.3: la condición `majada-sin-costo` la documenta CAMBIOS_4_18_3.md
+  const cambios4183 = existsSync(join(raiz, 'CAMBIOS_4_18_3.md')) ? leer('CAMBIOS_4_18_3.md') : '';
+  for (const cond of CONDICIONES_ACTO3) ok(cambios.includes(cond) || (cond === 'majada-sin-costo' && cambios4183.includes(cond)), `CAMBIOS_4_17_0_B.md documenta la condición «${cond}»`);
   for (const nombre of EFECTOS_ACTO3.filter((x) => x.startsWith('duende:') || x.startsWith('mundo:') || x.startsWith('duendes:') || x.startsWith('noche:') || x.startsWith('armas:') || x.startsWith('perfil:'))) ok(cambios.includes('`' + nombre + '`'), `CAMBIOS_4_17_0_B.md documenta el efecto «${nombre}»`);
   ok(cambios.includes('graciela') && cambios.includes('pareja'), 'CAMBIOS_4_17_0_B.md anota los personajes que faltan (Graciela y la pareja)');
   ok(!/scratch/i.test(cambios), 'los cambios no mencionan lo que no se menciona');

@@ -34,7 +34,7 @@ export const TEXTO_ACTO3 = {
       ],
       optativas: [
         { id: 'papel-elsa', texto: 'El papel de Elsa: se le cayó en el andén algo que no querría que viera nadie' },
-        { id: 'visita-ramon', texto: 'Visitá a Ramón en el puesto sanitario con algo rico' },
+        { id: 'visita-ramon', texto: 'Visitá a Ramón en el puesto sanitario con algo rico: piñones, una trucha ahumada, pan casero, miel o un plato de tu cocina' },
         { id: 'trochita-nieve', texto: 'La trochita en la nieve: el encargo de temporada suma al ramal' },
         { id: 'juntar-ovejas', texto: 'Juntar las ovejas desparramadas (sólo si la tranquera amaneció abierta)' },
       ],

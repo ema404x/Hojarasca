@@ -375,13 +375,13 @@ const mulasBelisario = {
 
 const herminiaNoventa = {
   id: 'herminia-noventa', titulo: 'Los noventa de Herminia', acto: 2, capitulo: 8,
-  resumen: 'Le llevaste una torta a Herminia por sus noventa años. Ella te regaló «la llavecita», una llave de bronce chiquita que encontró de nena en una raíz.',
+  resumen: 'Le llevaste algo dulce para la torta a Herminia por sus noventa años. Ella te regaló «la llavecita», una llave de bronce chiquita que encontró de nena en una raíz.',
   personajes: pj('herminia', 'narra'),
   pasos: [
     plano('medio', 'herminia', { desde: 'jugador', dist: 3.4, dur: 3, mezcla: 0.9 }),
     mira('herminia', 'jugador'),
     dlg('herminia', [
-      linea('¿Una torta? ¿Para mí?', { gesto: gs('sorprenderse', 1.8) }),
+      linea('¿Algo dulce para la torta? ¿Para mí?', { gesto: gs('sorprenderse', 1.8) }),
       'Noventa. Qué número elegante. Hay gente que se cree que los años pesan: los años lo que hacen es enseñar a sentarse mejor.',
     ]),
     eleccion('noventa-resp', '¿Qué le decís a Herminia?', [

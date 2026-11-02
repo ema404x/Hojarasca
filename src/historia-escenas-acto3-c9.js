@@ -1,9 +1,9 @@
 // 4.17.0 (B): ACTO III · capítulo 9 «Los primeros fríos» (GUION_HISTORIA.md). Ocho escenas como datos, con el formato del motor (escenas.js) y las
 // convenciones de efectos de los actos I y II (lo nuevo está en CAMBIOS_4_17_0_B.md). La decisión D5 (la majada de Ramón) se toma en
 // `fermin-tranquera` y se cumple en una de tres escenas: `majada-fermin` (A), `majada-vos` (B) o `majada-belisario` (C). Gana la última acción.
-import { efectosDe, dlg, narra, linea, gs, plano, pose, aparece, camina, mira, desaparece, sonido, efecto, opcion, eleccion, siEleg, siDecision } from './historia-escenas-util.js';
+import { efectosDe, dlg, narra, linea, gs, plano, pose, aparece, camina, mira, desaparece, sonido, efecto, opcion, eleccion, siEleg, siDecision, siLazo } from './historia-escenas-util.js';
 import { FRENTE, apagon, hora, con, no } from './historia-escenas-acto2-util.js';
-import { pj3, siConvidado, siRamal, primerDe } from './historia-escenas-acto3-util.js';
+import { pj3, siConvidado, siRamal, primerDe, siMajadaSinCosto } from './historia-escenas-acto3-util.js';
 
 const ramonEnCama = {
   id: 'ramon-cama', titulo: 'Ramón en cama', acto: 3, capitulo: 9,
@@ -71,6 +71,9 @@ const ferminTranquera = {
     narra('Ramón apoyado en el marco de la puerta, con la manta de capa y un bastón que nunca usó. Mira la majada, mira a Fermín, te mira a vos. Tarda en contestar.'),
     plano('general', FRENTE(5, 1), { desde: 'jugador', dist: 12, alto: 3, dur: 2.6, mezcla: 0.8 }),
     narra('Es tu papel. Tres caminos y ninguno es solo de la majada: también son de Ramón, de Fermín y de lo que le pasó a cada uno.'),
+    // 4.18.3: lo que le cuesta a Ramón que la lleve Fermín, en palabras: depende de cuánto confíe Fermín en vos (si la optativa «Fermín quiere hablar» ya está hecha, confía)
+    con(narra('Fermín ya no te mira con reserva: sabés que no se la lleva para irse. Si la lleva él, Ramón lo va a entender.'), siLazo('fermin', 2)),
+    con(narra('Fermín todavía te mira con reserva. Si la lleva él, a Ramón le va a doler, aunque después se le pase.'), no(siLazo('fermin', 2))),
     eleccion('majada', '¿Quién sube con la majada?', [
       opcion('a', 'Que la lleve Fermín, entera.', { efecto: 'decision:majada:a' }),
       opcion('b', 'La cuido yo hasta que Ramón se cure.', { efecto: 'decision:majada:b' }),
@@ -118,7 +121,7 @@ const majadaFermin = {
     plano('general', { lugar: 'galpon' }, { dist: 16, alto: 4, dur: 3.4, mezcla: 0.9 }),
     narra('El galpón de esquila los recibe con el techo cargado de nieve vieja. Las ovejas entran de a poco, empujándose, y se acomodan en el corral como si siempre hubieran estado ahí.'),
     efecto('lazo:fermin:3'),
-    efecto('lazo:ramon:-1'),
+    con(efecto('lazo:ramon:-1'), no(siMajadaSinCosto())),   // 4.18.3: sin costo si Fermín confiaba en vos cuando decidiste (lazo +2 o más): ver alDecidirMajada
     efecto('mundo:fermin-lana-amiga'),
     efecto('mundo:fermin-oferta-rechazada'),
     efecto('raro:majada-llevada'),

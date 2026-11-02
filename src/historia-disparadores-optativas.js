@@ -6,6 +6,8 @@
 // `repetible: true` en un disparador: la escena se puede volver a disparar aunque ya esté vista (las de la costumbre y la broma del galpón).
 import { marcarTema, marcarEntrega, marcarObjeto, capituloActual } from './historia.js';
 import { TABLAS_TITO, PRECIO_TABLAS_TITO, vueltasDe, tieneFrasco, disparosDeLazo, claveDisparoLazo, OPTATIVA_SOFIA } from './historia-optativas.js';
+// 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce para la torta de Herminia)
+import { regaloDe } from './historia-regalos.js';
 
 const en = (nombre, radio) => [nombre, radio];
 const enCap = (h, ...ids) => ids.includes(capituloActual(h).id);
@@ -60,8 +62,19 @@ export const DISPARADORES_OPTATIVAS = {
   ...disparadoresDeLazo(OPTATIVA_SOFIA),
 };
 
-// Lo que cambia al ver cada una (una sola vez; ver aplicarVistas). `ctx`: { gastar(cosa, n), cobrar(premio) } los pone el juego.
+// Lo que cambia al ver cada una (una sola vez; ver aplicarVistas). `ctx`: { gastar(cosa, n), cuanto(cosa), cobrar(premio), aviso(titulo, detalle) } los pone el juego.
 const T = (quien, tema) => (h, dia) => marcarTema(h, quien, tema, dia);
+// 4.18.3: lleva el regalo de `quien` ('ramon': algo rico; 'herminia': lo dulce de la torta): gasta UNO de lo que haya (el primero de la lista que alcanza) y lo avisa en pantalla.
+// Corre una sola vez por escena (aplicarVistas la anota): una escena repetida o una partida guardada y cargada no gasta de nuevo. Si en ese momento ya no hay nada, no
+// gasta nada (las optativas nunca traban ni cambian lo ya ganado).
+export function llevarRegalo(h, quien, dia, ctx, titulo, detalle) {
+  const r = regaloDe(quien, (k) => Number(ctx?.cuanto?.(k)) || 0);
+  if (!r) return null;
+  ctx?.gastar?.(r.k, r.n);
+  marcarEntrega(h, quien, r.k, dia);
+  ctx?.aviso?.(titulo(r), detalle);
+  return r;
+}
 export const EFECTOS_ESCENA_OPTATIVAS = {
   // 4.18.2: lo de Sofía: queda anotado a su nombre (así la guía ya la conoce aunque el lazo no se haya movido)
   ...(OPTATIVA_SOFIA && typeof OPTATIVA_SOFIA.escena === 'string' && typeof OPTATIVA_SOFIA.id === 'string' ? { [OPTATIVA_SOFIA.escena]: T('sofia', OPTATIVA_SOFIA.id) } : {}),
@@ -75,6 +88,9 @@ export const EFECTOS_ESCENA_OPTATIVAS = {
     if (Object.hasOwn(ap, 'e:pan-fermin:quitar:pan-casero:1') || Object.hasOwn(ap, 'e:pan-fermin:quitar:harina:1')) return;
     const pan = (Number(ctx?.cuanto?.('pan-casero')) || 0) >= 1; ctx?.gastar?.(pan ? 'pan-casero' : 'harina', 1);
   },
+  // 4.18.3: visitar a Ramón con algo rico, y los noventa de Herminia con lo dulce de la torta: se gasta uno (la escena ya pedía el regalo en su texto, pero no se gastaba nada)
+  'visita-ramon': (h, dia, ctx) => { marcarTema(h, 'ramon', 'chocolate', dia); llevarRegalo(h, 'ramon', dia, ctx, (r) => `Le llevaste ${r.nombre} a Ramón`, 'Dice que es un soborno y lo acepta'); },
+  'herminia-noventa': (h, dia, ctx) => { llevarRegalo(h, 'herminia', dia, ctx, (r) => `Le llevaste ${r.nombre} a Herminia`, 'Para la torta de los noventa'); },
   'vuelta-mirador': T('vuelta', 'mirador'),
   'vuelta-faro': T('vuelta', 'faro'),
   'juntar-ovejas': T('ramon', 'ovejas'),

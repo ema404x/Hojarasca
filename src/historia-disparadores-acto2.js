@@ -67,7 +67,8 @@ export const DISPARADORES_ACTO2 = {
   'fogon-leyenda': { cap: 'cuaderno', modo: 'auto', requiere: ['libreta-fiado', 'cuaderno-abuelo'], lugar: en('plaza', 25), hora: [20.5, 23.5] },
   'pluma-umbral': { cap: 'cuaderno', modo: 'auto', requiere: ['fogon-leyenda'], lugar: en('refugio-puerta', 14), hora: [20, 6] },
   'veta-vuelve': { cap: 'cuaderno', modo: 'hablar', clave: 'tobias', hora: [20, 5], cond: (s) => s.decisiones.coihue === 'c' },
-  'herminia-noventa': { cap: 'cuaderno', modo: 'hablar', clave: 'abuela' },
+  // 4.18.3: con algo dulce para la torta (`regaloTorta`, ver historia-regalos.js); sin eso la E sobre Herminia es la charla de siempre
+  'herminia-noventa': { cap: 'cuaderno', modo: 'hablar', clave: 'abuela', cond: (s) => !!s.regaloTorta },
   // 4.17.0 (C): las mulas de Belisario: la E sobre él, ya contado lo de los del cerro (la escena te pone en el zaino, sin hacerte montar de verdad)
   'mulas-belisario': { cap: 'cuaderno', modo: 'hablar', clave: 'belisario', requiere: ['los-del-cerro'] },
 };

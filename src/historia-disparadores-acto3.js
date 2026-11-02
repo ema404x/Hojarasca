@@ -30,7 +30,8 @@ export const DISPARADORES_ACTO3 = {
   // Ramón camina despacio con vos hasta la aldea (o, si pasan dos días, ya lo llevó Marta). Es mecánica: B no la escribió, se da por vista.
   'ramon-sanitario': { cap: 'frios', modo: 'auto', requiere: ['ramon-cama'], lugar: en('plaza', 60), hora: [8, 21], cond: (s, h) => s.acompanante === 'ramon' || s.dia >= diaVista(h, 'ramon-cama') + 2 },
   'papel-elsa': { cap: 'frios', modo: 'auto', requiere: ['ramon-cama'], lugar: en('estacion', 22), hora: [8, 20] },
-  'visita-ramon': { cap: 'frios', modo: 'hablar', clave: 'ramon', requiere: ['ramon-sanitario'] },
+  // 4.18.3: con algo rico para llevarle (`regaloRamon`, ver historia-regalos.js); sin eso la E sobre Ramón es la charla de siempre
+  'visita-ramon': { cap: 'frios', modo: 'hablar', clave: 'ramon', requiere: ['ramon-sanitario'], cond: (s) => !!s.regaloRamon },
   // ---- capítulo 10 · Golpeá antes de abrir
   'galpon-golpe': { cap: 'golpea', modo: 'interaccion', clave: 'puerta-galpon' },
   'galpon-encuentro': { cap: 'golpea', modo: 'auto', requiere: ['galpon-golpe'], lugar: en('galpon-noche', 22) },

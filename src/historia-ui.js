@@ -33,6 +33,8 @@ import { crearNocheUi, CSS_NOCHE } from './historia-noche-ui.js';
 import { revisarOptativas, panDeHoy, revisarEncargos, optativasDelPanel, optativasHechas, lineaDeHistoria, oirLinea } from './historia-optativas.js';
 import { NOTAS_ESCENA_OPTATIVAS } from './historia-disparadores-optativas.js';
 import { NOCHE } from './historia-noche.js';
+// 4.18.3: cuánto hay de algo (lo juntado y las cosas) para lo que se lleva de regalo
+import { cuentaDe } from './historia-regalos.js';
 
 export const CSS_VALLE = `
 .valle-velo { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.42); z-index: 40; padding: 16px; }
@@ -300,9 +302,9 @@ export function crearValleUi(ctx) {
   function mostrarDecision(h, dec, s) {
     tarjetas.mostrar({
       clase: 'evento', arriba: 'Una decisión', titulo: dec.titulo, texto: dec.texto,
-      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); const aviso = ok ? avisoLazosDe(o) : ''; return { id: o.id, texto: o.texto, detalle: ok ? (aviso ? `${o.detalle || ''}${o.detalle ? ' · ' : ''}${aviso}` : o.detalle) : o.sinRequisito, deshabilitada: !ok }; }),   // (4.18.2: y lo que le pasa al lazo de los vecinos)
+      opciones: dec.opciones.map((o) => { const ok = !o.requiere || o.requiere(s); const aviso = ok ? avisoLazosDe(o) : ''; const pal = ok && typeof o.palabras === 'function' ? o.palabras(s) : ''; const dice = [aviso, pal].filter(Boolean).join('. '); return { id: o.id, texto: o.texto, detalle: ok ? (dice ? `${o.detalle || ''}${o.detalle ? ' · ' : ''}${dice}` : o.detalle) : o.sinRequisito, deshabilitada: !ok }; }),   // (4.18.2: y lo que le pasa al lazo de los vecinos; 4.18.3: y lo que le cuesta a Ramón, en palabras)
       alElegir: (id) => {
-        const o = tomarDecision(h, dec.id, id, estado());
+        const o = tomarDecision(h, dec.id, id, estado(), ctx.progreso().dia);
         if (!o) return false;
         ctx.diario('evento', o.diario || dec.titulo);
         ctx.sonido?.()?.anotar?.();
@@ -338,7 +340,7 @@ export function crearValleUi(ctx) {
     const antes = (h.raro || []).length;
     const hechos = aplicarVistas(h, p.dia, { eventos: p.eventosValle?.hechos, dar: (c, n) => ctx.darCosa?.(c, n), tieneCaballo: () => !!p.cosas?.caballo, gastar: (c, n) => ctx.gastar?.(c, n),
       pagar: (monto, motivo, con) => ctx.pagar?.(monto, motivo, con), regalo: () => ((Number(p.cosas?.harina) || 0) >= 1 ? 'harina' : 'yerba'),
-      cuanto: (k) => Number(p.cosas?.[k]) || 0, cobrar: (premio) => ctx.cobrar?.(premio) });   // (4.18.0: lo que tenés y lo que te pagan: el pan de Fermín, las tablas de Tito)
+      cuanto: (k) => cuentaDe(p, k), cobrar: (premio) => ctx.cobrar?.(premio), aviso: (titulo, detalle) => ctx.nota(titulo, detalle, true) });   // (4.18.0: lo que tenés y lo que te pagan: el pan de Fermín, las tablas de Tito)
     if (hechos.length) {
       for (const id of hechos) if (Object.hasOwn(NOTAS_ESCENA_OPTATIVAS, id)) { const n = NOTAS_ESCENA_OPTATIVAS[id]; ctx.nota(n[0], n[1], true); }   // 4.18.0
       for (const x of (h.raro || []).slice(antes)) { ctx.nota('El cuaderno anota algo raro', textoRaro(x.id)); ctx.diario?.('evento', textoRaro(x.id)); }

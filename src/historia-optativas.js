@@ -12,6 +12,8 @@
 //   · Los encargos de los vecinos con lazo (LAZOS_TODOS: los seis con arco y, desde la 4.18.2, también Nicanor): cada encargo cumplido con la historia en marcha suma +1 al lazo de quien lo pidió.
 import { CAPITULOS, LAZOS_TODOS, PERSONAS_LAZO_VECINOS, cambiarLazo, sumarRamal } from './historia.js';
 import { TEXTO_LAZOS } from './historia-texto-lazos.js';
+// 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce para la torta de Herminia)
+import { PARA_RAMON, PARA_LA_TORTA, QUE_LLEVAR_RAMON, QUE_LLEVAR_TORTA, nombreDeRegalo } from './historia-regalos.js';
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
 import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 import { TEXTO_ACTO3 } from './historia-texto-acto3.js';
@@ -110,12 +112,18 @@ export const OPTATIVAS = [
   { id: 'mulas', desde: 'cuaderno', hasta: 'cuaderno', quien: 'belisario',
     ofrece: (s) => s.escenas.has('los-del-cerro'), hecha: vista('mulas-belisario'), escenas: ['mulas-belisario'], disparadores: ['mulas-belisario'], premio: null },
   { id: 'noventa', desde: 'cuaderno', hasta: 'cuaderno', quien: 'herminia',
-    ofrece: () => true, hecha: vista('herminia-noventa'), escenas: ['herminia-noventa'], disparadores: ['herminia-noventa'], premio: null },
+    ofrece: () => true,
+    // 4.18.3: hace falta algo dulce para la torta (no hay una torta guardada en el inventario: ver historia-regalos.js); se gasta uno al verla
+    avance: (s) => (s.regaloTorta ? `llevale ${nombreDeRegalo(PARA_LA_TORTA, s.regaloTorta)} a Herminia para la torta (E sobre ella)` : `te falta algo dulce para la torta: ${QUE_LLEVAR_TORTA}`),
+    hecha: vista('herminia-noventa'), escenas: ['herminia-noventa'], disparadores: ['herminia-noventa'], premio: null },
   // ---- ACTO III
   { id: 'papel-elsa', desde: 'frios', hasta: 'arco', quien: 'guarda',
     ofrece: (s) => s.escenas.has('ramon-cama'), hecha: vista('papel-elsa'), escenas: ['papel-elsa'], disparadores: ['papel-elsa'], premio: { lazos: { guarda: 1 } } },
   { id: 'visita-ramon', desde: 'frios', hasta: 'arco', quien: 'ramon',
-    ofrece: (s) => s.escenas.has('ramon-sanitario'), hecha: vista('visita-ramon'), escenas: ['visita-ramon'], disparadores: ['visita-ramon'], premio: { lazos: { ramon: 1 } } },
+    ofrece: (s) => s.escenas.has('ramon-sanitario'),
+    // 4.18.3: hace falta algo rico; se gasta uno al verla
+    avance: (s) => (s.regaloRamon ? `llevale ${nombreDeRegalo(PARA_RAMON, s.regaloRamon)} al puesto sanitario (E sobre él)` : `te falta algo rico para llevarle: ${QUE_LLEVAR_RAMON} o un plato de tu cocina`),
+    hecha: vista('visita-ramon'), escenas: ['visita-ramon'], disparadores: ['visita-ramon'], premio: { lazos: { ramon: 1 } } },
   { id: 'trochita-nieve', desde: 'frios', hasta: 'arco', quien: 'guarda', ventana: true,
     ofrece: () => true, hecha: encargoHecho('t-trochita-nieve'), premio: { ramal: 1, texto: 'Un flete más en la cuenta del ramal' } },
   { id: 'juntar-ovejas', desde: 'frios', hasta: 'golpea', quien: 'ramon',

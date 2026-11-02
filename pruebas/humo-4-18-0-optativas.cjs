@@ -266,12 +266,13 @@ app.whenReady().then(async () => {
         [6, { vistas: ['minga-aldea'] }, 'fermin', 'fermin-mulas', 'fermin-habla'],
         [7, { decisiones: { coihue: 'c' }, horas: 21, vistas: ['libreta-fiado', 'cuaderno-abuelo', 'los-del-cerro', 'secreto-ramon'] }, 'tobias', 'veta-vuelve', 'veta-vuelve'],
         [7, { vistas: ['los-del-cerro'] }, 'belisario', 'mulas-belisario', 'mulas'],
-        [7, { vistas: ['libreta-fiado', 'cuaderno-abuelo', 'los-del-cerro'] }, 'abuela', 'herminia-noventa', 'noventa'],
+        [7, { vistas: ['libreta-fiado', 'cuaderno-abuelo', 'los-del-cerro'], entradas: { 'dulce-leche': 1 } }, 'abuela', 'herminia-noventa', 'noventa'],   // (4.18.3: la torta pide algo dulce y gasta uno)
       ];
       for (const [cap, o, clave, escena, opt] of casos) {
         await cerrarTarjetas();
         await prep(cap, o);
         if (o.cosas) await N(`(() => { Object.assign(P.cosas, ${JSON.stringify(o.cosas)}); return 1 })()`);
+        if (o.entradas) await N(`(() => { for (const [k, c] of Object.entries(${JSON.stringify(o.entradas)})) P.entradas[k] = { dia: P.dia, hora: P.horas, cantidad: c }; return 1 })()`);   // (4.18.3: lo que se lleva de regalo está en lo juntado)
         await N('N.tick(0.6)');
         const pesos0 = await N('(P.economia && P.economia.pesos) || 0');
         const cantos0 = await N('(P.entradas.canto && P.entradas.canto.cantidad) || 0');
@@ -310,8 +311,10 @@ app.whenReady().then(async () => {
       await prep(8, { horas: 10, vistas: ['ramon-cama', 'fermin-tranquera', 'hojas-canelo', 'ramon-sanitario'], decisiones: { majada: 'b' } });
       await irA('estacion', 3, 3, 1.5); await N('N.hasta(() => H.__escenas.activa() || P.historia.escenas.vistas["papel-elsa"], 10)');
       await comprobar('papel-elsa', 'papel-elsa', 'el papel de Elsa');
+      await N(`(() => { P.entradas['trucha-ahumada'] = { dia: P.dia, hora: P.horas, cantidad: 1 }; return 1 })()`);   // (4.18.3: la visita pide algo rico y gasta uno)
       await hablarCon('ramon');
       await comprobar('visita-ramon', 'visita-ramon', 'visitar a Ramón');
+      ok((await N('(P.entradas["trucha-ahumada"] && P.entradas["trucha-ahumada"].cantidad) || 0')) === 0, 'la visita gastó la trucha ahumada');
       // juntar las ovejas desparramadas
       await cerrarTarjetas();
       await prep(8, { horas: 10, vistas: ['ramon-cama', 'fermin-tranquera', 'hojas-canelo', 'ramon-sanitario', 'papel-elsa', 'visita-ramon'], decisiones: { majada: 'b' }, temas: ['optativa:juntar-ovejas', 'mundo:corral-abierto'] });

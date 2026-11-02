@@ -5,7 +5,7 @@ import { cambiarLazo, anotarRaro, marcarObjeto, marcarTema, marcarEntrega, sumar
 import { parsearEfecto } from './historia-escenas-util.js';
 // 4.17.0: los efectos del acto III (duendes:, noche:, armas:, perfil:) y lo que cambian en la partida
 import { parsearEfectoActo3 } from './historia-escenas-acto3-util.js';
-import { hacerTrato, ganarArma, dejarPerdidaDe, duendesDe, esConvidado } from './historia.js';
+import { hacerTrato, ganarArma, dejarPerdidaDe, duendesDe, esConvidado, alDecidirMajada, majadaSinCosto } from './historia.js';
 
 const clave = (...p) => p.map((x) => String(x ?? '')).join(':').slice(0, 63);
 
@@ -41,6 +41,8 @@ export function registrarEfectosHistoria(reg, ctx) {
   reg.registrarCondicion('perdon', () => { const h = H(); return !!h && h.duendes?.perdon === true; });
   reg.registrarCondicion('prestado', (c) => { const h = H(); const q = c?.args?.quien; return !!h && typeof q === 'string' && Object.hasOwn(h.prestado || {}, q) && h.prestado[q] === true; });
   reg.registrarCondicion('amor', () => { const s = ctx.estado?.(); return !!s && s.amor === true; });
+  // 4.18.3: D5 A sin costo con Ramón: Fermín confiaba en vos (lazo +2 o más) cuando decidiste (ver alDecidirMajada)
+  reg.registrarCondicion('majada-sin-costo', () => { const h = H(); return !!h && majadaSinCosto(h); });
 }
 
 // 4.15.0 (A+B): los efectos con la sintaxis de las escenas del acto I (`lazo:ema:-1`, `decision:bolsa:a`, `raro:ronda-ramitas`, `objeto:puertita`,
@@ -58,7 +60,7 @@ export function registrarEfectosActo1(reg, ctx, nombres) {
       if (!h) return;
       switch (p.tipo) {
         case 'lazo': if (LAZOS_TODOS.includes(p.quien) && una(h, clave(c))) cambiarLazo(h, p.quien, p.n); break;
-        case 'decision': if (DECISIONES.includes(p.d)) { if (!h.decisiones || typeof h.decisiones !== 'object') h.decisiones = {}; const primera = h.decisiones[p.d] == null; h.decisiones[p.d] = p.v; if (p.d === 'duendes' && primera) alDecidirDuendes(h, p.v); } break;   // (4.17.0: D6 define el trato o la pelea)
+        case 'decision': if (DECISIONES.includes(p.d)) { if (!h.decisiones || typeof h.decisiones !== 'object') h.decisiones = {}; const primera = h.decisiones[p.d] == null; if (p.d === 'majada') alDecidirMajada(h, h.decisiones[p.d], p.v, ctx.dia()); h.decisiones[p.d] = p.v; if (p.d === 'duendes' && primera) alDecidirDuendes(h, p.v); } break;   // (4.17.0: D6 define el trato o la pelea)
         case 'ramal': if (una(h, clave(c))) sumarRamal(h, p.n); break;
         case 'raro': anotarRaro(h, p.id, ctx.dia()); break;
         case 'objeto': case 'entrega': (p.tipo === 'objeto' ? marcarTema : marcarEntrega)(h, 'obj', p.id, ctx.dia()); break;

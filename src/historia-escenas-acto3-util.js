@@ -35,7 +35,8 @@ export const esPersonaje3 = (n) => Object.hasOwn(PERSONAJES_HISTORIA, n) || Obje
 //   perdon {}             pediste perdón después de la pelea (`duendes.perdon`)
 //   amor {}               tenés pareja (o salís con alguien) y el amor está prendido en los ajustes
 //   perro {}              tenés perro
-export const CONDICIONES_ACTO3 = [...CONDICIONES_HISTORIA, 'trato', 'noche', 'ramal-nivel', 'deuda', 'convidado', 'devolver-bolsa', 'perdon', 'amor', 'perro'];
+//   majada-sin-costo {}   (4.18.3) cuando decidiste la majada, el lazo de Fermín era +2 o más: que la lleve Fermín no le cuesta nada con Ramón
+export const CONDICIONES_ACTO3 = [...CONDICIONES_HISTORIA, 'trato', 'noche', 'ramal-nivel', 'deuda', 'convidado', 'devolver-bolsa', 'perdon', 'amor', 'perro', 'majada-sin-costo'];
 export const siTrato = (es) => ({ cond: 'trato', args: { es } });
 export const siNoche = (es) => ({ cond: 'noche', args: { es } });
 export const siRamal = (es) => ({ cond: 'ramal-nivel', args: { es } });
@@ -45,6 +46,7 @@ export const siDevolver = () => ({ cond: 'devolver-bolsa', args: {} });
 export const siPerdon = () => ({ cond: 'perdon', args: {} });
 export const siAmor = () => ({ cond: 'amor', args: {} });
 export const siPerro = () => ({ cond: 'perro', args: {} });
+export const siMajadaSinCosto = () => ({ cond: 'majada-sin-costo', args: {} });
 // los valores que cada condición puede tomar (para que la prueba corra todas las variantes)
 export const VALORES_CONDICION = {
   trato: ['trato', 'fuerte', 'pelea'],
@@ -52,7 +54,7 @@ export const VALORES_CONDICION = {
   'ramal-nivel': ['salvado', 'prueba', 'traslado'],
   deuda: ['pendiente', 'ninguna'],
 };
-export const CONDICIONES_BOOLEANAS = ['convidado', 'devolver-bolsa', 'perdon', 'amor', 'perro'];
+export const CONDICIONES_BOOLEANAS = ['convidado', 'devolver-bolsa', 'perdon', 'amor', 'perro', 'majada-sin-costo'];
 
 // ---------------------------------------------------------------- efectos nuevos (`tipo:id`)
 //   duendes:trato            hubo trato (duendes.trato = 'trato')                 duendes:trato-fuerte   trato + devolviste la bolsa (convidado)

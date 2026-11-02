@@ -251,6 +251,8 @@ import { sanearChinches, ponerChinche, chincheCerca, sacarChinche, rumboHacia, t
 import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-tutorial.js';
 // 3.1: la historia guiada y los eventos del valle con decisiones (ver historia-ui.js)
 import { crearValleUi } from './historia-ui.js';
+// 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce de la torta, el pan de Fermín)
+import { IDS_REGALO, gastarRegalo } from './historia-regalos.js';
 // 4.13.0 (B): la noche de defensa del final de la Historia
 import { crearNocheMundo } from './historia-noche-mundo.js';
 // 4.13.0 (A): los duendes de lejos en los capítulos 5 y 6, el encuentro del galpón y las armas
@@ -2414,6 +2416,7 @@ function darCosaHistoria(cosa, n) { try { cobrarPremio({ premio: { cuenta: { [co
 function gastarCosaHistoria(cosa, n) {
   try {
     n = Math.max(0, Math.floor(Number(n) || 0));
+    if (IDS_REGALO.includes(cosa)) { gastarRegalo(progreso, cosa, n); refrescarBarra(true); return; }   // (4.18.3: primero de lo juntado y después de las cosas: el pan del horno y los piñones están en lo juntado, el pan de Rosa en las cosas)
     if (cosa === 'vellon') cosa = 'lana';   // 4.17.0: los nombres de las escenas de B
     else if (cosa === 'tabla-coihue') cosa = (Number(progreso.cosas?.['tabla-coihue']) || 0) >= n ? 'tabla-coihue' : 'tabla';   // (4.18.0: las de coihue del tocón quedan en las cosas: dar:tabla-coihue)
     if (cosa === 'tabla-coihue') progreso.cosas[cosa] = Math.max(0, (Number(progreso.cosas[cosa]) || 0) - n);
