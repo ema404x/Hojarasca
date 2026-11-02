@@ -428,6 +428,7 @@ app.whenReady().then(async () => {
     if (va('puente')) {
       donde = 'puente';
       console.log('— 7. el puente con el carro: caballo montado, carro enganchado');
+      w.webContents.setBackgroundThrottling(false); w.show(); w.focus(); await esperar(500);   // (esta parte no mide el segundo plano: que los temporizadores no vayan a 1 s)
       await cerrarTarjetas();
       await N('(() => { P.cosas.caballo = 1; P.personal.caballo.carro = true; P.personal.caballo.enganchado = true; H.clima.estado.lluvia = 0; P.horas = 11; return 1 })()');
       const pu = await N('(() => { const p = T.puentes[0]; return p ? { x: p.x, z: p.z, ang: p.ang, largo: p.largo, alto: p.alto } : null })()');
