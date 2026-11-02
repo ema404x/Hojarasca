@@ -570,7 +570,7 @@ export const CAPITULOS = [
     ],
     objetivos: [
       // cadena A · el arco (Tito, Elvira, Anselmo y Josefina)
-      { id: 'lenga', tecla: 'H', texto: 'El arco: talá un árbol seco de la ladera para la madera (o, si talaste el coihue, llevale a Tito dos tablas)', hecho: (s, b) => desde(s, b, 'talados') >= 1 || s.entregados.has('tito:tablas') },
+      { id: 'lenga', tecla: 'H', texto: 'El arco: talá un árbol seco de la ladera para la madera (o, si talaste el coihue, llevale a Tito dos tablas)', hecho: (s, b) => desde(s, b, 'talados') >= 1 || s.entregados.has('tito:tablas') || (s.decisiones.coihue === 'b' && (s.tablasCoihue >= 2 || s.tablas >= 2)) },   // (4.18.4: «o, si talaste el coihue, llevale a Tito dos tablas»: nada anotaba nunca esa entrega y la alternativa no contaba; la escena de Tito cobra las dos tablas)
       { id: 'tito', tecla: 'E', texto: 'Dejale la madera a Tito en la carpintería y volvé a la mañana (E sobre él)', vecinos: true, hecho: (s) => s.escenas.has('tito-arco') || !s.pobladores.has('carpintero') },
       { id: 'cuerda', tecla: 'E', texto: 'La cuerda: llevale dos vellones a Elvira, la tejedora (esquilá en el corral o pedíselos a Fermín)', vecinos: true, hecho: (s) => s.escenas.has('elvira-cuerda') || !s.pobladores.has('tejedora') },
       { id: 'puntas', tecla: 'E', texto: 'Las puntas: encargale a Anselmo doce puntas de flecha ($400)', vecinos: true, hecho: (s) => s.escenas.has('anselmo-puntas') || !s.pobladores.has('herrero') },
