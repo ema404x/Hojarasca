@@ -2700,7 +2700,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const mostrador = w(0, D / 2 + 1.5);
       const puertaTe = w(0, D / 2 + 3.1);
       casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, luzGaleria, efectos: efectosTe, mostrador, puerta: puertaTe,
-        radio: Math.max(W / 2 + 1.4, D / 2 + 3.5) };
+        radio: Math.max(W / 2 + 1.4, D / 2 + 3.5), ancho: W, fondo: D };   // 4.23.0: `ancho` y `fondo` (las paredes): main.js los usa para no dibujar el exterior desde adentro
       T.lugares['casa-te'] = casaTe;
       // 3.6: en la aldea, la huella queda donde la dejaba el sorteo
       casaTeSorteo = aldeaTe ? (sorteado ? { x: sorteado.x, z: sorteado.z } : null) : casaTe;

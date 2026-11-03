@@ -26,6 +26,8 @@ const ESCALA = Number(env('ESCALA', 1.5));
 const LASTRE = Number(env('LASTRE', 2));
 const MUESTRA_MS = Number(env('MUESTRA_MS', 4000));
 const LIBRE_MS = Number(env('LIBRE_MS', 3000));   // 4.22.0: cuánto se mide la CPU sin lastre (más muestras para separar el ruido)
+const EVAL = env('EVAL', '');   // 4.23.0: un archivo .js con UNA expresión (puede ser async) que se evalúa en la página por encuadre; el resultado va a eval-<id>.json
+const PERFIL_MS = Number(env('PERFIL_MS', 0));   // 4.23.0: con un número, además perfila la CPU con el perfilador de Chromium durante esos ms (por encuadre) y deja perfil-<id>.json
 // 4.21.0: AUD_LLUVIA=1 pone el tiempo en lluvia plena de verdad antes de cada encuadre (el bucle de la herramienta corre los cuadros sin tiempo entre uno y otro: el clima
 // real tarda ~25 s de juego en llegar y las capturas de la 4.20.0 «con lluvia» salían a medio camino).
 const FORZAR_LLUVIA = env('LLUVIA', '0') === '1';
@@ -47,7 +49,9 @@ const PAGINA = String.raw`(() => {
   // pone la cámara fija y el reloj quieto
   A.poner = (p, pitch, fov) => {
     const y = p.y ?? T.altura(p.x, p.z) + 1.65;
-    H.jugador.ubicar(p.x, p.z, 0);
+    H.jugador.ubicar(p.x, p.z, p.yaw);
+    // 4.23.0: el cuerpo mira hacia donde mira la cámara fija (la regla de «no dibujar el exterior desde adentro» lee la mira de la cámara del juego antes del cuadro; con el cuerpo mirando a 0 siempre decidía igual)
+    H.jugador.estado.yaw = p.yaw; H.jugador.estado.pitch = pitch;
     H.__camaraFija = { x: p.x, y, z: p.z, yaw: p.yaw, pitch };
     H.camara.fov = fov; H.camara.updateProjectionMatrix();
     H.progreso.horas = p.horas; window.__hora = p.horas;
@@ -105,7 +109,7 @@ const PAGINA = String.raw`(() => {
     if (calentar) await dormir(calentar);   // (el reloj de la placa tarda un par de segundos en subir)
     C.cpu = []; C.gpu = []; C.int = []; C.ultimoT = 0; C.activo = true; await dormir(ms); C.activo = false;
     const gpu = C.gpu.filter((x) => x >= 0), costo = C.cpu.map((c, i) => Math.max(c, C.gpu[i] >= 0 ? C.gpu[i] : 0));
-    return { cuadros: C.cpu.length, cpu: { p50: q(C.cpu, 0.5), p95: q(C.cpu, 0.95) }, gpu: { p50: q(gpu, 0.5), p95: q(gpu, 0.95), n: gpu.length }, costo: { p50: q(costo, 0.5), p95: q(costo, 0.95) }, intervalo: { p50: q(C.int.slice(1), 0.5), p95: q(C.int.slice(1), 0.95) }, pausas: C.pausas };
+    return { cuadros: C.cpu.length, cpu: { p50: q(C.cpu, 0.5), p95: q(C.cpu, 0.95), media: C.cpu.length ? +(C.cpu.reduce((x, y) => x + y, 0) / C.cpu.length).toFixed(2) : -1 },   /* 4.23.0: la media (la mediana engaña si la mitad de los cuadros hace algo y la otra mitad no) */ gpu: { p50: q(gpu, 0.5), p95: q(gpu, 0.95), n: gpu.length }, costo: { p50: q(costo, 0.5), p95: q(costo, 0.95) }, intervalo: { p50: q(C.int.slice(1), 0.5), p95: q(C.int.slice(1), 0.95) }, pausas: C.pausas };
   };
   // los subsistemas del bucle real (perfilador del juego): dónde se va la CPU
   A.perfilarInicio = () => { H.perfilador.limpiar(); return 1; };
@@ -245,6 +249,34 @@ const PAGINA = String.raw`(() => {
   return 1;
 })()`;
 
+
+// 4.23.0: perfil de la CPU con el perfilador de Chromium (muestreo cada 100 µs): el tiempo propio y el inclusivo por función, para ver dónde se va la CPU del cuadro.
+async function perfilarCpu(w, ms, id, salida) {
+  const dbg = w.webContents.debugger;
+  try { dbg.attach('1.3'); } catch (e) { /* ya enganchado */ }
+  await dbg.sendCommand('Profiler.enable');
+  await dbg.sendCommand('Profiler.setSamplingInterval', { interval: 100 });
+  await dbg.sendCommand('Profiler.start');
+  await esperar(ms);
+  const { profile } = await dbg.sendCommand('Profiler.stop');
+  await dbg.sendCommand('Profiler.disable');
+  const nodos = new Map(profile.nodes.map((n) => [n.id, n])), padre = new Map();
+  for (const n of profile.nodes) for (const h of n.children || []) padre.set(h, n.id);
+  const propio = new Map(), incl = new Map(), clave = (n) => { const c = n.callFrame; return (c.functionName || '(anónima)') + ' @' + (c.url ? c.url.split('/').pop() : '') + ':' + c.lineNumber; };
+  let total = 0;
+  profile.samples.forEach((id, i) => {
+    const dt = (profile.timeDeltas[i] || 0) / 1000; total += dt;
+    const n = nodos.get(id); if (!n) return;
+    const k = clave(n); propio.set(k, (propio.get(k) || 0) + dt);
+    const visto = new Set(); let x = id;
+    while (x !== undefined) { const nn = nodos.get(x); const kk = clave(nn); if (!visto.has(kk)) { visto.add(kk); incl.set(kk, (incl.get(kk) || 0) + dt); } x = padre.get(x); }
+  });
+  const orden = (m, n) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => ({ k, ms: +v.toFixed(1), pct: +(100 * v / total).toFixed(1) }));
+  const r = { id, msPerfilados: +total.toFixed(0), propio: orden(propio, 70), inclusivo: orden(incl, 90) };
+  fs.writeFileSync(path.join(salida, 'perfil-' + id + '.json'), JSON.stringify(r, null, 1));
+  return r;
+}
+
 app.whenReady().then(async () => {
   const w = new BrowserWindow({ show: true, width: 1280, height: 720, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   w.focus();
@@ -322,6 +354,7 @@ app.whenReady().then(async () => {
       try { img = await w.webContents.capturePage(); } catch (e) { console.log('  (captura fallida: ' + (e && e.message) + ', se reintenta)'); try { w.show(); w.focus(); } catch { /* sin ventana */ } await js(`window.__AUD.cuadros(3)`); await esperar(1500); }
     }
     if (img) { fs.writeFileSync(path.join(salida, `${t.id}.png`), img.toPNG()); r.captura = `${t.id}.png`; } else console.log('  ' + t.id + ': sin captura');
+    if (EVAL) { try { const rr = await js(fs.readFileSync(path.resolve(EVAL), 'utf8')); fs.writeFileSync(path.join(salida, 'eval-' + t.id + '.json'), JSON.stringify(rr, null, 1)); } catch (e) { console.log('  (falló el eval: ' + (e && e.message) + ')'); } }
     if (medir && t.medir) {
       const intentar = async (nombre, cod) => { try { r[nombre] = await js(cod); } catch (e) { r[nombre] = { error: String(e && e.message || e) }; console.log('  (falló ' + nombre + ': ' + (e && e.message) + ')'); } };
       await intentar('conteo', `window.__AUD.contar()`);
@@ -330,6 +363,7 @@ app.whenReady().then(async () => {
       await js(`window.__AUD.perfilarInicio()`);
       await intentar('medidaLibre', `window.__AUD.muestrear(${LIBRE_MS}, 1500)`);
       await intentar('subsistemas', `window.__AUD.perfilarFin()`);
+      if (PERFIL_MS > 0) { try { const pr = await perfilarCpu(w, PERFIL_MS, t.id, salida); console.log('  perfil ' + t.id + ': ' + pr.msPerfilados + ' ms perfilados'); } catch (e) { console.log('  (falló el perfil: ' + (e && e.message) + ')'); } }
       await js(`window.__AUD.lastre(${LASTRE})`);
       await intentar('medida', `window.__AUD.muestrear(${MUESTRA_MS}, 2500)`);
       await intentar('desglose', `window.__AUD.desglose()`);

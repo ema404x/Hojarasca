@@ -2241,6 +2241,15 @@ export function crearAldeaMundo(ctx) {
     return null;
   }
   const adentro = (pos) => edificioEn(pos, false);
+  // 4.23.0 (C): el edificio cerrado donde está `pos` (entre sus paredes), con lo que hace falta para decidir si se dibuja el exterior (ver interior-visible.js):
+  // su centro, su radio (media diagonal + 2 m) y sus puertas con cuánto abiertas están. Es siempre el mismo objeto (sin basura por cuadro).
+  const interiorEn = { id: '', x: 0, z: 0, radio: 0, puertas: null };
+  function interiorDe(pos) {
+    const b = edificioEn(pos, false);
+    if (!b) return null;
+    interiorEn.id = b.id; interiorEn.x = b.sitio.x; interiorEn.z = b.sitio.z; interiorEn.radio = Math.hypot(b.ancho, b.fondo) / 2 + 2; interiorEn.puertas = b.puertas;
+    return interiorEn;
+  }
   const bajoCubierta = (pos) => edificioEn(pos, true);
   const techoEn = (pos) => (edificioEn(pos, true) ? 'chapa' : null);
   // Lo cubierto, para marcarTechos (sin nieve adentro): rectángulos girados en el mundo.
@@ -2316,7 +2325,7 @@ export function crearAldeaMundo(ctx) {
   }
   return {
     emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, lugarBanco, lugarCantina, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,
-    actualizar, luces: actualizarLuces, adentro, bajoCubierta, techoEn, techos, pisos, cubiertas, versionCubiertas: () => versionCubiertas, chimeneasCerca, medir, estadoEdificio,
+    actualizar, luces: actualizarLuces, adentro, interiorDe, bajoCubierta, techoEn, techos, pisos, cubiertas, versionCubiertas: () => versionCubiertas, chimeneasCerca, medir, estadoEdificio,
     raices: () => [...[...manzanas.values()].map((m) => m.raiz), alamos?.raiz, estacionHecha?.raiz, calles?.raiz].filter(Boolean),
     charcos: () => calles?.charcos || null,
     // 3.6 (pulido): para la fase de mecánicas: lo que se mueve y lo que echa humo o chispas

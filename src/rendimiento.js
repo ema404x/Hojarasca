@@ -678,3 +678,22 @@ export function crearEscalaFluida(opciones = {}) {
   function reiniciar() { escala = A.max; n = 0; i = 0; ultimoCambio = -1e12; }
   return { anotar, reiniciar, get escala() { return escala; }, ajustes: A };
 }
+
+// 4.23.0 (C): la cadencia de la gente según la distancia. La plaza está limitada por la CPU y casi todo lo de la gente que andaba por la
+// calle era el choque con los obstáculos (`col.resolver`, nueve celdas por persona por cuadro) y la altura del pie: a más de 35 m nadie
+// lo nota si se hace cada tres cuadros, y a más de 80 m cada seis. Cada persona tiene su fase (para no juntarlas todas en el mismo
+// cuadro). La que charla, la de una escena y el cuadro lento (dt grande: un paso largo podría atravesar algo) lo hacen siempre.
+export const CHOQUE_CERCA_M = 35;
+export const CHOQUE_LEJOS_M = 80;
+export function cadaCuantosCuadrosChoca(distancia, dt = 1 / 60, siempre = false) {
+  if (siempre || !(dt < 0.05) || !(distancia >= CHOQUE_CERCA_M)) return 1;
+  return distancia < CHOQUE_LEJOS_M ? 3 : 6;
+}
+// ¿Le toca el choque a esta persona en este cuadro? `cuadro` es un contador que sube en cada cuadro y `fase` el número fijo de la persona.
+export function leTocaElChoque(cada, cuadro, fase) {
+  return cada <= 1 || ((cuadro + fase) % cada) === 0;
+}
+// La pose (huesos y gestos) a mitad de frecuencia (~30 por segundo) entre 20 y 38 m: de cerca (menos de 20 m), charlando o en una escena, en cada cuadro.
+export const POSE_ENTERA_M = 20;
+export const PASO_POSE_MEDIA = 1 / 32;
+
