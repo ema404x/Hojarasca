@@ -1,0 +1,34 @@
+{
+  "anterior": "4.23.0",
+  "fecha": "03-11-2026",
+  "titulo": "No te pierdas, la primera hora con indicios y paisaje y vegetación",
+  "cambios": [
+    "Ramas v4240-a (no te pierdas), v4240-b (la primera hora con indicios) y v4240-c (paisaje y vegetación), juntadas. Detalle en CAMBIOS_4_24_0_A.md, _B.md y _C.md. Cuarta versión que aplica las auditorías de la 4.20.0.",
+    "",
+    "- No te pierdas: el mapa dibuja una banderita con el nombre de lo que el objetivo pendiente ya nombra (hasta 4 a la vez; 33 de los 85 objetivos). Un clic en la marca pone el rumbo en la brújula y otro lo suelta; se suelta sola al cumplirse el objetivo. Sin spoilers: sólo se marca si el texto nombra el lugar o ya conocés a quien vive ahí. El molino viejo, el coihue grande, la panadería, la carpintería, el estudio de fotos y la raíz de Ramón se escriben en el mapa sólo cuando ya los conocés.",
+    "- Panel y guía: el capítulo 11 agrupa «El arco · N de 6» y «La honda · N de 3» con contador; si el panel no entra en la ventana muestra el próximo paso de cada cadena y «y N pasos más» (en 1024x600 el del capítulo 11 pasa de 643 a 418 px). La guía (F1) suma la línea de teclas de la historia (E hablar o tomar, R esperar sentado, M mapa, J cuaderno) con las teclas del jugador. No hay tecla nueva ni claves de guardado.",
+    "- La primera hora: 10 indicios nuevos sin escena larga en los capítulos 2 a 4 (una silueta al anochecer por capítulo, cinco charlas de vecino con un indicio, la leña apilada y los calafates en las botas); ninguno es objetivo, así que se pueden perder sin trabar nada. El cuaderno pasa de 118 a 128 indicios (tope 160).",
+    "- El primer viaje en trochita (capítulo 2): una escena corta de Elsa en el andén apura el tren con la campana; en la partida real la espera pasó de unos 320 s a unos 23 s. No cambia ningún horario; el viaje de vuelta sigue con su espera.",
+    "- Arreglo de la tecla E: junto a un banco del umbral, la E te sentaba aunque tuvieras cerca un objeto de la historia; ahora el objeto gana (no le gana a juntar, anotar, dormir en la cama, un vecino, el tren, el kayak ni el Desafío). Vale también para los objetos viejos (alero, canto, nota de la mesa).",
+    "- Paisaje y vegetación (sin shaders nuevos): copas de media distancia con contorno de nube; el pasto con tres anchos de hoja y tres familias de verde por mata; sotobosque con el 72 % de las plantas (−26 %) y cuatro especies nuevas (michay, rosa mosqueta, zarzaparrilla y otra fronda de helecho); el suelo del prado con 1.621 parches de color y manchas con más variedad (desaparecen con la nieve); los árboles lejanos se entibian en otoño; la sombra de la nieve sale azulada. El otoño, el invierno y la estepa pesan como antes; árboles, rocas, troncos y choques salen idénticos.",
+    "- Presupuesto y CPU: la pasada de sombras tiene una malla por especie en lugar de una por tramo (80 a 110 llamadas menos cada vez que se rehace el mapa; −0,6 a −1,2 ms de CPU por rehacerlo). Plaza contra la 4.23.0: mandar a dibujar −0,45 a −0,10 ms, placa con medianas de −0,12 a +0,11 ms, programas de shader 103 contra 105 (ninguno nuevo), triángulos −0,1 %. Las especies sin árboles cerca ya no entran al repaso de dibujo.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-24-0-a (144 comprobaciones; 39 mutaciones), -b (267; 38 mutaciones) y -c (141; 65 mutaciones); humos de partida real de A, B y C; pruebas viejas de sombras, rocas, carga, escenas del acto I y de la Historia ajustadas a propósito por valores que cambian.",
+    "",
+    "## Sin ver / pendiente",
+    "- No se vio en el juego real: las banderitas con las teclas reasignadas, de noche o con lluvia, y caminando los 129 m al refugio (el humo teletransportó); el panel con todas las optativas abiertas en 1024x600; la silueta entre el pasto alto a 30 m (casi no se distingue) y el plano de Elsa en el andén (queda dentro del techo, entre dos postes); la noche, la lluvia y la tormenta con el paisaje nuevo; la nieve con el sol bajo y las huellas; si alguna silueta salta cuando se rehace el mapa de sombras al caminar; los parches de color en una ladera; Media y Baja (sólo se tomó la plaza); el Desafío, el modo foto, el kayak, el velero y la trochita.",
+    "- No se hizo: el grano del suelo de menos de 4 m fuera de los parches y el corte duro de `marcarPisos` en el pasto (piden tocar un shader); los dientes de las hojas del árbol de cerca y los cipreses a media distancia; el viaje de vuelta en trochita sin espera; «Lo prestado» queda como línea suelta; el inglés.",
+    "- Siguen: personajes (manos, caras, ropa) y pasada final en la 4.25.0, a pedido. Logros de Steam sin subir."
+  ],
+  "release": "NO TE PIERDAS, LA PRIMERA HORA CON INDICIOS Y PAISAJE Y VEGETACIÓN (CAMBIOS_4_24_0_A/B/C.md) — banderitas del objetivo en el mapa con las teclas en la guía, indicios y un primer viaje en trochita sin espera, y un valle con copas, pastos, sotobosque y suelo más variados sin costo extra en la plaza",
+  "seguir": "No te pierdas + la primera hora con indicios + paisaje y vegetación (CAMBIOS_4_24_0_A/B/C.md). **Sigue (frenado a pedido del usuario):** 4.25.0 (personajes: manos, caras y ropa, midiendo cada paso en la plaza, y pasada final) según CAMBIOS_4_20_0.md. Para jugar: las noches 5 y 11 a 20 del Desafío, la granja con lo nuevo, la marca del mapa y el valle de noche y con lluvia. Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).",
+  "leemeNovedades": [
+    "- El mapa marca con una banderita lo que tu objetivo nombra (clic para que la brújula te lleve) y la guía suma las teclas de la Historia; el capítulo 11 se ordena con contadores.",
+    "- La primera hora tiene más indicios (siluetas, charlas y cosas movidas) y el primer viaje en trochita ya no te hace esperar.",
+    "- El valle se ve más variado: copas redondeadas, pastos y sotobosque con más especies, suelo con parches de color y sombras azuladas en la nieve."
+  ],
+  "leemeMirar": [
+    "- Si las banderitas del mapa ayudan sin spoilers y el panel se lee bien en pantallas chicas.",
+    "- Si los indicios de las primeras horas se notan pero no molestan, y la E mira lo que tiene que mirar.",
+    "- Si el valle se ve mejor de día, de noche y con nieve, y la plaza sigue fluida."
+  ]
+}
