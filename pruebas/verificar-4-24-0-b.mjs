@@ -13,8 +13,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { H, D, O, ES, E, ESC, TODOS_EF, imp, nuevaPartida, crearJuego, jugar } from './ayuda-4-18-4-historia.mjs';
 import { enUnaLinea } from './ayuda-codigo.mjs';
+import { contexto } from './ayuda-interacciones.mjs';
 
 const PR = await imp('historia-presencia.js'), TX1 = await imp('historia-texto-acto1.js'), TXO = await imp('historia-texto-optativas.js'), MET = await imp('historia-metas.js');
 
@@ -321,6 +323,25 @@ if (va('tren')) {
   ok(enUnaLinea(main, ["id === 'tren-al-anden'", '!jugador.estado.enTren']), 'y no lo toca si vas arriba');
 }
 
+// ---------------------------------------------------------------- 5b. la E: el objeto de historia le gana a sentarte en el banco de al lado
+// (la tabla de interacciones de la copia que se prueba: A4184_SRC; la de verdad si no)
+if (va('interaccion')) {
+  const { INTERACCIONES } = await import(pathToFileURL(join(SRC, 'interacciones.js')).href);
+  const { hacerConE: hacerE, avisoDe: avisoE } = await import(pathToFileURL(join(SRC, 'interacciones.js')).href);
+  const objeto = (hechos) => ({ id: 'lena-apilada', aviso: 'Mirar la leña apilada', hacer: () => hechos.push('objeto') });
+  const decide = (estado) => { const hechos = []; const c = contexto({ historiaObjeto: objeto(hechos), ...estado }); const id = hacerE(c); const aviso = avisoE(contexto({ historiaObjeto: objeto([]), ...estado }), {}); return { id, aviso: aviso?.texto }; };
+  const banco = { tipo: 'sentarse', s: { nombre: 'el banco de la puerta' }, texto: 'Sentarte en el banco de la puerta' };
+  ok(decide({}).id === 'historia-objeto', 'sin nada en la mira, la E mira el objeto');
+  ok(decide({ objetivo: banco }).id === 'historia-objeto' && decide({ objetivo: banco }).aviso === 'Mirar la leña apilada', 'con el banco de al lado en la mira, la E mira el objeto y el aviso lo dice (antes te sentaba)');
+  ok(decide({ objetivo: { tipo: 'sentarse', s: { cama: true, nombre: 'la cama' }, texto: 'Acostarte a dormir' } }).id === 'objetivo', 'con la cama en la mira, la E sigue siendo dormir');
+  ok(decide({ objetivo: { tipo: 'planta', texto: 'Anotar lupino' } }).id === 'objetivo', 'con algo para juntar o anotar en la mira, la E sigue siendo eso');
+  ok(decide({ js: { sentado: true }, objetivo: banco }).id !== 'historia-objeto', 'sentado, no');
+  ok(decide({ js: { enTren: true } }).id !== 'historia-objeto' && decide({ js: { enKayak: true } }).id !== 'historia-objeto', 'ni en el tren ni en el kayak');
+  ok(decide({ desafio: {} }).id !== 'historia-objeto', 'ni en el Desafío');
+  { const c = contexto({ objetivo: banco }); const id = hacerE(c); ok(id === 'objetivo', 'sin objeto de historia cerca, el banco en la mira sigue sentándote (' + id + ')'); }
+  ok(INTERACCIONES.findIndex((e) => e.id === 'historia-objeto') < INTERACCIONES.findIndex((e) => e.id === 'objetivo'), 'el objeto de historia va antes que lo que mirás');
+}
+
 // ---------------------------------------------------------------- 6. nada se traba
 if (va('juego')) {
   for (const semilla of [21, 22]) {
@@ -371,6 +392,9 @@ const MUT = [
   ['trochita.js', "    if (est.parado > 0 && (d < 3 || d > total - 3)) return 0;", "    if (est.parado > 0 && d < 3) return 0;", 'el tren parado en la última parada parece lejano', 'tren'],
   ['main.js', "esperaTren: !js.enTren && tren?.estacion ? tren.esperaEnAnden(tren.estacion) : 0 }", "esperaTren: 0 }", 'main.js no pasa la espera', 'tren'],
   ['main.js', "if (id === 'tren-al-anden') { try { if (!jugador.estado.enTren && tren?.estacion) tren.traerAlAnden(tren.estacion); }", "if (id === 'tren-al-anden') { try { if (false) tren.traerAlAnden(tren.estacion); }", 'main.js no trae el tren', 'tren'],
+  ['interacciones.js', "(!c.objetivo || soloSentarse(c)) && !c.js.sentado && c.historiaObjeto()", "aMano(c) && !c.js.sentado && c.historiaObjeto()", 'el banco de al lado le gana al objeto de historia', 'interaccion'],
+  ['interacciones.js', "const soloSentarse = (c) => c.objetivo?.tipo === 'sentarse' && !c.objetivo.s?.cama;", "const soloSentarse = (c) => c.objetivo?.tipo === 'sentarse';", 'el objeto de historia le gana también a dormir en la cama', 'interaccion'],
+  ['interacciones.js', "(!c.objetivo || soloSentarse(c)) && !c.js.sentado", "(!c.objetivo || c.objetivo.tipo) && !c.js.sentado", 'el objeto de historia le gana a lo que mirás (juntar, anotar)', 'interaccion'],
   ['historia-colocacion.js', "  'elsa-anden': { punto: 'estacion', dist: 8, desde: 'refugio', alto: -0.05 },", "", 'la escena de Elsa no pone al jugador en el andén', 'tren'],
 ];
 let atrapadas = 0;

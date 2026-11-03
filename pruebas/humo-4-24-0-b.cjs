@@ -220,6 +220,7 @@ app.whenReady().then(async () => {
         ok(pos && pos.visible, `${id}: el objeto está en el mundo y se ve`);
         if (!pos) continue;
         // frente a la puerta, a 1,6 m del objeto hacia afuera de la casa, mirándolo (como en las partidas de la 4.16: la mira un poco hacia abajo)
+        await N('(() => { if (H.jugador.estado.sentado) H.jugador.sentarse(false); return 1 })()');   // (la segunda E del objeto anterior te sentó a descansar: se levanta)
         const parar = (pitch) => N(`(() => { const r = T.lugares.refugio, d = H.__puntosHistoria()['refugio-puerta'], p = H.__historiaObjetos().posiciones["${id}"]; const ox = d.x - r.x, oz = d.z - r.z, ol = Math.hypot(ox, oz) || 1; const x = p.x + ox / ol * 1.6, z = p.z + oz / ol * 1.6; H.jugador.ubicar(x, z, Math.atan2(x - p.x, z - p.z)); H.jugador.estado.pitch = ${pitch}; return 1 })()`);
         await parar(-0.28);
         await N('N.tick(1)');
@@ -230,14 +231,14 @@ app.whenReady().then(async () => {
         await foto(`3-${id}-antes`);
         await parar(-0.28); await N('N.tick(0.7)');   // (después de la captura se vuelve a parar, como las partidas de la 4.16)
         await N('N.tecla("KeyE")'); await N('N.tick(1.2)');
-        // (la tecla E llega al objeto sólo si no hay nada para juntar en la mira y no estás sentado: con lupinos en el piso a veces la E te sienta a descansar. Si no llegó, se dice y se usa la misma acción que la E: lo que se prueba es el objeto)
+        // (4.24.0: la E tiene que llegar al objeto aunque el banco de la puerta esté en la mira; si no llega se dice y se usa la acción directa para seguir con lo demás)
         let porTecla = await N(`(P.historia.raro || []).some((x) => x.id === "${id}")`);
         if (!porTecla) {
           console.log('  aviso: la tecla E no llegó al objeto en esta posición (' + JSON.stringify(await N(`({ sentado: !!H.jugador.estado.sentado, pitch: H.jugador.estado.pitch })`)) + '): se usa la acción directa del objeto');
           await N('(() => { if (H.jugador.estado.sentado) H.jugador.sentarse(false); return 1 })()'); await N('N.tick(0.5)');
           await N('(() => { const c = H.__objetoHistoriaCerca(); if (c) c.hacer(); return 1 })()'); await N('N.tick(0.8)');
         }
-        console.log(`  la E por teclado ${porTecla ? 'anduvo' : 'no anduvo'} con ${id}`);
+        ok(porTecla, `${id}: la tecla E lo mira (parado frente a la puerta, con el banco del umbral en la mira)`);
         ok(await N(`(P.historia.raro || []).some((x) => x.id === "${id}")`), `${id}: se mira el objeto y el cuaderno anota el indicio`);
         ok((await N(`N.hasta(() => new RegExp(${JSON.stringify(nombre)}).test(N.avisos()), 10)`)) === 1, `${id}: se ve el aviso «${nombre}»`);
         await parar(-0.6); await N('N.tick(0.4)');
