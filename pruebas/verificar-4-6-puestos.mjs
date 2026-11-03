@@ -1,7 +1,7 @@
 // 4.6: los puestos de ruta (src/puestos-ruta.js, puestos-ruta-mundo.js, puestos-ruta-juego.js) y la parada nueva de la trochita, en Node:
 //   · los cuatro puestos en sus coordenadas fijas (no dependen de la calidad), con sus puntos (puerta, ventanilla, fogón, depósito, catre);
 //   · la reparación: tres etapas de $3.000 y 10 tablas y 10 piedras en total, con la maquinaria de pesos de la 4.2; lo que falta;
-//   · la caja de $5.000 que se repone $700 por día, los precios propios (perfiles de comercio.js) y los bienes de zona protegidos;
+//   · la caja de $5.000 que se repone $450 por día (4.21.0: eran $700), los precios propios (perfiles de comercio.js) y los bienes de zona protegidos;
 //   · el depósito (las reglas de la barraca: 40 de cada material), el descanso (como una casa con confort) y el panel sin fletes;
 //   · el guardado: lo nuevo saneado (buscado con Object.hasOwn), una partida de antes con los cuatro abandonados, el Desafío sin nada;
 //   · el valle de verdad: no pisan estructuras, vía ni agua, el apeadero del Riel Sur entra a la trochita, la geometría es de tipo 0 o 4
@@ -116,7 +116,7 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
   ok(C.bienesDe('Puesto de la Estepa').includes('cuero') && C.bienesDe('Puesto de la Cantera').includes('piedra-cantera'), 'con los bienes de zona sumados, la estepa vende cuero y la cantera piedra de cantera');
   ok(IDS.every((id) => C.bienesDe(R.PUESTOS_RUTA[id].nombre).length <= 9), 'y ninguno pasa de nueve cosas');
   for (const k of faltaban) delete C.BIENES[k];
-  // la caja: arranca llena al terminar la reparación y se repone $700 por día, con tope
+  // la caja: arranca llena al terminar la reparación y se repone $450 por día (4.21.0: eran $700), con tope
   const p = partida({ dia: 10 });
   for (let i = 0; i < 3; i++) R.repararEtapa(p, 'C', p.materiales);
   const t = p.comercio.mercado['Puesto de la Estepa'];
@@ -124,10 +124,10 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
   M.registrarVenta(t, 'lana', 4200);
   ok(t.caja === 800, 'le vendés: paga de su caja');
   M.tienda(p.comercio, 'Puesto de la Estepa', 11);
-  ok(t.caja === 1500, 'al otro día, $700 más');
+  ok(t.caja === 1250, 'al otro día, $450 más');
   M.tienda(p.comercio, 'Puesto de la Estepa', 30);
   ok(t.caja === 5000, 'y no pasa de $5.000');
-  ok(M.MERCADO.cajaDia === 700, 'se repone $700 por día (mercado.js)');
+  ok(M.MERCADO.cajaDia === 450, 'se repone $450 por día (mercado.js)');
 }
 
 // ---------------------------------------------------------------- 4. el depósito y el descanso

@@ -22,8 +22,8 @@ export const TABLON = {
   plazo: 2,             // días para entregarlo (el que lo tomaste cuenta)
   tomadosMax: 2,        // cuántos se pueden tener tomados a la vez
   pagoMin: 700, pagoMax: 2200,
-  // [hasta cuántos metros de la plaza, cuánto paga] (×1,5 / ×2 / ×2,5 lo de un pedido del pueblo)
-  tramos: [[350, 1.5], [550, 2], [Infinity, 2.5]],
+  // [hasta cuántos metros de la plaza, cuánto paga] (4.21.0: ×1,3 / ×1,6 / ×2 lo de un pedido del pueblo; eran ×1,5 / ×2 / ×2,5: el mejor pesos por minuto del juego)
+  tramos: [[350, 1.3], [550, 1.6], [Infinity, 2]],
 };
 // La plaza del pueblo (Aldea de los Duendes), donde está el tablón (AUDITORIA_MAPA_VALOR.md, 1.2)
 export const PLAZA = { x: 40, z: -379 };

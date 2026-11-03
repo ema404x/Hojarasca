@@ -1,6 +1,6 @@
 // 4.6 gente: la gente fuera del pueblo y el tablón de encargos de la plaza (src/tablon.js, gente-campo.js, gente-campo-juego.js,
 // tablon-mundo.js y gente-campo-mundo.js), en Node:
-//   · el tablón: 3 a la vista por día, 1 entrega por día, 2 días de plazo, hasta 2 tomados; pagos ×1,5 / ×2 / ×2,5 según la
+//   · el tablón: 3 a la vista por día, 1 entrega por día, 2 días de plazo, hasta 2 tomados; pagos ×1,3 / ×1,6 / ×2 (4.21.0; eran ×1,5 / ×2 / ×2,5) según la
 //     distancia a la plaza del lugar de donde sale la cosa, entre $700 y $2.200; lo que suma por día; los piñones sólo en otoño;
 //     los materiales nuevos (del agente «recursos») sólo cuando el juego los conoce;
 //   · los pedidos de la gente del campo (2 o 3 por persona, uno por vez, el mismo tope de 2 por día de los vecinos) y las
@@ -48,10 +48,10 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
 {
   eq(TB.TABLON.aLaVista, 3, '3 encargos a la vista'); eq(TB.TABLON.entregasPorDia, 1, '1 entrega por día'); eq(TB.TABLON.plazo, 2, '2 días de plazo');
   const m = Object.fromEntries(Object.keys(TB.ORIGENES).map((k) => [k, TB.multiplicadorDe(k)]));
-  eq(m, { mallin: 1.5, galpon: 1.5, desembocadura: 2, cabana: 2, cantera: 2, pehuenal: 2, arrayanes: 2.5, puestoAlto: 2.5 }, 'el multiplicador de cada lugar, por su distancia a la plaza');
+  eq(m, { mallin: 1.3, galpon: 1.3, desembocadura: 1.6, cabana: 1.6, cantera: 1.6, pehuenal: 1.6, arrayanes: 2, puestoAlto: 2 }, 'el multiplicador de cada lugar, por su distancia a la plaza');
   for (const [k, o] of Object.entries(TB.ORIGENES)) {
     const d = TB.distanciaAPlaza(o), mult = TB.multiplicadorDe(k);
-    ok(mult === (d <= 350 ? 1.5 : d <= 550 ? 2 : 2.5), `${k}: ${d} m → ×${mult}`);
+    ok(mult === (d <= 350 ? 1.3 : d <= 550 ? 1.6 : 2), `${k}: ${d} m → ×${mult}`);
   }
   ok(TB.distanciaAPlaza(TB.ORIGENES.mallin) > 300 && TB.distanciaAPlaza(TB.ORIGENES.arrayanes) > 550, 'todo lo que pide el tablón queda lejos de la plaza (más de 300 m)');
   const pagos = [];
@@ -61,13 +61,13 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
     ok(pago >= 700 && pago <= 2200 && pago % 50 === 0, `${e.id}: paga $${pago} (entre $700 y $2.200, redondo)`);
     // lo que paga un pedido del pueblo por lo mismo (pedidos.js: lotes × valor × 1,10), por el multiplicador del lugar (salvo el tope)
     const pueblo = e.n * TB.valorUnidad(e.k) * PEDIDOS.base;
-    ok(pago >= Math.min(700, pueblo * 1.5) - 50 && pago <= Math.max(700, pueblo * 2.5) + 50, `${e.id}: entre ×1,5 y ×2,5 lo de un pedido del pueblo ($${Math.round(pueblo)})`);
+    ok(pago >= Math.min(700, pueblo * 1.3) - 50 && pago <= Math.max(700, pueblo * 2) + 50, `${e.id}: entre ×1,3 y ×2 lo de un pedido del pueblo ($${Math.round(pueblo)})`);
     ok(Object.hasOwn(TB.ORIGENES, e.origen) && e.quien.length === 2 && e.para, `${e.id}: lugar, quién y para qué`);
   }
   // 4.6 (junta): con los BIENES de «recursos» el junco vale lo de comercio.js y el más barato quedó en $750 (antes $700, con el valor de respaldo)
-  ok(Math.min(...pagos) <= 800 && Math.max(...pagos) === 2200, 'el más barato paga cerca de $700 y el más caro $2.200');
+  ok(Math.min(...pagos) <= 800 && Math.max(...pagos) === 1750 && Math.max(...pagos) <= TB.TABLON.pagoMax, 'el más barato paga cerca de $700 y el más caro $1.750 (4.21.0: eran $2.200 con los multiplicadores de antes; el techo del tablón sigue en $2.200)');
   ok(new Set(TB.ENCARGOS_TABLON.map((e) => e.origen)).size >= 7, 'salen de siete lugares distintos o más');
-  ok(TB.ENCARGOS_TABLON.some((e) => TB.multiplicadorDe(e.origen) === 2.5) && TB.ENCARGOS_TABLON.some((e) => TB.multiplicadorDe(e.origen) === 1.5), 'hay de los tres tramos');
+  ok(TB.ENCARGOS_TABLON.some((e) => TB.multiplicadorDe(e.origen) === 2) && TB.ENCARGOS_TABLON.some((e) => TB.multiplicadorDe(e.origen) === 1.3), 'hay de los tres tramos');
   // los materiales nuevos: sólo cuando el juego los conoce
   for (const k of TB.MATERIALES_ZONA) { ok(!antes(k) && despues(k), `${k}: aparece recién al juntar con «recursos»`); }
   for (const k of ['lana', 'trucha-fresca', 'pinon', 'yerba', 'calafate-seco']) ok(antes(k), `${k}: existe desde ya`);

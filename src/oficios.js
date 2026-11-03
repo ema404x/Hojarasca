@@ -31,7 +31,7 @@ export const XP = {
   etapa: 4,        // cada etapa de obra, más un tercio de lo que costó
   siembra: 2,
   cosecha: 6,
-  remo: 1,         // cada `METROS_REMO` metros remados o navegados
+  remo: 4,         // cada `METROS_REMO` metros remados o navegados (4.21.0: era 1: el nivel 5 de navegante pedía 20.000 m, 2,8 h seguidas en el kayak; ahora 5.000 m)
 };
 export const METROS_REMO = 25;
 

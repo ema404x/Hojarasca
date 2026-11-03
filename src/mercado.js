@@ -15,7 +15,7 @@ export const MERCADO = {
   basePide: 2,
   baseOtros: 5,
   vuelta: 0.2,         // cuánto se acerca cada día a su nivel de siempre
-  cajaDia: 700,        // lo que se repone la caja por día (pesos)
+  cajaDia: 450,        // lo que se repone la caja por día (pesos). 4.21.0: era 700 (11 puestos × 700 = $7.700 por día de techo: 3,5 veces entre el que más vende y el que menos)
   diasMax: 12,         // lo más que se simula de una vez al volver (un año del juego)
   factorMin: 0.85, factorMax: 1.3, potencia: 0.3,
 };

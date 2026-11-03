@@ -123,7 +123,7 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
   assert.deepEqual(f1.map((f) => f.tipo), ['pasajeros', 'carga']);
   for (const f of f1) {
     assert.ok(f.hasta !== f.desde && est.includes(f.hasta), 'a otra parada');
-    assert.ok(f.premio.yerba >= 3, 'paga algo');
+    assert.ok(f.premio.pesos >= 200, 'paga algo (4.21.0: en pesos, de $200 para arriba)');
     assert.ok(f.cuantos >= 1);
   }
   assert.deepEqual(C.fletesDelDia(4, ['Sola'], 'Sola'), [], 'con una sola parada no hay fletes');
@@ -131,7 +131,7 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
   assert.equal(C.tramos(est, 'Estación del Valle', 'Parada Alta'), 2);
   assert.equal(C.tramos(est, 'Apeadero del Faro', 'Estación del Valle'), 1, 'siempre para adelante, dando la vuelta');
   // más lejos, más paga
-  const lejos = []; for (let d = 1; d < 60; d++) for (const f of C.fletesDelDia(d, est, 'Estación del Valle')) if (f.tipo === 'carga') lejos[C.tramos(est, f.desde, f.hasta)] = f.premio.yerba;
+  const lejos = []; for (let d = 1; d < 60; d++) for (const f of C.fletesDelDia(d, est, 'Estación del Valle')) if (f.tipo === 'carga') lejos[C.tramos(est, f.desde, f.hasta)] = f.premio.pesos;
   assert.ok(lejos[3] > lejos[1], 'un flete más largo paga más');
 
   const c = vacio();
@@ -156,7 +156,7 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
   assert.equal(c3.fletes.length, 1);
   assert.deepEqual(c3.hoy.tomados, []);
   const t = C.textoFlete(f1[1]);
-  assert.ok(t.quien && t.hasta === f1[1].hasta && /yerba/.test(t.paga));
+  assert.ok(t.quien && t.hasta === f1[1].hasta && /pesos/.test(t.paga) && t.pesos === f1[1].premio.pesos)   // 4.21.0: se paga en pesos;
 }
 
 // ============================================================ 4. el saneo
@@ -175,7 +175,7 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
   const s = C.sanearComercio({ hoy: { dia: 3, vendidos: { 'Parada Alta|piedra': '4', 'Parada Alta|yerba': 3 } }, fletes: [{ id: 'a', tipo: 'carga', desde: 'A', hasta: 'B', cuantos: 999, premio: { yerba: 1e9, material: { k: 'huevo', n: 3 } } }, { id: 'a', tipo: 'carga', desde: 'A', hasta: 'B' }] });
   assert.deepEqual(s.hoy.vendidos, { 'Parada Alta|piedra': 4 });
   assert.equal(s.fletes.length, 1, 'sin repetidos');
-  assert.equal(s.fletes[0].premio.yerba, 99, 'con techo');
+  assert.equal(s.fletes[0].premio.pesos, 9900, 'con techo (4.21.0: una clave vieja en yerba se pasa a pesos, a $100 cada una, con el mismo techo)');
   assert.equal(s.fletes[0].premio.material, undefined, 'el premio en material sólo es material');
   assert.equal(s.fletes[0].cuantos, 30);
 }

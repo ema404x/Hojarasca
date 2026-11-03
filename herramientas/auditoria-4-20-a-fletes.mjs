@@ -11,6 +11,8 @@ const CF = await import('../src/config.js');
 const P = CF.RIEL_CONTROL;
 let LARGO = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; LARGO += Math.hypot(b[0] - a[0], b[1] - a[1]); }
 const PARADAS = ['Estación del Valle', 'Parada del Mallín', 'Apeadero del Faro', 'Parada Arrayanes', 'Parada Alta', 'Parada del Molino', 'Apeadero de la Casa de Té', 'Parada del Mirador', 'Apeadero del Pescador', 'Parada del Bosque', 'Aldea de los Duendes'];
+// 4.21.0: el premio de un flete es `pesos` (antes `yerba`, cada una $100); las filas «PROPUESTA» de la 4.20.0 siguen en yerba
+const pesosDe = (f) => (Number.isFinite(f.premio?.pesos) ? f.premio.pesos : (f.premio?.yerba || 0) * 100);
 const $ = (v) => '$' + Math.round(v).toLocaleString('es-AR');
 
 function correr({ vel = 10, espera = 57, aLaVez = 3, extra = 0, vueltas = 40, diaSeg = 1800, pago = 1, formula = null }) {
@@ -24,9 +26,9 @@ function correr({ vel = 10, espera = 57, aLaVez = 3, extra = 0, vueltas = 40, di
       const x = C.comercioDeHoy(c, dia); Object.assign(c, x);
       const parada = PARADAS[i];
       // entregar
-      for (const f of C.entregarFletes(c, parada)) { const p = (f.premio?.yerba || 0) * 100 * pago; cobrado += p; porDia[dia] = (porDia[dia] || 0) + p; entregados++; }
+      for (const f of C.entregarFletes(c, parada)) { const p = pesosDe(f) * pago; cobrado += p; porDia[dia] = (porDia[dia] || 0) + p; entregados++; }
       // tomar: los que más pagan primero, siempre que el destino quede adelante (el anillo da la vuelta, así que todo queda adelante)
-      const ofertas = C.fletesDelDia(dia, PARADAS, parada, extra).map((f) => (formula ? { ...f, premio: { ...f.premio, yerba: formula(f, Math.max(1, C.tramos(PARADAS, f.desde, f.hasta))) } } : f)).sort((a, b) => (b.premio.yerba / Math.max(1, C.tramos(PARADAS, b.desde, b.hasta))) - (a.premio.yerba / Math.max(1, C.tramos(PARADAS, a.desde, a.hasta))));
+      const ofertas = C.fletesDelDia(dia, PARADAS, parada, extra).map((f) => (formula ? { ...f, premio: { ...f.premio, pesos: undefined, yerba: formula(f, Math.max(1, C.tramos(PARADAS, f.desde, f.hasta))) } } : f)).sort((a, b) => (pesosDe(b) / Math.max(1, C.tramos(PARADAS, b.desde, b.hasta))) - (pesosDe(a) / Math.max(1, C.tramos(PARADAS, a.desde, a.hasta))));
       for (const f of ofertas) { if (c.fletes.length >= aLaVez) break; C.tomarFlete(c, f, aLaVez); }
       t += espera + tramo;
     }
@@ -42,7 +44,8 @@ console.log(`# Fletes en la trochita (anillo de ${Math.round(LARGO)} m, ${PARADA
 const filas = [];
 for (const [nombre, o] of [['sin furgón (3 a la vez, 2 por parada)', {}], ['con furgón de carga (5 a la vez, 4 por parada)', { aLaVez: 5, extra: 2 }], ['sin furgón, a 7 m/s (el tren solo)', { vel: 7 }], ['sin furgón, frenando 90 s por parada', { espera: 90 }], ['PROPUESTA: pago x0,45, sin furgón', { pago: 0.45 }], ['PROPUESTA: pago x0,45, con furgón', { pago: 0.45, aLaVez: 5, extra: 2 }], ['PROPUESTA: pago x0,35, con furgón', { pago: 0.35, aLaVez: 5, extra: 2 }], ['PROPUESTA (fórmula en enteros), sin furgón', { formula: FORMULA }], ['PROPUESTA (fórmula en enteros), con furgón', { formula: FORMULA, aLaVez: 5, extra: 2 }]]) filas.push({ caso: nombre, ...correr(o) });
 console.table(filas);
+// (4.21.0: la fórmula entera de las filas 7 y 8 YA ESTÁ en el juego: son las filas 0 y 1. Las filas «pago ×0,45 / ×0,35» multiplican lo de hoy: sólo sirven de comparación con la 4.20.0.)
 // el pago de un flete suelto (promedio de lo que ofrecen todas las paradas en 12 días)
 let n = 0, s = 0, mx = 0, mn = 1e9;
-for (let d = 1; d <= 12; d++) for (const p of PARADAS) for (const f of C.fletesDelDia(d, PARADAS, p)) { const y = f.premio.yerba * 100; s += y; n++; mx = Math.max(mx, y); mn = Math.min(mn, y); }
+for (let d = 1; d <= 12; d++) for (const p of PARADAS) for (const f of C.fletesDelDia(d, PARADAS, p)) { const y = pesosDe(f); s += y; n++; mx = Math.max(mx, y); mn = Math.min(mn, y); }
 console.log(`Un flete suelto paga ${$(s / n)} de promedio (de ${$(mn)} a ${$(mx)}) por ${n} ofrecidos en 12 días.`);

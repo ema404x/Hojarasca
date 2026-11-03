@@ -55,7 +55,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   ok(E.escalonDe(p, 'almacen') === 0, 'con 5 días y sin oficio, sigue de aprendiz');
   sumarXp(p.oficios, 'huertero', 50);
   ok(E.escalonDe(p, 'almacen') === 1, 'el oficio llegó después: ahora te toca empleado');
-  eq(E.puedeFichar(p, 'almacen', 6, 16).sueldo, 2100, 'el cartel ya ofrece $2.100');
+  eq(E.puedeFichar(p, 'almacen', 6, 16).sueldo, 2650, 'el cartel ya ofrece $2.650');
   E.fichar(p, 'almacen', 6, 16);
   while (!E.hacerTarea(p).terminado);
   const r = E.cerrarTurno(p, 'completo');
@@ -109,7 +109,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   ok(E.puedeFichar(p, 'almacen', 6, 16).ok, 'sin la mirada de presencia, se ficha como antes');
   ok(E.puedeFichar(p, 'almacen', 6, 16, { donde: () => { throw new Error('x'); } }).ok, 'y si la mirada falla, también');
   // lo demás no cambia: sueldos y horarios
-  eq(E.IDS_PUESTOS.map((k) => [E.PUESTOS[k].desde, E.PUESTOS[k].hasta, E.PUESTOS[k].sueldos]), [[16, 20, [1600, 2100, 2700]], [9, 13, [1600, 2000, 2600]], [8, 12, [1800, 2300, 2800]], [8.5, 12.5, [1700, 2200, 2800]]], 'los horarios y los sueldos de los cuatro locales no cambian');
+  eq(E.IDS_PUESTOS.map((k) => [E.PUESTOS[k].desde, E.PUESTOS[k].hasta, E.PUESTOS[k].sueldos]), [[16, 20, [2000, 2650, 3400]], [9, 13, [2000, 2500, 3250]], [8, 12, [2250, 2900, 3500]], [8.5, 12.5, [2150, 2750, 3500]]], 'los horarios y los sueldos de los cuatro locales no cambian');
   // el juego usa la presencia real de la aldea (sin fiestas armadas)
   const { J, js, ponerEn, notas } = armarJuego({ ...relax(0, 6, 15.8), aldea }, {});
   ponerEn('almacen', 'ficha');
@@ -129,7 +129,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   p.negociosVecinos = { v: 1, comprados: { almacen: { orden: 1 } } };
   J.actualizar(0.6);
   eq(J.turno(), null, 'al comprar el almacén con el turno en marcha, el turno se cierra solo');
-  eq(pesosDe(p), 600, 'se cobra lo hecho hasta ahí (3 de 8), sin multa');
+  eq(pesosDe(p), 750, 'se cobra lo hecho hasta ahí (3 de 8), sin multa');
   eq([p.empleo.locales.almacen.dias, p.empleo.total.turnos], [0, 1], 'sin sumar el día cumplido');
   ok(/Ya es tuyo el almacén/.test(notas.at(-1)[0]), 'con su aviso');
   ok(!E.puedeFichar(p, 'almacen', 3, 16).ok && E.puedeFichar(p, 'almacen', 3, 16).motivo === 'tuyo', 'y desde que es tuyo no se ofrece turno ahí');
@@ -154,7 +154,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   p.dia = 3; p.horas = 7;   // dormiste
   J.actualizar(0.6);
   eq(J.turno(), null, 'al dormir se cierra el turno');
-  eq(pesosDe(p), 450, 'con la multa del 25 % sobre lo hecho ($600 menos $150)');
+  eq(pesosDe(p), 550, 'con la multa del 25 % sobre lo hecho ($750 menos $200)');
   eq(p.empleo.locales.almacen.faltas, 1, 'y la falta');
   ok(/dormir/.test(notas.at(-1)[0]), 'el aviso dice que te fuiste a dormir');
   // una siesta que se pasa de la hora de cierre en el último tramo
@@ -165,7 +165,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   J2.J.actualizar(0.6);
   q.horas = 14.5;   // la siesta de dos horas
   J2.J.actualizar(0.6);
-  eq([pesosDe(q), q.empleo.locales['casa-te'].faltas], [600, 1], 'la siesta que cruza la hora de cierre también lleva multa y falta');
+  eq([pesosDe(q), q.empleo.locales['casa-te'].faltas], [750, 1], 'la siesta que cruza la hora de cierre también lleva multa y falta');
   // el turno que se pasa de hora trabajando de verdad se cierra como siempre, sin multa
   const r = relax(0, 2, 19.9);
   const J3 = armarJuego(r, {});
@@ -175,7 +175,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   r.horas = 20.4; J3.J.actualizar(0.6);   // (el reloj corre de a poco: pasa la hora de cierre y sigue la gracia)
   r.horas = 20.8;
   J3.J.actualizar(0.6);
-  eq([pesosDe(r), r.empleo.locales.almacen.faltas], [600, 0], 'pasada la hora de cierre trabajando, cobrás lo hecho, sin multa');
+  eq([pesosDe(r), r.empleo.locales.almacen.faltas], [750, 0], 'pasada la hora de cierre trabajando, cobrás lo hecho, sin multa');
 }
 
 // ---------------------------------------------------------------- B7: con la hora de tu reloj el turno se cierra por la hora

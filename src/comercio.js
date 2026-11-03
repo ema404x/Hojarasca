@@ -61,6 +61,8 @@ export const COMERCIO = {
   fletesPorDia: 2,
   fletesALaVez: 3,
   fletesConFurgon: 5,    // 3.7.3: con el furgón de carga del tren se llevan más a la vez (ver tren-viaje.js)
+  // 4.21.0: los fletes se pagan en pesos redondos (antes en «yerba × 100», un número de cuando la yerba era la moneda): cada escalón vale esto
+  fletePaso: 100,
 };
 
 // Lo que hace y lo que pide cada pueblo, por el nombre de su parada (ver `trochita.js`:
@@ -82,7 +84,7 @@ const PERFILES = {
   // 4.6 puestos: los cuatro puestos de ruta del Relax (puestos-ruta.js), con precios propios. El de la Cantera y el del Paso son los perfiles
   // de la «Parada Alta» (el capataz de la cantera) y de la «Parada del Mirador» (el baqueano), que el Relax no usaba (siguen ahí para el
   // otro modo); el de la Estepa y el del Riel Sur son de la estepa, que no tenía ninguno. `caja`: la caja de cada puesto ($5.000, se repone
-  // $700 por día: ver cajaMaxima en mercado.js). Los bienes de zona que todavía no estén en BIENES (piedra de cantera, cuero, hierbas,
+  // $450 por día (4.21.0; eran $700): ver cajaMaxima en mercado.js). Los bienes de zona que todavía no estén en BIENES (piedra de cantera, cuero, hierbas,
   // junco) no se ofrecen: `bienesDe` deja sólo los que existen (esBien), así funciona antes y después de sumarlos.
   'Puesto de la Cantera': { quien: 'El capataz de la cantera', produce: ['piedra', 'cristal', 'piedra-cantera'], pide: ['empanadas', 'pan-casero', 'lana', 'tronco'], otros: ['harina', 'hongos-secos'], caja: 5000 },
   'Puesto del Paso': { quien: 'El baqueano del paso', produce: ['piedra', 'hongos-secos'], pide: ['frasco-frutilla', 'empanadas', 'poncho', 'cuero'], otros: ['tronco', 'lana', 'cristal'], caja: 5000 },
@@ -95,7 +97,7 @@ const PERFILES = {
 const TEMPORADA = {
   verano: { frutilla: 0.75, lana: 0.85, poncho: 0.75, haba: 0.9, 'trucha-fresca': 0.9, tronco: 0.85, miel: 1.1 },
   otono: { papa: 0.8, 'hongos-secos': 0.8, miel: 1.15, tronco: 1.15, frutilla: 1.2, 'calafate-seco': 0.9 },
-  invierno: { tronco: 1.5, tabla: 1.2, lana: 1.4, poncho: 1.45, frutilla: 1.7, 'frasco-frutilla': 1.35, 'calafate-seco': 1.3, 'hongos-secos': 1.25, 'trucha-ahumada': 1.2, huevo: 1.2, haba: 1.25, papa: 1.15 },
+  invierno: { tronco: 1.5, tabla: 1.2, lana: 1.4, poncho: 1.25, frutilla: 1.7, 'frasco-frutilla': 1.35, 'calafate-seco': 1.3, 'hongos-secos': 1.25, 'trucha-ahumada': 1.2, huevo: 1.2, haba: 1.25, papa: 1.15 },
 };
 export const TEMPORADAS = Object.keys(TEMPORADA);
 // 3.8.8: lo más barato que llega a estar una cosa por la estación (el puesto propio no paga más que eso: ver propiedad.js)
@@ -172,7 +174,8 @@ function sanearFlete(f) {
   const tipo = f.tipo === 'carga' ? 'carga' : f.tipo === 'pasajeros' ? 'pasajeros' : null;
   const desde = texto(f.desde), hasta = texto(f.hasta), id = texto(f.id, 80);
   if (!tipo || !desde || !hasta || !id || desde === hasta) return null;
-  const premio = { yerba: entero(f.premio?.yerba, 99) };
+  // 4.21.0: el premio es `pesos`; un flete guardado con la clave vieja (`yerba`, cada una $100) se pasa a pesos al cargar y se paga lo que prometía
+  const premio = { pesos: entero(f.premio?.pesos ?? (Number(f.premio?.yerba) || 0) * COMERCIO.fletePaso, 9900) };
   const mat = f.premio?.material;
   if (mat && typeof mat === 'object' && esBien(mat.k) && BIENES[mat.k].donde === 'material') premio.material = { k: mat.k, n: Math.max(1, entero(mat.n, 20)) };
   return { id, tipo, desde, hasta, cuantos: Math.max(1, entero(f.cuantos, 30)), que: texto(f.que, 60), premio, dia: entero(f.dia, 1e6) };
@@ -317,11 +320,12 @@ export function fletesDelDia(dia, estaciones, desde, extra = 0) {
     let f;
     if (tipo === 'pasajeros') {
       const cuantos = 2 + Math.floor(r() * 5);
-      f = { tipo, cuantos, que: PASAJEROS[Math.floor(r() * PASAJEROS.length)], premio: { yerba: 2 + Math.ceil(cuantos * 0.8) + t * 2 } };
+      // 4.21.0: en pesos y entera, `1 + ⌈0,4·c⌉ + t` escalones (antes `2 + ⌈0,8·c⌉ + 2·t` yerbas × 100: $45.700 por hora manejando, 5 veces lo del jugador tranquilo)
+      f = { tipo, cuantos, que: PASAJEROS[Math.floor(r() * PASAJEROS.length)], premio: { pesos: (1 + Math.ceil(cuantos * 0.4) + t) * COMERCIO.fletePaso } };
     } else {
       const c = CARGAS[Math.floor(r() * CARGAS.length)];
       const cuantos = 3 + Math.floor(r() * 6);
-      f = { tipo, cuantos, que: c.que, premio: { yerba: 3 + t * 3 } };
+      f = { tipo, cuantos, que: c.que, premio: { pesos: (1 + t) * COMERCIO.fletePaso } };   // 4.21.0: `1 + t` escalones (antes `3 + 3·t` yerbas)
       if (c.material) f.premio.material = { k: c.material, n: BIENES[c.material].lote };
     }
     salida.push({ id: `${d}|${desde}|${k}`, desde, hasta, dia: d, ...f });
@@ -350,11 +354,13 @@ export function entregarFletes(c, parada) {
   if (!listos.length) return [];
   c.fletes = c.fletes.filter((f) => f.hasta !== parada);
   c.entregas = (c.entregas || 0) + listos.length;
-  for (const f of listos) c.ganado = (c.ganado || 0) + (f.premio?.yerba || 0);
+  for (const f of listos) c.ganado = (c.ganado || 0) + Math.round(pesosDeFlete(f) / COMERCIO.fletePaso);   // (`ganado` sigue contando en unidades de yerba, como las ventas)
   return listos;
 }
+// 4.21.0: lo que paga un flete, en pesos (el de un guardado viejo trae `yerba`)
+export const pesosDeFlete = (f) => (Number.isFinite(f?.premio?.pesos) ? Math.max(0, f.premio.pesos) : Math.max(0, Number(f?.premio?.yerba) || 0) * COMERCIO.fletePaso);
 export function textoFlete(f) {
   const quien = f.tipo === 'pasajeros' ? `${f.cuantos} pasajeros (${f.que})` : `${f.cuantos} ${f.que}`;
   const extra = f.premio?.material ? ` y ${f.premio.material.n} ${BIENES[f.premio.material.k].nombre.toLowerCase()}` : '';
-  return { quien, hasta: f.hasta, paga: `${f.premio?.yerba || 0} de yerba${extra}` };
+  return { quien, hasta: f.hasta, paga: `${pesosDeFlete(f)} pesos${extra}`, pesos: pesosDeFlete(f) };
 }

@@ -55,7 +55,7 @@ const { temporadaDelDia } = await import('../src/negocios-fx.js');
   const e = TB.ENCARGOS_TABLON.filter((x) => x.origen === 'puestoAlto');
   eq(e.length, 1, 'hay un encargo que sale del Puesto Alto');
   const pago = TB.pagoDe(e[0].k, e[0].n, 'puestoAlto');
-  ok(pago >= 700 && pago <= 2200 && pago % 50 === 0 && TB.multiplicadorDe('puestoAlto') === 2.5, `paga $${pago} (×2,5, el tramo más lejano)`);
+  ok(pago >= 700 && pago <= 2200 && pago % 50 === 0 && TB.multiplicadorDe('puestoAlto') === 2, `paga $${pago} (×2, el tramo más lejano; 4.21.0: era ×2,5)`);
   ok(e[0].quien.length === 2 && e[0].para && TB.existeEnJuego(e[0].k) && TB.cuantoDe(1, e[0].k) === '1 puñado de llao llao seco', 'con quién lo pide, para qué y cómo se dice');
   const ctx = { existe: () => true, presente: () => true, estacion: 'verano' };
   let dias = 0;

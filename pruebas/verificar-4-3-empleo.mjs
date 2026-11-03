@@ -36,7 +36,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
     ok(ed, `${k}: el local existe en el plano de la aldea`);
     ok(P.desde < P.hasta && P.hasta - P.desde === 4, `${k}: turno de cuatro horas (${P.desde} a ${P.hasta})`);
     ok(P.sueldos.length === 3 && P.sueldos[0] < P.sueldos[1] && P.sueldos[1] < P.sueldos[2], `${k}: el sueldo sube con cada escalón`);
-    ok(P.sueldos[0] >= 1600 && P.sueldos[2] <= 2800, `${k}: sueldos en la escala de la economía ($1.600 a $2.800: ${P.sueldos.join(', ')})`);
+    ok(P.sueldos[0] >= 2000 && P.sueldos[2] <= 3500, `${k}: sueldos en la escala de la economía ($2.000 a $3.500 (4.21.0: sueldos × 1,25): ${P.sueldos.join(', ')})`);
     ok(P.sueldos.every((s) => s % 50 === 0), `${k}: sueldos redondos`);
     ok(P.cargos.length === 3 && new Set(P.cargos).size === 3 && P.jefe && P.saludos.length >= 2, `${k}: tres cargos, quien manda y sus saludos`);
     eq(P.tareas.length, 4, `${k}: cuatro tareas`);
@@ -93,12 +93,12 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   eq(E.puedeFichar(relax(0), 'cantina', 1, 12).motivo, 'nada', 'sin puesto, nada');
   eq(E.puedeFichar({ modo: 'desafio' }, 'almacen', 1, 16).motivo, 'nada', 'en el Desafío, nada (no hay economía)');
   const v = E.puedeFichar(p, 'almacen', 1, 16);
-  eq([v.sueldo, v.escalon, v.cargo, v.posibles], [1600, 0, 'Ayudante de mostrador', 8], 'el primer día: aprendiz, $1.600 y las ocho tareas');
+  eq([v.sueldo, v.escalon, v.cargo, v.posibles], [2000, 0, 'Ayudante de mostrador', 8], 'el primer día: aprendiz, $2.000 y las ocho tareas');
   eq(E.puedeFichar(p, 'almacen', 1, 18).posibles, 5, 'llegando a las 18 entran unas cinco tareas (4.4.2: se cuenta hasta el cierre real, con la gracia)');
   eq(E.tareasPosibles('almacen', 18.5), 4, 'a las 18:30, cuatro');
   // fichar
   const f = E.fichar(p, 'almacen', 1, 16);
-  ok(f.ok && f.turno.local === 'almacen' && f.turno.hechas === 0 && f.turno.total === 8 && f.turno.sueldo === 1600, 'fichar arma el turno');
+  ok(f.ok && f.turno.local === 'almacen' && f.turno.hechas === 0 && f.turno.total === 8 && f.turno.sueldo === 2000, 'fichar arma el turno');
   eq(E.turnoActivo(p).seq.length, 8, 'con sus ocho tareas');
   ok(E.tareaActual(p) && E.tareaActual(p).id === f.turno.seq[0], 'la primera tarea es la primera de la secuencia');
   eq(E.fichar(p, 'casa-te', 1, 9).motivo, 'activo', 'no se ficha en dos lados a la vez');
@@ -107,36 +107,36 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   eq(E.sueldoAcumulado(E.turnoActivo(p)), 0, 'sin tareas, nada acumulado');
   const t1 = E.hacerTarea(p);
   ok(t1.ok && t1.hechas === 1 && !t1.terminado && t1.tarea, 'una tarea hecha');
-  eq(E.sueldoAcumulado(E.turnoActivo(p)), 200, 'un octavo del sueldo');
+  eq(E.sueldoAcumulado(E.turnoActivo(p)), 250, 'un octavo del sueldo');
   while (!E.hacerTarea(p).terminado);
   eq(E.hacerTarea(p).ok, false, 'sin tareas pendientes no hay más que hacer');
   eq(E.tareaActual(p), null, 'ni tarea actual');
   const r = E.cerrarTurno(p, 'completo', 'Ercilia');
-  ok(r.ok && r.monto === 1600 && r.multa === 0 && r.cumplido && r.hechas === 8, 'turno completo: $1.600 y día cumplido');
-  eq(pesosDe(p), 1600, 'el sueldo entró a la billetera');
+  ok(r.ok && r.monto === 2000 && r.multa === 0 && r.cumplido && r.hechas === 8, 'turno completo: $2.000 y día cumplido');
+  eq(pesosDe(p), 2000, 'el sueldo entró a la billetera');
   ok(p.economia.libro.at(-1).motivo.startsWith('Sueldo: Ayudante de mostrador') && p.economia.libro.at(-1).con === 'Ercilia', 'con el motivo claro en el libro');
   eq(E.turnoActivo(p), null, 'sin turno en curso');
   eq(E.puedeFichar(p, 'almacen', 1, 16.2).motivo, 'hoy', 'un turno por día');
   ok(E.puedeFichar(p, 'casa-te', 2, 9).ok, 'mañana, otro');
-  eq([p.empleo.locales.almacen.dias, p.empleo.total.turnos, p.empleo.total.cobrado], [1, 1, 1600], 'los días y los totales');
+  eq([p.empleo.locales.almacen.dias, p.empleo.total.turnos, p.empleo.total.cobrado], [1, 1, 2000], 'los días y los totales');
   eq(E.cerrarTurno(p).ok, false, 'sin turno no se cierra nada');
 }
 
 // ---------------------------------------------------------------- 4. el sueldo: proporcional, multa, cierre solo
 {
   const sueldoDe = (k, hechas, motivo) => { const p = relax(0, 3, E.PUESTOS[k].desde); E.fichar(p, k, 3, E.PUESTOS[k].desde); for (let i = 0; i < hechas; i++) E.hacerTarea(p); const r = E.cerrarTurno(p, motivo); return { r, p }; };
-  eq(sueldoDe('almacen', 4, 'tiempo').r.monto, 800, 'la mitad de las tareas, la mitad del sueldo');
-  eq(sueldoDe('almacen', 3, 'tiempo').r.monto, 600, 'tres de ocho: $600 (redondeado)');
+  eq(sueldoDe('almacen', 4, 'tiempo').r.monto, 1000, 'la mitad de las tareas, la mitad del sueldo');
+  eq(sueldoDe('almacen', 3, 'tiempo').r.monto, 750, 'tres de ocho: $750 (redondeado)');
   const ab = sueldoDe('almacen', 4, 'abandono').r;
-  eq([ab.monto, ab.multa], [600, 200], 'irte antes: lo hecho menos una cuarta parte');
+  eq([ab.monto, ab.multa], [750, 250], 'irte antes: lo hecho menos una cuarta parte');
   ok(!ab.cumplido, 'y no cuenta como día cumplido');
   eq(sueldoDe('almacen', 0, 'abandono').r.monto, 0, 'si no hiciste nada, no cobrás');
   { const z = sueldoDe('almacen', 0, 'abandono'); eq(E.turnosDelDia(z.p, 3), 0, 'y el día queda libre para volver a fichar'); eq(z.p.empleo.total.abandonos, 0, 'sin falta'); }
   { const a = sueldoDe('almacen', 5, 'abandono'); eq([a.p.empleo.locales.almacen.faltas, a.p.empleo.total.abandonos, a.p.empleo.locales.almacen.dias], [1, 1, 0], 'irte antes anota una falta y ningún día'); eq(E.turnosDelDia(a.p, 3), 1, 'y el día no se recupera'); }
   ok(sueldoDe('almacen', 6, 'tiempo').r.cumplido, '6 de 8 (75 %) cumple el día');
   ok(!sueldoDe('almacen', 5, 'tiempo').r.cumplido, '5 de 8 no');
-  eq(sueldoDe('almacen', 6, 'dia').r.monto, 1200, 'si pasa el día cobrás lo hecho, sin multa');
-  eq(sueldoDe('banco-pueblo', 8, 'completo').r.monto, 1700, 'el banco paga $1.700 el turno completo');
+  eq(sueldoDe('almacen', 6, 'dia').r.monto, 1500, 'si pasa el día cobrás lo hecho, sin multa');
+  eq(sueldoDe('banco-pueblo', 8, 'completo').r.monto, 2150, 'el banco paga $2.150 el turno completo');
   eq(E.pagoDelTurno({ hechas: 8, total: 8, sueldo: 2700 }, true).multa, 0, 'un turno entero no lleva multa aunque se cierre como abandono');
   // el cierre solo
   const p = relax(0, 4, 16);
@@ -170,16 +170,16 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   sumarXp(q.oficios, 'huertero', 40);
   eq(E.escalonDe(q, 'casa-te'), 0, 'con cuatro días todavía aprendiz');
   const r = turnoCompleto(q, 'casa-te', 2, 9);
-  ok(r.ascendio && r.ascendio.nombre === 'Empleado' && r.ascendio.cargo === 'Moza de té' && r.ascendio.sueldo === 2000, 'el quinto día asciende: moza de té, $2.000');
+  ok(r.ascendio && r.ascendio.nombre === 'Empleado' && r.ascendio.cargo === 'Moza de té' && r.ascendio.sueldo === 2500, 'el quinto día asciende: moza de té, $2.500');
   eq(q.empleo.locales['casa-te'].escalon, 1, 'queda guardado');
   const r2 = turnoCompleto(q, 'casa-te', 3, 9);
-  ok(r2.ok && !r2.ascendio && r2.monto === 2000, 'el turno siguiente ya paga $2.000 y no vuelve a avisar');
+  ok(r2.ok && !r2.ascendio && r2.monto === 2500, 'el turno siguiente ya paga $2.500 y no vuelve a avisar');
   // encargado
   q.empleo.locales['casa-te'].dias = 13;
   eq(E.escalonDe(q, 'casa-te'), 1, 'con 13 días, empleado');
   sumarXp(q.oficios, 'huertero', 80);
   const r3 = turnoCompleto(q, 'casa-te', 4, 9);
-  ok(r3.ascendio && r3.ascendio.nombre === 'Encargado' && r3.ascendio.cargo === 'Encargada del salón' && r3.ascendio.sueldo === 2600, 'a los 14 días y con nivel 2, encargada: $2.600');
+  ok(r3.ascendio && r3.ascendio.nombre === 'Encargado' && r3.ascendio.cargo === 'Encargada del salón' && r3.ascendio.sueldo === 3250, 'a los 14 días y con nivel 2, encargada: $3.250');
   eq(E.faltaParaAscender(q, 'casa-te').hay, false, 'no hay más escalones');
   // nunca baja
   q.empleo.locales['casa-te'].dias = 0;
@@ -204,7 +204,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   for (const [i, s] of medio.entries()) ok(s[0] >= 1.4 * 1000 && s[0] <= 2.8 * 1000 && s[2] <= 2.9 * jornal * 1.2, `${E.IDS_PUESTOS[i]}: el turno vale cerca de dos jornales (aprendiz $${s[0]}, encargado $${s[2]})`);
   // el mejor día posible con turno + el jornal que queda: sin pasarse mucho de los $3.200
   const mejorTurno = Math.max(...medio.map((s) => s[2])), mejorJornal = Math.max(...Object.values(T.TRABAJOS).map((t) => t.base)) * 1.5;
-  ok(mejorTurno + mejorJornal <= 5200, `el mejor día (encargado + el mejor jornal con oficio) es de $${Math.round(mejorTurno + mejorJornal)}: sin romper la economía`);
+  ok(mejorTurno + mejorJornal <= 5500, `el mejor día (encargado + el mejor jornal con oficio) es de $${Math.round(mejorTurno + mejorJornal)}: sin romper la economía`);
   // el turno ocupa uno de los dos jornales del día
   const p = relax(10000, 3, 16);
   const claves = Object.keys(T.TRABAJOS);
@@ -239,7 +239,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   const ida = JSON.parse(JSON.stringify(E.sanearEmpleo(JSON.parse(JSON.stringify(p.empleo)), 5)));
   eq(ida.turno.hechas, 2, 'el turno a medias se guarda y se lee');
   eq(ida.turno.seq, p.empleo.turno.seq, 'con el mismo orden de tareas');
-  eq([ida.turno.sueldo, ida.turno.desde, ida.turno.hasta], [1700, 8.5, 12.5], 'y con el sueldo y el horario del puesto');
+  eq([ida.turno.sueldo, ida.turno.desde, ida.turno.hasta], [2150, 8.5, 12.5], 'y con el sueldo y el horario del puesto');
   const futuro = E.sanearEmpleo({ turno: { ...p.empleo.turno, dia: 50 } }, 5);
   eq(futuro.turno.dia, 5, 'un turno de un día que no llegó se lleva a hoy');
   // el guardado de la partida
@@ -299,12 +299,12 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   // a las 15:50, se puede
   p.horas = 15.8;
   a = J.accion(js);
-  ok(a.tipo === 'ficha' && a.texto === 'Tomar el puesto: Ayudante de mostrador · turno de 16 a 20 · $1.600', 'a las 15:50: «Tomar el puesto: Ayudante de mostrador · turno de 16 a 20 · $1.600»');
+  ok(a.tipo === 'ficha' && a.texto === 'Tomar el puesto: Ayudante de mostrador · turno de 16 a 20 · $2.000', 'a las 15:50: «Tomar el puesto: Ayudante de mostrador · turno de 16 a 20 · $2.000»');
   eq(J.tapaVecino(js), true, 'y ahí la E es del cartel');
   // la pregunta: no
   respuesta = false;
   await a.hacer();
-  ok(preguntas.length === 1 && preguntas[0][0].startsWith('¿Querés trabajar acá? Ayudante de mostrador en el almacén: turno de 16 a 20, $1.600.'), 'la pregunta: «¿Querés trabajar acá? … turno de 16 a 20, $1.600»');
+  ok(preguntas.length === 1 && preguntas[0][0].startsWith('¿Querés trabajar acá? Ayudante de mostrador en el almacén: turno de 16 a 20, $2.000.'), 'la pregunta: «¿Querés trabajar acá? … turno de 16 a 20, $2.000»');
   eq([preguntas[0][1].si, preguntas[0][1].no], ['Tomar el puesto', 'Ahora no'], 'con sus botones');
   eq(J.turno(), null, 'si decís que no, no ficha');
   respuesta = true;
@@ -351,8 +351,8 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   eq(saltos, 8, 'el reloj saltó una vez por tarea');
   ok(Math.abs(p.horas - (horas0 + 8 * 0.4)) < 1e-9, `y corrió 8 × 0,4 h (de ${horas0.toFixed(2)} a ${p.horas.toFixed(2)})`);
   eq(J.turno(), null, 'al terminar la octava, el turno se cierra');
-  eq(pesosDe(p), 1600, 'y se cobra el sueldo');
-  ok(/Terminó el turno en el almacén/.test(ult[0]) && ult[1].startsWith('Cobraste $1.600'), `el aviso: «${ult[0]}» · «${ult[1]}»`);
+  eq(pesosDe(p), 2000, 'y se cobra el sueldo');
+  ok(/Terminó el turno en el almacén/.test(ult[0]) && ult[1].startsWith('Cobraste $2.000'), `el aviso: «${ult[0]}» · «${ult[1]}»`);
   ok(sonidos.includes('anotar'), 'con su sonido');
   eq(E.turnosDelDia(p, 2), 1, 'y hoy no hay otro turno');
   b = null; ponerEn('almacen', 'ficha');
@@ -365,18 +365,18 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   respuesta = true;
   await J.accion(js).hacer();
   eq(J.turno().local, 'banco-pueblo', 'en el banco: fichás con el cartel del banco');
-  ok(/turno de 8:30 a 12:30, \$1\.700/.test(preguntas.at(-1)[0]), 'la pregunta dice 8:30 a 12:30 y $1.700');
+  ok(/turno de 8:30 a 12:30, \$2\.150/.test(preguntas.at(-1)[0]), 'la pregunta dice 8:30 a 12:30 y $2.150');
   { const t = E.tareaActual(p); ponerEn('banco-pueblo', t.id); J.accion(js).hacer(); J.actualizar(t.seg + 0.1); }
   eq(J.turno().hechas, 1, 'una tarea en el banco');
   ponerEn('banco-pueblo', 'ficha');
   respuesta = false;
   await J.accion(js).hacer();
-  ok(J.turno() && /cobrás \$150 \(ya descontados \$50 por irte antes\)/.test(preguntas.at(-1)[0]), 'irte pregunta lo que cobrás con la multa y si decís que no seguís');
+  ok(J.turno() && /cobrás \$200 \(ya descontados \$50 por irte antes\)/.test(preguntas.at(-1)[0]), 'irte pregunta lo que cobrás con la multa y si decís que no seguís');
   respuesta = true;
   await J.accion(js).hacer();
   eq(J.turno(), null, 'si decís que sí, te vas');
   ok(notas.at(-1)[0] === 'Te fuiste del banco' && /ya descontados \$50/.test(notas.at(-1)[1]), 'el aviso cuenta la multa');
-  eq(pesosDe(p), 1750, 'cobraste $150');
+  eq(pesosDe(p), 2200, 'cobraste $200');
   eq(p.empleo.locales['banco-pueblo'].faltas, 1, 'y quedó la falta');
 
   // alejarte del local lo cierra solo
@@ -445,7 +445,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   ok(lineas.some((t) => t.includes('Almacén de Ramos Generales') && t.includes('Ayudante de mostrador')), 'el historial por local: el almacén con su cargo');
   ok(lineas.some((t) => /Aprendiz · 1 día cumplido/.test(t)), 'los días cumplidos');
   ok(lineas.some((t) => t.startsWith('Para ser empleado:') && t.includes('huertero de nivel 1')), 'lo que falta para ascender');
-  ok(lineas.some((t) => t === 'Últimos turnos') && lineas.some((t) => t.startsWith('Día 2 · Almacén de Ramos Generales: 8 de 8 tareas, $1.600')), 'y los últimos turnos');
+  ok(lineas.some((t) => t === 'Últimos turnos') && lineas.some((t) => t.startsWith('Día 2 · Almacén de Ramos Generales: 8 de 8 tareas, $2.000')), 'y los últimos turnos');
   const vacia = crearEmpleoJuego({ ...ctx, progreso: () => relax() }).paginaCuaderno();
   ok(vacia.pendiente && vacia.marca === 'sin puesto', 'sin turnos, la página dice «sin puesto»');
 }

@@ -1,3 +1,5 @@
+// 4.21.0 (A): ojo: la variante «final» (caja 450, turno × 1,25, tablón) YA ESTÁ aplicada en el juego (src/mercado.js, empleo.js, tablon.js). La base de hoy es la «final» de la 4.20.0:
+//   volver a correr `--variante=final` la aplicaría dos veces (turno × 1,5625). Las demás variantes (caja350, turno150, pedidos12, jornal2) sirven para probar lo que sigue.
 // 4.20.0 (A): la tabla de valores nuevos, aplicada EN MEMORIA (no toca el juego) para volver a correr el simulador de ritmo.
 //   node herramientas/auditoria-4-20-a-ritmo.mjs 36 --variante=nombre   (o --propuesta, que es «final»)
 // Cada variante cambia sólo las constantes que nombra; los módulos reales hacen el resto de la cuenta.

@@ -59,8 +59,8 @@ export function crearPuestoDeCargas(ctx) {
   // el mercado del puesto (3.8.8, mercado.js): lo que tiene, su caja y cuánto cambia el precio por eso
   const mercadoDe = (nombre) => tienda(comercio(), nombre, ctx.dia());
   const factor = (nombre, bien) => factorDe(mercadoDe(nombre), nombre, bien) * factorEvento(ctx.dia(), temporadaDelDia(ctx.dia()), bien);   // 3.8.8: y el evento del día (aldea-viva.js)
-  // lo que paga un flete, con la plata en pesos (lo guardado de un flete sigue en yerba: se pasa al cobrar)
-  const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ de yerba/, formatoPesos(aPesos(f.premio?.yerba || 0)));
+  // lo que paga un flete, en pesos (4.21.0: el premio ya viene en pesos; el de un flete guardado con la clave vieja lo pasa `textoFlete`)
+  const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ pesos/, formatoPesos(textoFlete(f).pesos));
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();
   // 3.8.3: lo que va de a uno, en singular (decía «Compraste 1 ponchos», «1 frascos de miel»)
   const UNO = { cristal: 'un cristal', miel: 'un frasco de miel', 'trucha-ahumada': 'una trucha ahumada', 'frasco-frutilla': 'un frasco de dulce', 'calafate-seco': 'un puñado de calafates secos', 'hongos-secos': 'un llao llao seco', poncho: 'un poncho' };
@@ -241,7 +241,7 @@ export function crearPuestoDeCargas(ctx) {
     const listos = entregarFletes(comercio(), parada.nombre);
     if (!listos.length) return listos;
     for (const f of listos) {
-      cobrarPesos(P(), aPesos(f.premio?.yerba || 0), `Flete entregado: ${f.que}`, parada.nombre);
+      cobrarPesos(P(), textoFlete(f).pesos, `Flete entregado: ${f.que}`, parada.nombre);
       if (f.premio?.material) sumar(f.premio.material.k, f.premio.material.n);
     }
     ctx.sonido?.juntar?.();

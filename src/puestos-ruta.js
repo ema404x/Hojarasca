@@ -6,7 +6,7 @@
 //   · reparado, da DESCANSO (el catre bajo techo, con la salamandra: duerme como en una casa con confort), FOGÓN (se prende con F,
 //     con la misma leña que el del refugio) y DEPÓSITO (las reglas de la barraca de almacen.js: 40 de cada material);
 //   · y COMPRA Y VENDE con precios propios (los perfiles de comercio.js y el mercado de mercado.js), con una caja de $5.000 que se repone
-//     $700 por día. El del Riel Sur lo atiende el panel de la trochita (con fletes); los otros tres, el mismo panel sin fletes.
+//     $450 por día (4.21.0; eran $700). El del Riel Sur lo atiende el panel de la trochita (con fletes); los otros tres, el mismo panel sin fletes.
 // Las coordenadas son FIJAS (no dependen de la calidad gráfica, como el refugio o el mirador). Módulo puro (sin three ni DOM): se prueba en
 // Node. Sólo en el Relax. Lo visual está en puestos-ruta-mundo.js y la tecla E y el aviso en puestos-ruta-juego.js.
 import { registrarPrecios, puedePagarEtapa, pagarEtapa, precioDeEtapa } from './obra-pesos.js';
@@ -89,7 +89,7 @@ export const ETAPAS_PUESTO = [
   { nombre: 'fogón, catre y depósito', hecho: 'Se puede dormir, prender el fogón, guardar y comerciar', pide: { tabla: 2, piedra: 5 }, pesos: 3000 },
 ];
 export const ETAPAS_TOTAL = ETAPAS_PUESTO.length;
-export const CAJA_PUESTO = 5000;   // la caja del puesto (comercio.js: perfil con `caja`); se repone $700 por día (MERCADO.cajaDia)
+export const CAJA_PUESTO = 5000;   // la caja del puesto (comercio.js: perfil con `caja`); se repone $450 por día (MERCADO.cajaDia; 4.21.0: eran $700)
 export const idPrecioPuesto = (id) => `puesto-ruta-${id}`;
 for (const id of IDS_PUESTOS) {
   const n = PUESTOS_RUTA[id].nombre.toLowerCase();
@@ -166,7 +166,7 @@ export function repararEtapa(p, id, materiales) {
   if (e.etapa >= ETAPAS_TOTAL) { e.desde = Math.max(1, entero(p.dia, 1e6)); abrirCaja(p, id); }
   return { ok: true, etapa: e.etapa, reparado: e.etapa >= ETAPAS_TOTAL, pagado: pago.precio || 0, nombre: s.nombre, hecho: s.hecho };
 }
-// El puesto recién reparado abre con la caja llena ($5.000); después se repone sola $700 por día (mercado.js)
+// El puesto recién reparado abre con la caja llena ($5.000); después se repone sola $450 por día (eran $700) (mercado.js)
 export function abrirCaja(p, id) {
   if (!p || !esPuesto(id) || !objeto(p.comercio)) return null;
   const nombre = PUESTOS_RUTA[id].nombre;

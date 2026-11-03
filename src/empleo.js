@@ -40,7 +40,7 @@ export const ESCALONES = [
 export const PUESTOS = {
   almacen: {
     local: 'almacen', saludos: ['Tomá el delantal: atendé a los que entren y lo demás se hace solo.','Hoy no se para: la mercadería no se acomoda sola.'], nombre: 'el almacén', completo: 'Almacén de Ramos Generales', jefe: 'Ercilia', jefeClave: 'ercilia', desde: 16, hasta: 20,
-    sueldos: [1600, 2100, 2700], cargos: ['Ayudante de mostrador', 'Despachante', 'Encargado del almacén'],
+    sueldos: [2000, 2650, 3400], cargos: ['Ayudante de mostrador', 'Despachante', 'Encargado del almacén'],
     oficio: 'huertero', oficioNombre: 'huertero',
     ficha: { x: 2.4, z: 0.9, dy: 0.45, giro: -Math.PI / 2 },
     tareas: [
@@ -52,7 +52,7 @@ export const PUESTOS = {
   },
   'casa-te': {
     local: 'casa-te', saludos: ['Pasá, querida: las mesas esperan y la tanda no se amasa sola.','Cuidado con las tazas, que son de mi abuela.'], nombre: 'la casa de té', completo: 'Casa de Té', jefe: 'Ceinwen', jefeClave: 'galesa', desde: 9, hasta: 13,
-    sueldos: [1600, 2000, 2600], cargos: ['Ayudante de salón', 'Moza de té', 'Encargada del salón'],
+    sueldos: [2000, 2500, 3250], cargos: ['Ayudante de salón', 'Moza de té', 'Encargada del salón'],
     oficio: 'huertero', oficioNombre: 'huertero',
     ficha: { x: 0.85, z: 3.2, dy: 0.24 },
     tareas: [
@@ -64,7 +64,7 @@ export const PUESTOS = {
   },
   'taller-tren': {
     local: 'taller-tren', saludos: ['Ponete los guantes: acá se trabaja con fuego y con paciencia.','Lo que sale de este taller anda sobre rieles: sin apuro, pero bien hecho.'], nombre: 'el taller ferroviario', completo: 'Taller ferroviario', jefe: 'Martín', jefeClave: 'martin', desde: 8, hasta: 12,
-    sueldos: [1800, 2300, 2800], cargos: ['Ayudante de taller', 'Herrero de taller', 'Encargado del taller'],
+    sueldos: [2250, 2900, 3500], cargos: ['Ayudante de taller', 'Herrero de taller', 'Encargado del taller'],
     oficio: 'picapedrero', oficioNombre: 'picapedrero',
     ficha: { x: 1.5, z: 2.3, dy: 0.33 },
     tareas: [
@@ -76,7 +76,7 @@ export const PUESTOS = {
   },
   'banco-pueblo': {
     local: 'banco-pueblo', saludos: ['Sin apuro, pero sin errores: la plata ajena se cuenta dos veces.','Bienvenido a la ventanilla: lo que se anota, se anota derecho.'], nombre: 'el banco', completo: 'Banco del Pueblo', jefe: 'Amadeo', jefeClave: 'gerente', desde: 8.5, hasta: 12.5,
-    sueldos: [1700, 2200, 2800], cargos: ['Ayudante de ventanilla', 'Cajero', 'Encargado de caja'],
+    sueldos: [2150, 2750, 3500], cargos: ['Ayudante de ventanilla', 'Cajero', 'Encargado de caja'],
     oficio: 'obrero', oficioNombre: 'constructor',
     ficha: { x: 2.2, z: 2.9, dy: 0.32, giro: -Math.PI / 2 },
     tareas: [
