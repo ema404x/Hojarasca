@@ -158,7 +158,10 @@ export function crearEscenasMundo(ctx) {
         if (typeof ref.lugar === 'string') {
           const l = lugarDe(ref.lugar);
           if (!l || !Number.isFinite(l.x)) return null;
-          const q = { x: l.x + num(ref.dx), z: l.z + num(ref.dz) };
+          let ox = num(ref.dx), oz = num(ref.dz);
+          // 4.24.1: corrimientos en el marco del lugar, si trae `ang` (el andén de la estación): `lx` paralelo a la vía, `lz` alejándose de ella (como `aMundo` de la parada)
+          if ((ref.lx !== undefined || ref.lz !== undefined) && Number.isFinite(l.ang)) { const lx = num(ref.lx), lz = num(ref.lz); ox += lx * Math.cos(l.ang) + lz * Math.sin(l.ang); oz += -lx * Math.sin(l.ang) + lz * Math.cos(l.ang); }
+          const q = { x: l.x + ox, z: l.z + oz };
           // 4.18.0 (C): `techo: true` = arriba de la cumbrera de tu galponcito (Fermín con la honda); sin galponcito, en el suelo
           if (ref.techo === true && (ref.lugar === 'galpon-noche' || ref.lugar === 'galpon-propio') && lugarDe('galpon-propio') && ctx.T?.altura) q.y = ctx.T.altura(q.x, q.z) + CUMBRERA_GALPONCITO;
           return q;
