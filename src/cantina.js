@@ -126,7 +126,8 @@ export const FUERTES_POR_NOCHE = 3;
 // (3.9.1: `ebrio`: { n, t } el nivel de la borrachera y cuándo se midió (horas absolutas); `chistes`: la memoria de los chistes que ya salieron; `pena`: tus bailes con
 // Dalia y la última noche que bailaste)
 // (3.9.2: `ultimoPedido` e `veces`: lo último que pediste y cuántas veces cada cosa, para que te recuerden; la casa de té usa la misma forma en `progreso.casaTe`)
-export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0, pendiente: null }; }   // 4.10.4 (S2-5): `pendiente`: el id de un pedido ya pagado que todavía no llegó a la mesa
+// (4.25.0: `fuertes.mate` también arranca en 0, como lo deja `sanearCantina`: antes una libreta nueva y la misma libreta guardada y vuelta a abrir no eran iguales)
+export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0, mate: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0, pendiente: null }; }   // 4.10.4 (S2-5): `pendiente`: el id de un pedido ya pagado que todavía no llegó a la mesa
 const idItem = (v) => (typeof v === 'string' && /^[a-z0-9-]{1,40}$/.test(v) ? v : null);
 function sanearVeces(v) {
   const r = {};
