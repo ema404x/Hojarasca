@@ -18,7 +18,7 @@ const leer = (f) => readFileSync(join(raiz, f), 'utf8');
 let n = 0, fallas = 0;
 const ok = (c, t) => { n++; if (!c) { fallas++; console.log('FALLA ' + t); } };
 
-const IDS_PEDIDOS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela', 'elsa-anden'];
+const IDS_PEDIDOS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela', 'elsa-anden', 'elsa-anden-vuelta'];
 // lo que el guion usa y todavía no existe en el juego (va como pedido para el agente A en CAMBIOS_4_15_0_B.md): se tolera, pero tiene que estar anotado
 const CLAVES_PEDIDAS = ['graciela'];
 // los nombres propios que el texto puede usar en medio de una frase: personas y lugares que existen (o que el guion trae a propósito: Eusebio, Graciela)
@@ -57,6 +57,7 @@ const lugaresDelJuego = () => {
   return r;
 };
 const CLAVES = clavesDelJuego(), LUGARES = lugaresDelJuego();
+LUGARES.add('aldea');   // (4.24.1: un punto de la historia —la parada de la Aldea, lo arma puntosDeHistoria de main.js—, no de T.lugares)
 
 // ---------------------------------------------------------------- recorrer los textos de las escenas
 function textosDe(e) {
@@ -368,7 +369,7 @@ function suite(ESC, TEX, fuentes) {
 const fuentes = { claves: CLAVES, lugares: LUGARES, disparo: DISPARO_ACTO1, textoJuego: FUENTES.aldea + FUENTES.gente + FUENTES.campo };
 const reales = suite(ESCENAS_ACTO1, TEXTO_ACTO1, fuentes);
 ok(reales.length === 0, 'la suite de datos pasa: ' + reales.slice(0, 12).join(' | ') + (reales.length > 12 ? ` (+${reales.length - 12})` : ''));
-ok(IDS_ACTO1.length === 22, '22 escenas');
+ok(IDS_ACTO1.length === 23, '23 escenas');   // (4.24.1: y la vuelta sin espera)
 // 4.16.0: la opción de Rosa sólo se ofrece si Rosa ya vive en la aldea
 {
   const con = correrEscena(ESCENAS_ACTO1['bolsa-alero'], { script: [1] });

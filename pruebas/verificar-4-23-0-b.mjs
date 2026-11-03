@@ -5,7 +5,7 @@
 //      y lo que se saltó con el código `historia capitulo N` / `historia completar` no cuenta (marca `trucos.historia`)
 //   2. el panel de logros los muestra bajo su título
 //   3. los contadores de la guía (lo raro, de paso, vecinos de la casa, escenas vividas) con los topes posibles
-//   4. el cuaderno «Lo vivido» con las 125 reseñas de escena (por capítulo, con el día, sin spoilers)
+//   4. el cuaderno «Lo vivido» con las 126 reseñas de escena (por capítulo, con el día, sin spoilers)
 //   5. el tono de todo lo nuevo (castellano, sin números de lazo, nada religioso, nada sensual explícito)
 // Las mutaciones corren cada una en su proceso sobre una copia de src/ (el caché de ESM engaña si no).
 import { readFileSync, writeFileSync, rmSync, cpSync, mkdtempSync, mkdirSync } from 'node:fs';
@@ -213,7 +213,7 @@ if (va('metas')) {
   const m0 = ME.metasHistoria(nuevaH());
   ok(m0.raro.total === Object.keys(H.RAROS).length && m0.raro.total >= 117, `lo raro: el total sale de los indicios que hay (${m0.raro.total})`);
   ok(m0.optativas.total === O.OPTATIVAS.length && m0.optativas.total === 34, `de paso: 34 optativas (${m0.optativas.total})`);
-  ok(m0.escenas.total === VI.TOTAL_ESCENAS && m0.escenas.total === Object.keys(ESC).length && m0.escenas.total === 125, `escenas: las 125 de la historia (${m0.escenas.total})`);
+  ok(m0.escenas.total === VI.TOTAL_ESCENAS && m0.escenas.total === Object.keys(ESC).length && m0.escenas.total === 126, `escenas: las 126 de la historia (${m0.escenas.total})`);
   ok(m0.casa.max === 12 && m0.optativas.max === 29, 'los topes que se muestran son los posibles: 12 de la casa y 29 de paso');
   const raros = Object.keys(H.RAROS).slice(0, 7);
   const m = ME.metasHistoria(hMeta({ raros, opt: ['oveja', 'truchas', 'noventa'], casa: ['ramon', 'ema', 'sofia'], vistas: ['nota-eusebio', 'llegada-estacion', 'escena-que-no-existe'] }));
@@ -223,7 +223,7 @@ if (va('metas')) {
     ok(mm.optativas.n === 1 && mm.raro.n === 1, 'una optativa o un indicio que ya no existe no se cuenta'); }
   const lineas = ME.lineasMetas(hMeta({ raros, opt: ['oveja'], casa: ['ramon'] }));
   ok(lineas.length === 4, 'son cuatro líneas');
-  ok(lineas[0] === `Lo raro: 7 de ${m0.raro.total}` && lineas[1] === 'De paso: 1 de 34 (en una misma partida entran hasta 29)' && lineas[2] === 'Vecinos de la casa: 1 (hasta 12 en una misma partida)' && lineas[3] === 'Escenas vividas: 0 de 125', 'las líneas, tal cual');
+  ok(lineas[0] === `Lo raro: 7 de ${m0.raro.total}` && lineas[1] === 'De paso: 1 de 34 (en una misma partida entran hasta 29)' && lineas[2] === 'Vecinos de la casa: 1 (hasta 12 en una misma partida)' && lineas[3] === 'Escenas vividas: 0 de 126', 'las líneas, tal cual');
   ok(lineas.every((l) => !/lazo|confianza|[+-]\d/i.test(l)), 'ninguna línea muestra un número de lazo');
   // los topes posibles de las optativas se comprueban con las condiciones reales (`ofrece`): el mejor camino, con pareja y cumpleaños, ofrece 31; sin ellas, 29
   { const TODO = { has: (k) => k !== 'noche-espera' };
@@ -256,8 +256,8 @@ const mini = () => {
 };
 if (va('vivido')) {
   const todas = Object.values(ESC);
-  ok(todas.length === 125 && todas.every((e) => typeof e.resumen === 'string' && e.resumen.length >= 40 && e.resumen.length <= 400), 'las 125 escenas traen su reseña (de 40 a 400 caracteres)');
-  ok(VI.TOTAL_ESCENAS === 125 && Object.keys(VI.ESCENAS_HISTORIA).length === 125, 'el cuaderno conoce las 125');
+  ok(todas.length === 126 && todas.every((e) => typeof e.resumen === 'string' && e.resumen.length >= 40 && e.resumen.length <= 400), 'las 126 escenas traen su reseña (de 40 a 400 caracteres)');
+  ok(VI.TOTAL_ESCENAS === 126 && Object.keys(VI.ESCENAS_HISTORIA).length === 126, 'el cuaderno conoce las 126');
   ok(VI.escenasVividas(nuevaH()).length === 0 && VI.capitulosVividos(nuevaH()).length === 0, 'sin escenas vistas no hay nada');
   ok(VI.escenasVividas(null).length === 0 && VI.escenasVividas({ escenas: { vistas: [] } }).length === 0 && VI.escenasVividas({ escenas: { vistas: 'x' } }).length === 0, 'un guardado raro no rompe');
   ok(!VI.hayVivido(nuevaH()) && VI.hayVivido({ empezada: 3 }) && VI.hayVivido({ escenas: { vistas: { x: 1 } } }) && !VI.hayVivido(undefined) && !VI.hayVivido(null), 'la pestaña aparece con la historia empezada o con alguna escena vista');
@@ -276,13 +276,13 @@ if (va('vivido')) {
     const p = mini(); VI.olvidarCapituloVivido(); VI.dibujarVivido(p.lista, p.ficha, el, h, () => {});
     const t = p.todo();
     ok(t.includes(ESC[c1[0]].resumen) && t.includes(ESC[c1[1]].resumen) && t.includes('Día 1 · ' + ESC[c1[0]].titulo), 'se ven las dos escenas vividas, con su día');
-    ok(t.includes('2 de 125 escenas vividas'), 'y el avance dice 2 de 125');
+    ok(t.includes('2 de 126 escenas vividas'), 'y el avance dice 2 de 126');
     ok(H.CAPITULOS.slice(1).every((c) => !t.includes(c.titulo)), 'ningún título de un capítulo que no tocaste');
     ok(todas.filter((e) => !c1.slice(0, 2).includes(e.id)).every((e) => !t.includes(e.resumen) && !t.includes(e.titulo + '\n')), 'ni la reseña ni el título de una escena que no viste');
     ok(H.CAPITULOS[0].titulo && t.includes(H.CAPITULOS[0].titulo), 'sí el del capítulo 1'); }
   // vacío: dice que falta vivir, sin spoilers
   { const p = mini(); VI.dibujarVivido(p.lista, p.ficha, el, nuevaH(), () => {}); const t = p.todo();
-    ok(t.includes(VI.TEXTO_VIVIDO_VACIO) && t.includes('0 de 125 escenas vividas'), 'vacío: lo dice');
+    ok(t.includes(VI.TEXTO_VIVIDO_VACIO) && t.includes('0 de 126 escenas vividas'), 'vacío: lo dice');
     ok(H.CAPITULOS.every((c) => !t.includes(c.titulo)), 'y no nombra ningún capítulo'); }
   // elegir otro capítulo
   { const h = nuevaH(); const c1 = por(1), c2 = por(2); h.escenas.vistas[c1[0]] = 1; h.escenas.vistas[c2[0]] = 2;
@@ -329,7 +329,7 @@ if (va('tono')) {
   }
   // el voseo (rioplatense) en las consignas
   for (const l of LH.LOGROS_HISTORIA) ok(/^(Terminá|Ganate|Que|Anotá|Hacé|Llegá|Pagá|Pedí|Perdé|Ganá|Dejá|Vendé|Talá)(?![a-záéíóúüñ])/.test(l.texto), `${l.id}: la consigna empieza con un verbo en voseo («${l.texto.split(' ')[0]}»)`);
-  // las 125 reseñas que muestra «Lo vivido»: lo que ya estaba escrito también cuida el tono
+  // las 126 reseñas que muestra «Lo vivido»: lo que ya estaba escrito también cuida el tono
   for (const e of Object.values(ESC)) {
     ok(!religioso.test(e.resumen) && !religioso.test(e.titulo), `reseña ${e.id}: nada religioso`);
     ok(!ingles.test(e.resumen), `reseña ${e.id}: sin inglés`);

@@ -390,7 +390,7 @@ const MUT = [
   ['trochita.js', "    if (!parada || est.subido || est.conduce || est.varado) return false;\n    if (esperaEnAnden", "    if (!parada) return false;\n    if (esperaEnAnden", 'se mueve el tren con el jugador adentro', 'tren'],
   ['trochita.js', "    est.s = (((poste(parada) - metros) % total) + total) % total;", "    est.s = poste(parada) + metros;", 'el tren aparece pasado el andén', 'tren'],
   ['trochita.js', "    if (est.parado > 0 && (d < 3 || d > total - 3)) return 0;", "    if (est.parado > 0 && d < 3) return 0;", 'el tren parado en la última parada parece lejano', 'tren'],
-  ['main.js', "esperaTren: !js.enTren && tren?.estacion ? tren.esperaEnAnden(tren.estacion) : 0 }", "esperaTren: 0 }", 'main.js no pasa la espera', 'tren'],
+  ['main.js', "esperaTren: !js.enTren && tren?.estacion ? tren.esperaEnAnden(tren.estacion) : 0,", "esperaTren: 0,", 'main.js no pasa la espera', 'tren'],
   ['main.js', "if (id === 'tren-al-anden') { try { if (!jugador.estado.enTren && tren?.estacion) tren.traerAlAnden(tren.estacion); }", "if (id === 'tren-al-anden') { try { if (false) tren.traerAlAnden(tren.estacion); }", 'main.js no trae el tren', 'tren'],
   ['interacciones.js', "(!c.objetivo || soloSentarse(c)) && !c.js.sentado && c.historiaObjeto()", "aMano(c) && !c.js.sentado && c.historiaObjeto()", 'el banco de al lado le gana al objeto de historia', 'interaccion'],
   ['interacciones.js', "const soloSentarse = (c) => c.objetivo?.tipo === 'sentarse' && !c.objetivo.s?.cama;", "const soloSentarse = (c) => c.objetivo?.tipo === 'sentarse';", 'el objeto de historia le gana también a dormir en la cama', 'interaccion'],

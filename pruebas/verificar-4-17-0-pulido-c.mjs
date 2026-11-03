@@ -78,7 +78,7 @@ async function suite(sufijo = '', archMut = '') {
   const ids = Object.keys(ESC);
 
   // ---------------------------------------------------------------- 1. las 58 escenas
-  ok(ids.length === 59 && A1.IDS_ACTO1.length === 22 && A2.IDS_ACTO2.length === 37, `son 59 las escenas (4.24.0: y la de Elsa en el andén) de los actos I y II (${ids.length})`);
+  ok(ids.length === 60 && A1.IDS_ACTO1.length === 23 && A2.IDS_ACTO2.length === 37, `son 60 las escenas (4.24.0: y la de Elsa en el andén; 4.24.1: y la de la vuelta) de los actos I y II (${ids.length})`);
   const personajesBase = new Set(Object.keys(EN.PERSONAJES_BASE));
   const LUGARES_OK = new Set(Object.keys(LUGARES_FALSOS));
   let planos = 0, mirasDesdeLosOjos = 0;

@@ -44,6 +44,8 @@ export const DISPARADORES = {
   // ---- capítulo 2 · La bolsa del molinero
   // 4.24.0: el primer viaje en trochita sin espera: si en el andén faltan más de 45 s para que llegue el tren, Elsa lo apura (el tren aparece a menos de 150 m, en un fundido)
   'elsa-anden': { cap: 'bolsa', modo: 'auto', lugar: en('estacion', 22), hora: [6, 21], cond: (s) => !s.viaje && s.esperaTren > ESPERA_MAXIMA_TREN },
+  // 4.24.1: lo mismo a la vuelta: de regreso en el andén de la Aldea (después de las diligencias), con más de 45 s de espera y un viaje ya hecho
+  'elsa-anden-vuelta': { cap: 'bolsa', modo: 'auto', lugar: en('aldea', 12), hora: [6, 21], cond: (s) => !!s.viaje && s.esperaAldea > ESPERA_MAXIMA_TREN },
   'ramon-tranquera': { cap: 'bolsa', modo: 'auto', lugar: en('refugio', 30), hora: [7.5, 13] },
   'ramon-tranquera:hablar': { escena: 'ramon-tranquera', cap: 'bolsa', modo: 'hablar', clave: 'ramon' },
   'almacen-ercilia': { cap: 'bolsa', modo: 'auto', lugar: en('ramos', 9), requiere: ['ramon-tranquera'] },
@@ -77,7 +79,7 @@ export const OPTATIVA_DE_DISPARADOR = {};
 for (const o of OPTATIVAS) for (const k of o.disparadores || []) if (Object.hasOwn(DISPARADORES, k)) { DISPARADORES[k] = { ...DISPARADORES[k], cap: capsDe(o) }; OPTATIVA_DE_DISPARADOR[k] = o.id; }
 for (const k of Object.keys(OPTATIVA_DE_DISPARADOR)) { const d = DISPARADORES[k]; delete DISPARADORES[k]; DISPARADORES[k] = d; }
 // La lista de los 21 ids de escena que escribe el otro agente (historia-escenas-acto1.js)
-export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela', 'elsa-anden'];
+export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela', 'elsa-anden', 'elsa-anden-vuelta'];
 const escenaDe = (clave, d) => d.escena || clave;
 
 // ¿Qué escena toca ahora? `ctx`: { modo: 'auto' | 'hablar' | 'interaccion', clave, apuntaArbolVivo, visitaActiva }. Devuelve el id o null.

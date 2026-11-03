@@ -27,6 +27,7 @@ export const COLOCACION_PULIDO = {
   'fermin-galpon': { npc: 'fermin', dist: 3.6, desde: 'frente' },
   'anden-graciela': { punto: 'estacion', dist: 8, desde: 'refugio', alto: -0.05 },
   'elsa-anden': { punto: 'estacion', dist: 8, desde: 'refugio', alto: -0.05 },   // (4.24.0: como la llegada de Graciela)
+  'elsa-anden-vuelta': { punto: 'aldea', dist: 8, desde: 'plaza', alto: -0.05 },   // (4.24.1: el andén de la Aldea —el punto «aldea» es su parada—, del lado de la plaza)
   // ---- acto II
   'piedras-molino': { punto: 'molino-viejo', dx: 2.6, dz: 1.2, dist: 4.5, desde: 'refugio' },
   'tito-coihue': { punto: 'coihue', dist: 6, desde: 'refugio' },   // (Tito y Josefina se paran a los lados del árbol, 6 m adelante)

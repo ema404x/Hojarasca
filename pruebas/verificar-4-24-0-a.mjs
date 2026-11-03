@@ -181,9 +181,9 @@ if (va('panel')) {
   const sinHechos = panelDe('arco');
   ok(sinHechos.objetivos.length === 11 && sinHechos.objetivos.every((o) => !o.hecho), 'el capítulo 11 abre con once objetivos a la vista (doce con la deuda del trato)');
   const filas = MK.filasDelPanel('arco', sinHechos.objetivos);
-  ok(filas.filter((f) => f.tipo === 'cadena').map((f) => f.titulo).join() === 'El arco,La honda', 'dos cadenas con título: el arco y la honda');
-  ok(filas.filter((f) => f.tipo === 'cadena').every((f) => f.hechos === 0) && filas.find((f) => f.id === 'arco').total === 6 && filas.find((f) => f.id === 'honda').total === 3, 'con su contador: 0 de 6 y 0 de 3');
-  ok(filas.filter((f) => f.tipo === 'objetivo').map((f) => f.o.id).join() === 'prestado,lado', 'lo prestado (que ya trae su cuenta «0/3») y el lado del arroyo quedan sueltos');
+  ok(filas.filter((f) => f.tipo === 'cadena').map((f) => f.titulo).join() === 'El arco,La honda,Lo prestado', 'tres cadenas con título: el arco, la honda y lo prestado (4.24.1: lo prestado también)');
+  ok(filas.filter((f) => f.id !== 'prestado' && f.tipo === 'cadena').every((f) => f.hechos === 0) && filas.find((f) => f.id === 'arco').total === 6 && filas.find((f) => f.id === 'honda').total === 3 && filas.find((f) => f.id === 'prestado').total === 3, 'con su contador: 0 de 6, 0 de 3 y lo prestado con su cuenta de 3');
+  ok(filas.filter((f) => f.tipo === 'objetivo').map((f) => f.o.id).join() === 'lado', 'sólo el lado del arroyo queda suelto (4.24.1: lo prestado pasó a ser la tercera cadena)');
   ok(filas.length === 4, `cuatro filas en lugar de once líneas sueltas (${filas.length})`);
   // en el modo normal no se pierde ningún objetivo sin cumplir
   const vistos = (fs) => fs.flatMap((f) => (f.tipo === 'objetivo' ? [f.o.id] : f.items.map((o) => o.id)));
@@ -230,7 +230,7 @@ if (va('ui')) {
   ok(/<div class="cadena"><div class="cadena-t"><span>El arco<\/span><i>3 de 6<\/i><\/div>/.test(html), 'el panel dice «El arco · 3 de 6»');
   ok(/<span>La honda<\/span><i>1 de 3<\/i>/.test(html), 'y «La honda · 1 de 3»');
   ok(!/Dejale la madera a Tito|El arco: talá un árbol seco/.test(html) && /Las puntas: encargale a Anselmo/.test(html), 'lo hecho de la cadena no se lista y lo que falta sí');
-  ok(/<p class="">/.test(html) && /<kbd>E<\/kbd>Pedí defensas prestadas/.test(html), 'lo prestado queda como línea suelta, con su cuenta');
+  ok(/<p class="">/.test(html) && /<kbd>E<\/kbd>Pedí defensas prestadas/.test(html), 'lo prestado ya no repite su cuenta en la línea (va en el título: ver verificar-4-24-1-a)');
   ok(/<p class="mapa">En el mapa: [^<]*Puesto del Paso[^<]*<\/p>/.test(html), 'la línea gris «En el mapa: …» nombra lo marcado');
   ok(!/\blazo\b|[+-]\d/.test(html.replace(/<[^>]+>/g, ' ').replace(/\$\d|\(\d+\/\d+\)|\d de \d|\d+ metros/g, '')), 'sin números de lazo en el panel');
   const nueve = panel.innerHTML.length;
@@ -435,7 +435,7 @@ const MUT = [
   ['chinches.js', "  if (!desafio && Array.isArray(objetivos)) {", "  if (Array.isArray(objetivos)) {", 'el Desafío también marca objetivos', 'mapa'],
   ['chinches.js', "marcas[marcas.length - 1].activa = true;", "void 0;", 'la marca que sigue la brújula no se distingue', 'mapa'],
   ['mapa.js', "        if (a.activa) { ctx.strokeStyle = 'rgba(184, 67, 47, 0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py - s * 0.9, s * 1.9, 0, Math.PI * 2); ctx.stroke(); }\n", "", 'el mapa no distingue la marca que sigue la brújula', 'mapa'],
-  ['mapa.js', "rotular(a.nombre, px, py - s * 0.6, s * 2.2, W / 46, true);", "void 0;", 'la banderita no lleva nombre', 'mapa'],
+  ['mapa.js', "rotular(a.nombre, px, py - s * 0.6, s * 2.2, W / 46, true, { ax: px + s * 0.5, ay: py - s * 1.35 });", "void 0;", 'la banderita no lleva nombre', 'mapa'],
   ['main.js', "  const delObjetivo = existente ? null : chincheCerca(marcasDeObjetivo(true), p.x, p.z);", "  const delObjetivo = null;", 'el clic en la marca del objetivo no hace nada', 'juego'],
   ['main.js', "chincheActiva = siguiendo ? null : { x: delObjetivo.x, z: delObjetivo.z, nombre: delObjetivo.nombre, objetivo: true };", "chincheActiva = { x: delObjetivo.x, z: delObjetivo.z, nombre: delObjetivo.nombre, objetivo: true };", 'un segundo clic no suelta la brújula', 'juego'],
   ['main.js', "  if (chincheActiva?.objetivo && !marcasDeObjetivo().some((m) => m.x === chincheActiva.x && m.z === chincheActiva.z)) chincheActiva = null;\n", "", 'la brújula sigue un objetivo ya cumplido', 'juego'],

@@ -2298,6 +2298,17 @@ function nocheDelMundo() {
 // 4.15.0: dónde están las cosas de la Historia nueva. Los puntos con nombre del mundo (y de la aldea); se recalculan cada medio segundo con la
 // posición del jugador, sin armar objetos nuevos por cuadro más que el mapa de distancias de siempre.
 let objetosHist = null, puntosHist = null, molinoViejoHist = null;
+// 4.24.1: el viaje de vuelta sin espera. La parada de la Aldea de los Duendes; `esperaAldeaHistoria`: segundos que faltan para que el tren esté en su andén, pero sólo si ya te alejaste
+// de él (más de 30 m) desde la última vez que viajaste: así la escena de Elsa sale al volver de las diligencias y no apenas te bajás.
+let andenAldeaLejos = false;
+function paradaAldeaHist() { return esDesafio ? null : tren?.paradas?.find((p) => p.aldea) || null; }
+function esperaAldeaHistoria() {
+  const js = jugador?.estado, pa = paradaAldeaHist();
+  if (!js || !pa?.espera) return 0;
+  if (js.enTren) { andenAldeaLejos = false; return 0; }
+  if (Math.hypot(js.pos.x - pa.espera.x, js.pos.z - pa.espera.z) > 30) andenAldeaLejos = true;
+  return andenAldeaLejos ? tren.esperaEnAnden(pa) : 0;
+}
 function puntosDeHistoria() {
   const L = T.lugares, ref = L.refugio, est = L.estacion;
   if (!puntosHist) puntosHist = {};
@@ -2530,6 +2541,7 @@ function acompananteDeHistoria() {
   return acompananteMundo;
 }
 function efectoMundoHistoria(id, args) {
+  if (id === 'tren-al-aldea') { try { const pa = paradaAldeaHist(); if (!jugador.estado.enTren && pa) tren.traerAlAnden(pa); } catch (e) { fallaSistema('historia-tren', e); } return; }   // 4.24.1: el viaje de vuelta sin espera (la escena de Elsa en la Aldea)
   if (id === 'tren-al-anden') { try { if (!jugador.estado.enTren && tren?.estacion) tren.traerAlAnden(tren.estacion); } catch (e) { fallaSistema('historia-tren', e); } return; }   // 4.24.0: el primer viaje sin espera (la escena de Elsa; el tren aparece con la pantalla en negro)
   dibujarObjetosHistoriaYa(); try { objetosHist?.efecto?.(`mundo:${id}`, args?.donde != null ? escenasMundo?.mundo?.posicion(args.donde) : null, jugador?.estado); } catch (e) { fallaSistema('historia-props', e); } }
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
@@ -2717,7 +2729,7 @@ function crearValle() {
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
     libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo') && !escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
-    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null, cumple: cumpleDeHoyHistoria(), esperaTren: !js.enTren && tren?.estacion ? tren.esperaEnAnden(tren.estacion) : 0 }; },
+    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null, cumple: cumpleDeHoyHistoria(), esperaTren: !js.enTren && tren?.estacion ? tren.esperaEnAnden(tren.estacion) : 0, esperaAldea: esperaAldeaHistoria() }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id, o) => escenasMundo.disparar(id, o) } : null),
     objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, puedeEscena: (deSentado) => puedeEmpezarEscena(deSentado), enAgua: () => !!(jugador.estado.enKayak || jugador.estado.enVela),   /* (4.17.1) */ colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),   // (4.18.0: el comentario de la 4.17.1 en el medio de la línea dejaba afuera colocar, levantar, gastarTabla, comenzarEnEstacion, darCosa y gastar)
@@ -3495,6 +3507,14 @@ function pintarTeclasPropias() {
     // (sólo se toca la que cambió: las otras quedan como las dejó el traductor)
     if (visible !== fabrica) { if (k.textContent !== visible) k.textContent = visible; k.dataset.puesta = '1'; }
     else if (k.dataset.puesta) { k.textContent = T_(fabrica); delete k.dataset.puesta; }
+  }
+  // 4.24.1: los botones «Cerrar (M)» del mapa y «Cerrar (J)» del cuaderno decían la tecla de fábrica aunque la hubieras cambiado
+  for (const [id, tecla] of [['cerrar-mapa', 'M'], ['cerrar-cuaderno', 'J']]) {
+    const b = $(id); if (!b) continue;
+    if (!b.dataset.fabrica) b.dataset.fabrica = b.textContent;
+    const visible = teclaVisible(tecla, teclasPropias), fabrica = b.dataset.fabrica;
+    if (visible !== tecla) { const t = fabrica.replace(`(${tecla})`, `(${visible})`); if (b.textContent !== t) b.textContent = t; b.dataset.puesta = '1'; }
+    else if (b.dataset.puesta) { b.textContent = T_(fabrica); delete b.dataset.puesta; }
   }
 }
 // 4.11.1 (U10): los pies de la carta, el banco y el local, con la tecla de interactuar del jugador

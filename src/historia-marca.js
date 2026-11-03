@@ -185,7 +185,7 @@ export const GRUPOS_PANEL = {
   arco: [
     { id: 'arco', titulo: 'El arco', objetivos: ['lenga', 'tito', 'cuerda', 'puntas', 'plumas', 'blancos-paso'] },
     { id: 'honda', titulo: 'La honda', objetivos: ['fermin', 'cantos', 'blancos-esquila'] },
-    { id: 'prestado', titulo: 'Lo prestado', objetivos: ['prestado'] },
+    { id: 'prestado', titulo: 'Lo prestado', objetivos: ['prestado'], contador: 'cuenta' },   // (4.24.1: un solo objetivo, pero su cuenta («2 de 3») va en el título como las otras dos cadenas)
   ],
 };
 export const PASOS_COMPACTOS = 1;   // con poco lugar, de cada cadena se ve el próximo paso y cuántos más hay
@@ -201,6 +201,14 @@ export function filasDelPanel(capId, objetivos, { compacto = false } = {}) {
     if (yaPuestos.has(o.id)) continue;
     const g = grupos.find((x) => x.objetivos.includes(o.id));
     const miembros = g ? lista.filter((x) => g.objetivos.includes(x.id)) : [];
+    // 4.24.1: una cadena de un solo objetivo con cuenta: el título lleva el contador y la línea, sin su «(2/3)»; con poco lugar vuelve a ser la línea suelta con su cuenta
+    if (g && g.contador === 'cuenta' && miembros.length === 1 && !compacto) {
+      const o = miembros[0], total = Math.max(1, Math.floor(Number(o.meta) || Number(o.avance?.[1]) || 1));
+      const hechos = o.hecho ? total : Math.max(0, Math.min(total, Math.floor(Number(o.avance?.[0]) || 0)));
+      yaPuestos.add(o.id);
+      filas.push({ tipo: 'cadena', id: g.id, titulo: g.titulo, hechos, total, items: o.hecho ? [] : [{ ...o, texto: String(o.texto).replace(/ \(\d+\/\d+\)/, '') }], resto: 0 });
+      continue;
+    }
     if (!g || miembros.length < 2) { filas.push({ tipo: 'objetivo', o }); yaPuestos.add(o.id); continue; }
     for (const m of miembros) yaPuestos.add(m.id);
     const pendientes = miembros.filter((m) => !m.hecho);

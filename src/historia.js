@@ -120,6 +120,7 @@ export function estadoHistoria(p, extra = {}) {
     sentado: !!extra.sentado,
     apuntaArbolVivo: !!extra.apuntaArbolVivo,   // mirás con el hacha un árbol vivo (la escena «Ese no»)
     visitaActiva: typeof extra.visitaActiva === 'string' ? extra.visitaActiva : null,   // quién está de visita en tu mesa
+    esperaAldea: Number.isFinite(Number(extra.esperaAldea)) ? Math.max(0, Math.min(9999, Math.round(Number(extra.esperaAldea)))) : 0,   // 4.24.1: lo mismo para el andén de la Aldea de los Duendes (el viaje de vuelta; 0: ya está, no se sabe o todavía no te alejaste)
     esperaTren: Number.isFinite(Number(extra.esperaTren)) ? Math.max(0, Math.min(9999, Math.round(Number(extra.esperaTren)))) : 0,   // 4.24.0: segundos que faltan para que la trochita esté en el andén de la Estación del Valle (0: ya está o no se sabe)
     escenas: new Set(Object.keys(obj(hh.escenas?.vistas))),
     decisiones: Object.fromEntries(DECISIONES.map((d) => [d, hh.decisiones && ['a', 'b', 'c'].includes(hh.decisiones[d]) ? hh.decisiones[d] : null])),
@@ -1283,9 +1284,10 @@ export function panelHistoria(h, s = null) {
     objetivos: visibles.map((o) => {
       const hecho = h.hechos[`${c.id}:${o.id}`] !== undefined;
       let texto = textoObjetivo(o, s);
-      if (o.cuenta && !hecho && s) texto += ` (${Math.min(o.meta || 1, o.cuenta(s, h.base))}/${o.meta || 1})`;
+      let avance = null;   // (4.24.1: lo que va y la meta de un objetivo con cuenta, para que el panel arme el contador de «Lo prestado»)
+      if (o.cuenta && !hecho && s) { avance = [Math.min(o.meta || 1, o.cuenta(s, h.base)), o.meta || 1]; texto += ` (${avance[0]}/${avance[1]})`; }
       if (o.vecinos && s && s.vecinos === false) texto += ' · sin vecinos en esta partida';
-      return { id: o.id, texto, tecla: o.tecla || '·', hecho };
+      return { id: o.id, texto, tecla: o.tecla || '·', hecho, ...(o.cuenta ? { meta: o.meta || 1 } : {}), ...(avance ? { avance } : {}) };
     }),
   };
   // la cuenta del ramal aparece desde el capítulo 4 (una barra con la locomotora): valor sobre RAMAL_BARRA

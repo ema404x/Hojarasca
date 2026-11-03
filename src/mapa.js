@@ -172,7 +172,9 @@ export function crearMapa(T, extra = null) {
     // quedaban uno arriba del otro; pasaba también con otros vecinos): si no entra arriba del punto va
     // abajo, y si tampoco, queda el punto solo
     const ocupados = [];
-    const rotular = (texto, px, py, arriba, alto, soloSiEntra = false) => {
+    // 4.24.1: `marca` = { ax, ay } (la banderita de un objetivo): si el nombre no entra en ninguno de los siete lugares de siempre se busca más lejos, en anillos, y se lo une a
+    // la banderita con una guía fina; y se escribe con un halo del color del papel, para que se lea encima de las curvas de nivel y de los nombres vecinos
+    const rotular = (texto, px, py, arriba, alto, soloSiEntra = false, marca = null) => {
       if (!texto) return;
       // (el mismo nombre ya escrito al lado, como la Estación del Valle y su parada: una vez; 3.6.2: sin mirar
       // mayúsculas: el galpón de esquila es un lugar y una marca automática)
@@ -184,24 +186,54 @@ export function crearMapa(T, extra = null) {
       const lugaresTexto = [[px, py - arriba, 'center'], [px, py + arriba + alto * 0.7, 'center'], [px + m, py + alto * 0.28, 'left'], [px - m, py + alto * 0.28, 'right'],
         [px + m, py + alto * 1.0, 'left'], [px - m, py + alto * 1.0, 'right'], [px, py - arriba - alto * 0.9, 'center']];
       for (let i = 0; i <= lugaresTexto.length; i++) {
+        if (i === lugaresTexto.length && marca) { if (rotularLejos(texto, alto, a, marca)) return; }
         if (i === lugaresTexto.length && soloSiEntra) return;   // 4.24.0: la marca de un objetivo no se escribe encima de otro nombre (la banderita se ve igual)
         const [x, y, alinear] = lugaresTexto[i % lugaresTexto.length];
         const x0 = alinear === 'center' ? x - a : alinear === 'left' ? x : x - 2 * a;
         const r = [x0, x0 + 2 * a, y - alto * 0.78, y + alto * 0.22, texto];
         if (i < lugaresTexto.length && ocupados.some((o) => r[0] < o[1] && r[1] > o[0] && r[2] < o[3] && r[3] > o[2])) continue;
         ocupados.push(r);
-        ctx.textAlign = alinear;
-        ctx.fillText(texto, x, y);
-        ctx.textAlign = 'center';
+        escribir(texto, x, y, alinear, marca ? alto : 0);
         return;
       }
+    };
+    // (con `halo` > 0, antes del texto va un contorno del color del papel)
+    const escribir = (texto, x, y, alinear, halo) => {
+      ctx.textAlign = alinear;
+      if (halo > 0) { ctx.save(); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, halo * 0.2); ctx.strokeStyle = 'rgba(243, 232, 200, 0.94)'; ctx.strokeText(texto, x, y); ctx.restore(); }
+      ctx.fillText(texto, x, y);
+      ctx.textAlign = 'center';
+    };
+    // 4.24.1: el nombre de una marca en anillos cada vez más lejos de la banderita (arriba primero, después a los lados y abajo), adentro del papel y sin pisar otro nombre
+    const rotularLejos = (texto, alto, a, marca) => {
+      for (const k of [2.2, 3.2, 4.4, 5.8]) {
+        for (const g of [0, 40, -40, 80, -80, 120, -120, 160, -160, 180]) {
+          const ang = (g * Math.PI) / 180, cx = marca.ax + Math.sin(ang) * k * alto * 1.5, cy = marca.ay - Math.cos(ang) * k * alto;
+          const r = [cx - a, cx + a, cy - alto * 0.78, cy + alto * 0.22, texto];
+          if (r[0] < W * 0.05 || r[1] > W * 0.95 || r[2] < H * 0.05 || r[3] > H * 0.93) continue;
+          if (ocupados.some((o) => r[0] < o[1] && r[1] > o[0] && r[2] < o[3] && r[3] > o[2])) continue;
+          ocupados.push(r);
+          // la guía: de la banderita al borde más cercano del nombre
+          const gx = Math.max(r[0], Math.min(marca.ax, r[1])), gy = Math.max(r[2], Math.min(marca.ay, r[3]));
+          if (Math.hypot(gx - marca.ax, gy - marca.ay) > alto * 0.5) {
+            ctx.save(); ctx.strokeStyle = marca.guia || 'rgba(138, 45, 28, 0.75)'; ctx.lineWidth = 1.3; ctx.setLineDash([3, 3]);
+            ctx.beginPath(); ctx.moveTo(marca.ax, marca.ay); ctx.lineTo(gx, gy); ctx.stroke(); ctx.restore();
+          }
+          escribir(texto, cx, cy, 'center', alto);
+          return true;
+        }
+      }
+      return false;
     };
     // 3.6.2: los dibujos (puntos, paradas, marcas automáticas) se reservan antes de escribir: un nombre no se
     // escribe encima del punto de otro lugar
     const reservar = (wx, wz, r) => { const [px, py] = aP(wx, wz); ocupados.push([px - r, px + r, py - r, py + r, null]); };
     for (const l of Object.values(lugares)) reservar(l.x, l.z, W / 170);
     for (const m of marcas) if (m.tipo === 'parada') reservar(m.x, m.z, W / 220);
-    for (const a of automaticas) if (a.clase !== 'cerco' && a.clase !== 'ruta') reservar(a.x, a.z, a.clase === 'puesto' ? W / 60 : Object.hasOwn(DIBUJOS_SEMILLA, a.clase) ? W / 90 : W / 130);
+    for (const a of automaticas) {
+      if (a.clase === 'objetivo') { const [qx, qy] = aP(a.x, a.z), s = W / 80; ocupados.push([qx - s * 0.4, qx + s * 1.6, qy - s * 2.1, qy + s * 0.6, null]); continue; }   // 4.24.1: la banderita misma ocupa su lugar: ningún nombre se le escribe encima
+      if (a.clase !== 'cerco' && a.clase !== 'ruta') reservar(a.x, a.z, a.clase === 'puesto' ? W / 60 : Object.hasOwn(DIBUJOS_SEMILLA, a.clase) ? W / 90 : W / 130);
+    }
     for (const [id, l] of Object.entries(lugares)) {
       const [px, py] = aP(l.x, l.z);
       ctx.fillStyle = 'rgba(92, 46, 22, 0.9)';
@@ -306,7 +338,7 @@ export function crearMapa(T, extra = null) {
         ctx.font = `600 ${Math.round(W / 46)}px Caveat, cursive`;
         // (si el mismo nombre ya está escrito cerca —la Estación del Valle, el Refugio del Arroyo—, no se repite)
         const igual = String(a.nombre).toLowerCase();
-        if (!ocupados.some((o) => o[4] && o[4].toLowerCase() === igual && Math.hypot((o[0] + o[1]) / 2 - px, o[3] - py) < W / 8)) rotular(a.nombre, px, py - s * 0.6, s * 2.2, W / 46, true);
+        if (!ocupados.some((o) => o[4] && o[4].toLowerCase() === igual && Math.hypot((o[0] + o[1]) / 2 - px, o[3] - py) < W / 8)) rotular(a.nombre, px, py - s * 0.6, s * 2.2, W / 46, true, { ax: px + s * 0.5, ay: py - s * 1.35 });
         continue;
       }
       // 3.0: el mapa de la semilla, cada lugar con su dibujito (ver desafio-mapa.js)
@@ -341,7 +373,9 @@ export function crearMapa(T, extra = null) {
       if (elegida) { ctx.beginPath(); ctx.arc(px, py - r, r * 2.1, 0, Math.PI * 2); ctx.stroke(); }
       ctx.fillStyle = '#3a2614';
       ctx.font = `600 ${Math.round(W / 46)}px Caveat, cursive`;
-      ctx.fillText(c.nombre, px, py - r * 2.6);
+      // 4.24.1: el nombre de la chinche tampoco se escribe encima de otro (una chinche sobre una banderita o en la aldea apretada lo pisaba): arriba si entra, si no abajo o al costado
+      ocupados.push([px - r * 1.3, px + r * 1.3, py - r * 1.95, py + r * 1.7, null]);
+      rotular(c.nombre, px, py, r * 2.6, W / 46, false, { ax: px, ay: py - r * 1.4, guia: 'rgba(58, 38, 20, 0.7)' });
     }
     // jugador
     const [jx, jy] = aP(jug.pos.x, jug.pos.z);

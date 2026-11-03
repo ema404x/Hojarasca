@@ -357,6 +357,28 @@ const elsaAnden = {
   ],
 };
 
+// 4.24.1: el viaje de vuelta sin espera. Lo mismo que arriba en el andén de la Aldea de los Duendes: de regreso de las diligencias (te alejaste del andén y volvés), con más de
+// 45 s de espera, Elsa toca la campana y el tren aparece en un fundido a menos de 150 m (`mundo:tren-al-aldea`). Corta, sin elecciones, una sola vez; nada se traba si no sale.
+const elsaAndenVuelta = {
+  id: 'elsa-anden-vuelta', titulo: 'La vuelta sin espera', acto: 1, capitulo: 2,
+  resumen: 'Volviste al andén de la Aldea con los mandados hechos y Elsa, que andaba por ahí, no te dejó esperando: tocó la campana y la trochita vino a buscarte.',
+  personajes: personajesDe('elsa', 'narra'),
+  pasos: [
+    plano('general', { lugar: 'aldea' }, { dist: 13, alto: 3.6, dur: 2.6 }),
+    aparece('elsa', { lugar: 'aldea', dx: 3, dz: 2 }),
+    plano('medio', 'elsa', { desde: 'jugador', mezcla: 1, dur: 1, sinEsperar: true }),
+    pose('elsa', 'saludar', { dur: 1.4 }),
+    dlg('elsa', [
+      'Pasajero. ¿Vuelve al valle con los mandados hechos?',
+      linea('El próximo tren pasa cuando la vía se acuerda de él. Hoy la ayudo a acordarse.', { gesto: gs('hacer-broma', 1.8) }),
+    ]),
+    sonido('campana', { en: { lugar: 'aldea' } }),
+    pose('elsa', 'senalar', { dur: 1.6 }),
+    ...apagon([efecto('mundo:tren-al-aldea'), desaparece('elsa'), espera(0.6)]),
+    narra('Del lado del valle el silbato se oye cerca, y enseguida la trochita entra a la Aldea soltando vapor, como si nunca se hubiera ido.'),
+  ],
+};
+
 // ---------------------------------------------------------------- CAPÍTULO 3 · La mesa larga
 const hachaTocon = {
   id: 'hacha-tocon', titulo: 'El hacha en el tocón', acto: 1, capitulo: 3,
@@ -658,6 +680,7 @@ export const ESCENAS_ACTO1 = {
   'bolsa-rosa': bolsaRosa,
   'bolsa-josefina': bolsaJosefina,
   'elsa-anden': elsaAnden,
+  'elsa-anden-vuelta': elsaAndenVuelta,
   'hacha-tocon': hachaTocon,
   'placa-herminia': placaHerminia,
   'mesa-visita-nicanor': mesaVisitaNicanor,
@@ -684,6 +707,7 @@ export const DISPARO_ACTO1 = {
   'ramon-tranquera': { cap: 2, jugadorEn: 'frente al refugio, por la tranquera', cuando: '8:00 del día 2 (Ramón con la majada)', objetivo: 'hablá con Ramón (hablar ramon/alero)' },
   'almacen-ercilia': { cap: 2, jugadorEn: 'en la puerta del almacén de la aldea', cuando: 'primera vez que entrás al almacén en el capítulo 2', objetivo: null },
   'elsa-anden': { cap: 2, jugadorEn: 'andén de la Estación del Valle', cuando: 'esperando la trochita del primer viaje (objetivo «viaje» sin cumplir) con más de 45 s por delante, entre las 6 y las 21', objetivo: null },
+  'elsa-anden-vuelta': { cap: 2, jugadorEn: 'andén de la Aldea de los Duendes', cuando: 'de vuelta en el andén después de alejarte (más de 30 m), con un viaje hecho y más de 45 s por delante, entre las 6 y las 21', objetivo: null },
   'ese-no-josefina': { cap: 2, jugadorEn: 'bosque cerca del refugio, con el hacha en la mano frente a un árbol vivo', cuando: 'primer hachazo a un árbol vivo', objetivo: null },
   'bolsa-alero': { cap: 2, jugadorEn: 'alero del refugio', cuando: 'al cambiar la cuarta tabla del alero', objetivo: 'decisión «bolsa»' },
   'bolsa-coihue': { cap: 2, jugadorEn: 'al pie del coihue grande, junto al molino viejo', cuando: 'E en la raíz con la bolsa en la mochila', objetivo: 'cumplir D1 = a' },

@@ -233,7 +233,12 @@ export function crearValleUi(ctx) {
         + (lineaDeMarcas(marcas) ? `<p class="mapa">${escP(lineaDeMarcas(marcas))}</p>` : '')
         + (datos.ramal && !minimo ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '')
         // 4.18.0: las optativas abiertas (con la estrellita) y las hechas en esta ventana (con la tilde); nunca traban el capítulo
-        + (conOptativas && datos.optativas?.length ? `<div class="optativas"><small>De paso (si querés)</small>${datos.optativas.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : '☆'}</kbd>${escP(o.texto)}</p>`).join('')}</div>` : '');
+        // (4.24.1: `conOptativas` puede ser un número: con poco lugar se ven las primeras que entren —las que faltan primero— y cuántas quedaron afuera)
+        + (conOptativas && datos.optativas?.length ? (() => {
+          const todas = datos.optativas, n = conOptativas === true ? todas.length : Math.min(todas.length, Math.max(0, Math.floor(Number(conOptativas)) || 0));
+          const lista = n >= todas.length ? todas : todas.slice().sort((a, b) => (a.hecho ? 1 : 0) - (b.hecho ? 1 : 0)).slice(0, n);
+          return `<div class="optativas"><small>De paso (si querés)</small>${lista.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : '☆'}</kbd>${escP(o.texto)}</p>`).join('')}${todas.length > lista.length ? `<p class="mas">y ${todas.length - lista.length} ${todas.length - lista.length === 1 ? 'optativa más' : 'optativas más'}</p>` : ''}</div>`;
+        })() : '');
     };
     // debajo de la guía del primer día, si está a la vista
     const tut = $('tutorial');
@@ -249,9 +254,14 @@ export function crearValleUi(ctx) {
       if (alto && desbordaPanel(alto)) {
         panel.innerHTML = armar(true, true); ctx.traducir?.(panel);
         if (desbordaPanel(alto)) {
-          panel.innerHTML = armar(true, false); ctx.traducir?.(panel);
-          // último recurso: sin lo ya cumplido que quedó suelto ni la barra del ramal
-          if (desbordaPanel(alto)) { panel.innerHTML = armar(true, false, true); ctx.traducir?.(panel); }
+          // 4.24.1: antes se iban todas las optativas de golpe (con 499 px de panel en 1366x768 había lugar para varias): ahora se van de a una, hasta que entre
+          let n = (datos.optativas || []).length - 1;
+          for (; n >= 1; n--) { panel.innerHTML = armar(true, n); ctx.traducir?.(panel); if (!desbordaPanel(alto)) break; }
+          if (n < 1) {
+            panel.innerHTML = armar(true, false); ctx.traducir?.(panel);
+            // último recurso: sin lo ya cumplido que quedó suelto ni la barra del ramal
+            if (desbordaPanel(alto)) { panel.innerHTML = armar(true, false, true); ctx.traducir?.(panel); }
+          }
         }
       }
     }
