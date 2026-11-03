@@ -1,0 +1,34 @@
+{
+  "anterior": "4.21.0",
+  "fecha": "03-11-2026",
+  "titulo": "Noches con forma, el valle se acuerda y edificios y materiales",
+  "cambios": [
+    "Ramas v4220-a (noches con forma), v4220-b (el valle se acuerda) y v4220-c (edificios y materiales), juntadas. Detalle en CAMBIOS_4_22_0_A.md, _B.md y _C.md. Segunda versión que aplica las auditorías de la 4.20.0.",
+    "",
+    "- Desafío, curva: de la noche 11 a la 19 la vida de la oleada crece 6,1 % por noche (era 3,7 %); la cantidad sigue desde la noche 10 (23 en la 19); la dureza sube 10 % por noche desde la 11 y las vueltas suman +12/+15/+10 %. La noche 20 pasa de 5.942 a 7.265 de vida y la vuelta 10 de 22.088 a 17.239. Las noches 1 a 10 no cambian, salvo la 5.",
+    "- Desafío, mandamás y castigo: el primer mandamás nace con la mitad de vida (594 en Normal), solo la noche 5 y no en la partida corta (el salto sobre la noche 4 baja de ×3,6 a ×2,7); las semillas sueltas bajan (bruto de 1 a 2, mandamás de 8 a 12); caer pierde 20 % de los materiales más 1 % por noche, hasta 40 %.",
+    "- Desafío, tres perillas de dificultad de −2 a +2 (cuántos duendes vienen, cuánto aguantan, cuánto pegan) en la portada y en Ajustes. En 0 el juego es idéntico al de antes; la corrida sin fin no las usa; si alguna facilita no se anota el récord ni el logro de Implacable. Tres claves nuevas en los ajustes (`perillaCantidad`, `perillaVida`, `perillaDano`), 0 si faltan.",
+    "- La Historia, el valle se acuerda: 14 líneas de final nuevas para las decisiones D1 a D6 (cada una aporta como mucho una); variantes de D3 (fletes o fiado) en la mesa de guerra y el fogón; D5 se avisa antes de elegir y se nota quién falta en la noche; D6 A y B dejan de ser iguales (el trato firme se nota en la espera de la noche y tiene su línea). La tarjeta final sigue en páginas (peor caso 6, sin scroll en 1366x768 ni en 1024x600).",
+    "- La Historia, tope de los encargos del Relax: a lo sumo +2 de lazo por persona, y +1 en total mientras esté fría o tirante, para que los encargos no laven las decisiones. Se calcula con `encargosLazo`: sin clave nueva y las partidas viejas no pierden nada.",
+    "- Edificios y materiales (Media y Alta): la casilla, la cabaña, la casa con galería y la casona con tablas verticales con relieve, juntas, zócalo, esquineros y hogar de bloques de piedra; el puesto de troncos de ocho lados; patas de cantos rodados en las obras; paredes de fondo del galponcito y el cobertizo; sombras de contacto más finas. En Baja y Mínima las obras son las de siempre.",
+    "- Presupuesto visual: 0 llamadas de dibujo nuevas, 0 programas de shader nuevos (150 al empezar, igual que antes), +66 mil triángulos en las 211 obras (tope 400 mil). Plaza contra la 4.21.0: placa entre −0,11 y +0,19 ms y CPU +0,03 ms. Casas de cerca +0,2 a +0,35 ms de placa; armar una casa grande unos 70 ms en caliente (20 a 40 más). Re-medida con 5 rondas alternadas, la subida de 0,5 a 0,6 ms de la 4.21.0 fue ruido (−0,16 y +0,04 ms).",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-22-0-a (237 comprobaciones; 53 mutaciones), -b (831; 29 mutaciones) y -c (91; 11 mutaciones); humos de partida real de A, B y C; cinco pruebas viejas del Desafío ajustadas a propósito por valores que cambian.",
+    "",
+    "## Sin ver / pendiente",
+    "- No se vio en el juego real: ninguna noche del Desafío jugada en pantalla (los números de la curva dan forma, no dificultad calibrada; falta jugar la noche 5 con el mandamás a la mitad y las noches 11 a 20); la mesa de guerra y la espera con las sillas vacías (sólo texto, no hay silla dibujada); un final con vecinos «de la casa» ganados jugando; Baja y Media; nieve, otoño y lluvia sobre las paredes nuevas; las casas repintadas con «Personalizar»; el interior de la cabaña y la casa con galería; la casona y el salón grande armados en el valle; el tirón de armado de una casa grande en el juego real (medido sólo en Node).",
+    "- No se hizo: el suelo verde liso bajo el pasto (lo apaga `marcarPisos` con un corte duro en tres shaders de `pasto.js`: arreglarlo es tocar shaders o sumar vegetación; queda para la 4.24.0); las paredes propias de las ampliaciones, el relieve de los techos y los interiores; el segundo escalón de mejoras de cristales del Desafío (contenido; semillas siguen sobrando a partir de la noche 7); el nombre del nivel de dificultad.",
+    "- Siguen para las próximas versiones: lo que se produce vale, logros y metas de la Historia, interiores y CPU de la gente, marca del objetivo en el mapa, paisaje y personajes. Logros de Steam sin hacer; textos sólo en castellano."
+  ],
+  "release": "NOCHES CON FORMA, EL VALLE SE ACUERDA Y EDIFICIOS Y MATERIALES (CAMBIOS_4_22_0_A/B/C.md) — curva del Desafío más pareja con mandamás a la mitad y tres perillas de dificultad, ecos de las decisiones en el final con tope a los encargos del Relax, obras con tablas, zócalos, hogares de piedra y troncos con detalle sin costo en la plaza",
+  "seguir": "Noches con forma + el valle se acuerda + edificios y materiales (CAMBIOS_4_22_0_A/B/C.md). **Sigue:** 4.23.0 (lo que se produce vale + metas y logros de la Historia + interiores y CPU de la gente), 4.24.0 (marca del objetivo + paisaje y vegetación, con el suelo bajo el pasto) y 4.25.0 (personajes y pasada final) según CAMBIOS_4_20_0.md; jugar las noches 5 y 11 a 20 del Desafío para calibrar. Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).",
+  "leemeNovedades": [
+    "- Desafío: las noches 11 a 20 crecen más parejo, el primer mandamás llega con la mitad de vida y hay tres perillas de dificultad (duendes, aguante, golpe) en la portada y en Ajustes; caer cuesta un poco más de material cuanto más avanzás.",
+    "- Historia: el final recuerda lo que decidiste (14 líneas nuevas), y los encargos del Relax ya no borran de golpe una relación enfriada.",
+    "- Las casas y los puestos que armás tienen tablas, zócalo, esquineros y hogares de piedra; los troncos y las patas de piedra se ven mejor."
+  ],
+  "leemeMirar": [
+    "- Si las noches del Desafío 5 y 11 a 20 se sienten bien de dureza, o hay que ajustar los números.",
+    "- Si el final de la Historia suena a tus decisiones y se lee cómodo por páginas.",
+    "- Si las casas armadas se ven mejor y el juego sigue fluido en la plaza y armando una casa grande."
+  ]
+}
