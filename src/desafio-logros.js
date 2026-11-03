@@ -209,7 +209,10 @@ export function dibujarLogros(contenedor, logros, dificultadActual) {
   contenedor.appendChild(el('div', 'logro-progreso', `${hechos} de ${total} logros`));
 
   const ul = el('ul', 'logro-lista');
+  let grupoActual = '';
   for (const l of logros.todos()) {
+    // 4.23.0 (B): los de la Historia van bajo su propio título (los del Relax y los del Desafío no traen `grupo`: se dibujan como siempre)
+    if (l.grupo && l.grupo !== grupoActual) { grupoActual = l.grupo; ul.appendChild(el('li', 'logro-grupo', l.grupo)); }
     const li = el('li', l.desbloqueado ? 'logro-item hecho' : 'logro-item');
     const velado = l.oculto && !l.desbloqueado;
     li.appendChild(el('span', 'logro-marca', l.desbloqueado ? '✓' : '·'));
@@ -230,6 +233,7 @@ export const CSS_LOGROS = `
 .logro-records-texto { font-size: 0.95em; letter-spacing: 0.01em; }
 .logro-progreso { font-family: 'Caveat', cursive; font-size: 1.3em; color: var(--tinta-papel); margin: 2px 2px 8px; }
 .logro-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.logro-grupo { grid-column: 1 / -1; font-family: 'Caveat', cursive; font-size: 1.45em; line-height: 1.1; color: var(--tinta-papel); margin: 10px 2px 0; border-bottom: 1px solid var(--papel-sombra); }
 .logro-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 6px; font-family: 'Spectral', serif;
   background: var(--papel); color: var(--tinta-papel); border: 1px dashed var(--papel-sombra); opacity: 0.55; filter: saturate(0.6);
   transition: opacity 0.2s ease, transform 0.2s ease; }

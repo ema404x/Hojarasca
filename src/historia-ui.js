@@ -33,6 +33,8 @@ import { crearEventosValleUi } from './eventos-valle-ui.js';
 import { crearNocheUi, CSS_NOCHE } from './historia-noche-ui.js';
 // 4.18.0: las subtramas optativas (el registro, el tablón, los premios, la charla de historia y los encargos con lazo)
 import { revisarOptativas, panDeHoy, revisarEncargos, optativasDelPanel, optativasHechas, lineaDeHistoria, oirLinea } from './historia-optativas.js';
+// 4.23.0 (B): los contadores de la guía (lo raro, de paso, vecinos de la casa, escenas vividas)
+import { lineasMetas } from './historia-metas.js';
 import { NOTAS_ESCENA_OPTATIVAS } from './historia-disparadores-optativas.js';
 import { NOCHE } from './historia-noche.js';
 // 4.18.3: cuánto hay de algo (lo juntado y las cosas) para lo que se lleva de regalo
@@ -69,6 +71,8 @@ export const CSS_VALLE = `
 .valle-guia ul.optativas { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia ul.lazos { list-style: none; padding: 0; margin: 4px 0; font-size: 13px; opacity: .85; }
 .valle-guia ul.lazos small { display: block; font-size: 12px; opacity: .8; margin-bottom: 3px; }
+.valle-guia ul.metas { list-style: none; padding: 0; margin: 6px 0; font-size: 13px; }
+.valle-guia ul.metas li { margin: 2px 0; }
 .valle-guia ul.raro { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,.05); }
 .valle-guia h3 { margin: 0 0 4px; font-size: 18px; }
@@ -684,6 +688,7 @@ export function crearValleUi(ctx) {
       const raros = (h.raro || []).slice().reverse();
       const opt = optativasHechas(h);
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
+        + (h.empezada ? `<ul class="metas">${lineasMetas(h).map((x) => `<li>${escP(x)}</li>`).join('')}</ul>` : '')   // 4.23.0 (B): cuánto llevás
         + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}${l.oficio ? `, ${escP(l.oficio)}` : ''}: ${escP(l.palabra)}${l.frase ? `<small>${escP(l.frase)}</small>` : ''}</li>`).join('')}</ul>` : '')
         + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
         + (opt.length ? `<p>Lo que hiciste de paso</p><ul class="optativas">${opt.map((x) => `<li>Día ${x.dia} · ${escP(x.titulo)}: ${escP(x.texto)}</li>`).join('')}</ul>` : '')   // 4.18.0

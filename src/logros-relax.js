@@ -6,6 +6,8 @@
 // uno tiene su nombre de API de Steam (steam.js) para cuando el juego esté ahí.
 //
 // Módulo puro (se prueba en Node); el almacenamiento se inyecta.
+// 4.23.0 (B): al final de la lista están los logros de la Historia (logros-historia.js): entran por la misma lista y, cuando se haga el trabajo de Steam, salen solos por `logrosParaSteam()`.
+import { LOGROS_HISTORIA } from './logros-historia.js';
 
 const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const hecho = (p, id) => p?.encargos?.[id] === 'hecho';
@@ -14,7 +16,7 @@ const cuantasAnotaciones = (p) => Object.keys(p?.entradas || {}).length;
 
 export const RECETAS_RELAX = ['pinones-tostados', 'dulce-calafate', 'frutillas-brasas', 'papas-rescoldo', 'habas-salteadas', 'guiso-campo', 'tortilla-papas', 'torta-frita'];
 
-export const LOGROS_RELAX = [
+export const LOGROS_RELAX_BASE = [
   { id: 'libreta', nombre: 'Libreta gastada', texto: 'Anotá 25 cosas en el cuaderno de campo.', cumple: (p) => cuantasAnotaciones(p) >= 25 },
   { id: 'cuaderno-lleno', nombre: 'Cuaderno lleno', texto: 'Anotá 100 cosas en el cuaderno de campo.', cumple: (p) => cuantasAnotaciones(p) >= 100 },
   { id: 'cuatro-puntas', nombre: 'Las cuatro puntas', texto: 'Pisá el mirador, el puesto, el faro y la estación.', cumple: (p) => ['mirador', 'puesto', 'faro', 'estacion'].every((k) => anotado(p, k)) },
@@ -32,6 +34,8 @@ export const LOGROS_RELAX = [
   { id: 'de-aca', nombre: 'Alguien de acá', texto: 'Cerrá todos los encargos del valle.', oculto: true, cumple: (p) => hecho(p, 'e-valle') },
   { id: 'constructor', nombre: 'Lo tuyo', texto: 'Terminá un puesto propio.', cumple: (p) => (p?.obras || []).some((o) => o.plano === 'puesto' && n(o.etapas) >= 4) },
 ];
+// 4.23.0 (B): los del Relax de siempre (16) y, detrás, los de la Historia (con `historia: true` y `grupo`)
+export const LOGROS_RELAX = [...LOGROS_RELAX_BASE, ...LOGROS_HISTORIA];
 const IDS = new Set(LOGROS_RELAX.map((l) => l.id));
 
 export function sanearLogrosRelax(dato) {
@@ -65,7 +69,7 @@ export function crearLogrosRelax(almacen = (typeof localStorage !== 'undefined' 
       guardar();
       return ids.map((id) => LOGROS_RELAX.find((l) => l.id === id));
     },
-    todos: () => LOGROS_RELAX.map((l) => ({ id: l.id, nombre: l.nombre, texto: l.texto, oculto: !!l.oculto, desbloqueado: api.tiene(l.id), fecha: datos.logros[l.id] || null })),
+    todos: () => LOGROS_RELAX.map((l) => ({ id: l.id, nombre: l.nombre, texto: l.texto, oculto: !!l.oculto, grupo: l.grupo || '', desbloqueado: api.tiene(l.id), fecha: datos.logros[l.id] || null })),
     progreso: () => ({ hechos: Object.keys(datos.logros).length, total: LOGROS_RELAX.length }),
     estado: () => ({ version: 1, logros: { ...datos.logros } }),
   };
