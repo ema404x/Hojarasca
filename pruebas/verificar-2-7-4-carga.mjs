@@ -18,8 +18,9 @@ const sha = (u8) => createHash('sha256').update(u8).digest('hex').slice(0, 24);
 
 // ---------------------------------------------------------------- texturas: los bytes de la 2.7.0
 // (huellas tomadas con el texturas.js de la 2.7.0, antes de tocarlo)
+// 4.24.0: las manchas del prado cambiaron A PROPÓSITO (la capa fina del tono y las manchas secas chicas, ver verificar-4-24-0-c): su huella es la de la 4.24.0
 const HUELLAS_270 = {
-  montana: 'af14893b1881508c9ee12b46', manchas: 'fd96e5758ee4ef05d70d4526', vegetal: 'fb3b9b9a9889905cb32e2911',
+  montana: 'af14893b1881508c9ee12b46', manchas: '90cdcdac4f64955f6b6d26a8', vegetal: 'fb3b9b9a9889905cb32e2911',
   vegetalRelieve: '8c5e81bf77a191b378280ae8', hojas: 'e06fb7f14ecaf01a9af88b47', suelo: 'b57e797051c7587fc421feca',
 };
 const directo = {};

@@ -223,7 +223,11 @@ export function crearPasto(calidad) {
         float ancho = (0.07 + 0.05 * fract(rnd * 7.31)) * (1.0 + (1.0 - desvanecer) * 1.5);
         #ifdef PASTO_FINO
           // (3.4: más anchas que la hoja fina de antes: la mata se lee llena)
-          ancho = (0.046 + 0.036 * rh) * mix(1.0, 1.8, smoothstep(3.0, 18.0, d)) * (1.0 + (1.0 - desvanecer) * 1.5);
+          // 4.24.0: tres anchos de hoja (fina, media y ancha: 0,038 · 0,064 · 0,098 m; en el reparto 34 / 48 / 18 %) en vez de un ancho continuo: la mata
+          // se lee de hojas distintas y no de púas iguales. El ancho medio queda donde estaba (0,064).
+          float claseHoja = fract(rh * 7.9 + aAzar * 3.1);
+          float anchoHoja = 0.038 + 0.026 * step(0.34, claseHoja) + 0.034 * step(0.82, claseHoja);
+          ancho = anchoHoja * mix(1.0, 1.8, smoothstep(3.0, 18.0, d)) * (1.0 + (1.0 - desvanecer) * 1.5);
         #endif
         float ang = rnd * 6.2831 + aHoja * 2.094 + (rh - 0.5) * 0.9;
         vec3 derecha = vec3(cos(ang), 0.0, sin(ang));
@@ -265,7 +269,11 @@ export function crearPasto(calidad) {
         // y las puntas se secan un poco, como el pasto de verdad
         float tono = fract(rnd * 17.3);
         // (3.4 sotobosque: 0.35 → 0.25, el prado menos amarillo)
-        punta = mix(punta, mix(srgb(vec3(0.54, 0.56, 0.26)), srgb(vec3(0.28, 0.46, 0.21)), fract(rnd * 7.7)), 0.25);
+        // 4.24.0: variedad de verdes por mata: tres familias (azul profundo, verde medio y verde oliva) que se funden entre sí; antes eran dos y pesaban un
+        // 25 %. En otoño, en invierno y en la estepa pesa lo de siempre (0,25), así las estaciones quedan como estaban.
+        float famV = fract(rnd * 7.7) * 2.0;
+        vec3 familia = mix(mix(srgb(vec3(0.17, 0.43, 0.27)), srgb(vec3(0.31, 0.51, 0.19)), clamp(famV, 0.0, 1.0)), srgb(vec3(0.52, 0.57, 0.22)), clamp(famV - 1.0, 0.0, 1.0));
+        punta = mix(punta, familia, mix(0.55, 0.25, max(estepa, max(uOtono, uInvierno))));
         // la punta dorada (la luz del estilo la agarra ahí)
         // (3.4: menos oro en la punta: 0.2 + 0.3 → 0.12 + 0.22; el dorado lo pone la luz)
         punta = mix(punta, srgb(vec3(0.74, 0.66, 0.30)), smoothstep(0.6, 1.0, t) * (0.12 + tono * 0.22));
@@ -282,7 +290,7 @@ export function crearPasto(calidad) {
           punta = mix(punta, punta * vec3(0.8, 0.9, 0.84), manchas.y * 0.5);
           punta = mix(punta, seco * 1.08, smoothstep(0.6, 1.0, t) * (0.08 + 0.4 * h2 * h2));
           raiz *= 0.85 + 0.3 * h1;
-          brillo *= 1.0 + (manchas.z - 0.5) * 0.16;
+          brillo *= 1.0 + (manchas.z - 0.5) * 0.26;   // 4.24.0: 0,16 → 0,26 (como el suelo: ver materialTerreno)
         }
         #endif
         // 3.4 (sotobosque): la raíz de la mata más honda (la alfombra tiene fondo) y cada hoja

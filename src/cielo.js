@@ -501,6 +501,9 @@ export function crearCielo(escena, calidad) {
   // 4.21.0: la luz de la luna, más azul-plateada y más clara (era '#8aa2d6')
   const SOL_BAJO = C('#ff8f40'), SOL_ALTO = C('#ffe9c6'), SOL_DORADO = C('#ffbb66'), LUZ_LUNA = C('#9bb6f0');
   const AMBIENTE_OCASO = C('#b8a6d2'), SUELO_HEMI = C('#6e5c3e'), CIELO_TURQUESA = C('#a6cdd6');
+  // 4.24.0: la sombra de la nieve es azulada: con el invierno el ambiente de día (lo que alumbra lo que el sol no toca) se corre hacia un celeste
+  // frío y el rebote del suelo, de pardo tibio a blanco azulado (la nieve devuelve luz fría). Sólo colores de las luces que ya existen.
+  const AMBIENTE_NIEVE = C('#86aaf0'), SUELO_NIEVE = C('#b0c0e2');
   // 3.2: la bruma del estilo: turquesa de día, dorada a la tarde; hacia el sol, más cálida
   // 3.4: de día la bruma es gris azulada pálida (funde el bosque lejano en siluetas); a la
   // tarde, durazno hacia el sol y lavanda lejos de él
@@ -592,6 +595,10 @@ export function crearCielo(escena, calidad) {
     hemi.color.copy(AMBIENTE_NOCHE).lerp(tmp2.copy(cenit).lerp(horiz, 0.5).lerp(CIELO_TURQUESA, 0.35).multiplyScalar(1.1), smoothstep(0, 0.6, dia));
     hemi.color.lerp(tmp2.copy(AMBIENTE_OCASO), 0.5 * Math.max(tarde, dorada * 0.7));   // el ambiente del ocaso, lavanda (3.4: toda la hora dorada)
     hemi.groundColor.copy(SUELO_HEMI).multiplyScalar(0.4 + 0.6 * dia);
+    {
+      const nieve = Math.min(1, Math.max(0, U.uInvierno.value)) * dia;
+      if (nieve > 0.001) { hemi.color.lerp(AMBIENTE_NIEVE, 0.8 * nieve); hemi.groundColor.lerp(SUELO_NIEVE, 0.7 * nieve); }
+    }
     // 3.2: de día el ambiente pesa un poco menos que el sol: más contraste, sombras de color
     // 4.21.0: de noche 0,78 → 0,9 y de día 1,73 → 1,6 (0,9 + 0,7 · dia): la noche sube y el día gana contraste entre el sol y la sombra del follaje
     hemi.intensity = 0.9 + 0.7 * dia + 0.4 * lunaK * (1 - dia);   // 4.8 ambiente: la luna llena rellena las sombras

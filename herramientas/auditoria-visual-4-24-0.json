@@ -1,0 +1,268 @@
+[
+  {
+    "id": "01-paisaje-mirador-dia",
+    "grupo": "verano",
+    "pitch": -0.14,
+    "fov": 70,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "02-bosque-dia",
+    "grupo": "verano",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()",
+    "calibrar": true
+  },
+  {
+    "id": "05-plaza-dia",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "calibrar": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "06-plaza-ocaso",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": 0,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 18.6 } })()"
+  },
+  {
+    "id": "08-aldea-loma-tarde",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": 0,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52); return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 17 } })()"
+  },
+  {
+    "id": "21-material-suelo-pasto",
+    "grupo": "verano",
+    "pitch": -0.95,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "31-nieve-valle",
+    "grupo": "invierno",
+    "pitch": -0.08,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; return { x: M.x, z: M.z, yaw: Math.atan2(-(R.x - M.x), -(R.z - M.z)), horas: 12.5 } })()"
+  },
+  {
+    "id": "32-nieve-bosque",
+    "grupo": "invierno",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "41-otono-valle",
+    "grupo": "otono",
+    "pitch": -0.14,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "42-otono-bosque",
+    "grupo": "otono",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "43-otono-plaza",
+    "grupo": "otono",
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "70-copas-media-verano",
+    "grupo": "verano",
+    "pitch": -0.12,
+    "fov": 30,
+    "medir": false,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "71-lejanos-verano",
+    "grupo": "verano",
+    "pitch": -0.1,
+    "fov": 22,
+    "medir": false,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "72-suelo-lejos-verano",
+    "grupo": "verano",
+    "pitch": -0.3,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "73-suelo-cerca-verano",
+    "grupo": "verano",
+    "pitch": -0.95,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "74-sotobosque-verano",
+    "grupo": "verano",
+    "pitch": -0.2,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'helecho' && !m.decorativo && Math.hypot(m.x - L.x, m.z - L.z) > 14 && Math.hypot(m.x - L.x, m.z - L.z) < 90).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 5, z = c.z + 5; return { x, z, yaw: Math.atan2(5, 5), horas: 11.5 } })()"
+  },
+  {
+    "id": "80-copas-media-otono",
+    "grupo": "otono",
+    "pitch": -0.12,
+    "fov": 30,
+    "medir": false,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "81-lejanos-otono",
+    "grupo": "otono",
+    "pitch": -0.1,
+    "fov": 22,
+    "medir": false,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "82-suelo-lejos-otono",
+    "grupo": "otono",
+    "pitch": -0.3,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "83-suelo-cerca-otono",
+    "grupo": "otono",
+    "pitch": -0.95,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "84-sotobosque-otono",
+    "grupo": "otono",
+    "pitch": -0.2,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'helecho' && !m.decorativo && Math.hypot(m.x - L.x, m.z - L.z) > 14 && Math.hypot(m.x - L.x, m.z - L.z) < 90).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 5, z = c.z + 5; return { x, z, yaw: Math.atan2(5, 5), horas: 11.5 } })()"
+  },
+  {
+    "id": "90-copas-media-invierno",
+    "grupo": "invierno",
+    "pitch": -0.12,
+    "fov": 30,
+    "medir": false,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "91-lejanos-invierno",
+    "grupo": "invierno",
+    "pitch": -0.1,
+    "fov": 22,
+    "medir": false,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "92-suelo-lejos-invierno",
+    "grupo": "invierno",
+    "pitch": -0.3,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "93-suelo-cerca-invierno",
+    "grupo": "invierno",
+    "pitch": -0.95,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "94-sotobosque-invierno",
+    "grupo": "invierno",
+    "pitch": -0.2,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'helecho' && !m.decorativo && Math.hypot(m.x - L.x, m.z - L.z) > 14 && Math.hypot(m.x - L.x, m.z - L.z) < 90).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 5, z = c.z + 5; return { x, z, yaw: Math.atan2(5, 5), horas: 11.5 } })()"
+  },
+  {
+    "id": "95-nieve-tarde",
+    "grupo": "invierno",
+    "pitch": -0.35,
+    "fov": 62,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 16.2 } })()"
+  },
+  {
+    "id": "75-especie-michay",
+    "grupo": "verano",
+    "pitch": -0.12,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'michay' && !m.sacado).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 3.5, z = c.z + 3.5; return { x, z, yaw: Math.atan2(3.5, 3.5), horas: 11.5 } })()"
+  },
+  {
+    "id": "76-especie-mosqueta",
+    "grupo": "verano",
+    "pitch": -0.12,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'mosqueta' && !m.sacado).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 3.5, z = c.z + 3.5; return { x, z, yaw: Math.atan2(3.5, 3.5), horas: 11.5 } })()"
+  },
+  {
+    "id": "77-especie-zarza",
+    "grupo": "verano",
+    "pitch": -0.12,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'zarza' && !m.sacado).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 3.5, z = c.z + 3.5; return { x, z, yaw: Math.atan2(3.5, 3.5), horas: 11.5 } })()"
+  },
+  {
+    "id": "78-especie-helecho2",
+    "grupo": "verano",
+    "pitch": -0.12,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'helecho2' && !m.sacado).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 3.5, z = c.z + 3.5; return { x, z, yaw: Math.atan2(3.5, 3.5), horas: 11.5 } })()"
+  },
+  {
+    "id": "79-parche-seco",
+    "grupo": "verano",
+    "pitch": -0.12,
+    "fov": 70,
+    "medir": false,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const c = (H.veg.matas || []).filter((m) => m.tipo === 'parche1' && !m.sacado).sort((a, b) => Math.hypot(a.x - L.x, a.z - L.z) - Math.hypot(b.x - L.x, b.z - L.z))[0]; if (!c) return null; const x = c.x + 3.5, z = c.z + 3.5; return { x, z, yaw: Math.atan2(3.5, 3.5), horas: 11.5 } })()"
+  }
+]

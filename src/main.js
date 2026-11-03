@@ -10956,7 +10956,7 @@ function apagarExterior() {
     const o = hijos[i];
     if (!o.visible) continue;
     const nombre = o.name;
-    if (o.isInstancedMesh ? (nombre === '' || nombre === 'impostores') : (nombre === 'terreno' || nombre === 'terreno-aldea' || nombre === 'sotobosque' || nombre === 'sombras-de-contacto' || nombre === 'molino-paisaje' || nombre === 'tren')) ocultar(o);
+    if (o.isInstancedMesh ? (nombre === '' || nombre === 'impostores') : (nombre === 'terreno' || nombre === 'terreno-aldea' || nombre === 'sotobosque' || nombre === 'sombras-de-contacto' || nombre === 'molino-paisaje' || nombre === 'tren' || nombre === 'sombras-arboles')) ocultar(o);   // (4.24.0: las siluetas que dan sombra, fundidas por especie en un grupo)
   }
   if (pasto?.malla) { if (Array.isArray(pasto.malla)) for (const m of pasto.malla) ocultar(m); else ocultar(pasto.malla); }
   for (const ch of veg.chunks.values()) ocultar(ch.grupo);

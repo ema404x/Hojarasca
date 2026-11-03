@@ -247,6 +247,10 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             float lumV = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
             vColor.rgb = mix(vColor.rgb, otono * clamp(lumV / 0.12, 0.45, 1.3), uOtono);
           }
+          // 4.24.0: los perennes (aTipo 1: coihues, cipreses y las matas) también sienten el otoño, apenas: cada uno se entibia un poco (olivas y
+          // pardos, hasta un 50 % hacia un verde-pardo según su lugar). Es la misma cuenta, con el mismo azar de la posición, en el dibujo cercano,
+          // el medio y el cartel de lejos (impostores.js): el bosque lejano cambia con la estación junto con el de cerca y sin saltos al cambiar de dibujo.
+          if (aTipo > 0.9 && aTipo < 1.1) vColor.rgb *= mix(vec3(1.0), vec3(1.22, 1.05, 0.66), uOtono * 0.5 * fract(azar * 3.1));
           // 3.5: las frondas de helecho del sotobosque (aTipo ${TIPO_HELECHO}: perennes en todo lo
           // demás) se ponen herrumbre en otoño, como los helechos del pasto (no todas igual)
           bool helecho35 = aTipo > 1.2 && aTipo < 1.3;
@@ -642,7 +646,7 @@ export function materialTerreno() {
             float enPrado = smoothstep(0.3, 0.75, pasto) * (1.0 - bosque * 0.7);
             col = mix(col, cPastoSeco, manchas.x * enPrado * 0.6);   // 3.4: manchas secas más marcadas (0.5 → 0.6)
             col = mix(col, col * vec3(0.78, 0.9, 0.82), manchas.y * enPrado * (1.0 - manchas.x) * 0.5);
-            col *= 1.0 + (manchas.z - 0.5) * 0.14 * enPrado;
+            col *= 1.0 + (manchas.z - 0.5) * 0.3 * enPrado;   // 4.24.0: 0,14 → 0,30 (la textura de las manchas ahora varía más: ver texturas-datos.js)
             // 3.4: pinceladas grandes de temperatura: unas manchas del prado más tibias
             // (oliva dorado) y otras más frías (verde azulado), no un verde parejo
             float temple34 = smoothstep(0.3, 0.7, n2 * 0.65 + n1 * 0.35);
