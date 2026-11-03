@@ -1,0 +1,34 @@
+{
+  "anterior": "4.24.1",
+  "fecha": "03-11-2026",
+  "titulo": "Personajes y pasada final",
+  "cambios": [
+    "Ramas v4250-a (caza de bugs de lo nuevo), v4250-b (pulida de la Historia) y v4250-c (personajes), juntadas. Detalle en CAMBIOS_4_25_0_A.md, _B.md y _C.md. Última versión de la tanda de mejoras que salió de las auditorías de la 4.20.0.",
+    "",
+    "- Personajes: la mano que sostiene el mate (Ramón, Rosa y todos los que llevan mate) tiene cuatro dedos por delante de la calabaza y el pulgar por detrás; las manos sueltas tienen palma achatada, cuatro dedos con tres falanges, uña pintada y base del pulgar; la nariz está en el esculpido del cráneo (punta, fosa y aletas) sin cambiar la cara de nadie; el poncho suma esclavina y forro de cuello, y los puños de lana llevan costillas y el gorro una franja clara. Párpados, labios y orejas ya tenían forma y no se tocaron. El perro no se tocó.",
+    "- Presupuesto de personajes: +404 a +440 triángulos por persona (media +435; tope 1.000), de lejos −140 a +72; la misma malla con piel por persona, 24 huesos, 0 shaders, 0 capas de pantalla completa. Plaza contra la 4.24.1 en 13 rondas alternadas: de día CPU 0,00 ms y placa −0,17; al ocaso CPU +0,30 (±0,23, indistinguible de cero) y placa −0,05.",
+    "- La Historia, una contradicción real arreglada: con la decisión D5 en «b» o «c» Ramón y Fermín seguían apareciendo en la noche por su lazo aunque la tarjeta decía que faltaban (Ramón en la mesa de guerra junto a «la silla vacía», Fermín en el techo). Una sola regla (`ausenteDeLaMajada`) manda ahora en los aliados y en las escenas de los capítulos 10 y 12. El objetivo de la ingeniera aclara «(de 9 a 23)».",
+    "- La tecla E sobre las botas: con el caché de 250 ms de «lo que se mira» fallaba al pararse de golpe (0 de 8); ahora la E vuelve a elegir al apretarla (8 de 8).",
+    "- Tarjetas y panel: en 1366x768 y 1024x600 ya no hay tarjetas con barra de desplazamiento (antes la entrada del capítulo 11 y, en 1024x600, cinco más) y el panel más alto llega a 512 de 600 px sin pisar la barra de herramientas.",
+    "- Caza de bugs de lo nuevo (4.19.0 a 4.24.1): partidas viejas de las etiquetas 4.18.4 y 4.22.0 jugadas en el juego real (el flete con yerba pasa a pesos; lo demás vuelve igual), 62 estados de la Historia a mitad de camino, unas 12.000 partidas hostiles, miles de operaciones al azar en la trochita, 7.000 estados del mapa, 125 combinaciones de perillas y las corridas largas: sin errores de consola. Un solo bug reproducido y arreglado: la libreta nueva de la cantina y de la casa de té no traía `fuertes.mate` como la guardada.",
+    "- El atasco de la guardia y las huellas del capítulo 6 no es del juego: con un jugador paciente terminan las 80 semillas nuevas (el jugador de mentira se traba en el 3,3 %). Revisados unos 3.800 textos: sin números de lazo en pantalla, sin nada religioso ni sensual explícito, sin frases repetidas entre escenas.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-25-0-a (486 comprobaciones; 1 mutación), -b (162; 29 mutaciones) y -c (32 más 2.459 de la gente armada; 20 mutaciones); humos de partida real de A, B y C; dos pruebas viejas del acto III ajustadas a propósito por la regla nueva de D5. Sin claves nuevas de guardado.",
+    "",
+    "## Sin ver / pendiente",
+    "- No se vio en el juego real: las manos nuevas en las poses quietas (cintura, cruzados, atrás) y caminando (no se sabe si algún dedo asoma por la ropa); Media y Baja, lluvia y otoño con los personajes nuevos; la luz de la aldea y la cantina con las manos nuevas; los chicos y Rosa en su lugar de la aldea (se capturaron en un claro); la mesa de guerra y la noche con D5 en «b» o «c» y el lazo en 3 en Electron; la Historia jugada de punta a punta por una persona; el panel con todas las optativas abiertas en 1024x600; 1280x720 y 1600x900; el Desafío con perillas extremas en Electron.",
+    "- No se hizo: capas de color en chaleco, campera, delantal y pantalón; la observación de A de que con 16 pedidos cumplidos un vecino puede pedirte leche, carne o fruta aunque no tengas granja y el pedido vence sin castigo (arreglarlo cambia pruebas de la 4.23.0 a propósito); la CPU del ocaso de la plaza queda en el borde del tope de 0,3 ms sin causa estructural; en una corrida vieja el fps cayó a 1 pasado el minuto 6 y no se repitió.",
+    "- Terminó la hoja de ruta de mejoras acordada. Queda por jugar: noches 5 y 11 a 20 del Desafío, la granja con lo de la 4.23.0, la marca del mapa y la primera hora. Pendientes de decisión: los detalles que piden un shader, el segundo escalón de cristales, la cadena grande de las noches (R12), Steam y el inglés."
+  ],
+  "release": "PERSONAJES Y PASADA FINAL (CAMBIOS_4_25_0_A/B/C.md) — manos con dedos y mate, nariz con volumen y capas de color en el poncho y la lana; la decisión D5 se respeta en la noche; tarjetas y panel sin barras en pantallas chicas; caza de bugs de lo nuevo",
+  "seguir": "Personajes y pasada final (CAMBIOS_4_25_0_A/B/C.md). **Terminó la tanda de mejoras de las auditorías de la 4.20.0.** Para jugar y contar qué se siente flojo: las noches 5 y 11 a 20 del Desafío, la granja con lo de la 4.23.0, la marca del mapa, la primera hora y las manos nuevas. Pendientes de decisión del usuario: lo que pide un shader (grano del suelo bajo 4 m, corte duro del pasto, texturas de detalle), el segundo escalón de cristales, R12, Steam y el inglés. Los humos de la Historia tardan (-Espera 2700).",
+  "leemeNovedades": [
+    "- Los personajes tienen manos con dedos (sobre todo la mano del mate), nariz con volumen y más capas de color en el poncho y la lana.",
+    "- Si decidís D5 vender o cuidar la majada, la noche respeta quién falta; la E sobre las botas responde siempre y las tarjetas se leen sin barra en pantallas chicas.",
+    "- Una pasada de bugs sobre todo lo nuevo: las partidas viejas cargan bien."
+  ],
+  "leemeMirar": [
+    "- Si las manos y la nariz se ven bien de cerca y caminando, sin dedos que asomen por la ropa.",
+    "- Si la noche de la Historia coincide con lo que decidiste en D5.",
+    "- Si la plaza sigue fluida con los personajes nuevos."
+  ]
+}
