@@ -216,7 +216,7 @@ app.whenReady().then(async () => {
         await N(`(() => { const b = [...document.querySelectorAll('#cuaderno-lista .pestanas button')].find((x) => x.textContent === 'Lo vivido'); b.click(); return 1 })()`);
         await N('N.tick(0.5)');
         const txt = await N(`({ lista: document.getElementById('cuaderno-lista').innerText, ficha: document.getElementById('cuaderno-ficha').innerText })`);
-        ok(/\d+ de 124 escenas vividas/.test(txt.lista), `${nombre}: el avance dice «${(txt.lista.match(/\d+ de 124 escenas vividas/) || [''])[0]}»`);
+        ok(/\d+ de 125 escenas vividas/.test(txt.lista), `${nombre}: el avance dice «${(txt.lista.match(/\d+ de 125 escenas vividas/) || [''])[0]}»`);
         ok(/5\. La rueda|1\. La llave/.test(txt.lista) || /La llave del molinero/.test(txt.lista), `${nombre}: la lista nombra los capítulos vividos`);
         // por defecto, el último capítulo vivido (el 4: el andén y la ingeniera, con la escena que se acaba de correr)
         ok(/Piedras en la vía/.test(txt.ficha) && /Graciela/.test(txt.ficha), `${nombre}: la ficha muestra lo vivido del último capítulo (con la escena recién corrida)`);
@@ -247,10 +247,10 @@ app.whenReady().then(async () => {
         console.log('  contadores:', JSON.stringify(g.metas));
         const esp = await N(`({ raros: P.historia.raro.length, casa: Object.values(P.historia.lazos).filter((v) => v >= 3).length, opt: Object.keys(P.historia.optativas).length, vistas: Object.keys(P.historia.escenas.vistas).length })`);
         ok(g.metas.length === 4, `${nombre}: son cuatro contadores`);
-        ok(g.metas[0] === 'Lo raro: ' + esp.raros + ' de 118' && esp.raros >= 2, `${nombre}: «${g.metas[0]}»`);
+        ok(g.metas[0] === 'Lo raro: ' + esp.raros + ' de 128' && esp.raros >= 2, `${nombre}: «${g.metas[0]}»`);
         ok(g.metas[1] === `De paso: ${esp.opt} de 34 (en una misma partida entran hasta 29)`, `${nombre}: «${g.metas[1]}»`);
         ok(g.metas[2] === `Vecinos de la casa: ${esp.casa} (hasta 12 en una misma partida)` && esp.casa === 3, `${nombre}: «${g.metas[2]}»`);
-        ok(g.metas[3] === `Escenas vividas: ${esp.vistas} de 124`, `${nombre}: «${g.metas[3]}»`);
+        ok(g.metas[3] === `Escenas vividas: ${esp.vistas} de 125`, `${nombre}: «${g.metas[3]}»`);
         ok(!/lazo|confianza|[+-]\d/i.test(g.metas.join(' ')), `${nombre}: ningún contador muestra un número de lazo`);
         const d = await N(`N.desborde('#guia .panel-modal')`);
         ok(d.hay && d.contenido <= d.ancho + 1, `${nombre}: la guía no se desborda a los costados (${d.contenido}/${d.ancho})`);

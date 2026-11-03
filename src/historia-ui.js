@@ -404,8 +404,17 @@ export function crearValleUi(ctx) {
     const l = lineaDeHistoria(h, estado(), clave);
     if (!l) return null;
     oirLinea(h, l.id, ctx.progreso().dia);
+    if (typeof l.raro === 'string') anotarIndicio(l.raro);   // 4.24.0: la charla con indicio (el cuaderno anota lo raro que te contó)
     ctx.guardar();
     return l.texto;
+  }
+  // 4.24.0: un indicio suelto de la primera hora (la silueta del anochecer, una charla): lo anota el cuaderno y lo dice en pantalla. true si era nuevo.
+  function anotarIndicio(id) {
+    const h = historia();
+    if (ctx.esDesafio || !h.activa || !anotarRaro(h, id, ctx.progreso().dia)) return false;
+    ctx.nota('El cuaderno anota algo raro', textoRaro(id)); ctx.sonido?.()?.anotar?.(); ctx.diario?.('evento', textoRaro(id));
+    ctx.guardar();
+    return true;
   }
   // 4.18.0: las escenas de la costumbre del trato (final A, después de la historia): se repiten cada año, las dispara el juego a mano. La harina
   // la gasta la mecánica de la bolsa cada vez: el `quitar:harina:1` de la escena se da por aplicado (si no, la primera vez cobraba dos).
@@ -741,6 +750,7 @@ export function crearValleUi(ctx) {
     // (4.18.0: y la oveja escapada del capítulo 2 y las ovejas desparramadas del 9, las de las optativas)
     arreoLlegado: (destino) => { const h = historia(); if (!h.activa) return; if (marcarTema(h, 'arreo', destino, ctx.progreso().dia)) { const n = AVISOS_ARREO[destino] || AVISOS_ARREO['puesto-paso']; ctx.nota(n[0], n[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); } },
     lineaDeHistoria: (clave) => lineaDeHistoriaCon(clave),   // 4.18.0: la charla de historia (main.js, al hablar)
+    anotarIndicio,   // 4.24.0: la silueta del anochecer anota su indicio (historia-presencia.js, por main.js)
     abierta: () => tarjetas.abierta(),
     azar: (v) => { azarEnPruebas = !!v; return azarEnPruebas; },
     // para las pruebas: revisar ya, sin esperar el medio segundo ni el rato del capítulo

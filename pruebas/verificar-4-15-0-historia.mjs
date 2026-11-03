@@ -318,9 +318,9 @@ async function chequear(arch = '', sufijo = '') {
   {
     const base = () => { const p = progresoBase(H); const h = p.historia; H.empezarHistoria(h, 1); h.fase = 'jugando'; h.base = { dia: 1 }; return { p, h }; };
     const quien = (h, p, extra, ctx) => D.escenaPendiente(h, H.estadoHistoria(p, extra), ctx);
-    // cada una de las 21 escenas tiene su disparador, y cada disparador una escena conocida
+    // cada una de las 22 escenas (4.24.0: y la de Elsa en el andén) tiene su disparador, y cada disparador una escena conocida
     const ids1 = D.ESCENAS_ACTO1_IDS;
-    ok(ids1.length === 21 && new Set(ids1).size === 21, 'son 21 escenas');
+    ok(ids1.length === 22 && new Set(ids1).size === 22, 'son 22 escenas');
     const ids = [...ids1, ...A2D.ESCENAS_ACTO2_IDS, ...A3D.ESCENAS_ACTO3_IDS, ...Object.keys((await imp('historia-disparadores-optativas.js')).DISPARADORES_OPTATIVAS)];   // (4.16.0: y las del acto II; 4.18.0: y las de las optativas)
     const conDisp = new Set(Object.entries(D.DISPARADORES).map(([k, d]) => d.escena || k));
     for (const id of ids1) ok(conDisp.has(id), `${id}: tiene su disparador`);
@@ -613,7 +613,7 @@ async function chequear(arch = '', sufijo = '') {
     X.registrarEfectosHistoria(dir, { historia: () => h, dia: () => 5, estado: () => null });
     X.registrarEfectosActo1(dir, { historia: () => h, dia: () => 5 }, A1.EFECTOS_ACTO1);
     const reg = Object.values(A1.ESCENAS_ACTO1).map((e) => dir.registrar(e).ok);
-    ok(reg.length === 21 && reg.every(Boolean), 'las 21 escenas de B se registran en el director');
+    ok(reg.length === 22 && reg.every(Boolean), 'las 22 escenas de B se registran en el director');
     ok(Object.values(A1.ESCENAS_ACTO1).every((e) => dir.efectosFaltantes(e.id).length === 0), 'y ninguna pide un efecto sin registrar');
     for (const id of D.ESCENAS_ACTO1_IDS) ok(Object.hasOwn(A1.ESCENAS_ACTO1, id), id + ': existe en el archivo de B');
     for (const e of Object.values(A1.ESCENAS_ACTO1)) for (const c of (await import('../src/historia-escenas-util.js')).condicionesDe(e)) ok(typeof conds[c] === 'function', 'condición registrada: ' + c);

@@ -157,6 +157,17 @@ export const TEXTO_ACTO1 = {
     'luces-lago': { titulo: 'Luces sobre el lago', texto: 'Nicanor ve luces chiquitas sobre el lago, de noche, que van y vienen. Como gente con farolitos. Muy petisa la gente.', cap: 3, donde: 'lago' },
     'vecinos-de-abajo': { titulo: 'Los vecinos de abajo', texto: 'Eusebio hablaba de «los vecinos de abajo». Ramón dice que eran los zorros. Se le nota que no lo cree del todo.', cap: 3, donde: 'refugio' },
     'puertita-via': { titulo: 'Una puertita en la vía', texto: 'Entre las piedras de la vía, una puertita de coihue del tamaño de una mano. Elsa me la dio a mí.', cap: 4, donde: 'vía de la trochita' },
+    // 4.24.0: los indicios de la primera hora (capítulos 2 a 4), sin escena larga: la silueta del anochecer (presencia suave), una charla de vecino, un objeto movido
+    'silueta-bolsa': { titulo: 'Una silueta entre los árboles', texto: 'Al caer la tarde, entre los troncos, algo petiso y quieto que me miraba. Pestañeé y ya no estaba. Debe ser la luz.', cap: 2, donde: 'borde del bosque' },
+    'huellas-arroyo': { titulo: 'Huellas chiquitas en el barro', texto: 'Ramón me pidió que no pise las huellas chiquitas del barro del arroyo. «Es costumbre», dijo, y siguió con las ovejas.', cap: 2, donde: 'arroyo' },
+    'silbato-solo': { titulo: 'El silbato que sonó solo', texto: 'Elsa jura que anoche la locomotora silbó sola, con el tren en la cochera y las llaves en su bolsillo. «Lo cuento por si alguien pregunta», dijo.', cap: 2, donde: 'Estación del Valle' },
+    'lena-apilada': { titulo: 'La leña apilada', texto: 'La leña que dejé tirada frente a la puerta apareció apilada, en dos pilas parejas, con los troncos finos arriba. No vi a nadie.', cap: 2, donde: 'umbral del refugio' },
+    'silueta-mesa': { titulo: 'La silueta otra vez', texto: 'Otra vez la silueta petisa, al borde del bosque. Levanté la mano por las dudas. Se quedó un rato quieta y se fue despacio, sin apuro.', cap: 3, donde: 'borde del bosque' },
+    'ovejas-silencio': { titulo: 'Las ovejas se callan', texto: 'Fermín dice que a las diez en punto las ovejas dejan de balar, todas juntas, como si alguien les pidiera silencio. Lo cuenta de pasada, como el que habla del tiempo.', cap: 3, donde: 'galpón de esquila' },
+    'migas-rosa': { titulo: 'Las migas de Rosa', texto: 'A Rosa se le van las migas del mostrador. Las migas, no el pan. Y el mostrador queda más limpio que antes.', cap: 3, donde: 'panadería' },
+    'botas-calafate': { titulo: 'Calafates en las botas', texto: 'Alguien llenó de calafates las botas que dejé en la puerta, un puñadito en cada una. Y no pisó el barro de la entrada.', cap: 3, donde: 'umbral del refugio' },
+    'silueta-ramal': { titulo: 'La silueta, más cerca', texto: 'Hoy la silueta petisa miraba desde más cerca. Elsa dice que son chicos de la aldea. Los chicos de la aldea no andan a esta hora, y menos tan quietos.', cap: 4, donde: 'borde del bosque' },
+    'almacen-acomodado': { titulo: 'El almacén acomodado', texto: 'Ercilia dice que de noche se le acomoda el almacén: las latas por tamaño, las velas por color. No falta nada. Ella no las acomoda así.', cap: 4, donde: 'almacén' },
     'puertita-noche': { titulo: 'Una puertita en mi puerta', texto: 'A la noche, apoyada contra mi puerta, una puertita de coihue del tamaño de una mano. No había nadie en el camino.', cap: 4, donde: 'refugio' },
   },
 
@@ -164,6 +175,7 @@ export const TEXTO_ACTO1 = {
   // (o de uno anterior) cuyo `cuando` se cumpla. `cuando`: { decision, es } o { optativa } o { escena }.
   charla: {
     ramon: [
+      { id: 'ramon-c2-huellas', cap: 2, texto: "Una cosa, m'hijo. Si ves huellas chiquitas en el barro del arroyo, no las pises. No es por nada. Es costumbre.", raro: 'huellas-arroyo' },   // (4.24.0: las de este estilo traen el indicio del cuaderno que anota la charla)
       { id: 'ramon-c2-techo', cap: 2, texto: 'Mirá el techo antes de que llueva. Si lo ves llorar, ya sabés: cuatro tablas del alero y listo.' },
       { id: 'ramon-c2-hacha', cap: 2, texto: 'Sin hacha no hacés nada. Y con hacha mal usada, peor. Mejor el árbol seco que el que da sombra.' },
       { id: 'ramon-c2-coihue', cap: 2, texto: "Fuiste hasta el coihue, ¿no? No me digas nada. Eusebio hacía lo mismo y tampoco me decía.", cuando: { decision: 'bolsa', es: 'a' } },
@@ -182,12 +194,14 @@ export const TEXTO_ACTO1 = {
       { id: 'josefina-c4-ramal', cap: 4, texto: 'Los turistas con linterna buscando duendes me ponen nerviosa. Pero si cierran el ramal, no queda nadie que cuide este valle.' },
     ],
     ercilia: [
+      { id: 'ercilia-c4-latas', cap: 4, texto: 'De noche se me acomoda el almacén, querido. Las latas por tamaño, las velas por color. No falta nada. Y yo no las acomodo así.', raro: 'almacen-acomodado' },
       { id: 'ercilia-c2-gente', cap: 2, texto: 'La aldea necesita gente, querido. Lo que sobra en el valle es paisaje.' },
       { id: 'ercilia-c2-pan', cap: 2, texto: 'Rosa me contó que hizo pan con la harina de Eusebio. Lloré. Un poquito. Que no se entere Nélida.', cuando: { decision: 'bolsa', es: 'b' } },
       { id: 'ercilia-c3-mesa', cap: 3, texto: 'Poné una mesa con dos sillas y vas a ver cómo la gente se arrima. Una casa sin mesa es un galpón.' },
       { id: 'ercilia-c4-ingeniera', cap: 4, texto: 'Una ingeniera del ramal… Que no se lleve la estación en el portafolios, por favor.' },
     ],
     fermin: [
+      { id: 'fermin-c3-silencio', cap: 3, texto: 'Las ovejas, a las diez en punto, dejan de balar. Todas juntas, como si alguien les pidiera silencio. Hace años que pasa y todavía me quedo escuchando.', raro: 'ovejas-silencio' },
       { id: 'fermin-c3-ovejas', cap: 3, texto: 'Ramón me regala las ovejas diciéndome que ya eran mías, y yo se las agradezco diciéndole que son de él. Así llevamos veinte años.' },
       { id: 'fermin-c3-pan', cap: 3, texto: 'El pan todavía estaba tibio. Hacía rato que no comía pan de verdad. Gracias, amigo.', cuando: { optativa: 'fermin-pan' } },
       { id: 'fermin-c4-portafolios', cap: 4, texto: 'Escuché que viene una señora con un portafolios. En la estepa los portafolios no duran: el viento se los lleva.' },
@@ -197,12 +211,14 @@ export const TEXTO_ACTO1 = {
       { id: 'herminia-c4-ingeniera', cap: 4, texto: 'Una ingeniera, ¿no? Mi marido era del ferrocarril. Los ingenieros miden todo, menos lo que importa.' },
     ],
     rosa: [
+      { id: 'rosa-c3-migas', cap: 3, texto: 'Se me van las migas del mostrador, ¿viste? Las migas, no el pan. Y el mostrador queda más limpio que cuando lo limpio yo.', raro: 'migas-rosa' },
       { id: 'rosa-c2-masa', cap: 2, texto: 'La masa madre es como un duende: no se la ve trabajar, pero cuando te das vuelta, creció.' },
       { id: 'rosa-c2-frasco', cap: 2, texto: 'Si es el frasco de Eusebio, ¡traelo! Masa de 1987. ¿Sabés cuánto pan hay ahí adentro?', cuando: { optativa: 'frasco-masa-madre' } },
       { id: 'rosa-c2-nuez', cap: 2, texto: 'Con la harina de Eusebio, el pan salió con gusto a nuez. No sé qué hacía ese hombre con el trigo.', cuando: { decision: 'bolsa', es: 'b' } },
       { id: 'rosa-c3-mesa', cap: 3, texto: 'Para tu mesa nueva, llevate un pan. Una mesa sin pan es una mesa de paso.' },
     ],
     elsa: [
+      { id: 'elsa-c2-silbato', cap: 2, texto: 'Pasajero, anoche el silbato sonó solo. Con la locomotora en la cochera y las llaves en mi bolsillo. Lo cuento por si alguien pregunta.', raro: 'silbato-solo' },
       { id: 'elsa-c1-fuego', cap: 1, texto: '¿Prendió el fuego, pasajero? Mire que oscurece ligero y la leña no se hace sola.' },
       { id: 'elsa-c2-hacha', cap: 2, texto: '¿Fue al almacén? Ercilia le va a cobrar el hacha en cantos y ramitas. Mejor así: los cantos pesan, pero no se acaban.' },
       { id: 'elsa-c3-visita', cap: 3, texto: 'La semana que viene viene gente de la Administración. Me tiembla el rodete.' },

@@ -2273,6 +2273,7 @@ function presenciaHistoria() {
       cercaDeArbol: (x, z) => { p.set(x, alt(x, z), z); try { col.resolver(p, 2.4, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) > 0.05; },
       refugio: () => T.lugares.refugio, galpon: () => T.lugares.galpon || null,
       cobrar: (premio) => cobrarPremio({ premio }), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+      indicio: (id) => valle?.anotarIndicio?.(id),   // 4.24.0: la silueta de la primera hora anota su indicio en el cuaderno
     });
   }
   return presenciaHist;
@@ -2524,7 +2525,9 @@ function acompananteDeHistoria() {
   });
   return acompananteMundo;
 }
-function efectoMundoHistoria(id, args) { dibujarObjetosHistoriaYa(); try { objetosHist?.efecto?.(`mundo:${id}`, args?.donde != null ? escenasMundo?.mundo?.posicion(args.donde) : null, jugador?.estado); } catch (e) { fallaSistema('historia-props', e); } }
+function efectoMundoHistoria(id, args) {
+  if (id === 'tren-al-anden') { try { if (!jugador.estado.enTren && tren?.estacion) tren.traerAlAnden(tren.estacion); } catch (e) { fallaSistema('historia-tren', e); } return; }   // 4.24.0: el primer viaje sin espera (la escena de Elsa; el tren aparece con la pantalla en negro)
+  dibujarObjetosHistoriaYa(); try { objetosHist?.efecto?.(`mundo:${id}`, args?.donde != null ? escenasMundo?.mundo?.posicion(args.donde) : null, jugador?.estado); } catch (e) { fallaSistema('historia-props', e); } }
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
 // 4.16.0: los duendes del acto II (siluetas en las raíces, el lechucero, las lucecitas del lago, los pillos con bellotas): se ven y se mueven (historia-duendes.js)
 const duendesDeEscena = [];
@@ -2710,7 +2713,7 @@ function crearValle() {
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
     libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo') && !escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
-    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null, cumple: cumpleDeHoyHistoria() }; },
+    extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso), lugares: distanciasHistoria(), estacion: estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), estacionNatural: estacionNaturalDeHistoria(), enKayak: !!js.enKayak, coihue: molinoViejoHist?.arbol ? { x: molinoViejoHist.arbol.x, z: molinoViejoHist.arbol.z } : null, sentado: !!js.sentado, perro: !!progreso.entradas?.perro, amor: ajustes.romance !== false && Object.values(progreso.amor?.personas || {}).some((f) => ['saliendo', 'novios', 'comprometidos', 'casados'].includes(f?.etapa)), apuntaArbolVivo: !!progreso.cosas?.hacha && objetivo?.tipo === 'arbol' && !!objetivo.a && objetivo.a.especie !== 'seco' && objetivo.a.especie !== 'pehuen', visitaActiva: visitas().activa?.clave || null, cumple: cumpleDeHoyHistoria(), esperaTren: !js.enTren && tren?.estacion ? tren.esperaEnAnden(tren.estacion) : 0 }; },
     // 4.15.0: la Historia nueva: las escenas del acto I, los objetos del mundo, gastar una tabla del alero y el comienzo en la estación
     escenas: () => (escenasMundo ? { activa: () => escenasMundo.activa(), hay: (id) => escenasMundo.director.hay(id), disparar: (id, o) => escenasMundo.disparar(id, o) } : null),
     objetos: objetosHistoriaMundo(), permitirVehiculo: (si) => { escenaDesdeVehiculo = !!si; }, puedeEscena: (deSentado) => puedeEmpezarEscena(deSentado), enAgua: () => !!(jugador.estado.enKayak || jugador.estado.enVela),   /* (4.17.1) */ colocar: (c) => colocarParaEscena(c), levantar: () => { try { jugador.sentarse?.(false); } catch { /* ya */ } }, gastarTabla: () => gastarUnaTabla(), comenzarEnEstacion: () => comenzarEnLaEstacion(), darCosa: (cosa, n) => darCosaHistoria(cosa, n), gastar: (cosa, n) => gastarCosaHistoria(cosa, n),   // (4.18.0: el comentario de la 4.17.1 en el medio de la línea dejaba afuera colocar, levantar, gastarTabla, comenzarEnEstacion, darCosa y gastar)

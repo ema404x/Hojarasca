@@ -32,6 +32,7 @@ import { OPTATIVAS, capsDe } from './historia-optativas.js';
 export const LUGARES_HISTORIA = ['refugio', 'refugio-puerta', 'tocon-hacha', 'estacion', 'sendero', 'aldea', 'plaza', 'ramos', 'casa-te', 'molino', 'molino-viejo', 'galpon', 'faro', 'mirador', 'puesto', ...LUGARES_ACTO2, ...LUGARES_ACTO3, ...LUGARES_OPTATIVAS];
 
 const en = (nombre, radio) => [nombre, radio];
+export const ESPERA_MAXIMA_TREN = 45;   // 4.24.0: segundos de espera en el andén a partir de los cuales Elsa apura al tren (primer viaje, capítulo 2)
 
 export const DISPARADORES = {
   // ---- capítulo 1 · La llave del molinero
@@ -41,6 +42,8 @@ export const DISPARADORES = {
   'nota-eusebio': { cap: 'llave', modo: 'interaccion', clave: 'puerta-refugio', requiere: ['estacion-llegada'] },
   'ronda-umbral': { cap: 'llave', modo: 'auto', requiere: ['nota-eusebio'], despues: true, lugar: en('refugio-puerta', 14), hora: [5.5, 12] },   // (4.16.0: cerca de la puerta, donde está la ronda: la escena se pone ahí)
   // ---- capítulo 2 · La bolsa del molinero
+  // 4.24.0: el primer viaje en trochita sin espera: si en el andén faltan más de 45 s para que llegue el tren, Elsa lo apura (el tren aparece a menos de 150 m, en un fundido)
+  'elsa-anden': { cap: 'bolsa', modo: 'auto', lugar: en('estacion', 22), hora: [6, 21], cond: (s) => !s.viaje && s.esperaTren > ESPERA_MAXIMA_TREN },
   'ramon-tranquera': { cap: 'bolsa', modo: 'auto', lugar: en('refugio', 30), hora: [7.5, 13] },
   'ramon-tranquera:hablar': { escena: 'ramon-tranquera', cap: 'bolsa', modo: 'hablar', clave: 'ramon' },
   'almacen-ercilia': { cap: 'bolsa', modo: 'auto', lugar: en('ramos', 9), requiere: ['ramon-tranquera'] },
@@ -74,7 +77,7 @@ export const OPTATIVA_DE_DISPARADOR = {};
 for (const o of OPTATIVAS) for (const k of o.disparadores || []) if (Object.hasOwn(DISPARADORES, k)) { DISPARADORES[k] = { ...DISPARADORES[k], cap: capsDe(o) }; OPTATIVA_DE_DISPARADOR[k] = o.id; }
 for (const k of Object.keys(OPTATIVA_DE_DISPARADOR)) { const d = DISPARADORES[k]; delete DISPARADORES[k]; DISPARADORES[k] = d; }
 // La lista de los 21 ids de escena que escribe el otro agente (historia-escenas-acto1.js)
-export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela'];
+export const ESCENAS_ACTO1_IDS = ['trochita-boleto', 'estacion-llegada', 'algo-cruza', 'nota-eusebio', 'ronda-umbral', 'ramon-tranquera', 'almacen-ercilia', 'ese-no-josefina', 'bolsa-alero', 'bolsa-coihue', 'bolsa-rosa', 'bolsa-josefina', 'hacha-tocon', 'placa-herminia', 'mesa-visita-nicanor', 'mesa-visita-ramon', 'fermin-galpon', 'anden-graciela', 'cabina-elsa', 'derrumbe-puertita', 'te-graciela', 'elsa-anden'];
 const escenaDe = (clave, d) => d.escena || clave;
 
 // ¿Qué escena toca ahora? `ctx`: { modo: 'auto' | 'hablar' | 'interaccion', clave, apuntaArbolVivo, visitaActiva }. Devuelve el id o null.
@@ -192,6 +195,11 @@ export const OBJETOS = {
   'puertita': { forma: 'puertita', lx: -0.5, lz: 3.5, visible: (s) => s.escenas.has('derrumbe-puertita') && !s.objetos.has('puertita'),
     aviso: 'Guardar la puertita en la repisa', marca: 'puertita', nota: ['La puertita', 'De coihue, del tamaño de una mano, con bisagra de cuero. Queda en la repisa, mirando al arroyo'] },
   'hacha-tocon': { forma: 'hacha-tocon', lx: -5.5, lz: 6.0, visible: (s, h) => capituloActual(h).id === 'mesa' },
+  // 4.24.0: dos objetos movidos de la primera hora (indicios sin escena): la leña que dejaste tirada, apilada (capítulo 2) y calafates en las botas de la puerta (capítulo 3). La E los mira una vez (`unaVez`), anota el indicio y el objeto se queda donde está.
+  'lena-apilada': { forma: 'lena-apilada', lx: -2.5, lz: 3.9, visible: (s, h) => capituloActual(h).id === 'bolsa', unaVez: true,
+    aviso: 'Mirar la leña apilada', marca: 'lena-apilada', raro: 'lena-apilada', nota: ['La leña apilada', 'Dos pilas parejas, los troncos finos arriba. La habías dejado tirada. Quien la apiló sabía cómo se apila'] },
+  'botas-calafate': { forma: 'botas-calafate', lx: 1.5, lz: 4.0, visible: (s, h) => capituloActual(h).id === 'mesa', unaVez: true,
+    aviso: 'Mirar las botas de la puerta', marca: 'botas-calafate', raro: 'botas-calafate', nota: ['Calafates en las botas', 'Un puñadito en cada una, todavía frescos. Los comés o los dejás: nadie te dice nada'] },
   // la raíz del coihue grande: el lugar lo elige el juego (el coihue más grande cerca del molino viejo)
   'raiz-coihue': { forma: 'raiz', lugar: 'molino-viejo', visible: (s) => s.decisiones.bolsa === 'a' && !s.escenas.has('bolsa-coihue'),
     aviso: 'Dejar la bolsa de Eusebio en la raíz del coihue', escena: 'bolsa-coihue' },
@@ -264,6 +272,7 @@ export function accionDeObjeto(id, h, s) {
   if (o.cuidar) return { tipo: 'cuidar', aviso: `${o.aviso} (${Math.min(3, s.cuidados) + 1} de 3)` };   // 4.17.0: la majada de Ramón
   if (o.escena) return { tipo: 'escena', escena: o.escena, aviso: o.aviso };
   if (o.pagina) return { tipo: 'pagina', aviso: `${o.aviso} (página ${Math.min(3, [1, 2, 3].filter((n) => s.temas.has(`cuaderno:${n}`)).length + 1)} de 3)` };
+  if (o.unaVez && o.marca && s.objetos.has(o.marca)) return null;   // 4.24.0: ya lo miraste: se queda en su lugar, sin aviso
   if (o.marca) return { tipo: 'marca', marca: o.marca, nota: o.nota, aviso: o.aviso, raro: o.raro || null, limpiaAcompanante: !!o.limpiaAcompanante };
   if (o.nota) return { tipo: 'nota', nota: o.nota, aviso: o.aviso };
   return null;

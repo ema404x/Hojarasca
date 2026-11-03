@@ -109,6 +109,19 @@ const FORMAS = {
     caja(c, [0.05, 0.62, 0.05], [0.05, 1.25, 0.02], '#7a5a38', [0, 0, 0.18], 0.06);
     caja(c, [0.2, 0.15, 0.05], [0.12, 1.52, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
   },
+  // 4.24.0: dos objetos movidos de la primera hora. La leña apilada en dos pilas parejas (troncos finos arriba) y las botas de goma de la puerta con calafates adentro.
+  'lena-apilada': (c) => {
+    for (const x of [-0.62, 0.62]) {
+      [3, 2, 1].forEach((n, capa) => { for (let i = 0; i < n; i++) palo(c, capa === 2 ? 0.055 : 0.075, 0.95, [x, 0.075 + capa * 0.125, (i - (n - 1) / 2) * 0.15], [0, 0, Math.PI / 2], (i + capa) % 2 ? '#8a6a45' : '#a98558'); });
+    }
+  },
+  'botas-calafate': (c) => {
+    for (const x of [-0.17, 0.17]) {
+      caja(c, [0.17, 0.34, 0.14], [x, 0.17, 0], '#3d5a3a', [0, 0, 0], 0.08);
+      caja(c, [0.19, 0.09, 0.26], [x, 0.045, 0.06], '#2f4a2f', [0, 0, 0], 0.06);
+      for (const [dx, dz] of [[-0.03, -0.02], [0.035, 0.01], [0, 0.03]]) esfera(c, 0.03, [x + dx, 0.355, dz], '#3b3578', [1, 0.9, 1], 0.1);
+    }
+  },
   // 4.16.0: los props del acto II y los del acto I que antes sólo dejaban una marca
   'dedal-poste': (c) => {
     palo(c, 0.06, 1.3, [0, 0.65, 0], [0, 0, 0], '#6b5030');
