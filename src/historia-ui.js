@@ -33,6 +33,8 @@ import { crearEventosValleUi } from './eventos-valle-ui.js';
 import { crearNocheUi, CSS_NOCHE } from './historia-noche-ui.js';
 // 4.18.0: las subtramas optativas (el registro, el tablón, los premios, la charla de historia y los encargos con lazo)
 import { revisarOptativas, panDeHoy, revisarEncargos, optativasDelPanel, optativasHechas, lineaDeHistoria, oirLinea } from './historia-optativas.js';
+// 4.24.0 (A): la marca del objetivo en el mapa, los lugares que el mapa nombra al conocerlos y las cadenas del panel (historia-marca.js)
+import { marcasDeObjetivos, lugaresConocidos, lineaDeMarcas, filasDelPanel, PUNTOS_MARCA } from './historia-marca.js';
 // 4.23.0 (B): los contadores de la guía (lo raro, de paso, vecinos de la casa, escenas vividas)
 import { lineasMetas } from './historia-metas.js';
 import { NOTAS_ESCENA_OPTATIVAS } from './historia-disparadores-optativas.js';
@@ -64,6 +66,13 @@ export const CSS_VALLE = `
 .historia-hud .ramal i { display: block; height: 6px; margin-top: 3px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
 .historia-hud .ramal i b { display: block; height: 100%; background: var(--notro, #b8432f); }
 .historia-hud p.espera { display: block; margin: -1px 0 4px 28px; font-size: 12px; font-style: italic; color: rgba(239,230,210,.66); }   /* 4.21.0: la línea de espera */
+.historia-hud p.mapa { display: block; margin: 5px 0 0; font-size: 12px; font-style: italic; color: rgba(239,230,210,.66); }   /* 4.24.0: lo que está marcado en el mapa */
+.historia-hud .cadena { margin: 5px 0 2px; padding-left: 8px; border-left: 2px solid rgba(239,230,210,.22); }   /* 4.24.0: las cadenas del capítulo 11 */
+.historia-hud .cadena-t { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: #f2e6c8; margin-bottom: 1px; }
+.historia-hud .cadena-t i { font-style: normal; font-size: 12px; opacity: .75; white-space: nowrap; }
+.historia-hud .cadena-t.listo { color: #a9c46a; }
+.historia-hud .cadena p { font-size: 13px; margin: 2px 0; }
+.historia-hud .cadena p.mas { display: block; font-size: 12px; font-style: italic; opacity: .7; margin-left: 28px; }
 .historia-hud .optativas { margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,.14); font-size: 12px; }
 .historia-hud .optativas small { display: block; opacity: .7; margin-bottom: 2px; }
 .historia-hud .optativas p { opacity: .85; }
@@ -212,17 +221,57 @@ export function crearValleUi(ctx) {
     if (!datos) return;
     if (h.fase === 'jugando') datos.optativas = optativasDelPanel(h, s);   // 4.18.0
     const esperas = h.fase === 'jugando' ? esperasDelCapitulo(h, s) : {};   // 4.21.0: lo único que falta es la hora
-    const html = `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
-      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>${!o.hecho && esperas[o.id] ? `<p class="espera">${escP(esperas[o.id])}</p>` : ''}`).join('')
-      + (datos.ramal ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '')
-      // 4.18.0: las optativas abiertas (con la estrellita) y las hechas en esta ventana (con la tilde); nunca traban el capítulo
-      + (datos.optativas?.length ? `<div class="optativas"><small>De paso (si querés)</small>${datos.optativas.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : '☆'}</kbd>${escP(o.texto)}</p>`).join('')}</div>` : '');
-    if (html !== htmlPanel) { htmlPanel = html; panel.innerHTML = html; ctx.traducir?.(panel); }
+    // 4.24.0: lo marcado en el mapa (sólo lo que el texto del objetivo ya nombra) y las cadenas del capítulo (el arco y la honda del capítulo 11)
+    const marcas = h.fase === 'jugando' ? marcasDeObjetivos(h, s, puntosDeMarcas()) : [];
+    const filas = filasDelPanel(capituloActual(h).id, datos.objetivos, { compacto: false });
+    const lineaObj = (o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>${!o.hecho && esperas[o.id] ? `<p class="espera">${escP(esperas[o.id])}</p>` : ''}`;
+    const armar = (compacto, conOptativas, minimo = false) => {
+      const filasPanel = compacto ? filasDelPanel(capituloActual(h).id, datos.objetivos, { compacto: true }) : filas;
+      return `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
+        + filasPanel.filter((f) => !(minimo && f.tipo === 'objetivo' && f.o.hecho)).map((f) => (f.tipo === 'objetivo' ? lineaObj(f.o)
+          : `<div class="cadena"><div class="cadena-t${f.hechos === f.total ? ' listo' : ''}"><span>${f.hechos === f.total ? '✓ ' : ''}${escP(f.titulo)}</span><i>${f.hechos} de ${f.total}</i></div>${f.items.map(lineaObj).join('')}${f.resto ? `<p class="mas">y ${f.resto} ${f.resto === 1 ? 'paso más' : 'pasos más'}</p>` : ''}</div>`)).join('')
+        + (lineaDeMarcas(marcas) ? `<p class="mapa">${escP(lineaDeMarcas(marcas))}</p>` : '')
+        + (datos.ramal && !minimo ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '')
+        // 4.18.0: las optativas abiertas (con la estrellita) y las hechas en esta ventana (con la tilde); nunca traban el capítulo
+        + (conOptativas && datos.optativas?.length ? `<div class="optativas"><small>De paso (si querés)</small>${datos.optativas.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : '☆'}</kbd>${escP(o.texto)}</p>`).join('')}</div>` : '');
+    };
     // debajo de la guía del primer día, si está a la vista
     const tut = $('tutorial');
     const arriba = tut && !tut.classList.contains('oculto') ? tut.offsetTop + tut.offsetHeight + 10 : 92;
     if (panel.style.top !== `${arriba}px`) panel.style.top = `${arriba}px`;
+    const html = armar(false, true);
+    const alto = altoDeVentana();
+    const clave = `${html}|${alto}|${arriba}`;
+    if (clave !== htmlPanel) {
+      htmlPanel = clave; panel.innerHTML = html; ctx.traducir?.(panel);
+      // 4.24.0: si el panel no entra en la ventana (1024x600 con las doce líneas del capítulo 11), de cada cadena queda el próximo paso y cuántos más hay;
+      // si aun así no entra, se van las optativas («si querés»). Un objetivo suelto nunca se esconde.
+      if (alto && desbordaPanel(alto)) {
+        panel.innerHTML = armar(true, true); ctx.traducir?.(panel);
+        if (desbordaPanel(alto)) {
+          panel.innerHTML = armar(true, false); ctx.traducir?.(panel);
+          // último recurso: sin lo ya cumplido que quedó suelto ni la barra del ramal
+          if (desbordaPanel(alto)) { panel.innerHTML = armar(true, false, true); ctx.traducir?.(panel); }
+        }
+      }
+    }
   }
+  const altoDeVentana = () => Number(doc.defaultView?.innerHeight) || 0;
+  // (no entra: se pasa del borde de abajo o pisa la barra de la mano, que en 1024 de ancho queda justo a la derecha del panel)
+  const desbordaPanel = (alto) => {
+    if (typeof panel.getBoundingClientRect !== 'function') return false;
+    const r = panel.getBoundingClientRect();
+    if (r.bottom > alto - 8) return true;
+    const barra = $('barra');
+    const b = barra && typeof barra.getBoundingClientRect === 'function' ? barra.getBoundingClientRect() : null;
+    return !!(b && b.width > 0 && b.height > 0 && r.right > b.left && r.left < b.right && r.bottom > b.top - 4);
+  };
+  // los puntos con coordenadas de los lugares que el panel y el mapa saben marcar (los arma el juego)
+  const puntosDeMarcas = () => {
+    const P = {};
+    for (const k of Object.keys(PUNTOS_MARCA)) { const q = ctx.puntoDe?.(k); if (q && Number.isFinite(q.x) && Number.isFinite(q.z)) P[k] = { x: q.x, z: q.z }; }
+    return P;
+  };
 
   // ---------------------------------------------------------------- las tarjetas de la historia
   function mostrarIntro() {
@@ -670,6 +719,9 @@ export function crearValleUi(ctx) {
       : 'Sin capítulos: el valle entero, a tu ritmo. La historia se puede empezar cuando quieras desde la guía o la pausa.';
   }
   let botonPausa = null, cajaGuia = null;
+  // 4.24.0 (A): las teclas que importan en la historia, con las que eligió el jugador (la letra de fábrica es la que manda en el texto)
+  const lineaDeTeclas = () => { const k = (t) => (ctx.teclaVisible ? ctx.teclaVisible(t) : t); return `Teclas de la historia: ${k('E')} hablar o tomar · ${k('R')} esperar sentado · ${k('M')} mapa · ${k('J')} cuaderno`; };
+  const LINEA_MAPA = 'Lo que un objetivo nombra (un puesto, la plaza, un galpón) aparece marcado en el mapa: un clic en la marca y la brújula te lleva hasta ahí.';
   function textoBoton(h) {
     if (h.fase === 'fin') return null;
     if (!h.empezada) return { accion: 'empezar', texto: 'Empezar la historia del valle' };
@@ -688,6 +740,7 @@ export function crearValleUi(ctx) {
       const raros = (h.raro || []).slice().reverse();
       const opt = optativasHechas(h);
       cajaGuia.innerHTML = `<h3>La historia del valle</h3><p>${escP(resumenHistoria(h))}</p>`
+        + `<p class="teclas">${escP(lineaDeTeclas())}</p><p class="teclas">${escP(LINEA_MAPA)}</p>`   // 4.24.0 (A): las teclas de la historia y la marca del objetivo en el mapa
         + (h.empezada ? `<ul class="metas">${lineasMetas(h).map((x) => `<li>${escP(x)}</li>`).join('')}</ul>` : '')   // 4.23.0 (B): cuánto llevás
         + (lazos.length ? `<ul class="lazos">${lazos.map((l) => `<li>${escP(l.nombre)}${l.oficio ? `, ${escP(l.oficio)}` : ''}: ${escP(l.palabra)}${l.frase ? `<small>${escP(l.frase)}</small>` : ''}</li>`).join('')}</ul>` : '')
         + (raros.length ? `<p>Cuaderno de lo raro</p><ul class="raro">${raros.map((x) => `<li>Día ${x.dia}: ${escP(textoRaro(x.id))}</li>`).join('')}</ul>` : '')
@@ -737,6 +790,9 @@ export function crearValleUi(ctx) {
     accionBolsa: () => { const h = historia(); return accionBolsaUmbral(h, estado()); },
     llenarBolsa: () => { const h = historia(); if (!llenarBolsa(h, ctx.progreso().dia)) return false; ctx.gastar?.('harina', 1); if (!escenaCostumbre(h, 'costumbre-dejar')) ctx.nota('Llenaste la bolsa del umbral', 'A la mañana, el regalito', true); ctx.guardar(); return true; },
     mostrarFinal, contextoNoche,
+    // 4.24.0 (A): para el mapa y la brújula: las marcas de los objetivos sin cumplir y los lugares que ya conocés (sin la Historia en curso, nada)
+    marcasObjetivo: () => { const h = historia(); if (ctx.esDesafio || !h.activa) return []; return marcasDeObjetivos(h, estado(), puntosDeMarcas()); },
+    lugaresConocidos: () => { const h = historia(); if (ctx.esDesafio || !h.empezada) return []; return lugaresConocidos(h, estado(), puntosDeMarcas()); },
     // la majada llegó al destino del arreo (capítulo 9, D5 = a o c)
     // (4.18.0: y la oveja escapada del capítulo 2 y las ovejas desparramadas del 9, las de las optativas)
     arreoLlegado: (destino) => { const h = historia(); if (!h.activa) return; if (marcarTema(h, 'arreo', destino, ctx.progreso().dia)) { const n = AVISOS_ARREO[destino] || AVISOS_ARREO['puesto-paso']; ctx.nota(n[0], n[1], true); ctx.sonido?.()?.anotar?.(); ctx.guardar(); revisarAhora(); } },

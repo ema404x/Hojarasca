@@ -65,7 +65,7 @@ export function textoDistancia(m) {
 }
 
 // Las marcas que el juego pone solo (la caja del alba, la cápsula, los restos).
-export function marcasAutomaticas({ desafio, lugares } = {}) {
+export function marcasAutomaticas({ desafio, lugares, objetivos } = {}) {
   const marcas = [];
   const sumar = (p, nombre, clase) => {
     if (!p || !Number.isFinite(Number(p.x)) || !Number.isFinite(Number(p.z))) return;
@@ -97,5 +97,12 @@ export function marcasAutomaticas({ desafio, lugares } = {}) {
     if (Array.isArray(desafio.sitiosMapa)) for (const s of desafio.sitiosMapa) sumar(s, s.nombre, s.clase);
   }
   if (lugares?.galpon) sumar(lugares.galpon, 'galpón de esquila', 'lugar');
+  // 4.24.0: lo que el objetivo de la Historia ya nombra (ver historia-marca.js): una banderita con el nombre del lugar, en el Relax y con la Historia en curso
+  if (!desafio && Array.isArray(objetivos)) {
+    for (const o of objetivos) {
+      sumar(o, String(o?.nombre ?? '').trim() || 'objetivo', 'objetivo');
+      if (marcas.length && marcas[marcas.length - 1].clase === 'objetivo' && o?.activa) marcas[marcas.length - 1].activa = true;   // la que sigue la brújula
+    }
+  }
   return marcas;
 }

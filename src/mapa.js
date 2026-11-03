@@ -172,7 +172,7 @@ export function crearMapa(T, extra = null) {
     // quedaban uno arriba del otro; pasaba también con otros vecinos): si no entra arriba del punto va
     // abajo, y si tampoco, queda el punto solo
     const ocupados = [];
-    const rotular = (texto, px, py, arriba, alto) => {
+    const rotular = (texto, px, py, arriba, alto, soloSiEntra = false) => {
       if (!texto) return;
       // (el mismo nombre ya escrito al lado, como la Estación del Valle y su parada: una vez; 3.6.2: sin mirar
       // mayúsculas: el galpón de esquila es un lugar y una marca automática)
@@ -184,6 +184,7 @@ export function crearMapa(T, extra = null) {
       const lugaresTexto = [[px, py - arriba, 'center'], [px, py + arriba + alto * 0.7, 'center'], [px + m, py + alto * 0.28, 'left'], [px - m, py + alto * 0.28, 'right'],
         [px + m, py + alto * 1.0, 'left'], [px - m, py + alto * 1.0, 'right'], [px, py - arriba - alto * 0.9, 'center']];
       for (let i = 0; i <= lugaresTexto.length; i++) {
+        if (i === lugaresTexto.length && soloSiEntra) return;   // 4.24.0: la marca de un objetivo no se escribe encima de otro nombre (la banderita se ve igual)
         const [x, y, alinear] = lugaresTexto[i % lugaresTexto.length];
         const x0 = alinear === 'center' ? x - a : alinear === 'left' ? x : x - 2 * a;
         const r = [x0, x0 + 2 * a, y - alto * 0.78, y + alto * 0.22, texto];
@@ -289,6 +290,23 @@ export function crearMapa(T, extra = null) {
         ctx.fillStyle = '#2f4a26';
         ctx.font = `600 ${Math.round(W / 50)}px Caveat, cursive`;
         rotular(a.nombre, px, py, s * 2.1, W / 50);   // 3.6.2: como los nombres (arriba, abajo, a los costados)
+        continue;
+      }
+      // 4.24.0: lo que pide un objetivo de la Historia (ver historia-marca.js): una banderita colorada con el nombre del lugar; la que sigue la brújula, con un redondel
+      if (a.clase === 'objetivo') {
+        const s = W / 80;
+        ctx.save();
+        if (a.activa) { ctx.strokeStyle = 'rgba(184, 67, 47, 0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py - s * 0.9, s * 1.9, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.strokeStyle = '#2a1a0e'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(px, py + s * 0.5); ctx.lineTo(px, py - s * 1.9); ctx.stroke();
+        ctx.fillStyle = '#b8432f';
+        ctx.beginPath(); ctx.moveTo(px, py - s * 1.9); ctx.lineTo(px + s * 1.35, py - s * 1.35); ctx.lineTo(px, py - s * 0.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#8a2d1c';
+        ctx.font = `600 ${Math.round(W / 46)}px Caveat, cursive`;
+        // (si el mismo nombre ya está escrito cerca —la Estación del Valle, el Refugio del Arroyo—, no se repite)
+        const igual = String(a.nombre).toLowerCase();
+        if (!ocupados.some((o) => o[4] && o[4].toLowerCase() === igual && Math.hypot((o[0] + o[1]) / 2 - px, o[3] - py) < W / 8)) rotular(a.nombre, px, py - s * 0.6, s * 2.2, W / 46, true);
         continue;
       }
       // 3.0: el mapa de la semilla, cada lugar con su dibujito (ver desafio-mapa.js)

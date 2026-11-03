@@ -1738,6 +1738,8 @@ function actualizarBrujula(yaw, pos) {
   }
   for (; m < marcasAlien.length; m++) marcasAlien[m].style.display = 'none';
   // el rumbo elegido en el mapa: se ve siempre, aunque esté lejos o atrás
+  // 4.24.0: la brújula que seguía un objetivo de la Historia se suelta sola cuando ese objetivo se cumple (o la historia se pausa)
+  if (chincheActiva?.objetivo && !marcasDeObjetivo().some((m) => m.x === chincheActiva.x && m.z === chincheActiva.z)) chincheActiva = null;
   const r = chincheActiva ? rumboHacia(pos, chincheActiva, yaw) : null;
   marcaRumbo.style.display = r ? '' : 'none';
   if (r) {
@@ -1914,7 +1916,9 @@ function dibujarMapa() {
   if (puestosJuego && !desafio) for (const m of puestosJuego.marcasDelMapa()) marcas.push({ ...m, tipo: 'parada' });   // 4.6 puestos: los puestos de ruta (el del Riel Sur ya está, es parada)
   if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); const c = aldeaMundo.lugarCantina(); marcas.push({ x: c.x, z: c.z, tipo: 'parada', nombre: c.nombre }); }   // 3.8.9: el banco, rotulado (3.9.0: y la cantina) (antes nada decía dónde estaba)
   if (desafio?.aldeaMundo) { const m = desafio.aldeaMundo.marcaMapa(); if (m) marcas.push({ x: m.x, z: m.z, tipo: 'parada', nombre: m.nombre }); }   // 4.9 dias: por dónde entrarían los duendes esta noche, si ya se sabe
-  mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
+  // 4.24.0: los lugares de la Historia que ya conocés (con nombre) y la marca de lo que piden los objetivos (ver historia-marca.js)
+  if (valle && !desafio) for (const m of valle.lugaresConocidos()) marcas.push({ x: m.x, z: m.z, tipo: 'parada', nombre: m.nombre });
+  mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares, objetivos: marcasDeObjetivo(true).map((o) => ({ ...o, activa: !!(chincheActiva?.objetivo && chincheActiva.x === o.x && chincheActiva.z === o.z) })) }));
 }
 
 // ---------------------------------------------------------------- modo foto
@@ -2743,6 +2747,14 @@ function chinches() {
   if (!chinchesSaneadas) { progreso.chinches = sanearChinches(progreso.chinches); chinchesSaneadas = true; }
   return progreso.chinches;
 }
+// 4.24.0: lo que marcan los objetivos de la Historia (a lo sumo una vez por segundo; `fresco` al abrir el mapa o tocarlo)
+let marcasObjCache = { t: -1e9, v: [] };
+function marcasDeObjetivo(fresco = false) {
+  if (desafio || !valle) return [];
+  const ahora = performance.now();
+  if (fresco || ahora - marcasObjCache.t > 1000) { let v = []; try { v = valle.marcasObjetivo(); } catch (e) { fallaSistema('historia-marcas-objetivo', e); } marcasObjCache = { t: ahora, v }; }
+  return marcasObjCache.v;
+}
 function puntoDelMapa(ev) {
   const lienzoMapa = $('lienzo-mapa');
   const caja = lienzoMapa.getBoundingClientRect();
@@ -2753,6 +2765,16 @@ function puntoDelMapa(ev) {
 function tocarMapa(ev) {
   const p = puntoDelMapa(ev);
   const existente = chincheCerca(chinches(), p.x, p.z);
+  // 4.24.0: la marca de lo que pide un objetivo de la Historia: un clic y la brújula te lleva (otro clic la suelta); no es una chinche, no ocupa lugar ni se guarda
+  const delObjetivo = existente ? null : chincheCerca(marcasDeObjetivo(true), p.x, p.z);
+  if (delObjetivo) {
+    const siguiendo = !!(chincheActiva?.objetivo && chincheActiva.x === delObjetivo.x && chincheActiva.z === delObjetivo.z);
+    chincheActiva = siguiendo ? null : { x: delObjetivo.x, z: delObjetivo.z, nombre: delObjetivo.nombre, objetivo: true };
+    nota(chincheActiva ? `Rumbo a ${delObjetivo.nombre}` : 'Rumbo cancelado', chincheActiva ? 'La brújula te lleva hasta que llegues o cumplas el objetivo' : 'La brújula vuelve a lo de siempre');
+    sonido.anotar?.();
+    dibujarMapaSiAbierto();
+    return;
+  }
   if (existente) {
     chincheActiva = chincheActiva === existente ? null : existente;
     nota(chincheActiva ? `Rumbo a ${existente.nombre}` : 'Rumbo cancelado', chincheActiva ? 'La brújula te la marca hasta que llegues' : 'La brújula vuelve a lo de siempre');
