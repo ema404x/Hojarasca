@@ -404,7 +404,7 @@ export const CAPITULOS = [
       '«Viene una ingeniera de la Administración», dijo. «A contar. Cuando vienen a contar, pasajero, es porque ya contaron.»',
     ],
     objetivos: [
-      { id: 'anden', tecla: 'E', texto: 'Recibí a la ingeniera en la Estación del Valle (llegá antes de las 11)', hecho: escena('anden-graciela') },
+      { id: 'anden', tecla: 'E', texto: 'Recibí a la ingeniera en la Estación del Valle (de 9 a 23)', hecho: escena('anden-graciela') },
       { id: 'aldea', tecla: 'E', texto: 'Viajá con Graciela hasta la Aldea de los Duendes (ella viaja con vos)', hecho: acompanantEn('graciela', 'aldea', 45) },
       { id: 'cabina', tecla: 'W', texto: 'Subí a la cabina y manejá un tramo: W regulador, S freno', hecho: (s) => s.conduciendo },
       { id: 'fletes', tecla: 'C', texto: 'Entregá dos fletes manejando, antes del fin del verano', meta: 2, cuenta: (s, b) => desde(s, b, 'entregas') },

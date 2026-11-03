@@ -104,7 +104,7 @@ export const TEXTO_ACTO1 = {
         '«Viene una ingeniera de la Administración», dijo. «A contar. Cuando vienen a contar, pasajero, es porque ya contaron.»',
       ],
       objetivos: [
-        { id: 'anden', texto: 'Recibí a la ingeniera en la Estación del Valle (llegá antes de las 11)', tecla: '·' },
+        { id: 'anden', texto: 'Recibí a la ingeniera en la Estación del Valle (de 9 a 23)', tecla: '·' },
         { id: 'viajar', texto: 'Viajá con Graciela hasta la Aldea de los Duendes', tecla: 'E' },
         { id: 'cabina', texto: 'Subí a la cabina y manejá un tramo: W regulador, S freno', tecla: 'E' },
         { id: 'fletes', texto: 'Entregá dos fletes manejando, antes del fin del verano', tecla: 'E' },

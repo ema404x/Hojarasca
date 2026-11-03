@@ -77,6 +77,27 @@ export const CSS_VALLE = `
 .historia-hud .optativas small { display: block; opacity: .7; margin-bottom: 2px; }
 .historia-hud .optativas p { opacity: .85; }
 .historia-hud .optativas p.hecho { opacity: .55; }
+/* 4.25.0: las tarjetas largas y las pantallas bajas. La entrada de «El arco y la honda» (12 objetivos) no entraba ni en 1366x768, y cinco entradas más no entraban en 1024x600:
+   la lista larga va en dos columnas en una tarjeta más ancha, y con la pantalla baja (hasta 700 px) las tarjetas y el panel de objetivos se apretan (letra de 13 px o más) */
+.valle-carta.ancha { max-width: 760px; }
+.valle-carta ul.larga { columns: 2; column-gap: 24px; }
+.valle-carta ul.larga li { break-inside: avoid; margin-bottom: 3px; }
+@media (max-height: 700px) {
+  .valle-velo { padding: 8px 12px; }
+  .valle-carta { max-width: 760px; max-height: calc(100vh - 16px); padding: 12px 22px 10px; }
+  .valle-carta h2 { font-size: 27px; margin: 0 0 4px; }
+  .valle-carta small.arriba { margin-bottom: 0; }
+  .valle-carta p { font-size: 14.5px; line-height: 1.36; margin: 0 0 6px; }
+  .valle-carta ul { font-size: 13.5px; line-height: 1.3; margin: 2px 0 8px; }
+  .valle-carta .premio { font-size: 14px; }
+  .valle-opciones { gap: 5px; margin-top: 8px; }
+  .valle-opciones button { padding: 5px 10px; }
+  .valle-opciones b { font-size: 15px; }
+  .valle-opciones small { font-size: 12.5px; }
+  .historia-hud { top: 74px; padding: 8px 12px 6px; }
+  .historia-hud b { font-size: 20px; margin-bottom: 2px; }
+  .historia-hud p { margin: 1.5px 0; font-size: 13.5px; }
+}
 .valle-guia ul.optativas { margin: 4px 0; padding-left: 18px; font-size: 13px; opacity: .85; }
 .valle-guia ul.lazos { list-style: none; padding: 0; margin: 4px 0; font-size: 13px; opacity: .85; }
 .valle-guia ul.lazos small { display: block; font-size: 12px; opacity: .8; margin-bottom: 3px; }
@@ -90,6 +111,7 @@ export const CSS_VALLE = `
 `;
 
 // ---------------------------------------------------------------- las tarjetas
+export const LISTA_LARGA = 8;   // 4.25.0
 function crearTarjetas(doc, ctx) {
   let actual = null;
   const velo = doc.createElement('div');
@@ -101,11 +123,12 @@ function crearTarjetas(doc, ctx) {
   const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   function dibujar(def) {
-    const partes = [`<div class="valle-carta ${esc(def.clase || '')}">`];
+    const larga = (def.lista?.length || 0) > LISTA_LARGA;   // 4.25.0: la lista de objetivos de más de ocho renglones va en dos columnas y la tarjeta se ensancha
+    const partes = [`<div class="valle-carta ${esc(def.clase || '')}${larga ? ' ancha' : ''}">`];
     if (def.arriba) partes.push(`<small class="arriba">${esc(def.arriba)}</small>`);
     partes.push(`<h2>${esc(def.titulo)}</h2>`);
     for (const t of def.texto || []) partes.push(`<p>${esc(t)}</p>`);
-    if (def.lista?.length) partes.push(`<ul>${def.lista.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`);
+    if (def.lista?.length) partes.push(`<ul${larga ? ' class="larga"' : ''}>${def.lista.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`);
     if (def.premio) partes.push(`<p class="premio">${esc(def.premio)}</p>`);
     partes.push('<div class="valle-opciones">');
     def.opciones.forEach((o, i) => {

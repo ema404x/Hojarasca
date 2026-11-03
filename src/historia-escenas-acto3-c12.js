@@ -4,16 +4,16 @@
 // (tres olas, arco, honda, aliados) es la mecánica de `historia-noche*.js` (parte A): estas escenas la rodean. Los aliados que se ven dependen
 // de los lazos: Ramón (lazo ≥ +1), Josefina (≥ +1), Fermín con honda (≥ +2), el perro si tenés; los duendecitos avisan sólo en el trato.
 import { efectosDe, dlg, narra, linea, gs, plano, pose, aparece, camina, mira, desaparece, espera, sonido, efecto, opcion, eleccion, siEleg, siDecision } from './historia-escenas-util.js';
-import { FRENTE, apagon, hora, con, no, lazoAl } from './historia-escenas-acto2-util.js';
+import { FRENTE, apagon, hora, con, no, lazoAl, estaAl } from './historia-escenas-acto2-util.js';
 import { pj3, siTrato, siNoche, siDeuda, siAmor, siPerro, primerDe } from './historia-escenas-acto3-util.js';
 
 // los aliados que se ven a la hora de la espera: dependen del lazo (Ramón y Josefina desde +1, Fermín desde +2)
 // (4.18.0 C: a la hora de la espera Fermín está arriba del techo de tu galponcito, con la honda; Ramón, sentado en un cajón)
 const aliadosAparecen = (espera = false) => [
-  con(aparece('ramon', FRENTE(3, -2.6)), lazoAl('ramon', 1)),
-  ...(espera ? [con(pose('ramon', 'sentado', { dur: 0.3 }), lazoAl('ramon', 1))] : []),
+  con(aparece('ramon', FRENTE(3, -2.6)), estaAl('ramon', 1)),
+  ...(espera ? [con(pose('ramon', 'sentado', { dur: 0.3 }), estaAl('ramon', 1))] : []),
   con(aparece('josefina', FRENTE(3.4, 2.8)), lazoAl('ema', 1)),
-  con(aparece('fermin', espera ? { lugar: 'galpon-noche', techo: true } : FRENTE(7, -5)), lazoAl('fermin', 2)),
+  con(aparece('fermin', espera ? { lugar: 'galpon-noche', techo: true } : FRENTE(7, -5)), estaAl('fermin', 2)),
 ];
 
 const cenaCaliente = {
@@ -24,13 +24,13 @@ const cenaCaliente = {
   pasos: [
     plano('general', FRENTE(2.4), { desde: 'jugador', dist: 6, alto: 2.4, dur: 3.2, mezcla: 0.9 }),
     narra('El refugio huele a lo que tiene que oler antes de una noche brava: leña, cebolla, caldo. La estufa tira bien y los vidrios tienen una escarcha que pinta paisajes que no existen.'),
-    con(aparece('ramon', FRENTE(2.8, -1.6)), lazoAl('ramon', 1)),
+    con(aparece('ramon', FRENTE(2.8, -1.6)), estaAl('ramon', 1)),
     con(aparece('josefina', FRENTE(3, 1.8)), lazoAl('ema', 1)),
     plano('medio', 'ramon', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }),
     con(dlg('ramon', [
       linea('Nadie pelea con la panza vacía. Ni ellos.', { gesto: gs('cebar-mate', 2) }),
       "Por eso bajan, m'hijo. No es maldad: es hambre. Y el hambre se arregla con harina, con paciencia o con las dos.",
-    ]), lazoAl('ramon', 1)),
+    ]), estaAl('ramon', 1)),
     con(dlg('josefina', [
       linea('Yo siempre cocino demasiado antes de algo difícil. Es mi forma de no hablar de miedo.', { gesto: gs('hacer-broma', 2.2) }),
       'Pasame el pan. Y no me mires así, que me emociono.',
@@ -87,9 +87,9 @@ const nocheEspera = {
     plano('general', FRENTE(14), { desde: 'jugador', dist: 24, alto: 4, miraY: 1.6, dur: 4, mezcla: 0.9 }),
     narra('Nieva con ganas. Los copos son grandes, lentos, y se pegan a todo. Del arroyo sube el ruido del agua negra que corre entre dos bordes blancos. Las estacas, los frascos, los durmientes y la campana están en su lugar.'),
     plano('paneo', FRENTE(4, -4), { hasta: FRENTE(4, 4), desde: 'jugador', dist: 7, alto: 1.6, dur: 5, mezcla: 0.9 }),
-    con(narra('Ramón está sentado en un cajón, con la manta de capa y un martillo sobre las rodillas. Jura que no le duele nada. Tiene los labios apretados.'), lazoAl('ramon', 1)),
+    con(narra('Ramón está sentado en un cajón, con la manta de capa y un martillo sobre las rodillas. Jura que no le duele nada. Tiene los labios apretados.'), estaAl('ramon', 1)),
     con(narra('Josefina, con la trenza al hombro y el arco ya tenso en la mano, no mueve un músculo. Parece parte del paisaje.'), lazoAl('ema', 1)),
-    con(narra('Fermín trepó al techo del galpón con la honda enrollada en el brazo. Desde ahí es una silueta chiquita contra el cielo blanco, y se agacha cada vez que la nieve le cae en la cara.'), lazoAl('fermin', 2)),
+    con(narra('Fermín trepó al techo del galpón con la honda enrollada en el brazo. Desde ahí es una silueta chiquita contra el cielo blanco, y se agacha cada vez que la nieve le cae en la cara.'), estaAl('fermin', 2)),
     con(narra('Tu perro está pegado a tu pierna, con el pelo erizado y la cola dura. No ladra. Está escuchando.'), siPerro()),
     // 4.22.0: el valle se acuerda de la majada: quién no está esta noche (los aliados dependen de lo que decidiste en el capítulo 9)
     con(narra('Del techo del galpón falta la silueta de Fermín. Allá lejos, en la estepa, hay un farol que no se mueve: él también está despierto, pero no baja.'), siDecision('majada', 'b')),
@@ -132,9 +132,9 @@ const entreOlas1 = {
     plano('general', FRENTE(12), { desde: 'jugador', dist: 20, alto: 3.4, dur: 3.2, mezcla: 0.9 }),
     plano('medio', FRENTE(8), { desde: 'jugador', dist: 6, alto: 1.8, dur: 2.6, mezcla: 0.9 }),
     narra('La primera ola se fue como llegó: de golpe, con un rastro de huellas revueltas y una estaca torcida. El aire huele a nieve removida. Nadie festeja: todos cuentan.'),
-    con(dlg('ramon', [linea('Esta se aflojó. Pásenme el martillo.', { gesto: gs('barba', 2) }), 'Y no me miren como si fuera de cristal. Yo ya reparé cosas más grandes que esto con las manos peores.']), lazoAl('ramon', 1)),
+    con(dlg('ramon', [linea('Esta se aflojó. Pásenme el martillo.', { gesto: gs('barba', 2) }), 'Y no me miren como si fuera de cristal. Yo ya reparé cosas más grandes que esto con las manos peores.']), estaAl('ramon', 1)),
     con(dlg('josefina', [linea('Me quedan veinte flechas. Hagamos que duren.', { gesto: gs('contar', 2) })]), lazoAl('ema', 1)),
-    con(dlg('fermin', ['Desde el techo se ve todo. Les juro que son menos de lo que parece.']), lazoAl('fermin', 2)),
+    con(dlg('fermin', ['Desde el techo se ve todo. Les juro que son menos de lo que parece.']), estaAl('fermin', 2)),
     con(narra('Desde la loma suben aplausos, claros y chicos, de manos con guantes. La aldea festeja la ola ganada como si fuera un gol. Se te llena el pecho de una cosa tibia.'), siDecision('cuaderno', 'a')),
     con(narra('Las lucecitas de las raíces se mueven un poco, nerviosas, y vuelven a su lugar. Una de ellas parpadea dos veces, como avisando algo.'), no(siTrato('pelea'))),
     con(narra('Del otro lado del arroyo, los ojos verdes se mezclan y se vuelven a juntar. Son menos que antes, pero los que quedan están más quietos.'), siTrato('pelea')),
@@ -160,9 +160,9 @@ const entreOlas2 = {
     plano('general', FRENTE(12), { desde: 'jugador', dist: 20, alto: 3.4, dur: 3.2, mezcla: 0.9 }),
     narra('Ya es de madrugada. La nieve cae más despacio, como si se cansara. El arco te pesa. Las manos están rojas de frío y no sentís los dedos de los pies. Hay un silencio de cuando el aire descansa.'),
     plano('medio', 'jugador', { desde: FRENTE(3), dist: 3, alto: 1.5, dur: 2.6, mezcla: 0.9 }),
-    con(dlg('ramon', [linea('La más grande viene ahora. Se nota en el aire, m\'hijo.', { gesto: gs('mirar', 2) }), 'Cuando se calla el viento es que están juntándose. Hay que aguantar. Después se acaba.']), lazoAl('ramon', 1)),
+    con(dlg('ramon', [linea('La más grande viene ahora. Se nota en el aire, m\'hijo.', { gesto: gs('mirar', 2) }), 'Cuando se calla el viento es que están juntándose. Hay que aguantar. Después se acaba.']), estaAl('ramon', 1)),
     con(dlg('josefina', [linea('Si no tiro más, no quiero que me lo reprochen. Es mi mejor flecha.', { gesto: gs('senalar', 2) }), 'Cuiden el galpón. Yo cuido el lomo del grande.']), lazoAl('ema', 1)),
-    con(dlg('fermin', [linea('Tengo tres cantos grandes guardados. Para el último.', { gesto: gs('encogerse', 2) })]), lazoAl('fermin', 2)),
+    con(dlg('fermin', [linea('Tengo tres cantos grandes guardados. Para el último.', { gesto: gs('encogerse', 2) })]), estaAl('fermin', 2)),
     con(narra('Las lucecitas de las raíces se van juntando hacia el lado del arroyo, una por una, como reuniéndose para cantar. Los hongos del lomo del Mandamás brillan mejor cuando él les da la espalda: ellas lo saben y te lo muestran.'), siTrato('trato')),
     con(narra('Del otro lado, entre los ojos verdes, aparece uno más alto, lento, con los hongos del lomo brillando como dos luces de posición. El Mandamás del galpón. Te está mirando a vos y a nadie más.'), siTrato('pelea')),
     eleccion('olas-2-resp', '¿Qué les decís a los tuyos?', [
@@ -193,9 +193,9 @@ const trasGanar = {
     narra('Un silencio nuevo se mete entre la nieve. La nevada afloja, afloja, y para. La campana suena una vez larga, redonda, que se queda en el aire como un abrazo.'),
     plano('primer', 'jugador', { desde: FRENTE(2), dist: 2.4, alto: 1.5, dur: 3, mezcla: 0.9 }),
     narra('Las manos te tiemblan. Dejás el arco en la nieve y te sentás al lado. El cuerpo sigue haciendo cosas sin avisar: respira, tiembla, tiene sed.'),
-    con(dlg('ramon', [linea('Se acabó.', { gesto: gs('suspirar', 2.4) }), "Se acabó, m'hijo. Ayudame a pararme, que ahora sí me duele la cadera."]), lazoAl('ramon', 1)),
+    con(dlg('ramon', [linea('Se acabó.', { gesto: gs('suspirar', 2.4) }), "Se acabó, m'hijo. Ayudame a pararme, que ahora sí me duele la cadera."]), estaAl('ramon', 1)),
     con(dlg('josefina', [linea('No me sale la voz. Ni un poco.', { gesto: gs('hacer-broma', 2) })]), lazoAl('ema', 1)),
-    con(dlg('fermin', ['Bajo del techo. Bajo despacio, que ahora le tengo respeto a la altura.']), lazoAl('fermin', 2)),
+    con(dlg('fermin', ['Bajo del techo. Bajo despacio, que ahora le tengo respeto a la altura.']), estaAl('fermin', 2)),
     con(narra('Tu perro te apoya el hocico en la rodilla, una vez, y se queda quieto. Es su manera de decirte que está todo bien.'), siPerro()),
     con(narra('Desde la loma, la aldea entera grita, silba y agita los faroles. Es un ruido enorme, torpe, hermoso. Lo oís como si fuera lejano.'), siDecision('cuaderno', 'a')),
     eleccion('ganar-resp', '¿Qué hacés?', [
@@ -218,9 +218,9 @@ const trasPerder = {
     plano('primer', 'jugador', { desde: FRENTE(2), dist: 2.2, alto: 1.2, dur: 3.2, mezcla: 0.9 }),
     narra('Te quedaste sin aire, sentado en la nieve. El galpón cruje. Las estacas, doblegadas, parecen dedos. La nevada sigue cayendo sobre todo como si no pasara nada.'),
     plano('general', FRENTE(10), { desde: 'jugador', dist: 18, alto: 3.2, dur: 3.2, mezcla: 0.9 }),
-    con(dlg('ramon', [linea("Esto no se terminó, m'hijo. Esto recién empieza.", { gesto: gs('cruzarse', 2.2) }), 'Aire. Respirá. Respirá.']), lazoAl('ramon', 1)),
+    con(dlg('ramon', [linea("Esto no se terminó, m'hijo. Esto recién empieza.", { gesto: gs('cruzarse', 2.2) }), 'Aire. Respirá. Respirá.']), estaAl('ramon', 1)),
     con(dlg('josefina', [linea('Mirame. Estás vivo. Está todo bien.', { gesto: gs('senalar', 2) })]), lazoAl('ema', 1)),
-    con(dlg('fermin', ['Se puede volver a empezar. Ya aprendí: nunca tires con el viento de frente.']), lazoAl('fermin', 2)),
+    con(dlg('fermin', ['Se puede volver a empezar. Ya aprendí: nunca tires con el viento de frente.']), estaAl('fermin', 2)),
     narra('Nadie se lastimó. Nadie sangra. Hay frío y hay cansancio, y hay un amanecer que no llegó todavía. Te preguntan con la mirada qué querés hacer.'),
     eleccion('perdida-resp', '¿Qué hacés?', [
       opcion('otra', 'Otra vez: volver a las 22, sin castigo.', { efecto: 'noche:reintentar' }),
@@ -253,7 +253,7 @@ const amanecerTratoGanada = {
     narra('Uno de los chiquitos se acerca. Lo reconocés: la gorra torcida, la misma que usaba el que te saludó entre las raíces. Deja en la nieve, adelante tuyo, un canto blanco, liso como un huevo. Es el gemelo del que tenés en la repisa. Se va corriendo.'),
     efecto('objeto:canto-gemelo'),
     con(dlg('josefina', [linea('Eso sí que no estaba en ningún libro.', { gesto: gs('reir', 2.6) }), 'Perdón. Es que es la primera vez que me río en toda esta historia.']), lazoAl('ema', 1)),
-    con(dlg('ramon', ["Mirá vos. Entre tanta cosa, un canto. Eusebio se estará riendo donde esté, y con razón, m'hijo."]), lazoAl('ramon', 1)),
+    con(dlg('ramon', ["Mirá vos. Entre tanta cosa, un canto. Eusebio se estará riendo donde esté, y con razón, m'hijo."]), estaAl('ramon', 1)),
     eleccion('amanecer-tg-resp', '¿Qué hacés con el canto?', [
       opcion('repisa', 'Llevarlo a la repisa, con el otro.', { sabor: true }),
       opcion('raiz', 'Devolverlo a la raíz con un gracias.', { sabor: true }),
@@ -278,7 +278,7 @@ const amanecerTratoPerdida = {
     efecto('duende:chicos-arreglan-galpon', { tipo: 'rastreador', n: 6, arreglan: true, clavanCon: 'espinas-de-calafate' }),
     plano('medio', FRENTE(12), { desde: 'jugador', dist: 6, alto: 1.8, dur: 3.4, mezcla: 0.9 }),
     narra('Pero a la mañana, los chicos están arreglando el galpón. Hay seis, siete, nueve de ellos trepados a las tablas torcidas. Las clavan con espinas de calafate, mal y con muchas ganas.'),
-    con(dlg('ramon', [linea('Mirá cómo clavan.', { gesto: gs('reir', 2.4) }), "Igualito que vos el primer día, m'hijo."]), lazoAl('ramon', 1)),
+    con(dlg('ramon', [linea('Mirá cómo clavan.', { gesto: gs('reir', 2.4) }), "Igualito que vos el primer día, m'hijo."]), estaAl('ramon', 1)),
     con(dlg('josefina', [linea('Qué raro es perder así. Se siente como ganar a lo bruto.', { gesto: gs('hacer-broma', 2.2) })]), lazoAl('ema', 1)),
     con(dlg('pareja', ['Se cayó una pared. Se arma otra. Vos volviste. Esa es la parte que contaba.']), siAmor()),
     eleccion('amanecer-tp-resp', '¿Qué hacés?', [
@@ -310,7 +310,7 @@ const amanecerPeleaGanada = {
     plano('medio', FRENTE(4), { desde: 'jugador', dist: 5, alto: 1.7, dur: 3.2, mezcla: 0.9 }),
     narra('Suben todos al cerro, los grandes y los chicos, en una sola fila. El bosque queda en silencio. Un silencio raro, nuevo, que se te pega a la piel.'),
     con(dlg('josefina', [linea('Ganamos.', { gesto: gs('suspirar', 2.4) }), '¿Por qué no se siente como ganar?']), lazoAl('ema', 1)),
-    con(dlg('ramon', ['Porque ganar no siempre es lo mismo que tener razón, m\'hijo.']), lazoAl('ramon', 1)),
+    con(dlg('ramon', ['Porque ganar no siempre es lo mismo que tener razón, m\'hijo.']), estaAl('ramon', 1)),
     con(dlg('pareja', ['Ganaste, y no te alegra. Eso dice bastante de vos. Vení, hace frío.']), siAmor()),
     eleccion('amanecer-pg-resp', '¿Qué sentís?', [
       opcion('alivio', 'Alivio, y un poco de vergüenza.', { sabor: true }),
@@ -335,7 +335,7 @@ const amanecerPeleaPerdida = {
     narra('El galpón está vacío. Las puertas abiertas dejan entrar un viento helado. En el piso, la harina revuelta, y en la nieve de afuera una fila de huellas que va derecho al cerro y no vuelve.'),
     aparece('ercilia', FRENTE(12, 5)),
     aparece('rosa', FRENTE(13, 3)),
-    con(aparece('fermin', FRENTE(14, -5)), no(lazoAl('fermin', 2))),
+    con(aparece('fermin', FRENTE(14, -5)), no(estaAl('fermin', 2))),
     camina('ercilia', FRENTE(3.4, 1.2), { vel: 2, mira: 'jugador' }),
     camina('rosa', FRENTE(3.8, 2.4), { vel: 2, mira: 'jugador' }),
     plano('medio', 'ercilia', { desde: 'jugador', dist: 3.6, mezcla: 0.8, dur: 30, sinEsperar: true }),
@@ -345,7 +345,7 @@ const amanecerPeleaPerdida = {
       'Y un poquito, entre todos, es poco. Traje harina. Rosa trajo pan. Fermín, un cordero. Esto se levanta, querido.',
     ]),
     dlg('rosa', ['El pan salió mejor que nunca. Capaz porque lo hice enojada.']),
-    con(dlg('ramon', ["La próxima vez, m'hijo, con más cabeza y menos prisa."]), lazoAl('ramon', 1)),
+    con(dlg('ramon', ["La próxima vez, m'hijo, con más cabeza y menos prisa."]), estaAl('ramon', 1)),
     con(dlg('josefina', ['No lo conté, pero lloré un poco en el techo. No se lo digas a nadie.']), lazoAl('ema', 1)),
     con(dlg('pareja', ['Te quiero entero. Lo demás se junta de a poco.']), siAmor()),
     eleccion('amanecer-pp-resp', '¿Qué hacés?', [

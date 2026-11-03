@@ -2,7 +2,7 @@
 // La decisión D6 (trato o pelea) se toma en `galpon-encuentro` (con el efecto `duendes:trato` | `duendes:trato-fuerte` | `duendes:pelea`) y se
 // cumple en `galpon-trato` o `galpon-pelea`. Los duendes NO hablan: se ven, se oyen y se mueven (efectos `duende:*`).
 import { efectosDe, dlg, narra, linea, gs, plano, pose, aparece, camina, mira, desaparece, espera, sonido, efecto, opcion, eleccion, siEleg, siDecision } from './historia-escenas-util.js';
-import { FRENTE, apagon, hora, con, no, lazoAl } from './historia-escenas-acto2-util.js';
+import { FRENTE, apagon, hora, con, no, lazoAl, estaAl } from './historia-escenas-acto2-util.js';
 import { pj3, siTrato, siDevolver, siPerdon, primerDe } from './historia-escenas-acto3-util.js';
 
 const golpe = {
@@ -239,17 +239,17 @@ const mesaGuerra = {
     ...apagon([
       hora(16.5, { dur: 0 }),
       efecto('mundo:mesa-con-mapa', { donde: FRENTE(2.4) }),
-      con(aparece('ramon', FRENTE(2.8, -1.8)), lazoAl('ramon', 0)),
+      con(aparece('ramon', FRENTE(2.8, -1.8)), estaAl('ramon', 0)),
       con(aparece('josefina', FRENTE(3, 1.8)), lazoAl('ema', 0)),
-      con(aparece('fermin', FRENTE(3.6, 3)), lazoAl('fermin', 1)),
+      con(aparece('fermin', FRENTE(3.6, 3)), estaAl('fermin', 1)),
       aparece('ercilia', FRENTE(2.6, 0.2)),
     ], { dur: 1.6 }),
     plano('general', FRENTE(2.4), { desde: 'jugador', dist: 6, alto: 2.8, dur: 3.4, mezcla: 0.9 }),
     narra('La mesa tiene el mapa del valle, una hoja del cuaderno con el arroyo, el galpón y las lomas. Alrededor, mate en mano, los que quedaron. Afuera, el cielo se pone color estaño.'),
-    con(dlg('ramon', [linea('Yo en la cama no me quedo.', { gesto: gs('cruzarse', 2) }), 'Con un martillo en la mano no me duele nada. Me traen, me sientan, me dan el martillo. Y se acabó la discusión.']), lazoAl('ramon', 0)),
+    con(dlg('ramon', [linea('Yo en la cama no me quedo.', { gesto: gs('cruzarse', 2) }), 'Con un martillo en la mano no me duele nada. Me traen, me sientan, me dan el martillo. Y se acabó la discusión.']), estaAl('ramon', 0)),
     con(plano('medio', 'josefina', { desde: 'jugador', dist: 3.2, mezcla: 0.8, dur: 30, sinEsperar: true }), lazoAl('ema', 0)),
     con(dlg('josefina', [linea('Arco. Yo tiro con arco desde los quince.', { gesto: gs('senalar', 2) }), 'Pero vos también vas a tener que tirar. Una sola persona no alcanza.']), lazoAl('ema', 0)),
-    con(dlg('fermin', [linea('Y honda. Con honda le pego a una lata a treinta metros.', { gesto: gs('encogerse', 2.2) }), 'No le cuenten a nadie. Es mi secreto de cuando espantaba zorros.']), lazoAl('fermin', 1)),
+    con(dlg('fermin', [linea('Y honda. Con honda le pego a una lata a treinta metros.', { gesto: gs('encogerse', 2.2) }), 'No le cuenten a nadie. Es mi secreto de cuando espantaba zorros.']), estaAl('fermin', 1)),
     plano('primer', 'ercilia', { desde: 'jugador', mezcla: 0.8, dur: 30, sinEsperar: true }),
     dlg('ercilia', [
       linea('Anselmo tiene estacas, Guido tiene miel, Martín tiene la campana vieja del taller.', { gesto: gs('contar', 2.4) }),
@@ -287,17 +287,17 @@ const llave79 = {
     plano('primer', FRENTE(1.4), { desde: 'jugador', dist: 1, alto: 1.3, dur: 3.2, mezcla: 0.8 }),
     narra('Reconocés a Eusebio, flaco, de pelo negro. Al del medio lo reconocés por la mandíbula: es el abuelo de Josefina. Y al tercero, con la boina torcida, sin dudas: Ramón.'),
     efecto('objeto:foto-de-tres'),
-    ...apagon([aparece('josefina', FRENTE(3, 1.4)), con(aparece('ramon', FRENTE(3, -1.6)), lazoAl('ramon', 0))], { dur: 1.4 }),
+    ...apagon([aparece('josefina', FRENTE(3, 1.4)), con(aparece('ramon', FRENTE(3, -1.6)), estaAl('ramon', 0))], { dur: 1.4 }),
     plano('medio', 'josefina', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }),
     dlg('josefina', [
       linea('Mi abuelo. Con diecinueve años. Tenía la cara de mi mamá.', { gesto: gs('mirar', 2.4) }),
       'Nunca me mostraron una foto de él así. Siempre de viejo, con cara de enojado.',
     ]),
-    con(plano('medio', 'ramon', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }), lazoAl('ramon', 0)),
+    con(plano('medio', 'ramon', { desde: 'jugador', dist: 3, mezcla: 0.8, dur: 30, sinEsperar: true }), estaAl('ramon', 0)),
     con(dlg('ramon', [
       linea('Qué flaco estaba. Qué flaco y qué zonzo.', { gesto: gs('hacer-broma', 2.4) }),
       "Ese día cargamos treinta sacos. Eusebio no quería parar. Dijo que había que dejar uno aparte, y nosotros nos reímos. Qué zonzos, m'hijo.",
-    ]), lazoAl('ramon', 0)),
+    ]), estaAl('ramon', 0)),
     eleccion('llave79-resp', '¿Qué hacés con la foto?', [
       opcion('josefina', 'Dejársela a Josefina para el cuaderno.', { sabor: true }),
       opcion('ramon', 'Dejársela a Ramón, para su pieza.', { sabor: true }),

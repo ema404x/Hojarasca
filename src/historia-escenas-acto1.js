@@ -722,7 +722,7 @@ export const DISPARO_ACTO1 = {
   'mesa-visita-nicanor': { cap: 3, jugadorEn: 'en tu mesa del refugio', cuando: 'primera visita, 16:00 a 19:00, si el visitante es Nicanor', objetivo: 'recibí una visita en tu mesa' },
   'mesa-visita-ramon': { cap: 3, jugadorEn: 'en tu mesa del refugio', cuando: 'primera visita, 16:00 a 19:00, si el visitante es Ramón', objetivo: 'recibí una visita en tu mesa' },
   'fermin-galpon': { cap: 3, jugadorEn: 'frente a Fermín, en el galpón de esquila', cuando: 'la primera charla con Fermín en el capítulo 3', objetivo: 'conocé a los vecinos (hablado fermin)' },
-  'anden-graciela': { cap: 4, jugadorEn: 'andén de la Estación del Valle', cuando: 'llegar antes de las 11 del día 4', objetivo: 'recibí a la ingeniera (escena anden-graciela)' },
+  'anden-graciela': { cap: 4, jugadorEn: 'andén de la Estación del Valle', cuando: 'llegar a la estación entre las 9 y las 23 (4.25.0: el objetivo decía «antes de las 11», que no era cierto)', objetivo: 'recibí a la ingeniera (escena anden-graciela)' },
   'cabina-elsa': { cap: 4, jugadorEn: 'en la cabina de la locomotora, antes de manejar el primer tramo', cuando: 'subir a la cabina con Graciela y Elsa a bordo', objetivo: 'subí a la cabina y manejá un tramo' },
   'derrumbe-puertita': { cap: 4, jugadorEn: 'junto a las piedras sobre la vía', cuando: 'evento «derrumbe» durante el viaje con Graciela', objetivo: 'guardá la puertita en tu repisa (objeto puertita)' },
   'te-graciela': { cap: 4, jugadorEn: 'en la mesa de la casa de té de la aldea', cuando: 'optativa «Una vuelta para la ingeniera», segundo lugar', objetivo: null },

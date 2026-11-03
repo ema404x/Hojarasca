@@ -38,3 +38,5 @@ export const con = (paso, si) => ({ ...paso, si });
 export const no = (si) => ({ ...si, no: true });
 // la lazo de un personaje (para ramas según cómo te llevás)
 export const lazoAl = (quien, min, max) => ({ cond: 'lazo', args: { quien, min, max } });
+// 4.25.0: como `lazoAl`, pero quien se fue por la majada (D5: Ramón con c, Fermín con b o c) no está aunque el lazo alcance
+export const estaAl = (quien, min, max) => ({ cond: 'esta', args: { quien, min, max } });
