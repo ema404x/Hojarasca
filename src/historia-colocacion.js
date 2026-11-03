@@ -26,6 +26,7 @@ export const COLOCACION_PULIDO = {
   'mesa-visita-ramon': { punto: 'refugio-puerta', dist: 5, desde: 'estacion' },
   'fermin-galpon': { npc: 'fermin', dist: 3.6, desde: 'frente' },
   'anden-graciela': { punto: 'estacion', dist: 8, desde: 'refugio', alto: -0.05 },
+  'elsa-anden': { punto: 'estacion', dist: 8, desde: 'refugio', alto: -0.05 },   // (4.24.0: como la llegada de Graciela)
   // ---- acto II
   'piedras-molino': { punto: 'molino-viejo', dx: 2.6, dz: 1.2, dist: 4.5, desde: 'refugio' },
   'tito-coihue': { punto: 'coihue', dist: 6, desde: 'refugio' },   // (Tito y Josefina se paran a los lados del árbol, 6 m adelante)

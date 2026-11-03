@@ -9,6 +9,7 @@
 //    La lista exacta que usa cada escena sale de `efectosDe(escena)`; `EFECTOS_ACTO1` es la de todas juntas.
 //  · lo que tiene que valer aunque el jugador salte la escena va en pasos (no en el gesto o el plano de una línea): los efectos están en pasos.
 //  · cada elección: o lleva `efecto`, o la opción dice `sabor: true` (cambia sólo el tono).
+import { apagon } from './historia-escenas-acto2-util.js';
 import { personajesDe, efectosDe, dlg, narra, linea, gs, hombro, plano, pose, aparece, camina, mira, desaparece, espera, sonido, efecto, opcion, eleccion, siEleg, siDecision, siEvento, siPresente } from './historia-escenas-util.js';
 
 const FRENTE = (dist, lado = 0) => ({ frente: 'jugador', dist, lado });
@@ -334,6 +335,28 @@ const bolsaJosefina = {
   ],
 };
 
+// 4.24.0: el primer viaje en trochita sin espera. Si en el andén faltan más de 45 s para el tren, Elsa lo apura con la campana. Corta (tres líneas): el tren
+// aparece en un fundido a menos de 150 m de la parada (`mundo:tren-al-anden`) y llega solo. No es un objetivo: nada se traba si no sale.
+const elsaAnden = {
+  id: 'elsa-anden', titulo: 'El tren se apura', acto: 1, capitulo: 2,
+  resumen: 'Elsa te vio esperando la trochita en el andén, se rió de lo que tarda y la apuró con la campana: al rato asomó por la curva soltando vapor.',
+  personajes: personajesDe('elsa', 'narra'),
+  pasos: [
+    plano('general', { lugar: 'estacion' }, { dist: 13, alto: 3.6, dur: 2.6 }),
+    aparece('elsa', { lugar: 'estacion', dx: 3, dz: 2 }),
+    plano('medio', 'elsa', { desde: 'jugador', mezcla: 1, dur: 1, sinEsperar: true }),
+    pose('elsa', 'saludar', { dur: 1.4 }),
+    dlg('elsa', [
+      '¿Esperando la trochita, pasajero? Acá el horario es más una opinión que otra cosa.',
+      linea('Pero la locomotora me debe un favor. Mire.', { gesto: gs('hacer-broma', 1.8) }),
+    ]),
+    sonido('campana', { en: { lugar: 'estacion' } }),
+    pose('elsa', 'senalar', { dur: 1.6 }),
+    ...apagon([efecto('mundo:tren-al-anden'), desaparece('elsa'), espera(0.6)]),
+    narra('Al rato, más allá de la curva, se oye el silbato largo. La trochita asoma soltando vapor, como quien llega tarde y lo disimula.'),
+  ],
+};
+
 // ---------------------------------------------------------------- CAPÍTULO 3 · La mesa larga
 const hachaTocon = {
   id: 'hacha-tocon', titulo: 'El hacha en el tocón', acto: 1, capitulo: 3,
@@ -634,6 +657,7 @@ export const ESCENAS_ACTO1 = {
   'bolsa-coihue': bolsaCoihue,
   'bolsa-rosa': bolsaRosa,
   'bolsa-josefina': bolsaJosefina,
+  'elsa-anden': elsaAnden,
   'hacha-tocon': hachaTocon,
   'placa-herminia': placaHerminia,
   'mesa-visita-nicanor': mesaVisitaNicanor,
@@ -659,6 +683,7 @@ export const DISPARO_ACTO1 = {
   'ronda-umbral': { cap: 1, jugadorEn: 'umbral del refugio', cuando: 'primera mañana, al salir', objetivo: 'mirá lo que hay en el umbral (objeto canto-blanco)' },
   'ramon-tranquera': { cap: 2, jugadorEn: 'frente al refugio, por la tranquera', cuando: '8:00 del día 2 (Ramón con la majada)', objetivo: 'hablá con Ramón (hablar ramon/alero)' },
   'almacen-ercilia': { cap: 2, jugadorEn: 'en la puerta del almacén de la aldea', cuando: 'primera vez que entrás al almacén en el capítulo 2', objetivo: null },
+  'elsa-anden': { cap: 2, jugadorEn: 'andén de la Estación del Valle', cuando: 'esperando la trochita del primer viaje (objetivo «viaje» sin cumplir) con más de 45 s por delante, entre las 6 y las 21', objetivo: null },
   'ese-no-josefina': { cap: 2, jugadorEn: 'bosque cerca del refugio, con el hacha en la mano frente a un árbol vivo', cuando: 'primer hachazo a un árbol vivo', objetivo: null },
   'bolsa-alero': { cap: 2, jugadorEn: 'alero del refugio', cuando: 'al cambiar la cuarta tabla del alero', objetivo: 'decisión «bolsa»' },
   'bolsa-coihue': { cap: 2, jugadorEn: 'al pie del coihue grande, junto al molino viejo', cuando: 'E en la raíz con la bolsa en la mochila', objetivo: 'cumplir D1 = a' },

@@ -25,6 +25,8 @@ const libre = (js) => !js.enTren && !js.enKayak;   // ni en el tren ni en el kay
 const sinObjetivo = (c) => !c.objetivo;
 const aMano = (c) => libre(c.js) && !c.objetivo;   // a pie (o a caballo) y sin mirar nada para juntar
 const aPie = (c) => libre(c.js) && !c.js.montado && !c.objetivo;
+// 4.24.0: lo que mirás es un lugar para sentarte (un banco, un escalón) y no la cama: un objeto de historia a tu alcance le gana (la leña y las botas del umbral quedaban al lado del banco de la puerta y la E te sentaba)
+const soloSentarse = (c) => c.objetivo?.tipo === 'sentarse' && !c.objetivo.s?.cama;
 const sentarseOnada = (c) => !c.objetivo || c.objetivo.tipo === 'sentarse';
 // Las acciones de los módulos (`modulo.accion(js)` → { texto, hacer }): la E las pide frescas; el aviso, de lo buscado
 const delModulo = (nombre, cond) => ({
@@ -75,7 +77,7 @@ export const INTERACCIONES = [
   { id: 'vecino', cuando: (c) => c.vecino, aviso: (c, v) => c.textoVecino(v), hacer: (c, v) => { if (c.desafio && v.enBase) c.ordenarCompanero(v); else c.hablar(v); } },
   // 4.15.0: la Historia nueva: la llave de Eusebio en la puerta del refugio y los objetos de historia del mundo (el canto blanco, la puertita, el alero, la raíz del coihue…)
   { id: 'historia-puerta', cuando: (c) => !c.desafio && aMano(c) && !c.js.sentado && c.historiaPuerta(), aviso: (c, p) => p.aviso, hacer: (c, p) => p.hacer() },
-  { id: 'historia-objeto', cuando: (c) => !c.desafio && aMano(c) && !c.js.sentado && c.historiaObjeto(), aviso: (c, o) => o.aviso, hacer: (c, o) => { o.hacer(); c.limpiar?.('historia'); } },
+  { id: 'historia-objeto', cuando: (c) => !c.desafio && libre(c.js) && (!c.objetivo || soloSentarse(c)) && !c.js.sentado && c.historiaObjeto(), aviso: (c, o) => o.aviso, hacer: (c, o) => { o.hacer(); c.limpiar?.('historia'); } },
   // 4.3: el empleo fijo: el cartel de turnos y la tarea del puesto, antes que el mostrador y lo de adentro
   {
     id: 'empleo',

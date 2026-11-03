@@ -120,6 +120,7 @@ export function estadoHistoria(p, extra = {}) {
     sentado: !!extra.sentado,
     apuntaArbolVivo: !!extra.apuntaArbolVivo,   // mirás con el hacha un árbol vivo (la escena «Ese no»)
     visitaActiva: typeof extra.visitaActiva === 'string' ? extra.visitaActiva : null,   // quién está de visita en tu mesa
+    esperaTren: Number.isFinite(Number(extra.esperaTren)) ? Math.max(0, Math.min(9999, Math.round(Number(extra.esperaTren)))) : 0,   // 4.24.0: segundos que faltan para que la trochita esté en el andén de la Estación del Valle (0: ya está o no se sabe)
     escenas: new Set(Object.keys(obj(hh.escenas?.vistas))),
     decisiones: Object.fromEntries(DECISIONES.map((d) => [d, hh.decisiones && ['a', 'b', 'c'].includes(hh.decisiones[d]) ? hh.decisiones[d] : null])),
     temas: marcas('temas'),
@@ -922,6 +923,11 @@ export function armaPorPedir(h, s, pendientes = [], cap = null) {
 // Los capítulos con duendes de lejos (la escalera de indicios del guion: «se dejan ver», capítulos 6 a 8)
 export const CAPITULOS_CON_PRESENCIA = ['perdido', 'cosecha', 'cuaderno'];
 export const hayPresencia = (h) => !!h?.activa && h.fase !== 'fin' && CAPITULOS_CON_PRESENCIA.includes(capituloActual(h).id);
+// 4.24.0: los indicios de la primera hora (capítulos 2 a 4): una silueta al anochecer, de lejos y sin pelea (la presencia «suave» de
+// historia-presencia.js: sin risas ni luces ni regalos ni galpón), y el indicio del cuaderno que anota cada capítulo cuando la ves de verdad.
+export const CAPITULOS_CON_INDICIOS = ['bolsa', 'mesa', 'ramal'];
+export const INDICIO_SILUETA = { bolsa: 'silueta-bolsa', mesa: 'silueta-mesa', ramal: 'silueta-ramal' };
+export const hayIndicios = (h) => !!h?.activa && h.fase !== 'fin' && CAPITULOS_CON_INDICIOS.includes(capituloActual(h).id);
 
 // ---------------------------------------------------------------- lazos, decisiones, lo raro (4.15.0)
 export function lazoDe(h, quien) {

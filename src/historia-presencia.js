@@ -9,7 +9,7 @@
 // historia-duendes.js (`dh`) y no compila nada: todo se precalienta en la carga (ver main.js).
 import * as THREE from 'three';
 import { registrarHalos, soltarHalos, mallaAtadito } from './desafio-duendes.js';
-import { duendesDe, hayPresencia, REGALOS_TOPE } from './historia.js';
+import { duendesDe, hayPresencia, hayIndicios, capituloActual, INDICIO_SILUETA, REGALOS_TOPE } from './historia.js';
 
 // ---------------------------------------------------------------- reglas puras
 export const VENTANAS = {
@@ -30,6 +30,9 @@ export const TIEMPOS = {
   distSilueta: [24, 38], huyeSinTrato: 16, huyeConTrato: 8, vistaDist: 45, vistaSegundos: 2.5,
   galponAparece: 75, galponTarjeta: 14, galponSuelta: 110,
 };
+// 4.24.0: la presencia «suave» de los capítulos 2 a 4 (la primera hora): sólo la silueta del anochecer, más espaciada, y el indicio del cuaderno la primera
+//   vez que la ves de verdad en cada capítulo (sin risas, luces, regalos ni galpón, y sin contar entre los `vistos` de los duendes)
+export const TIEMPOS_SUAVES = { entreSiluetas: [160, 280] };   // (la primera sale con la espera de siempre: 25 a 50 s de juego, que ya pasaron al caer la tarde)
 const entre = (r, [a, b]) => a + r() * (b - a);
 // Un punto en el abanico delante de la cámara (`rumbo` = adónde mira, en la convención atan2(dx, dz)), a una distancia dada
 export function puntoEnAbanico(yo, rumbo, r, [dmin, dmax], abanico = 0.9) {
@@ -77,12 +80,12 @@ export function crearPresencia(ctx) {
     }
     return false;
   }
-  function actualizarSilueta(dt) {
+  function actualizarSilueta(dt, suave = false) {
     const d = duendesDe(h());
     if (!sil) {
       espera -= dt;
       if (espera > 0 || !enVentana(ctx.hora(), VENTANAS.silueta) || !dh.listo()) return;
-      espera = aparecerSilueta() ? entre(azar, TIEMPOS.entreSiluetas) : 8;
+      espera = aparecerSilueta() ? entre(azar, suave ? TIEMPOS_SUAVES.entreSiluetas : TIEMPOS.entreSiluetas) : 8;
       return;
     }
     if (sil.estado === 'fuera') { sil = null; return; }
@@ -96,7 +99,11 @@ export function crearPresencia(ctx) {
     // visto de verdad: a la vista y a tiro de ojo unos segundos
     if (!silVisto && dd < TIEMPOS.vistaDist && enLaVista(yo(), ctx.rumbo?.() ?? 0, p)) {
       silVista += dt;
-      if (silVista >= TIEMPOS.vistaSegundos) { silVisto = true; d.vistos = Math.min(999, d.vistos + 1); ctx.guardar?.(); }
+      if (silVista >= TIEMPOS.vistaSegundos) {
+        silVisto = true;
+        if (suave) { const id = INDICIO_SILUETA[capituloActual(h()).id]; if (id) ctx.indicio?.(id); }   // (4.24.0: el cuaderno anota la silueta)
+        else { d.vistos = Math.min(999, d.vistos + 1); ctx.guardar?.(); }
+      }
     }
   }
 
@@ -239,7 +246,16 @@ export function crearPresencia(ctx) {
     dt = Math.min(0.2, Math.max(0, dt));
     const hist = h();
     const hay = !!hist.activa && hayPresencia(hist);
+    const suave = !hay && hayIndicios(hist);   // 4.24.0: la primera hora
     const libre = !!ctx.libre();
+    if (suave) {
+      if (!libre) return;
+      actualizarSilueta(dt, true);
+      actualizarLuces(dt, false);
+      actualizarGalpon(dt, false);
+      quitarRegalo();
+      return;
+    }
     if (!hay) {
       if (sil) { sil.quitar(); sil = null; }
       actualizarLuces(dt, false);
