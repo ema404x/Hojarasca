@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (03-11-2026, notebook): VERSIÓN 4.21.0 en `main`, etiqueta `v4.21.0`** — Plata pareja + la Historia arranca bien + luz y atmósfera (CAMBIOS_4_21_0_A/B/C.md). **Sigue:** 4.22.0 (noches con forma del Desafío + el valle se acuerda + edificios y materiales), 4.23.0, 4.24.0 y 4.25.0 según CAMBIOS_4_20_0.md; en la 4.23.0 volver a medir la plaza (límite de 0,5 ms justo). Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).
+
 > **ÚLTIMO (02-11-2026, notebook): VERSIÓN 4.20.0 en `main`, etiqueta `v4.20.0`** — Auditorías (AUDITORIA_4_20_0_A/B/C.md), sin cambios del juego. **Sigue:** 4.21.0 (plata pareja + la Historia arranca bien + luz y atmósfera), 4.22.0, 4.23.0, 4.24.0 y 4.25.0 según el orden de CAMBIOS_4_20_0.md. Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).
 
 > **ÚLTIMO (02-11-2026, notebook): VERSIÓN 4.19.0 en `main`, etiqueta `v4.19.0`** — Mejoras del juego (CAMBIOS_4_19_0_A/B/C.md). **Sigue:** 4.20.0 con tres auditorías (visual con capturas y presupuesto de ms, equilibrio y economía, ritmo y primera hora de la Historia), después las versiones de mecánicas y el salto gráfico semirrealista sin efectos nuevos. Steam y el inglés esperan. Los humos de la Historia tardan (-Espera 2700).
