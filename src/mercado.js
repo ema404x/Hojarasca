@@ -7,7 +7,7 @@
 //   · una CAJA de pesos: paga lo que le comprás de su caja (si no le alcanza, no te compra) y se repone un poco cada día.
 // Todo sale de la fecha y del nombre de la parada (dos partidas ven lo mismo) y de lo que vos hiciste. Módulo puro (se prueba en Node).
 // Sólo en el Relax. El estado vive en `progreso.comercio.mercado` (ver `sanearComercio`).
-import { BIENES, bienesDe, perfilDe, esBien, azarDe, hashTexto } from './comercio.js';
+import { BIENES, DE_GRANJA_CON_VALOR, bienesDe, perfilDe, esBien, azarDe, hashTexto } from './comercio.js';
 
 export const MERCADO = {
   stockMax: 14,        // lo más que cabe de una cosa en el puesto (lotes)
@@ -32,8 +32,15 @@ export function cajaMaxima(nombre) { const fija = Number(perfilDe(nombre).caja) 
 function estadoInicial(nombre, dia) {
   const r = azarDe(hashTexto(`${nombre}|mercado`));
   const stock = {};
-  for (const b of bienesDe(nombre)) stock[b] = Math.max(0, Math.min(MERCADO.stockMax, nivelBase(nombre, b) + Math.round((r() - 0.5) * 3)));
-  return { dia, caja: Math.round((cajaMaxima(nombre) * (0.45 + r() * 0.35)) / 100) * 100, stock };
+  // 4.23.0: lo de siempre sale del mismo azar y en el mismo orden (y la caja también); lo de la granja y la cocina, de uno aparte: así los puestos de las
+  // partidas nuevas arrancan con las mismas existencias y la misma caja que antes de que esas cosas tuvieran valor
+  const resto = bienesDe(nombre);
+  const nuevos = resto.filter((b) => DE_GRANJA_CON_VALOR.includes(b));
+  for (const b of resto) if (!nuevos.includes(b)) stock[b] = Math.max(0, Math.min(MERCADO.stockMax, nivelBase(nombre, b) + Math.round((r() - 0.5) * 3)));
+  const caja = Math.round((cajaMaxima(nombre) * (0.45 + r() * 0.35)) / 100) * 100;
+  const r2 = azarDe(hashTexto(`${nombre}|mercado|granja`));
+  for (const b of nuevos) stock[b] = Math.max(0, Math.min(MERCADO.stockMax, nivelBase(nombre, b) + Math.round((r2() - 0.5) * 3)));
+  return { dia, caja, stock };
 }
 // Un día en el puesto: produce, gasta, vuelve de a poco a lo de siempre, y la caja se repone
 function unDia(t, nombre, dia) {

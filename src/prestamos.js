@@ -6,7 +6,7 @@
 //   · ABASTECIMIENTO: el banco necesita cosas para sus clientes y las paga por encima del mercado (de +25 % a +40 %, según su
 //     confianza). Hay un pedido por ventana de dos días y sólo uno se puede cumplir por ventana, para que no sea una máquina de plata.
 // Módulo puro, sin imports de la aldea. Sólo en el Relax.
-import { BIENES, perfilDe, hashTexto, azarDe } from './comercio.js';
+import { BIENES, DE_GRANJA_CON_VALOR, perfilDe, hashTexto, azarDe } from './comercio.js';
 import { negociosDe } from './negocios.js';
 import { cobrar, pagar, pesosDe, formatoPesos, hayEconomia } from './economia.js';
 import { premioDe, tengoDe, efectoDe, nombreCosa } from './pedidos.js';
@@ -101,6 +101,8 @@ const ventana = (dia) => Math.floor((Math.max(1, Math.floor(Number(dia) || 1)) -
 const SIN_ABASTO = new Set(['poncho', 'cristal']);   // lo caro o raro no lo pide el banco
 // 4.6 recursos: ni los materiales de zona (la elección de siempre no cambia en las partidas que ya están, y no pide piedra de cantera sin pico de cantero)
 for (const k of ['junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera']) SIN_ABASTO.add(k);
+// 4.23.0: ni lo de la granja y la cocina (depende de tener vaca, chancho o frutales; el banco sigue pidiendo lo de siempre)
+for (const k of DE_GRANJA_CON_VALOR) SIN_ABASTO.add(k);
 // Lo que el banco necesita en esta ventana de días (o null si ya lo cumpliste)
 export function abastoDe(p, dia) {
   if (!hayEconomia(p)) return null;

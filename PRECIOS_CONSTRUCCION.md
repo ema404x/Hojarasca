@@ -12,8 +12,8 @@ Con todo comprado, la plata se acumula sin uso. Un jugador goloso junta unos **$
 |---|---|---|---|
 | Pieza común (la que ya había: bancos, cercos, mesas, camas simples, senderos) | **sin pesos** | — | todo lo viejo |
 | Mueble bueno | **$800 a $3.000** | menos de 1 | alfombra tejida grande $2.400 |
-| Lujo | **$4.000 a $20.000** | 1 a 6 | vitrina de roble $4.500, araña de velas $6.500, reloj de pie $9.000, fuente de piedra $14.000 |
-| Edificio de oficio (taller, molino, fragua, algo que trabaja) | **$15.000 a $60.000** | 5 a 19 | herrería propia $32.000, cervecería $42.000, telar grande $36.000, panadería de horno grande $27.000, tienda de campo $30.000, quesería $24.000, carpintería $22.000, cantería $18.000 (ver CAMBIOS_4_2_OFICIOS.md) |
+| Lujo | **$4.000 a $20.000** | 1 a 6 | vitrina de roble $4.500, araña de velas $4.550, reloj de pie $7.500, fuente de piedra $14.000 |
+| Edificio de oficio (taller, molino, fragua, algo que trabaja) | **$13.000 a $60.000** | 4 a 19 | herrería propia $18.000, cervecería $29.500, telar grande $21.500, panadería de horno grande $27.000, tienda de campo $23.500, quesería $17.500, carpintería $22.000, cantería $13.000 (ver CAMBIOS_4_2_OFICIOS.md; 4.23.0: seis bajaron a la regla, ver CAMBIOS_4_23_0_A.md) |
 | Ampliación de casa (cuarto, galería, planta alta) | **$20.000 a $80.000** | 6 a 25 | dormitorio anexo $20.000, cocina ampliada $32.000, planta alta con escalera $64.000, torreón de piedra $78.000 (las once: `CAMBIOS_4_2_AMPLIAR.md`) |
 | Las tres casas (terreno y mano de obra, ya existentes) | $36.000 / $66.000 / $110.000 | 11 / 21 / 34 | cabaña, casa con galería, casona |
 
@@ -32,8 +32,8 @@ Reglas para elegir el número dentro del rango:
 |---|---|---|---|
 | Alfombra tejida grande | 8 vellones ($2.400) | **$2.400** | $4.800 |
 | Vitrina de roble | 18 tablas, 3 troncos, 2 piedras ($2.450) | **$4.500** | $6.950 |
-| Araña de velas | 4 tablas, 6 piedras, 1 tronco ($1.150) | **$6.500** | $7.650 |
-| Reloj de pie | 14 tablas, 2 troncos, 2 piedras ($1.900) | **$9.000** | $10.900 |
+| Araña de velas | 4 tablas, 6 piedras, 1 tronco ($1.150) | **$4.550** | $5.700 |
+| Reloj de pie | 14 tablas, 2 troncos, 2 piedras ($1.900) | **$7.500** | $9.400 |
 | Fuente de piedra | 36 piedras, 2 tablas ($3.800) | **$14.000** | $17.800 |
 
 ## Cómo se cobra (lo que hace el juego solo)

@@ -12,14 +12,15 @@ export const PEDIDOS = { dias: 3, porDia: 2, base: 1.1, porNivel: 0.04, rapido: 
 
 // Lo que necesita cada local, de más corriente a más rara (las dos últimas sólo con confianza: nivel 2)
 const NECESITA = {
-  carpintero: ['tronco', 'piedra', 'lana'], panadera: ['harina', 'huevo', 'miel'], herrero: ['piedra', 'tronco', 'cristal'],
-  pescador: ['tronco', 'lana', 'pan-casero'], maestra: ['papa', 'pan-casero', 'frasco-frutilla'], enfermera: ['miel', 'lana', 'frasco-frutilla'],
-  telegrafista: ['tronco', 'pan-casero', 'empanadas'], tejedora: ['lana', 'frutilla', 'poncho'], apicultor: ['tabla', 'frasco-frutilla', 'harina'],
-  guardaparque: ['trucha-ahumada', 'tronco', 'hongos-secos'], musico: ['tabla', 'empanadas', 'miel'], veterinaria: ['huevo', 'lana', 'haba'],
-  herbolaria: ['miel', 'calafate-seco', 'hongos-secos'], modista: ['lana', 'poncho', 'cristal'], botera: ['tabla', 'tronco', 'lana'],
-  pintora: ['cristal', 'frutilla', 'calafate-seco'], andinista: ['trucha-ahumada', 'pan-casero', 'empanadas'], fotografa: ['cristal', 'miel', 'papa'],
-  ceramista: ['piedra', 'haba', 'papa'], astronoma: ['cristal', 'empanadas', 'miel'],
+  carpintero: ['tronco', 'piedra', 'lana', 'chorizo'], panadera: ['harina', 'huevo', 'miel', 'leche'], herrero: ['piedra', 'tronco', 'cristal', 'carne-vaca'],
+  pescador: ['tronco', 'lana', 'pan-casero', 'mermelada-manzana'], maestra: ['papa', 'pan-casero', 'frasco-frutilla', 'manzana'], enfermera: ['miel', 'lana', 'frasco-frutilla', 'leche'],
+  telegrafista: ['tronco', 'pan-casero', 'empanadas', 'chorizo'], tejedora: ['lana', 'frutilla', 'poncho', 'carne-cordero'], apicultor: ['tabla', 'frasco-frutilla', 'harina', 'mermelada-frambuesa'],
+  guardaparque: ['trucha-ahumada', 'tronco', 'hongos-secos', 'carne-cordero'], musico: ['tabla', 'empanadas', 'miel', 'carne-cerdo'], veterinaria: ['huevo', 'lana', 'haba', 'leche'],
+  herbolaria: ['miel', 'calafate-seco', 'hongos-secos', 'grosella'], modista: ['lana', 'poncho', 'cristal', 'ciruela'], botera: ['tabla', 'tronco', 'lana', 'carne-vaca'],
+  pintora: ['cristal', 'frutilla', 'calafate-seco', 'cereza'], andinista: ['trucha-ahumada', 'pan-casero', 'empanadas', 'chorizo'], fotografa: ['cristal', 'miel', 'papa', 'cereza'],
+  ceramista: ['piedra', 'haba', 'papa', 'ciruela'], astronoma: ['cristal', 'empanadas', 'miel', 'mermelada-frambuesa'],
 };
+// 4.23.0: la cuarta cosa de cada lista es lo de la granja y la cocina (todas se consiguen en algún puesto de la trochita): la piden los que ya te tienen confianza (nivel 3); antes de eso, las tres de siempre
 const DE_LA_ESTACION = new Set(perfilDe('Aldea de los Duendes').produce);
 export const hayPedidos = (k) => Object.hasOwn(NECESITA, k);
 export const ventanaDe = (dia) => Math.floor((Math.max(1, Math.floor(Number(dia) || 1)) - 1) / PEDIDOS.dias);
@@ -49,8 +50,10 @@ export function pedidoDe(p, k, dia) {
   const nivel = nivelRep(p, k);
   const r = azarDe(hashTexto(`pedido|${id}`));
   // (nada de lo que la estación de la aldea produce barato: se compraría ahí mismo y se cobraría de más)
-  const sinEstacion = NECESITA[k].filter((b) => !DE_LA_ESTACION.has(b));
-  const pool = (sinEstacion.length ? sinEstacion : NECESITA[k]).slice(0, nivel >= 2 ? 3 : 2);
+  // (4.23.0: la cuarta cosa, la de la granja, sólo cuenta desde el nivel 3: antes de eso la lista es la de siempre, las tres primeras)
+  const lista = nivel >= 3 ? NECESITA[k] : NECESITA[k].slice(0, 3);
+  const sinEstacion = lista.filter((b) => !DE_LA_ESTACION.has(b));
+  const pool = (sinEstacion.length ? sinEstacion : lista).slice(0, nivel >= 3 ? 4 : nivel >= 2 ? 3 : 2);
   const bien = pool[Math.floor(r() * pool.length) % pool.length];
   const lotes = 1 + Math.floor(r() * 2) + (nivel >= 1 ? 1 : 0);
   const cuantos = lotes * BIENES[bien].lote;

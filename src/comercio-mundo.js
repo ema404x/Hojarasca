@@ -62,8 +62,8 @@ export function crearPuestoDeCargas(ctx) {
   // lo que paga un flete, en pesos (4.21.0: el premio ya viene en pesos; el de un flete guardado con la clave vieja lo pasa `textoFlete`)
   const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ pesos/, formatoPesos(textoFlete(f).pesos));
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();
-  // 3.8.3: lo que va de a uno, en singular (decía «Compraste 1 ponchos», «1 frascos de miel»)
-  const UNO = { cristal: 'un cristal', miel: 'un frasco de miel', 'trucha-ahumada': 'una trucha ahumada', 'frasco-frutilla': 'un frasco de dulce', 'calafate-seco': 'un puñado de calafates secos', 'hongos-secos': 'un llao llao seco', poncho: 'un poncho' };
+  // 3.8.3: lo que va de a uno, en singular (4.23.0: y los frascos de mermelada) (decía «Compraste 1 ponchos», «1 frascos de miel»)
+  const UNO = { cristal: 'un cristal', miel: 'un frasco de miel', 'trucha-ahumada': 'una trucha ahumada', 'frasco-frutilla': 'un frasco de dulce', 'calafate-seco': 'un puñado de calafates secos', 'hongos-secos': 'un llao llao seco', poncho: 'un poncho', 'mermelada-manzana': 'un frasco de mermelada de manzana', 'mermelada-pera': 'un frasco de mermelada de pera', 'mermelada-ciruela': 'un frasco de mermelada de ciruela', 'mermelada-cereza': 'un frasco de mermelada de cereza', 'mermelada-frambuesa': 'un frasco de mermelada de frambuesa', 'mermelada-grosella': 'un frasco de mermelada de grosella' };
   const cuantos = (bien, n) => (n === 1 && Object.hasOwn(UNO, bien) ? UNO[bien] : `${n} ${minuscula(bien)}`);
 
   // el cartel: lo que hoy se paga bien en el puesto (lo que le falta)

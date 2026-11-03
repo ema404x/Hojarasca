@@ -8540,7 +8540,7 @@ function usarOficioPropio(o) {
     if (partes.length) { sonido.juntar(); nota(caja > 0 ? `+${formatoPesos(caja)} de la tienda` : 'Tu tienda de campo', partes.join('. '), true); }
     else {
       const hay = lotesEnTienda(t);
-      nota('Tu tienda de campo', hay ? `${hay} ${hay === 1 ? 'lote' : 'lotes'} a la venta: vende hasta 4 por día, lo más caro primero` : 'Sin mercadería. Dejá acá ponchos, pan, empanadas, miel, dulce, truchas ahumadas, hongos o calafate: vende hasta 4 lotes por día');
+      nota('Tu tienda de campo', hay ? `${hay} ${hay === 1 ? 'lote' : 'lotes'} a la venta: vende hasta 6 por día, lo más caro primero` : 'Sin mercadería. Dejá acá ponchos, pan, empanadas, miel, dulce, truchas ahumadas, hongos, calafate, carne, chorizo, leche, fruta o mermelada (te quedás con lo de una receta): vende hasta 6 lotes por día');
     }
     return true;
   }

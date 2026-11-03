@@ -48,7 +48,35 @@ export const BIENES = {
   arcilla: { nombre: 'Terrones de arcilla', donde: 'material', lote: 2, valor: 3 },
   cuero: { nombre: 'Cueros', donde: 'material', lote: 2, valor: 9 },
   'piedra-cantera': { nombre: 'Piedras de cantera', donde: 'material', lote: 2, valor: 4 },
+  // 4.23.0 (lo que se produce vale): lo que da la granja y la cocina a leña (hasta ahora no valía nada: el tambo, el chiquero, la paridera y los 24 frutales
+  // sólo rendían en la quesería). Salen de las mismas entradas del cuaderno que ya usa la cocina (`donde: 'entrada'`). Por unidad: la leche $75 el litro, la
+  // carne de vaca y de cerdo $350 el kilo, el cordero $300, el chorizo $200 (el informe de la 4.20.0 proponía cordero 7 y chorizo 8: con los cambios de los vecinos
+  // —cuatro chorizos por dos troncos, tres kilos de cordero por tres tablas— salían a 3,6 y 3,5 veces; así quedan en 2,7 y 3,0), la fruta $80 (como la frutilla)
+  // y la mermelada $400 el frasco (4 frutas dan 3 frascos: 3,7 veces, debajo del 4,0 del apicultor, que es lo más que paga un cambio de vecino; el dulce de
+  // frutilla ya valía $700). Con valor se venden en los puestos de la
+  // trochita, en la consigna de la feria y en la tienda de campo, y los vecinos pueden pedirlos (pedidos.js).
+  leche: { nombre: 'Litros de leche', donde: 'entrada', lote: 4, valor: 3 },
+  'carne-vaca': { nombre: 'Kilos de carne de vaca', donde: 'entrada', lote: 2, valor: 7 },
+  'carne-cordero': { nombre: 'Kilos de cordero', donde: 'entrada', lote: 2, valor: 6 },
+  'carne-cerdo': { nombre: 'Kilos de carne de cerdo', donde: 'entrada', lote: 2, valor: 7 },
+  chorizo: { nombre: 'Chorizos', donde: 'entrada', lote: 3, valor: 6 },
+  manzana: { nombre: 'Manzanas', donde: 'entrada', lote: 5, valor: 4 },
+  pera: { nombre: 'Peras', donde: 'entrada', lote: 5, valor: 4 },
+  ciruela: { nombre: 'Ciruelas', donde: 'entrada', lote: 5, valor: 4 },
+  cereza: { nombre: 'Cerezas', donde: 'entrada', lote: 5, valor: 4 },
+  frambuesa: { nombre: 'Frambuesas', donde: 'entrada', lote: 5, valor: 4 },
+  grosella: { nombre: 'Grosellas', donde: 'entrada', lote: 5, valor: 4 },
+  'mermelada-manzana': { nombre: 'Frascos de mermelada de manzana', donde: 'entrada', lote: 1, valor: 4 },
+  'mermelada-pera': { nombre: 'Frascos de mermelada de pera', donde: 'entrada', lote: 1, valor: 4 },
+  'mermelada-ciruela': { nombre: 'Frascos de mermelada de ciruela', donde: 'entrada', lote: 1, valor: 4 },
+  'mermelada-cereza': { nombre: 'Frascos de mermelada de cereza', donde: 'entrada', lote: 1, valor: 4 },
+  'mermelada-frambuesa': { nombre: 'Frascos de mermelada de frambuesa', donde: 'entrada', lote: 1, valor: 4 },
+  'mermelada-grosella': { nombre: 'Frascos de mermelada de grosella', donde: 'entrada', lote: 1, valor: 4 },
 };
+// 4.23.0: lo de la granja y la cocina que ahora vale: no entra en lo que el banco pide por abastecimiento ni en el azar de una parada sin perfil
+// (esas elecciones siguen siendo las de siempre en las partidas que ya están: ver prestamos.js y `perfilDe`)
+export const DE_GRANJA_CON_VALOR = ['leche', 'carne-vaca', 'carne-cordero', 'carne-cerdo', 'chorizo', 'manzana', 'pera', 'ciruela', 'cereza', 'frambuesa', 'grosella',
+  'mermelada-manzana', 'mermelada-pera', 'mermelada-ciruela', 'mermelada-cereza', 'mermelada-frambuesa', 'mermelada-grosella'];
 export const ID_BIENES = Object.keys(BIENES);
 export const esBien = (id) => typeof id === 'string' && Object.hasOwn(BIENES, id);
 
@@ -68,16 +96,16 @@ export const COMERCIO = {
 // Lo que hace y lo que pide cada pueblo, por el nombre de su parada (ver `trochita.js`:
 // los nombres salen de lo que queda cerca de cada parada). `quien` atiende el puesto.
 const PERFILES = {
-  'Estación del Valle': { quien: 'Don Aurelio, el jefe de estación', produce: ['harina', 'tabla'], pide: ['huevo', 'poncho', 'pan-casero'], otros: ['piedra', 'miel', 'trucha-ahumada'] },
-  'Parada del Mallín': { quien: 'La acopiadora del mallín', produce: ['lana', 'huevo', 'haba'], pide: ['tabla', 'harina', 'frasco-frutilla'], otros: ['papa', 'tronco'] },
-  'Apeadero del Faro': { quien: 'La hija del farero', produce: ['trucha-fresca', 'trucha-ahumada'], pide: ['lana', 'poncho', 'tronco', 'pan-casero'], otros: ['miel', 'papa'] },
-  'Parada Arrayanes': { quien: 'El apicultor de los arrayanes', produce: ['miel', 'frutilla', 'calafate-seco'], pide: ['piedra', 'tabla', 'trucha-ahumada'], otros: ['huevo', 'harina'] },
-  'Parada Alta': { quien: 'El capataz de la cantera', produce: ['piedra', 'cristal'], pide: ['empanadas', 'pan-casero', 'lana', 'tronco'], otros: ['harina', 'hongos-secos'] },
-  'Parada del Molino': { quien: 'La molinera', produce: ['harina', 'pan-casero'], pide: ['tronco', 'haba', 'papa', 'miel'], otros: ['huevo', 'piedra'] },
-  'Apeadero de la Casa de Té': { quien: 'Las galesas de la casa de té', produce: ['pan-casero', 'empanadas'], pide: ['miel', 'frasco-frutilla', 'frutilla', 'huevo'], otros: ['calafate-seco', 'harina'] },
-  'Parada del Mirador': { quien: 'El baqueano del mirador', produce: ['piedra', 'hongos-secos'], pide: ['frasco-frutilla', 'empanadas', 'poncho'], otros: ['tronco', 'lana', 'cristal'] },
-  'Apeadero del Pescador': { quien: 'El pescador del apeadero', produce: ['trucha-fresca', 'trucha-ahumada'], pide: ['tronco', 'pan-casero', 'empanadas'], otros: ['papa', 'lana'] },
-  'Parada del Bosque': { quien: 'El hachero de la parada', produce: ['tronco', 'tabla', 'hongos-secos'], pide: ['piedra', 'lana', 'miel'], otros: ['huevo', 'harina'] },
+  'Estación del Valle': { quien: 'Don Aurelio, el jefe de estación', produce: ['harina', 'tabla'], pide: ['huevo', 'poncho', 'pan-casero', 'carne-vaca'], otros: ['piedra', 'miel', 'trucha-ahumada'] },
+  'Parada del Mallín': { quien: 'La acopiadora del mallín', produce: ['lana', 'huevo', 'haba'], pide: ['tabla', 'harina', 'frasco-frutilla', 'leche'], otros: ['papa', 'tronco'] },
+  'Apeadero del Faro': { quien: 'La hija del farero', produce: ['trucha-fresca', 'trucha-ahumada'], pide: ['lana', 'poncho', 'tronco', 'pan-casero', 'carne-cordero'], otros: ['miel', 'papa'] },
+  'Parada Arrayanes': { quien: 'El apicultor de los arrayanes', produce: ['miel', 'frutilla', 'calafate-seco'], pide: ['piedra', 'tabla', 'trucha-ahumada', 'carne-cerdo'], otros: ['huevo', 'harina'] },
+  'Parada Alta': { quien: 'El capataz de la cantera', produce: ['piedra', 'cristal'], pide: ['empanadas', 'pan-casero', 'lana', 'tronco', 'chorizo'], otros: ['harina', 'hongos-secos'] },
+  'Parada del Molino': { quien: 'La molinera', produce: ['harina', 'pan-casero'], pide: ['tronco', 'haba', 'papa', 'miel', 'manzana'], otros: ['huevo', 'piedra'] },
+  'Apeadero de la Casa de Té': { quien: 'Las galesas de la casa de té', produce: ['pan-casero', 'empanadas'], pide: ['miel', 'frasco-frutilla', 'frutilla', 'huevo', 'mermelada-frambuesa'], otros: ['calafate-seco', 'harina'] },
+  'Parada del Mirador': { quien: 'El baqueano del mirador', produce: ['piedra', 'hongos-secos'], pide: ['frasco-frutilla', 'empanadas', 'poncho', 'ciruela'], otros: ['tronco', 'lana', 'cristal'] },
+  'Apeadero del Pescador': { quien: 'El pescador del apeadero', produce: ['trucha-fresca', 'trucha-ahumada'], pide: ['tronco', 'pan-casero', 'empanadas', 'grosella', 'mermelada-manzana'], otros: ['papa', 'lana'] },
+  'Parada del Bosque': { quien: 'El hachero de la parada', produce: ['tronco', 'tabla', 'hongos-secos'], pide: ['piedra', 'lana', 'miel', 'cereza'], otros: ['huevo', 'harina'] },
   // 3.6: la parada del sur en el Relax (ver aldea.js): atiende Ernesto, el jefe de estación. La aldea
   // crece y necesita material de obra; hace dulce de rosa mosqueta y tiene huevos de sobra.
   'Aldea de los Duendes': { quien: 'Ernesto, el jefe de estación de la aldea', produce: ['frasco-frutilla', 'huevo', 'calafate-seco'], pide: ['tabla', 'piedra', 'tronco', 'lana'], otros: ['harina', 'pan-casero'] },
@@ -124,7 +152,7 @@ export function perfilDe(nombre) {
   const n = String(nombre || '');
   if (Object.hasOwn(PERFILES, n)) return PERFILES[n];
   const r = azarDe(hashTexto(n));
-  const pool = [...ID_BIENES];
+  const pool = ID_BIENES.filter((b) => !DE_GRANJA_CON_VALOR.includes(b));   // 4.23.0: sin lo de la granja (el azar de siempre)
   const saca = () => pool.splice(Math.floor(r() * pool.length), 1)[0];
   return { quien: 'El encargado del puesto', produce: [saca(), saca()], pide: [saca(), saca(), saca()], otros: [saca(), saca()] };
 }

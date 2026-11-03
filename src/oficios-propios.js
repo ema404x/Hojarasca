@@ -1,5 +1,5 @@
 // 4.2 · LOS EDIFICIOS DE OFICIO PROPIOS: reglas (módulo puro, se prueba en Node). La geometría está en planos-oficios.js y el cableado
-// del juego (la tecla E, el aviso, el guardado dentro de cada obra) en main.js. Ocho construcciones de $18.000 a $42.000 que le dan un
+// del juego (la tecla E, el aviso, el guardado dentro de cada obra) en main.js. Ocho construcciones de $13.000 a $29.500 (4.23.0; eran de $18.000 a $42.000) que le dan un
 // destino a la plata y que hacen algo modesto pero real. Los precios y por qué: PRECIOS_CONSTRUCCION.md y CAMBIOS_4_2_OFICIOS.md.
 //
 //   · talleres que producen (panadería de horno grande, telar grande, cervecería, quesería, cantería): se CARGAN con E (lo que pide cada uno) y
@@ -9,7 +9,7 @@
 //     pesos del comprador de siempre (Lucrecia por los barriles, Ercilia por el queso);
 //   · la herrería propia: afilar el hacha y el pico sin ir a la aldea y TEMPLARlos (una vez): con filo, un golpe menos todavía;
 //   · la carpintería: al terminar una obra sobra más madera (se suma al oficio de constructor);
-//   · la tienda de campo: vende por vos hasta cuatro lotes por día (comisión chica), y el queso se paga más.
+//   · la tienda de campo: vende por vos hasta seis lotes por día (comisión chica; 4.23.0: eran cuatro) y el queso se paga más.
 // El oficio del jugador mejora el rendimiento donde tiene sentido (`bono`). Sólo en el Relax: las piezas son `soloRelax` y los pesos
 // pasan por economia.js.
 import { BIENES } from './comercio.js';
@@ -188,8 +188,16 @@ export const textoCarpinteria = (nivelHachero) => `Al terminar una etapa, sobra 
 
 // ---------------------------------------------------------------- la tienda de campo
 export const TIENDA = {
-  lotesPorDia: 4, comision: 0.04, stockMax: 12, tipos: 8, diasMax: 12, cajaMax: 400000,
-  mercaderia: ['poncho', 'empanadas', 'pan-casero', 'frasco-frutilla', 'miel', 'trucha-ahumada', 'hongos-secos', 'calafate-seco'],
+  // 4.23.0 (lo que se produce vale): seis lotes por día y doce clases a la vez (eran cuatro y ocho: el horno grande solo hace casi tres lotes de pan por día y el telar dos de ponchos),
+  // y ahora también lo de la granja y la cocina a leña
+  lotesPorDia: 6, comision: 0.04, stockMax: 12, tipos: 12, diasMax: 12, cajaMax: 400000,
+  mercaderia: ['poncho', 'empanadas', 'pan-casero', 'frasco-frutilla', 'miel', 'trucha-ahumada', 'hongos-secos', 'calafate-seco',
+    'carne-vaca', 'carne-cordero', 'carne-cerdo', 'chorizo', 'leche', 'manzana', 'pera', 'ciruela', 'cereza', 'frambuesa', 'grosella',
+    'mermelada-manzana', 'mermelada-pera', 'mermelada-ciruela', 'mermelada-cereza', 'mermelada-frambuesa', 'mermelada-grosella'],
+  // 4.23.0: lo que la tienda NO se lleva de lo que también sirve para cocinar (lo de una receta: el asado pide 2 de carne y 2 chorizos, el dulce de leche 4 litros,
+  // la mermelada 4 frutas) y un frasco de mermelada para comer o llevar al concurso
+  reserva: { 'carne-vaca': 2, 'carne-cordero': 3, 'carne-cerdo': 2, chorizo: 2, leche: 4, manzana: 4, pera: 4, ciruela: 4, cereza: 4, frambuesa: 4, grosella: 4,
+    'mermelada-manzana': 1, 'mermelada-pera': 1, 'mermelada-ciruela': 1, 'mermelada-cereza': 1, 'mermelada-frambuesa': 1, 'mermelada-grosella': 1 },
 };
 // Lo que paga la tienda por un lote: el precio de la plaza menos la comisión chica (la del puesto de la feria es de 10 %)
 export const precioEnTienda = (bien) => (BIENES[bien] ? Math.round(((precioDeConsigna(bien) / 0.9) * (1 - TIENDA.comision)) / 10) * 10 : 0);
@@ -201,7 +209,7 @@ export function sanearTienda(v, hoy = 1e6) {
   return { stock, caja: entero(x.caja, TIENDA.cajaMax), dia: d >= 1 ? Math.min(dia, d) : dia };
 }
 export const lotesEnTienda = (t) => Object.values(t?.stock || {}).reduce((s, n) => s + n, 0);
-// Lo que vendió la tienda desde la última vez (hasta cuatro lotes por día, lo más caro primero, hasta un año del juego): vuelve cuántos lotes
+// Lo que vendió la tienda desde la última vez (hasta seis lotes por día, lo más caro primero, hasta un año del juego): vuelve cuántos lotes
 export function venderDias(t, hoy) {
   const dia = Math.max(1, entero(hoy, 1e6));
   if (!t.dia || t.dia > dia) t.dia = dia;
@@ -219,7 +227,7 @@ export function venderDias(t, hoy) {
   t.dia = dia;
   return vendidos;
 }
-// Dejar en la tienda todo lo que tengas para vender (por lotes enteros, hasta el tope por cosa): vuelve [{ k, lotes }]
+// Dejar en la tienda todo lo que tengas para vender (por lotes enteros, hasta el tope por cosa; 4.23.0: sin lo que se guarda para cocinar): vuelve [{ k, lotes }]
 export function dejarEnTienda(p, t) {
   const dejado = [];
   for (const k of TIENDA.mercaderia) {
@@ -227,7 +235,7 @@ export function dejarEnTienda(p, t) {
     if (!b) continue;
     const ya = t.stock[k] || 0;
     if (!ya && Object.keys(t.stock).length >= TIENDA.tipos) continue;
-    const lotes = Math.min(Math.floor(tengoBien(p, k) / b.lote), TIENDA.stockMax - ya);
+    const lotes = Math.min(Math.floor(Math.max(0, tengoBien(p, k) - (TIENDA.reserva[k] || 0)) / b.lote), TIENDA.stockMax - ya);   // 4.23.0: menos lo que se guarda para cocinar
     if (lotes < 1 || !quitarBien(p, k, lotes * b.lote)) continue;
     t.stock[k] = ya + lotes;
     dejado.push({ k, lotes });
@@ -241,9 +249,11 @@ export function retirarCajaTienda(p, t) {
   return r.monto || 0;
 }
 export const aTexto = (k, lotes) => `${lotes * (BIENES[k]?.lote || 1)} ${(BIENES[k]?.nombre || k).toLowerCase()}`;
+// ¿hay algo para dejar?: un lote entero de algo, sin lo que se guarda para cocinar (4.23.0)
+export const hayParaDejar = (p) => TIENDA.mercaderia.some((k) => tengoBien(p, k) - (TIENDA.reserva[k] || 0) >= (BIENES[k]?.lote || 1));
 export function avisoTienda(t, p) {
-  if (t.caja > 0) return `Tu tienda: retirar ${formatoPesos(t.caja)} de la caja${TIENDA.mercaderia.some((k) => tengoBien(p, k) >= (BIENES[k]?.lote || 1)) ? ' y dejar mercadería' : ''}`;
-  if (TIENDA.mercaderia.some((k) => tengoBien(p, k) >= (BIENES[k]?.lote || 1))) return 'Tu tienda: dejar la mercadería a la venta';
+  if (t.caja > 0) return `Tu tienda: retirar ${formatoPesos(t.caja)} de la caja${hayParaDejar(p) ? ' y dejar mercadería' : ''}`;
+  if (hayParaDejar(p)) return 'Tu tienda: dejar la mercadería a la venta';
   const hay = lotesEnTienda(t);
   return hay ? `Tu tienda: ${hay} ${hay === 1 ? 'lote a la venta' : 'lotes a la venta'}` : 'Tu tienda de campo: sin mercadería';
 }

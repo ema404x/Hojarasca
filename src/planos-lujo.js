@@ -1,7 +1,7 @@
 // 4.2: las piezas de lujo. Cuestan, además de los materiales, pesos (`pesos: N` junto a `pide`): son para darle uso a la plata que se
 // junta con los jornales, los pedidos y el abastecimiento. Sirven también de plantilla para agregar piezas con precio (la receta y la
 // escala de precios están en PRECIOS_CONSTRUCCION.md):
-//   · vitrina de roble ($4.500), alfombra tejida grande ($2.400), araña de velas ($6.500), reloj de pie ($9.000), fuente de piedra ($14.000);
+//   · vitrina de roble ($4.500), alfombra tejida grande ($2.400), araña de velas ($4.550), reloj de pie ($7.500), fuente de piedra ($14.000);
 //   · mismas reglas que planos-muebles.js: el frente mira a -z y el fondo a +z; el origen es el centro, sobre el piso; sólo tipo 0 y 4;
 //     la colisión sale de `fisica(h)`; sólo en el Relax (el Desafío no tiene economía ni lana);
 //   · sin luces dinámicas (las llamas de la araña son sólo color) y geometría moderada: ninguna pasa de ~900 triángulos
@@ -61,7 +61,7 @@ export const PIEZAS_LUJO = [
   {
     ...base, id: 'reloj-pie', nombre: 'Reloj de pie', categoria: 'mobiliario', radio: 0.5, ancho: 0.6, fondo: 0.4, alto: 2.15, separacion: 0.6, confort: 2, alcanceE: 2.2,
     texto: 'Un reloj de caja alto, de roble, con esfera de bronce, péndulo y dos pesas. Con E te dice la hora y el día, lo mismo que el de pared y el de la plaza. Contra la pared, de espaldas a +Z.',
-    pide: { tabla: 14, tronco: 2, piedra: 2 }, pesos: 9000,
+    pide: { tabla: 14, tronco: 2, piedra: 2 }, pesos: 7500,   // 4.23.0: era 9.000 (4,7 veces)
     fisica(h) { h.segmento(-0.08, 0, 0.08, 0, 0.2, 0, 2.15); },
     arma(c) {
       // el pie y el cuerpo
@@ -117,7 +117,7 @@ export const PIEZAS_LUJO = [
   {
     ...base, id: 'arana-velas', nombre: 'Araña de velas', categoria: 'mobiliario', radio: 0.55, ancho: 0.95, fondo: 0.95, alto: 2.45, separacion: 0.9, confort: 3,
     texto: 'Una araña de hierro forjado con ocho velas, que se cuelga de una cadena larga. Sin techo no hay de dónde: ponela adentro de una casa. No da luz propia, es de adorno, y no choca.',
-    pide: { tabla: 4, piedra: 6, tronco: 1 }, pesos: 6500,
+    pide: { tabla: 4, piedra: 6, tronco: 1 }, pesos: 4550,   // 4.23.0: era 6.500 (5,7 veces: ahora 3,96)
     arma(c) {
       const CERA = '#e6dcc0', LLAMA = '#ffcf6a';
       // la cadena y el florón del techo

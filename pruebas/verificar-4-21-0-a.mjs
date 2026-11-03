@@ -189,9 +189,9 @@ const filaDe = (salida, claveCelda) => {
   const s = herramienta('auditoria-4-20-a-ritmo.mjs', '36', '--resumen');
   const r = JSON.parse(s.split('\n').find((l) => l.startsWith('RESUMEN ')).slice(8));
   const por = Object.fromEntries(r.perfiles.map((p) => [p.p, p]));
-  entre(por.tranquilo.catalogo, 245, 262, 'tranquilo: días hasta el catálogo de obras con pesos (eran 290)');
-  entre(por.medio.catalogo, 165, 178, 'medio: días hasta el catálogo (eran 176)');
-  entre(por.a.catalogo, 95, 108, 'a fondo: días hasta el catálogo (eran 83)');
+  entre(por.tranquilo.catalogo, 236, 262, 'tranquilo: días hasta el catálogo de obras con pesos (eran 290; 4.23.0: con las ocho obras más baratas, unos 240)');
+  entre(por.medio.catalogo, 160, 178, 'medio: días hasta el catálogo (eran 176)');
+  entre(por.a.catalogo, 92, 108, 'a fondo: días hasta el catálogo (eran 83)');
   const cociente = por.tranquilo.catalogo / por.a.catalogo;
   entre(cociente, 2.3, 2.8, 'el cociente tranquilo / a fondo baja de 3,5 hacia 2,5');
   entre(por.tranquilo.dia20_40, 4200, 4500, 'un jugador tranquilo junta por día (eran $3.768)');

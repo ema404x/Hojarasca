@@ -24,10 +24,10 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
 const relax = (pesos, dia = 4) => ({ modo: 'relax', dia, economia: { ...economiaNueva(), pesos } });
 
 const IDS_LUJO = ['vitrina-roble', 'reloj-pie', 'alfombra-tejida-grande', 'arana-velas', 'fuente-piedra'];
-const PRECIOS_LUJO = { 'vitrina-roble': 4500, 'reloj-pie': 9000, 'alfombra-tejida-grande': 2400, 'arana-velas': 6500, 'fuente-piedra': 14000 };
+const PRECIOS_LUJO = { 'vitrina-roble': 4500, 'reloj-pie': 7500, 'alfombra-tejida-grande': 2400, 'arana-velas': 4550, 'fuente-piedra': 14000 };
 const MATERIALES = new Set(['tabla', 'tronco', 'piedra', 'lana']);
 // la escala de PRECIOS_CONSTRUCCION.md
-const ESCALA = { 'mueble bueno': [800, 3000], lujo: [4000, 20000], 'edificio de oficio': [15000, 60000], 'ampliación de casa': [20000, 80000] };
+const ESCALA = { 'mueble bueno': [800, 3000], lujo: [4000, 20000], 'edificio de oficio': [13000, 60000], 'ampliación de casa': [20000, 80000] };
 
 // ---------------------------------------------------------------- 1. leer lo que el plano declara
 {

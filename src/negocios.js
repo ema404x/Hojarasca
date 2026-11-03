@@ -65,7 +65,7 @@ export function sanearNegocios(v, hoy = 1e6) {
   const dia = Math.max(1, entero(hoy, 1e6));
   const b = objeto(v.banco) ? v.banco : {};
   const c = objeto(v.casas) ? v.casas : {};
-  const puesto = objeto(c.puesto) ? { desde: Math.min(dia, Math.max(1, entero(c.puesto.desde, 1e6))), caja: entero(c.puesto.caja, 1e6), stock: mapa(c.puesto.stock, (n, b) => (esBien(b) && entero(n, 30) > 0 ? entero(n, 30) : null), 8), dia: Math.min(dia, entero(c.puesto.dia, 1e6)) } : null;
+  const puesto = objeto(c.puesto) ? { desde: Math.min(dia, Math.max(1, entero(c.puesto.desde, 1e6))), caja: entero(c.puesto.caja, 1e6), stock: mapa(c.puesto.stock, (n, b) => (esBien(b) && entero(n, 30) > 0 ? entero(n, 30) : null), 12), dia: Math.min(dia, entero(c.puesto.dia, 1e6)) } : null;
   return {
     oficio: mapa(v.oficio, (n) => entero(n, 1e5) || null),
     jornal: mapa(v.jornal, (d) => Math.min(dia, entero(d, 1e6))),

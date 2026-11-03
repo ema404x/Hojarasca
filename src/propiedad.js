@@ -4,7 +4,7 @@
 //     escritura. Con sólo materiales una cabaña salía en 8 días de jornal: con el precio es una meta de un par de años del juego;
 //   · ALQUILAR: las casas que terminaste y no usás se pueden poner en alquiler. Una familia que llegó se queda y paga una renta
 //     por cada día que el cuarto está ocupado (casi siempre) y según la demanda del pueblo;
-//   · EL PUESTO EN LA FERIA: una vez comprado, dejás mercadería en consigna y cada día vende hasta dos lotes (al valor de la plaza,
+//   · EL PUESTO EN LA FERIA: una vez comprado, dejás mercadería en consigna y cada día vende hasta tres lotes (4.23.0; eran dos) (al valor de la plaza,
 //     menos el diez por ciento del puesto); la plata se junta en la caja del puesto y la retirás cuando pasás.
 // Módulo puro, sin imports de la aldea. Sólo en el Relax.
 import { BIENES, COMERCIO, perfilDe, factorTemporadaMin, hashTexto, azarDe } from './comercio.js';
@@ -15,13 +15,14 @@ import { abonarAlMoroso } from './prestamos.js';
 import { registrarPrecios, precioDeEtapa as precioDeEtapaComun, puedePagarEtapa as puedePagarEtapaComun, pagarEtapa as pagarEtapaComun, devolverEtapasPagadas as devolverEtapasPagadasComun } from './obra-pesos.js';
 
 export const PROPIEDAD = {
+  // 4.23.0: la renta por día es el doble ($600 / $1.000 / $1.600; era $300 / $500 / $800: se pagaba en 141 a 162 días, y ahora en 71 a 81, como un negocio)
   casas: {
-    'cabana-piedra': { total: 36000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 300, nombre: 'la cabaña' },
-    'casa-galeria': { total: 66000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 500, nombre: 'la casa con galería' },
-    casona: { total: 110000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 800, nombre: 'la casona' },
+    'cabana-piedra': { total: 36000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 600, nombre: 'la cabaña' },
+    'casa-galeria': { total: 66000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 1000, nombre: 'la casa con galería' },
+    casona: { total: 110000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 1600, nombre: 'la casona' },
   },
   escritura: 8000,                 // el lote de tu casa de la calle de la Loma
-  puesto: { precio: 6000, lotesPorDia: 2, comision: 0.1, stockMax: 12, tiposMax: 8 },
+  puesto: { precio: 6000, lotesPorDia: 3, comision: 0.1, stockMax: 12, tiposMax: 12 },   // 4.23.0: 3 lotes por día y 12 tipos (eran 2 y 8): la salida de lo que hacen los talleres y la granja
   ocupacion: 0.85,                 // la parte de los días que el cuarto está ocupado
 };
 export const esCasaDePrecio = (id) => typeof id === 'string' && Object.hasOwn(PROPIEDAD.casas, id);
@@ -166,7 +167,7 @@ export function alquilerDelDia(p, dia, demanda = 1, factor = () => 1, info = nul
     if (!esCasaDePrecio(id)) continue;
     const cuartos = Math.min(a.cuantas, casasDe(p, id));   // (una casa que ya no está no paga)
     let m = 0;
-    for (let i = 0; i < cuartos; i++) if (rentaDelDia(id, dia, i)) m += Math.round((a.renta * Math.max(0.9, Math.min(1.25, demanda))) / 10) * 10;
+    for (let i = 0; i < cuartos; i++) if (rentaDelDia(id, dia, i)) m += Math.round((rentaDe(id) * Math.max(0.9, Math.min(1.25, demanda))) / 10) * 10;   // 4.23.0: la renta de hoy, no la que quedó anotada al alquilar (las casas ya alquiladas pasan a la nueva)
     if (m <= 0) continue;
     // una sola entrada en el libro por tipo de casa y día; con el préstamo vencido, la renta va primero a la deuda
     const aDeuda = abonarAlMoroso(p, dia, m), cobra = m - aDeuda;

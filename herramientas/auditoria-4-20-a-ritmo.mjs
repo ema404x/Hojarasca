@@ -19,6 +19,13 @@ const NF = await import('../src/negocios-fx.js');
 const EM = await import('../src/empleo.js');
 const OF = await import('../src/oficios.js');
 const TA = await import('../src/tablon.js');
+// 4.23.0: los precios de las obras salen de los planos reales (antes eran constantes del informe: 916.300 y los de las metas)
+const CN = await import('../src/construccion.js');
+const OP = await import('../src/obra-pesos.js');
+const valorMat = (k) => C.BIENES[k].valor * 100 / C.BIENES[k].lote;
+const planoDe = (id) => { const p = CN.PLANOS.find((x) => x.id === id); return { pesos: OP.preciosDePlano(p).reduce((a, b) => a + b, 0), mat: Math.round(p.etapas.reduce((s, e) => s + Object.entries(e.pide || {}).reduce((q, [k, n]) => q + valorMat(k) * n, 0), 0)) }; };
+const pesosDeTodas = CN.PLANOS.reduce((s, p) => s + OP.preciosDePlano(p).reduce((a, b) => a + b, 0), 0);
+const costoDe = (id) => { const x = planoDe(id); return x.pesos + x.mat; };
 
 const DIAS = Number(process.argv[2]) || 36;
 const VARIANTE = (process.argv.find((a) => a.startsWith('--variante=')) || '').slice(11) || (process.argv.includes('--propuesta') ? 'final' : 'base');
@@ -196,7 +203,7 @@ console.table(curvas.map((c) => { const f = { perfil: c.nombre }; for (const h o
 // el catálogo en orden de compra y el día en que se alcanza, a precios de la economía (materiales a valor base)
 const metas = [
   ['El pico comprado (almacén) + los $400 de las puntas', 1600], ['Escritura del lote de la Loma', 8000], ['Establo del caballo ($6.000 + materiales)', 6000 + 4500], ['Puesto propio en la feria', 6000],
-  ['Telar grande ($36.000 + $5.400)', 41400], ['Cabaña ($36.000 + $11.500)', 47500], ['Local de almacén propio ($28.000 + $6.800)', 34800], ['Casa con galería ($66.000 + $18.150)', 84150],
+  [`Telar grande (${$(planoDe('telar-grande').pesos)} + ${$(planoDe('telar-grande').mat)})`, costoDe('telar-grande')], ['Cabaña ($36.000 + $11.500)', 47500], [`Local de almacén propio (${$(planoDe('local-almacen').pesos)} + ${$(planoDe('local-almacen').mat)})`, costoDe('local-almacen')], ['Casa con galería ($66.000 + $18.150)', 84150],
   ['Planta alta ($64.000 + $30.100)', 94100], ['Casona ($110.000 + $27.300)', 137300],
 ];
 let corrido = 0;
@@ -204,13 +211,13 @@ const g = [];
 for (const [nombre, costo] of metas) { corrido += costo; const f = { meta: nombre, costo, acumuladoDeLaLista: corrido }; for (const c of curvas) { const d = c.acum.findIndex((x) => x >= corrido) + 1; f[c.nombre.split(' ')[0]] = d > 0 ? `día ${d} (${(d * MIN_POR_DIA / 60).toFixed(0)} h)` : '>400 días'; } g.push(f); }
 console.log('\n# Día en que se llega a cada meta si se compra en este orden (y se gasta todo lo ganado en eso)\n');
 console.table(g);
-const total = 916300 + 212000 + 14000;
+const total = pesosDeTodas + 212000 + 14000;   // 4.23.0: calculado (los planos con pesos, las tres casas, la escritura y el puesto)
 const f = { 'todo el catálogo de obras con pesos (planos + casas + escritura + puesto)': total };
 for (const c of curvas) { const d = c.acum.findIndex((x) => x >= total) + 1; f[c.nombre.split(' ')[0]] = d > 0 ? `día ${d} (${(d * MIN_POR_DIA / 60).toFixed(0)} h)` : '>400 días'; }
 console.log('\nSólo los pesos de las obras (sin materiales ni negocios):'); console.table([f]);
 
 if (RESUMEN) {
   const dia = (acum, costo) => { const d = acum.findIndex((x) => x >= costo) + 1; return d > 0 ? d : 999; };
-  const cab = 47500, galeria = 233950 - 0, tot = 1142300;
-  console.log('RESUMEN ' + JSON.stringify({ variante: VARIANTE, perfiles: curvas.map((c) => ({ p: c.nombre.split(' ')[0], dia20_40: Math.round((c.acum[39] - c.acum[19]) / 20), dia3h: Math.round(c.acum[6]), telar67k: dia(c.acum, 67500), cabana115k: dia(c.acum, 115000), casona465k: dia(c.acum, 465350), catalogo: dia(c.acum, tot) })) }));
+  const cab = 47500, galeria = 233950 - 0, tot = pesosDeTodas + 212000 + 14000;
+  console.log('RESUMEN ' + JSON.stringify({ variante: VARIANTE, perfiles: curvas.map((c) => ({ p: c.nombre.split(' ')[0], dia20_40: Math.round((c.acum[39] - c.acum[19]) / 20), dia3h: Math.round(c.acum[6]), telar67k: dia(c.acum, 26100 + costoDe('telar-grande')), cabana115k: dia(c.acum, 115000), casona465k: dia(c.acum, 465350), catalogo: dia(c.acum, tot) })) }));
 }

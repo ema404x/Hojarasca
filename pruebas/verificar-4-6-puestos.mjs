@@ -104,7 +104,7 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
     for (const bien of b) { const pr = C.precios(C.comercioNuevo(), nombre, bien, 7, 'otono'); ok(Number.isFinite(pr.compra) && pr.compra > pr.venta && pr.venta >= 1, `${id}: precio de ${bien}`); }
   }
   // los perfiles que el Relax no usaba, reusados: el capataz de la cantera (A) y el baqueano (B)
-  ok(C.perfilDe('Puesto de la Cantera').produce.slice(0, 2).join() === C.perfilDe('Parada Alta').produce.join() && C.perfilDe('Puesto de la Cantera').pide.join() === C.perfilDe('Parada Alta').pide.join(), 'A: el perfil de la «Parada Alta» (el capataz de la cantera)');
+  ok(C.perfilDe('Puesto de la Cantera').produce.slice(0, 2).join() === C.perfilDe('Parada Alta').produce.join() && C.perfilDe('Puesto de la Cantera').pide.join() === C.perfilDe('Parada Alta').pide.filter((b) => !C.DE_GRANJA_CON_VALOR.includes(b)).join(), 'A (4.23.0: sin el chorizo, que la parada ya pide y el puesto de ruta, con sus nueve cosas, no): el perfil de la «Parada Alta» (el capataz de la cantera)');
   ok(C.perfilDe('Puesto del Paso').produce.join() === C.perfilDe('Parada del Mirador').produce.join(), 'B: el de la «Parada del Mirador» (el baqueano)');
   ok(C.perfilDe('Parada Alta').caja === undefined && M.cajaMaxima('Parada Alta') === 4000 + (C.hashTexto('Parada Alta|caja') % 41) * 100, 'las paradas de siempre siguen con su caja de antes');
   ok(C.perfilDe('Puesto de la Estepa').produce.includes('lana') && C.perfilDe('Puesto del Riel Sur').produce.includes('poncho'), 'C y D: perfiles nuevos de la estepa (lana, ponchos)');

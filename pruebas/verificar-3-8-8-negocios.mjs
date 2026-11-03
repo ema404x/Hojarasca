@@ -230,12 +230,12 @@ const conPlata = (p, pesos) => { p.economia.pesos = pesos; return p; };
   // alquiler
   ok(R.registrarCasa(p, 'cabana-piedra') === 1 && R.casasDe(p, 'cabana-piedra') === 1 && R.registrarCasa(p, 'cualquiera') === 0, 'registrar casas');
   const al = R.ponerEnAlquiler(p, 'cabana-piedra', 6);
-  ok(al.ok && al.renta === 300 && al.inquilino, 'se alquila');
+  ok(al.ok && al.renta === 600 && al.inquilino, 'se alquila (4.23.0: $600 por día; eran $300)');
   eq(R.ponerEnAlquiler(p, 'cabana-piedra', 6).motivo, 'todas', 'no más que las que tenés');
   eq(R.ponerEnAlquiler(p, 'casona', 6).motivo, 'no hay', 'ni las que no tenés');
   let cobrado = 0; for (let d = 7; d <= 106; d++) cobrado += R.alquilerDelDia(p, d, 1);
-  ok(cobrado >= 100 * 300 * 0.7 && cobrado <= 100 * 300 * 1.0 + 1, `cien días de alquiler: $${cobrado}`);
-  ok(cobrado / 100 < 300, 'una cabaña rinde menos de $300 por día (se paga en más de 100 días)');
+  ok(cobrado >= 100 * 600 * 0.7 && cobrado <= 100 * 600 * 1.0 + 1, `cien días de alquiler: ${cobrado}`);
+  ok(cobrado / 100 < 600 && 36000 / (cobrado / 100) < 85, 'una cabaña rinde menos de $600 por día y se paga en menos de 85 días (4.23.0: antes, más de 100)');
   ok(p.negocios.casas.cobrado === cobrado, 'queda anotado lo cobrado');
   ok(R.retirarDeAlquiler(p, 'cabana-piedra').ok && R.enAlquilerDe(p, 'cabana-piedra') === 0, 'se retira');
   // puesto
@@ -245,13 +245,13 @@ const conPlata = (p, pesos) => { p.economia.pesos = pesos; return p; };
   eq(R.comprarPuesto(q, 5).motivo, 'ya', 'uno solo');
   q.materiales.tabla = 20;
   eq(R.dejarEnPuesto(q, 'tabla', 6).motivo, 'falta', 'no podés dejar lo que no tenés (4 tablas por lote)');
-  const d1 = R.dejarEnPuesto(q, 'tabla', 3);
-  ok(d1.ok && d1.unidades === 12 && R.lotesEnPuesto(q, 'tabla') === 3, 'dejás tres lotes');
+  const d1 = R.dejarEnPuesto(q, 'tabla', 4);
+  ok(d1.ok && d1.unidades === 16 && R.lotesEnPuesto(q, 'tabla') === 4, 'dejás cuatro lotes');
   q.materiales.tabla = 200; eq(R.dejarEnPuesto(q, 'tabla', 20).motivo, 'lleno', 'tope por cosa'); q.materiales.tabla = 8;
-  ok(R.ventasDelPuesto(q, 6) === 2 && q.negocios.casas.puesto.caja === 2 * R.precioDeConsigna('tabla') && R.lotesEnPuesto(q, 'tabla') === 1, 'vende dos lotes por día');
+  ok(R.ventasDelPuesto(q, 6) === 3 && q.negocios.casas.puesto.caja === 3 * R.precioDeConsigna('tabla') && R.lotesEnPuesto(q, 'tabla') === 1, 'vende tres lotes por día (4.23.0: eran dos)');
   ok(R.precioDeConsigna('tabla') === 360, 'tabla: $400 el lote menos el 10 %');
   const rc = R.retirarCajaPuesto(q);
-  ok(rc.ok && E.pesosDe(q) === 720 && q.negocios.casas.puesto.caja === 0 && !R.retirarCajaPuesto(q).ok, 'se retira la caja');
+  ok(rc.ok && E.pesosDe(q) === 1080 && q.negocios.casas.puesto.caja === 0 && !R.retirarCajaPuesto(q).ok, 'se retira la caja');
   ok(R.sacarDelPuesto(q, 'tabla', 1).ok && R.lotesEnPuesto(q, 'tabla') === 0 && !R.sacarDelPuesto(q, 'tabla', 1).ok, 'se retira la consigna');
   // el puesto nunca paga más que el puesto del tren
   const mejor = Math.max(...Object.keys(C.BIENES).map((b) => R.precioDeConsigna(b) / (C.BIENES[b].valor * 100)));

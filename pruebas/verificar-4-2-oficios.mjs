@@ -1,5 +1,5 @@
 // 4.2: los edificios de oficio propios (planos-oficios.js, oficios-propios.js), en Node:
-//   · las ocho piezas: existen, cuestan lo que dice la escala ($15.000 a $60.000), ids únicos, materiales que existen, geometría sana y dentro de un presupuesto de triángulos, física sana;
+//   · las ocho piezas: existen, cuestan lo que dice la escala ($13.000 a $60.000: 4.23.0), ids únicos, materiales que existen, geometría sana y dentro de un presupuesto de triángulos, física sana;
 //   · los talleres que producen (panadería, telar grande, cervecería, quesería, cantería): cargar, esperar, retirar, el tope de tandas (volver a las semanas no rompe nada), el oficio y la tienda;
 //   · la herrería (afilar, templar, el golpe de más), la carpintería (más madera de sobra), la tienda de campo (vender por días, la caja, el tope) y la cerveza más barata en la cantina;
 //   · que valgan la pena pero no regalen (días en recuperar el precio), el guardado de la partida y el cableado de main.js.
@@ -23,7 +23,8 @@ let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; };
 const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
 
-const PRECIOS = { 'herreria-propia': 32000, carpinteria: 22000, 'panaderia-horno': 27000, cerveceria: 42000, 'telar-grande': 36000, queseria: 24000, 'tienda-campo': 30000, canteria: 18000 };
+// 4.23.0: seis precios bajaron a lo que dice la regla (hasta 4 veces los materiales): herrería 32.000 → 18.000, cervecería 42.000 → 29.500, telar 36.000 → 21.500, quesería 24.000 → 17.500, tienda 30.000 → 23.500, cantería 18.000 → 13.000
+const PRECIOS = { 'herreria-propia': 18000, carpinteria: 22000, 'panaderia-horno': 27000, cerveceria: 29500, 'telar-grande': 21500, queseria: 17500, 'tienda-campo': 23500, canteria: 13000 };
 const IDS = Object.keys(PRECIOS);
 const MATERIALES = new Set(['tabla', 'tronco', 'piedra', 'lana']);
 
@@ -43,7 +44,7 @@ for (const id of IDS) {
   ok(!/\b(the|and|with|workshop)\b/i.test(P.texto + P.nombre), `${id}: todo en castellano`);
   eq(P.etapas[0].pesos, PRECIOS[id], `${id}: la etapa declara ${formatoPesos(PRECIOS[id])}`);
   eq(O.precioDeEtapa(id, 0), PRECIOS[id], `${id}: el registro tiene su precio`);
-  ok(PRECIOS[id] % 500 === 0 && PRECIOS[id] >= 15000 && PRECIOS[id] <= 60000, `${id}: dentro de la escala de los edificios de oficio ($15.000 a $60.000) y redondo`);
+  ok(PRECIOS[id] % 500 === 0 && PRECIOS[id] >= 13000 && PRECIOS[id] <= 60000, `${id}: dentro de la escala de los edificios de oficio ($13.000 a $60.000) y redondo`);
   ok(PRECIOS[id] <= 80000 && PRECIOS[id] < 110000, `${id}: menos que la casona`);
   ok(!P.funciones?.includes('luz') && !P.luzInterior, `${id}: sin luces dinámicas`);
   // la geometría: sin números rotos, sólo tipo 0 y 4, dentro de lo que dice medir, con presupuesto de triángulos
@@ -72,7 +73,7 @@ for (const id of IDS) {
   for (const q of reg.c) ok(q.length === 5 && q.every(Number.isFinite) && q[2] > 0 && q[3] < q[4] && q[4] <= P.alto + 0.1 && Math.abs(q[0]) + q[2] <= P.ancho / 2 && Math.abs(q[1]) + q[2] <= P.fondo / 2, `${id}: círculo sano`);
   ok(!reg.s.some((s) => s[1] < 0 && s[3] < 0 && Math.abs(s[0] - s[2]) > P.ancho * 0.6), `${id}: el frente queda abierto`);
 }
-ok(Math.max(...Object.values(PRECIOS)) < 60001 && Math.min(...Object.values(PRECIOS)) >= 15000, 'toda la tanda entre $15.000 y $60.000');
+ok(Math.max(...Object.values(PRECIOS)) < 60001 && Math.min(...Object.values(PRECIOS)) >= 13000, 'toda la tanda entre $13.000 y $60.000');
 ok(PRECIOS.cerveceria > PRECIOS['telar-grande'] && PRECIOS['telar-grande'] > PRECIOS['herreria-propia'] && PRECIOS.canteria === Math.min(...Object.values(PRECIOS)), 'el más barato es la cantería (rinde sin gastar nada) y el más caro la cervecería (la que más rinde)');
 
 // ---------------------------------------------------------------- 2. los talleres que producen
@@ -187,7 +188,7 @@ const AHORA = 24 * 10 + 8;   // día 10, ocho de la mañana
   // un año del juego son 12 días: nada se paga solo en un año (salvo con mucha constancia) y ninguno rinde más que el jornal de un día
   ok(Object.values(neto).every((v) => v < 3200), 'ninguno rinde por día más que el ingreso de un jugador goloso ($3.200)');
   const todos = Object.values(neto).reduce((s, v) => s + v, 0), costoTodos = IDS.reduce((s, id) => s + PRECIOS[id], 0);
-  ok(costoTodos > 200000, `armar los ocho cuesta ${formatoPesos(costoTodos)}: un destino para años de plata`);
+  ok(costoTodos > 150000, `armar los ocho cuesta ${formatoPesos(costoTodos)}: un destino para años de plata`);
   console.log(`  (netos por día: ${JSON.stringify(neto)}; suma ${todos})`);
 }
 
@@ -259,13 +260,13 @@ const AHORA = 24 * 10 + 8;   // día 10, ocho de la mañana
   // los precios: la plaza menos una comisión chica (4 % en vez de 10 %)
   const pu = await import('../src/propiedad.js');
   for (const k of OP.TIENDA.mercaderia) ok(OP.precioEnTienda(k) > pu.precioDeConsigna(k) && OP.precioEnTienda(k) <= BIENES[k].valor * 100, `${k}: ${formatoPesos(OP.precioEnTienda(k))} el lote: más que la consigna de la feria, nunca más que el valor`);
-  // vende por día: hasta 4 lotes, lo más caro primero
+  // vende por día: hasta 6 lotes (4.23.0; eran 4), lo más caro primero
   const caja0 = t.caja;
-  eq(OP.venderDias(t, 11), 4, 'al día siguiente vende 4 lotes');
-  ok(t.caja - caja0 === OP.precioEnTienda('poncho') * 2 + OP.precioEnTienda('miel') * 2, 'los dos ponchos primero (lo más caro) y después la miel');
-  eq(OP.lotesEnTienda(t), 3, 'quedan 3');
+  eq(OP.venderDias(t, 11), 6, 'al día siguiente vende 6 lotes');
+  ok(t.caja - caja0 === OP.precioEnTienda('poncho') * 2 + OP.precioEnTienda('miel') * 3 + OP.precioEnTienda('pan-casero'), 'los dos ponchos primero (lo más caro), después la miel y el pan (valen lo mismo: sigue el orden alfabético)');
+  eq(OP.lotesEnTienda(t), 1, 'queda 1');
   eq(OP.venderDias(t, 11), 0, 'el mismo día no vende dos veces');
-  eq(OP.venderDias(t, 40), 3, 'a las semanas vende lo que quedaba y no más');
+  eq(OP.venderDias(t, 40), 1, 'a las semanas vende lo que quedaba y no más');
   eq(OP.venderDias(t, 40 + 100), 0, 'sin mercadería no hay ventas (ni errores)');
   // la caja
   ok(t.caja > 0, 'queda plata en la caja');
@@ -282,11 +283,11 @@ const AHORA = 24 * 10 + 8;   // día 10, ocho de la mañana
   eq([t2.stock.poncho, p2.cosas.poncho], [12, 28], 'el tope es de 12 lotes por cosa: el resto queda en la mochila');
   eq(OP.sanearTienda({ stock: { poncho: 99, tronco: 4, miel: -2, 'pan-casero': 'x' }, caja: 'mucho', dia: 7000 }, 12), { stock: { poncho: 12 }, caja: 0, dia: 12 }, 'basura: sólo mercadería conocida, con tope, sin negativos, sin días del futuro');
   const t3 = OP.sanearTienda({ stock: { poncho: 12 }, dia: 1 }, 400);
-  eq(OP.venderDias(t3, 400), 12, 'un año de ausencia: vende lo que había (12 como mucho por el tope de 12 días × 4)');
+  eq(OP.venderDias(t3, 400), 12, 'un año de ausencia: vende lo que había (12 como mucho por el tope de 12 días × 6)');
   const t4 = OP.sanearTienda({ stock: { poncho: 12, miel: 12, 'pan-casero': 12 }, dia: 1 }, 400);
-  eq(OP.venderDias(t4, 400), 36, 'con 36 lotes y un año: 12 días × 4 = 48 de cupo, vende los 36');
-  const t5 = OP.sanearTienda({ stock: { poncho: 12, miel: 12, 'pan-casero': 12, empanadas: 12 }, dia: 1 }, 400);
-  eq(OP.venderDias(t5, 400), 48, 'y con 48 lotes, el tope de doce días: 48');
+  eq(OP.venderDias(t4, 400), 36, 'con 36 lotes y un año: 12 días × 6 = 72 de cupo, vende los 36');
+  const t5 = OP.sanearTienda({ stock: { poncho: 12, miel: 12, 'pan-casero': 12, empanadas: 12, 'frasco-frutilla': 12, 'trucha-ahumada': 12, 'hongos-secos': 12 }, dia: 1 }, 400);
+  eq(OP.venderDias(t5, 400), 72, 'y con 84 lotes, el tope de doce días: 72 (12 × 6)');
   ok(t5.caja <= OP.TIENDA.cajaMax, 'la caja tiene techo');
 }
 
@@ -323,10 +324,10 @@ const AHORA = 24 * 10 + 8;   // día 10, ocho de la mañana
   eq(r.obras[1].taller, { templado: true }, 'el temple vuelve');
   eq(r.obras[2].taller, { stock: { poncho: 4 }, caja: 1200, dia: 9 }, 'la tienda vuelve con su caja y su mercadería');
   ok(!('taller' in r.obras[3]), 'y lo que no tenía estado sigue sin inventarle uno');
-  eq(O.reintegroAlDesmontar({ dia: 3, economia: { ...economiaNueva() } }, 'queseria', 1, 1), 12000, 'desmontar uno devuelve la mitad del precio que de verdad se pagó ($12.000 de $24.000)');
+  eq(O.reintegroAlDesmontar({ dia: 3, economia: { ...economiaNueva() } }, 'queseria', 1, 1), 8750, 'desmontar uno devuelve la mitad del precio que de verdad se pagó ($8.750 de $17.500)');
   eq(O.puedePagarEtapa({ dia: 3 }, 'cerveceria', 0), { ok: true, precio: 0 }, 'una partida sin economía lo arma sin pagar y sin romperse');
-  const pagar = O.puedePagarEtapa({ dia: 3, modo: 'relax', economia: { ...economiaNueva(), pesos: 41999 } }, 'cerveceria', 0);
-  ok(pagar.ok === false && pagar.falta === 1, 'a la cervecería le faltan $1 con $41.999: no se construye sin plata');
+  const pagar = O.puedePagarEtapa({ dia: 3, modo: 'relax', economia: { ...economiaNueva(), pesos: 29499 } }, 'cerveceria', 0);
+  ok(pagar.ok === false && pagar.falta === 1, 'a la cervecería le faltan $1 con $29.499: no se construye sin plata');
 }
 
 // ---------------------------------------------------------------- 9. main.js, construccion.js y los demás usan todo esto
