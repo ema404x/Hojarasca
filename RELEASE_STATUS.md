@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.23.0 (sobre main = 4.22.0): LO QUE SE PRODUCE VALE, METAS Y LOGROS DE LA HISTORIA, INTERIORES Y CPU DE LA GENTE (CAMBIOS_4_23_0_A/B/C.md) — leche, carne, chorizo, frutas y mermeladas se venden, los talleres tienen salida pública y la renta sube; 25 logros de la Historia, contadores en la guía y el cuaderno «Lo vivido»; adentro de los edificios no se dibuja el exterior y la gente lejana cuesta menos CPU
 - 4.22.0 (sobre main = 4.21.0): NOCHES CON FORMA, EL VALLE SE ACUERDA Y EDIFICIOS Y MATERIALES (CAMBIOS_4_22_0_A/B/C.md) — curva del Desafío más pareja con mandamás a la mitad y tres perillas de dificultad, ecos de las decisiones en el final con tope a los encargos del Relax, obras con tablas, zócalos, hogares de piedra y troncos con detalle sin costo en la plaza
 - 4.21.0 (sobre main = 4.20.0): PLATA PAREJA, LA HISTORIA ARRANCA BIEN Y LUZ Y ATMÓSFERA (CAMBIOS_4_21_0_A/B/C.md) — fletes y mercado más parejos, Historia con estaciones propias, reloj y esperas claras, premios en pesos y tres metas con plata, noche de exterior, ventanas encendidas, luciérnagas y lluvia mejoradas
 - 4.20.0 (sobre main = 4.19.0): AUDITORÍAS (AUDITORIA_4_20_0_A/B/C.md) — equilibrio y economía, ritmo y primera hora de la Historia y presupuesto visual con ms por captura; sin cambios del juego; deja el orden de las versiones 4.21.0 a 4.25.0
