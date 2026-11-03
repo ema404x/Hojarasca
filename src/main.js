@@ -258,6 +258,8 @@ import { crearNocheMundo } from './historia-noche-mundo.js';
 // 4.13.0 (A): los duendes de lejos en los capítulos 5 y 6, el encuentro del galpón y las armas
 import { crearDuendesHistoria, hayHistoria } from './historia-duendes.js';
 import { crearPresencia } from './historia-presencia.js';
+// 4.21.0: la estación propia de la Historia, la hora de tu reloj apagada y «Primeros pasos» (historia-ajustes.js)
+import { estacionEfectiva, avisosDeAjustes, duracionAlEntrar, sinPrimerosPasos } from './historia-ajustes.js';
 // 3.8.6: la noche del temporal del capítulo 8
 import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
 // 4.5: la consola de códigos (Ctrl+Mayús+C) y hasta dónde se puede teletransportar
@@ -1058,7 +1060,7 @@ async function construir() {
   tirolesas = crearTirolesas(T, escena, col, veg, sonido, { obras: () => obras, nota: (t, sub) => nota(t, sub) });
   // 4.6 recursos: los recursos de zona (sólo en el Relax; ver recursos-zona-mundo.js). Las mallas nacen ya, así su programa se compila en la carga
   if (!esDesafio) recursosZona = crearRecursosZonaMundo({
-    T, escena, col, progreso: () => progreso, estacion: () => ajustes.estacion, pehuenes: () => veg.arboles.filter((a) => a.especie === 'pehuen' && !a.sacado),
+    T, escena, col, progreso: () => progreso, estacion: () => estacionAjuste(), pehuenes: () => veg.arboles.filter((a) => a.especie === 'pehuen' && !a.sacado),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, registrar: (id) => registrar(id), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarEntrada: (id, n) => sumarEntrada(id, n), nivel: (id) => nivelDe(id), ganarOficio: (id, n) => ganarOficio(id, n), refrescarBarra: () => refrescarBarra(true),
     cabeJuntar: (k, n) => cabeJuntar(k, n),   // 4.7 carga
@@ -1142,9 +1144,9 @@ async function construir() {
 
   // 4.0.5 (F7): con la estación en «auto» se arranca ya en la de la fecha de la partida (antes se empezaba en verano y se pasaba al
   // otoño o al invierno a la vista en los primeros segundos después de cargar)
-  { const e0 = ajustes.estacion === 'auto' ? estacionObjetivo() : null;
-    U.uOtono.value = e0 ? e0.oto : (ajustes.estacion === 'otono' ? 1 : 0);
-    U.uInvierno.value = e0 ? e0.inv : (ajustes.estacion === 'invierno' ? 1 : 0); }
+  { const e0 = estacionAjuste() === 'auto' ? estacionObjetivo() : null;
+    U.uOtono.value = e0 ? e0.oto : (estacionAjuste() === 'otono' ? 1 : 0);
+    U.uInvierno.value = e0 ? e0.inv : (estacionAjuste() === 'invierno' ? 1 : 0); }
 
   await paso('Afinando los sonidos del bosque', 94, async () => {
     // 2.7.4: los materiales piden sus texturas al compilarse: que ya estén
@@ -1198,14 +1200,14 @@ function prearmarAldea() {
 
 // 3.7.0: ¿arranca en invierno? (lo mismo que calcula el cuadro para las estaciones, al empezar)
 function inviernoDeAjustes() {
-  if (ajustes.estacion !== 'auto') return ajustes.estacion === 'invierno';
+  if (estacionAjuste() !== 'auto') return estacionAjuste() === 'invierno';
   const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
   return smoothstep(0.63, 0.73, fase) * (1 - smoothstep(0.96, 1.0, fase)) > 0.5;
 }
 
 // 3.7.5 (rincones): la ropa con que arranca la gente fuera del invierno ('verano' u 'otono'; lo mismo que el cuadro)
 function estacionRopaDeAjustes() {
-  if (ajustes.estacion !== 'auto') return ajustes.estacion === 'otono' ? 'otono' : ajustes.estacion === 'invierno' ? null : 'verano';
+  if (estacionAjuste() !== 'auto') return estacionAjuste() === 'otono' ? 'otono' : estacionAjuste() === 'invierno' ? null : 'verano';
   const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
   return smoothstep(0.30, 0.40, fase) * (1 - smoothstep(0.63, 0.73, fase)) > 0.5 ? 'otono' : 'verano';
 }
@@ -2205,7 +2207,8 @@ function estadoGuiaRelax() {
 function revisarGuiaRelax(dt) {
   const caja = $('tutorial');
   if (!caja) return;
-  const activa = !esDesafio && ajustes.guiaPrimerDia !== false && (progreso.guiaDia || 0) < PASOS_RELAX.length;
+  // 4.21.0: con la Historia en marcha el panel de objetivos del capítulo es el único (historia-ajustes.js: `sinPrimerosPasos`)
+  const activa = !esDesafio && ajustes.guiaPrimerDia !== false && (progreso.guiaDia || 0) < PASOS_RELAX.length && !sinPrimerosPasos(progreso.historia);
   caja.classList.toggle('oculto', !activa || modo !== 'jugando');
   if (!activa || modo !== 'jugando') return;
   acumuladoGuiaDia += dt;
@@ -2429,10 +2432,23 @@ function gastarCosaHistoria(cosa, n) {
     refrescarBarra(true);
   } catch (e) { fallaSistema('historia-gastar', e); }
 }
+// 4.21.0: la estación que usa el mundo: la propia de la Historia (pasan solas) o lo que eligió el jugador (historia-ajustes.js)
+function estacionAjuste() {
+  return estacionEfectiva(ajustes, progreso?.historia, esDesafio);
+}
+// 4.21.0: al empezar o retomar la Historia con la hora de tu reloj puesta, el día vuelve a durar lo de fábrica (historia-ajustes.js)
+function alEntrarEnLaHistoria() {
+  const d = duracionAlEntrar(ajustes, progreso?.historia, esDesafio);
+  if (d === null) return;
+  ajustes.duracion = d;
+  guardarAjustes(ajustes);
+  sincronizarAjustes();
+  nota('El día vuelve a durar 30 minutos', 'La Historia no va con la hora de tu reloj', true);
+}
 function estacionNaturalDeHistoria() { const e = estacionObjetivo(); return estacionDe({ invierno: e.inv, otono: e.oto }); }
 // la estación que forza la historia (el acto II es en otoño, a lo sumo dos días de espera): sólo con la estación en «auto»
 function conClimaDeHistoria(e) {
-  if (ajustes.estacion !== 'auto' || desafio) return e;
+  if (estacionAjuste() !== 'auto' || desafio) return e;   // (4.21.0: «auto» también es la estación propia de la Historia nueva)
   const f = valle?.estacionForzada?.();
   if (f === 'otono' && e.oto < 1) return { oto: 1, inv: 0 };
   if (f === 'invierno' && e.inv < 1) return { oto: 0, inv: 1 };   // 4.17.0: la helada temprana de la historia (capítulos 9 a 13)
@@ -2672,7 +2688,7 @@ function comenzarEnLaEstacion() {
 function crearValle() {
   valle = crearValleUi({
     esDesafio, nota, guardar, sumarMaterial, traducir: traducirPanel,
-    presencia: presenciaHistoria(), alActivarHistoria: () => { try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } try { nocheDelMundo()?.preparar(); } catch (e) { console.warn('noche de la historia', e); } },   /* (4.17.1: y la noche, como en la carga: sin ella los blancos de práctica del capítulo 11 no salían nunca en esta sesión) */ alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
+    presencia: presenciaHistoria(), alActivarHistoria: () => { try { alEntrarEnLaHistoria(); } catch (e) { console.warn('ajustes de la historia', e); } try { duendesHistoria()?.asegurar(); } catch (e) { console.warn('duendes de la historia', e); } try { nocheDelMundo()?.preparar(); } catch (e) { console.warn('noche de la historia', e); } },   /* (4.17.1: y la noche, como en la carga: sin ella los blancos de práctica del capítulo 11 no salían nunca en esta sesión) */ alDecidirDuendes: (trato) => presenciaHist?.epilogo(trato),   // 4.13.0 (A)
     noche: nocheDelMundo(), creditos: () => { abrir('pausa'); abrirInfo('creditos', 'pausa'); },   // 4.13.0 (B)
     teclaVisible: (t) => teclaVisible(t, teclasPropias),   // 3.8.4: el panel de la historia, con las teclas del jugador
     // con ?debug=1 los eventos al azar quedan quietos (las pruebas los prenden con __valle.azar(true))
@@ -2793,9 +2809,14 @@ function sincronizarAjustes() {
   document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     const clave = grupo.dataset.ajuste;
     // 3.8.4: en la corrida sin fin ya empezada, la dificultad marcada es la de la corrida (fija hasta que termine)
-    const valor = clave === 'dificultad' ? dificultadEnJuego() : ajustes[clave];
+    const valor = clave === 'dificultad' ? dificultadEnJuego() : clave === 'estacion' ? estacionAjuste() : ajustes[clave];   // (4.21.0: la estación marcada es la que rige: en la Historia, «Que pasen solas»)
     grupo.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(valor) === b.dataset.valor)));
   });
+  // 4.21.0: lo que la Historia apaga de los ajustes (la estación, que pasa sola, y la hora de tu reloj), con el motivo debajo
+  { const av = avisosDeAjustes(ajustes, valle?.historia?.() || progreso?.historia, esDesafio);
+    document.querySelectorAll('[data-ajuste="estacion"] button').forEach((b) => { b.disabled = !!av.estacion; });
+    document.querySelectorAll('[data-ajuste="duracion"] button[data-valor="reloj"]').forEach((b) => { b.disabled = !!av.reloj; });
+    document.querySelectorAll('[data-aviso-ajuste]').forEach((el) => { const m = av[el.dataset.avisoAjuste] || ''; el.textContent = m; el.classList.toggle('oculto', !m); }); }
   document.querySelectorAll('[data-ajuste-rango]').forEach((i) => { i.value = ajustes[i.dataset.ajusteRango]; });
   sonido.setMezcla({ ambiente: ajustes.volumenAmbiente, efectos: ajustes.volumenEfectos, musica: ajustes.volumenMusica });
   $('aviso-calidad').classList.toggle('oculto', !calidadPideReinicio());
@@ -2822,7 +2843,7 @@ function sincronizarAjustes() {
 document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
   grupo.addEventListener('click', (ev) => {
     const b = ev.target.closest('button[data-valor]');
-    if (!b) return;
+    if (!b || b.disabled) return;
     const clave = grupo.dataset.ajuste;
     let v = b.dataset.valor;
     if (clave === 'duracion' && v !== 'reloj') v = Number(v);
@@ -6339,7 +6360,7 @@ function armarOficiosYAldea(esDesafio) {
     alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alAbrirPanel: () => { marcarEn('fiesta', 0); marcarHud(0, true); },
     amigos: () => Object.values(amistades(progreso) || {}).filter((n) => n === 'amigo' || n === 'compadre').length,
     sumarAmistad: (k, n) => { if (k) sumarAmistadDe(progreso, k, n, progreso.dia); },
-    invierno: (d) => inviernoDelDia(d, ajustes.estacion), semilla: () => meteoPartida().semilla, ritmo: () => ajustes.ritmoAldea || 'normal',
+    invierno: (d) => inviernoDelDia(d, estacionAjuste()), semilla: () => meteoPartida().semilla, ritmo: () => ajustes.ritmoAldea || 'normal',
     troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
     leer: (l) => leerEnLaAldea(l), decir: (texto) => decirCharlaAldea(texto), decirNpc: (npc, texto, o = {}) => socialJuego?.decir(npc, texto, { cerca: true, ...o }),
     diario: (tipo, dato) => diario.anotar(tipo, dato),
@@ -8597,7 +8618,7 @@ const cercaDeObra = (o, r = 60) => Math.hypot(o.datos.x - jugador.estado.pos.x, 
 function pronosticoActual() {
   // 3.8.7: con el programa que sigue el clima (la noche del temporal y la gran nevada también se anuncian y se cumplen)
   programaTramos ||= programaDelTiempo();
-  return pronosticoMeteo(meteoPartida().semilla, progreso.dia, progreso.horas, { modo: ajustes.clima, estacion: ajustes.estacion, tipo: programaTramos.tipo, viento: programaTramos.viento });
+  return pronosticoMeteo(meteoPartida().semilla, progreso.dia, progreso.horas, { modo: ajustes.clima, estacion: estacionAjuste(), tipo: programaTramos.tipo, viento: programaTramos.viento });
 }
 function nochesActuales() {
   return desafio && progreso.desafio ? nochesQueVienen(progreso.desafio, meteoPartida(), progreso.dia, progreso.horas) : [];
@@ -9278,7 +9299,7 @@ function cobrarPremio(e) {
   // Lo que se cuenta (yerba, semillas) se suma a lo que ya tenías.
   for (const [k, n] of Object.entries(premio.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
   // 3.8.8: y los pesos (los concursos, la revista): por la puerta de la economía, con su renglón en el libro
-  if (premio.pesos) cobrarPesos(progreso, premio.pesos, premio.texto || 'Un premio', e?.quien || e?.titulo || 'Premio');
+  if (premio.pesos) cobrarPesos(progreso, premio.pesos, premio.motivo || premio.texto || 'Un premio', premio.con || e?.quien || e?.titulo || 'Premio');   // 4.21.0: `motivo` y `con` cortos para el libro (los premios de la historia traen textos largos)
   // El cierre deja varias cosas de una: las que ya tenías no se duplican.
   const yaTenias = { ...progreso.cosas };
   for (const c of premio.cosas || []) progreso.cosas[c] = 1;
@@ -10937,8 +10958,8 @@ let edificios = [];
 const DIAS_ANIO = 12;
 // 4.0.5: a qué estación va el cielo y el paisaje ahora (oto e inv de 0 a 1); la misma cuenta para cada cuadro y para el arranque
 function estacionObjetivo() {
-  let oto = ajustes.estacion === 'otono' ? 1 : 0, inv = ajustes.estacion === 'invierno' ? 1 : 0;
-  if (ajustes.estacion === 'auto') {
+  let oto = estacionAjuste() === 'otono' ? 1 : 0, inv = estacionAjuste() === 'invierno' ? 1 : 0;
+  if (estacionAjuste() === 'auto') {
     const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
     // verano · otoño · invierno, con una transición que dura casi un día entero
     oto = smoothstep(0.30, 0.40, fase) * (1 - smoothstep(0.63, 0.73, fase));
@@ -10947,7 +10968,7 @@ function estacionObjetivo() {
   return { oto, inv };
 }
 function nombreEstacion() {
-  if (ajustes.estacion !== 'auto') return { verano: 'Verano', otono: 'Otoño', invierno: 'Invierno' }[ajustes.estacion] || 'Verano';
+  if (estacionAjuste() !== 'auto') return { verano: 'Verano', otono: 'Otoño', invierno: 'Invierno' }[estacionAjuste()] || 'Verano';
   if (U.uInvierno.value > 0.5) return 'Invierno';
   if (U.uOtono.value > 0.5) return 'Otoño';
   if (U.uOtono.value > 0.12) return 'Fin del verano';

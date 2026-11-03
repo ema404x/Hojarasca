@@ -145,6 +145,8 @@ export const TEXTO_ACTO1 = {
   // el cuaderno de lo raro: indicios con fecha y lugar. Los ids son los de los efectos `raro:<id>` de las escenas.
   raro: {
     'algo-cruzo': { titulo: 'Algo cruzó el sendero', texto: 'Algo cruzó el sendero. Un zorro, seguro. Un zorro con gorro.', cap: 1, donde: 'sendero al refugio' },
+    // 4.21.0: el indicio de la primera noche (sale solo al despertar: historia.js, `alCumplirObjetivo`)
+    'risa-primera-noche': { titulo: 'Una risa la primera noche', texto: 'La primera noche, ya medio dormido, una risa corta del lado del arroyo. Lejos, bajita, como de alguien que se tapa la boca. Eusebio no dejó dicho nada de eso.', cap: 1, donde: 'refugio' },
     'ronda-ramitas': { titulo: 'La ronda de ramitas', texto: 'Las ramitas que sobraron aparecieron en ronda frente a la puerta, como las horas de un relojito.', cap: 1, donde: 'umbral del refugio' },
     'canto-blanco': { titulo: 'Un canto blanco', texto: 'En el medio de la ronda, un canto rodado blanco, liso como un huevo. Tibio. Sin dueño.', cap: 1, donde: 'umbral del refugio' },
     'risa-lejos': { titulo: 'Una risa de noche', texto: 'Una risa corta, lejos, del lado del arroyo. Ercilia dice que son chimangos.', cap: 2, donde: 'arroyo' },

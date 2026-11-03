@@ -64,7 +64,7 @@ async function chequear(arch = '', sufijo = '') {
     igual(H.CAPITULOS.map((c) => c.acto), [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3], 'tres actos');
     for (const c of H.CAPITULOS) {
       ok(c.intro.length >= 1 && c.outro.length >= 1, `${c.id}: tarjeta de entrada y de cierre`);
-      ok(c.premio && c.premio.texto && (c.premio.materiales || c.premio.cuenta || c.premio.ramitas || c.premio.cosas || c.premioVar), `${c.id}: premio concreto`);
+      ok(c.premio && c.premio.texto && (c.premio.materiales || c.premio.cuenta || c.premio.ramitas || c.premio.cosas || c.premio.pesos || c.premioVar), `${c.id}: premio concreto`);
       for (const k of Object.keys(c.premio.materiales || {})) ok(['tronco', 'tabla', 'piedra', 'lana'].includes(k), `${c.id}: material ${k}`);
       for (const t of [...c.intro, ...c.outro, ...(c.outroVar || []).flatMap((v) => Object.values(v.lineas))]) ok(!/[ÃÂ]/.test(t), `${c.id}: sin mojibake`);
       for (const o of c.objetivos) ok(typeof o.hecho === 'function' || typeof o.cuenta === 'function', `${c.id}:${o.id} se mide`);

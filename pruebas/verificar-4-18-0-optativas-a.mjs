@@ -50,7 +50,7 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
   for (const T of [T1, T2, T3]) for (const c of Object.values(T.capitulos)) for (const o of c.optativas || []) delGuion.add(o.id);
   ok(delGuion.size === 28, `el guion trae 28 optativas (${delGuion.size})`);
   for (const id of delGuion) ok(Object.hasOwn(O.OPTATIVA, id), `«${id}» está en el registro`);
-  ok(O.OPTATIVAS.length === 31 && new Set(O.IDS_OPTATIVAS_REGISTRO).size === 31, 'el registro tiene 28 del guion, la de Sofía (4.18.2) y las de Belisario y Sofía (4.19.0), sin repetidas');
+  ok(O.OPTATIVAS.length === 34 && new Set(O.IDS_OPTATIVAS_REGISTRO).size === 34, 'el registro tiene 28 del guion, la de Sofía (4.18.2), las de Belisario y Sofía (4.19.0) y las tres metas con plata (4.21.0), sin repetidas');
   for (const o of O.OPTATIVAS) {
     ok(Object.hasOwn(IDX, o.desde) && Object.hasOwn(IDX, o.hasta) && IDX[o.desde] <= IDX[o.hasta], `${o.id}: ventana válida`);
     ok(typeof o.ofrece === 'function' && typeof o.hecha === 'function', `${o.id}: ofrece y hecha`);

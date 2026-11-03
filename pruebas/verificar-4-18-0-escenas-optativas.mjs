@@ -340,8 +340,10 @@ function todo(ME, MT, textoE, textoT) {
     c(typeof t.titulo === 'string' && t.titulo.length > 3 && typeof t.ofrecida === 'string' && t.ofrecida.length > 20 && typeof t.hecha === 'string' && t.hecha.length > 15 && t.ofrecida !== t.hecha, `tablón «${id}»: incompleto`);
     c(typeof t.quien === 'string', `tablón «${id}»: sin quién`);
   }
-  c(Object.keys(tab).every((id) => Object.hasOwn(OPTATIVAS_GUION, id)), 'tablón: una optativa que el guion no tiene');
-  c(Object.keys(tab).length === 28, `tablón: tienen que ser 28 (${Object.keys(tab).length})`);
+  // 4.21.0: las tres metas con plata (puesto de la feria, establo del zaino, cobertizo de heno) no son del guion: tienen su tablón aparte de las 28
+  const delGuionTab = Object.keys(tab).filter((id) => !['puesto-feria', 'establo-zaino', 'heno-majada'].includes(id));
+  c(delGuionTab.every((id) => Object.hasOwn(OPTATIVAS_GUION, id)), 'tablón: una optativa que el guion no tiene');
+  c(delGuionTab.length === 28 && Object.keys(tab).length === 31, `tablón: tienen que ser 28 del guion y tres metas con plata (${delGuionTab.length} y ${Object.keys(tab).length})`);
 
   // 9) la tabla de disparo
   for (const id of ids) {
