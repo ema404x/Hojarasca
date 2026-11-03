@@ -11,6 +11,36 @@ import { bordeBosqueNatural, corredorEscenico, factorRodalPatagonico, firmaCompo
 
 const TAM_CHUNK = 120;   // tramos más grandes: menos dibujos por cuadro
 
+// 4.24.0: el sotobosque de menos cantidad y más variedad (informe C de la 4.20.0, H3): queda el 72 % de las plantas y una parte de cada especie
+// común se reemplaza por una especie nueva (acumulado: con v < hasta sale la nueva). Las nalcas, los colihues y los coirones se ralean pero
+// siguen siendo los mismos. No se tocan el calafate (de ahí salen los frutos), el chilco y el notro (son pocos y los visitan los picaflores y el
+// cuaderno), ni las piedras y los troncos.
+export const SOTO_QUE_QUEDA = 0.72;
+const VARIANTES_SOTO = {
+  maqui: [['zarza', 0.3]],
+  chaura: [['mosqueta', 0.3]],
+  neneo: [['michay', 0.3]],
+  helecho: [['helecho2', 0.36]],
+  nalca: [], colihue: [], coiron: [],
+};
+// 4.24.0: los parches de suelo del prado: la fracción de las celdas de 4,4 m que lleva uno (con la densidad de la calidad) y cuántos son verdes
+export const PARCHES_PRADO = 0.5;
+export const PARCHES_VERDES = 0.55;
+// 4.24.0: el tinte por instancia de los arbustos y los parches: [brillo mínimo, cuánto varía, cuánto se corre el tono]
+export const TINTE_SOTO = {
+  chilco: [0.86, 0.26, 0.05], notro: [0.86, 0.26, 0.05], maqui: [0.86, 0.26, 0.05], chaura: [0.86, 0.26, 0.05], neneo: [0.86, 0.26, 0.05], calafate: [0.86, 0.26, 0.05],
+  michay: [0.86, 0.26, 0.05], mosqueta: [0.86, 0.26, 0.05], zarza: [0.86, 0.26, 0.05], helecho2: [0.86, 0.26, 0.05], nalca: [0.88, 0.22, 0.04],
+  parche0: [0.8, 0.36, 0.06], parche1: [0.8, 0.36, 0.06],
+  // (la hojarasca también, aunque no sea nueva: el material del suelo tiene que seguir en UN solo programa, el del dibujo con tinte por instancia, como los parches)
+  hojarasca0: [0.86, 0.26, 0.05], hojarasca1: [0.86, 0.26, 0.05],
+};
+export function esPlantaDeSoto(tipo) { return Object.hasOwn(VARIANTES_SOTO, tipo); }
+export function especieDeSoto(tipo, v) {
+  if (!Object.hasOwn(VARIANTES_SOTO, tipo)) return tipo;
+  for (const [nombre, hasta] of VARIANTES_SOTO[tipo]) if (v < hasta) return nombre;
+  return tipo;
+}
+
 // 3.2: estilo pintado (HushWood). Las copas son bultos con un degradado propio (base
 // oscura y fría, puntas claras y cálidas) y normales esféricas suaves; las coníferas son
 // pisos de faldas en punta. Se fueron las cartas de hojas y el calado de la 2.7. El LOD
@@ -191,7 +221,45 @@ function generarCartas() {
   relleno(5, 44, 128, 136, 78, 70, 128, 150, [27, 34, 11, 13.5], [0.45, 0.72], 'oval');
   relleno(5, 28, 124, 112, 58, 44, 128, 150, [25, 31, 11, 13], [0.74, 1.0], 'oval');
   pintarSotobosque(D, r, azar);
+  pintarCopasLejos(D, r, azar);
   return D;
+}
+
+// 4.24.0: las manchas del LOD medio (de 66 a 135 m: las copas que miran a la cámara) se recortaban con las puntas de las hojas de las
+// celdas 0 y 1: a esa distancia cada hoja mide dos o tres píxeles y el borde de la copa salía en dientes cuadrados. Dos celdas nuevas
+// (10 y 11, las que estaban libres) llevan las mismas hojas pintadas por adentro, pero el contorno es una nube de lóbulos redondos
+// (nueve lóbulos de arco, con cúspides entre uno y otro) hecha con una máscara de borde suave: con los mipmaps a esa distancia el alfa
+// se promedia y el recorte queda redondo. Se pintan al final y con el mismo azar que ya seguía de largo: las celdas de antes salen iguales.
+export const CELDAS_COPA_LEJOS = { densa: 10, abierta: 11 };
+// el radio (en téxeles de la celda) del contorno de la copa según el ángulo: lóbulos de arco, un poco irregulares
+export function radioCopaLejos(ang, fase) {
+  return 90 + 13 * Math.abs(Math.sin(4.5 * ang + fase)) + 3 * Math.sin(7 * ang + 1.7 * fase);
+}
+function pintarCopasLejos(D, r, azar) {
+  const copa = (celda, forma, hoja, fase) => {
+    const ox = (celda % 4) * CARTA_CELDA, oy = Math.floor(celda / 4) * CARTA_CELDA;
+    const H = (x, y, ang, largo, ancho, luz) => pintarHoja(D, celda, x, y, ang, largo, ancho, luz * 0.84, Math.min(1, luz * 1.12), forma);
+    // hojas por toda la copa, más claras arriba (el sol da de arriba): las que se pasan del contorno las recorta la máscara
+    for (let i = 0; i < 170; i++) {
+      const a = r() * Math.PI * 2, d = Math.sqrt(r()), x = 128 + Math.cos(a) * 106 * d, y = 128 + Math.sin(a) * 100 * d;
+      const arriba = 1 - Math.min(1, Math.max(0, (y - 70) / 90));
+      H(x, y, Math.atan2(y - 150, x - 128) + azar(-0.6, 0.6), azar(hoja[0], hoja[1]), azar(hoja[2], hoja[3]), azar(0.36, 0.6) + 0.42 * arriba * azar(0.6, 1));
+    }
+    for (let y = 0; y < CARTA_CELDA; y++) {
+      for (let x = 0; x < CARTA_CELDA; x++) {
+        const dx = x + 0.5 - 128, dy = y + 0.5 - 128, i = ((oy + y) * CARTA_ANCHO + ox + x) * 4;
+        const borde = radioCopaLejos(Math.atan2(dy, dx), fase) - Math.hypot(dx, dy);
+        const m = borde > 1.2 ? 1 : borde < -1.2 ? 0 : borde / 2.4 + 0.5;
+        if (m <= 0) { D[i] = D[i + 1] = D[i + 2] = 105; D[i + 3] = 0; continue; }
+        // adentro de la copa, los huecos entre hojas son sombra (no agujeros: el recorte es sólo el contorno)
+        const a0 = D[i + 3] / 255, luz = a0 * D[i] + (1 - a0) * 70;
+        D[i] = D[i + 1] = D[i + 2] = luz;
+        D[i + 3] = m * 255;
+      }
+    }
+  };
+  copa(CELDAS_COPA_LEJOS.densa, 'oval', [18, 25, 5, 6.5], 0.7);
+  copa(CELDAS_COPA_LEJOS.abierta, 'redonda', [14, 19, 6.5, 8], 2.1);
 }
 
 // 3.4 (sotobosque): las celdas nuevas, pintadas después de las de los árboles (con el mismo
@@ -417,8 +485,8 @@ export function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
             float celdaM = floor(aCarta.w - 0.5);
             vec2 cuM = vec2(mod(celdaM, 4.0) + 0.5, floor(celdaM / 4.0) + 0.5) * 0.25;
             vCartaVeg = vec3(cuM + vec2(discoM.x, -discoM.y) * 0.1, 1.0);
-            // 3.4 (lod): las celdas redondas (densa, abierta) recortan el borde con sus hojas
-            vDiscoVeg = vec3(discoM, celdaM < 1.5 ? 1.0 : 0.0);
+            // 3.4 (lod): las celdas redondas (densa, abierta) recortan el borde con sus hojas (4.24.0: y las dos de contorno de nube, 10 y 11)
+            vDiscoVeg = vec3(discoM, (celdaM < 1.5 || celdaM > 9.5) ? 1.0 : 0.0);
           } else { vCartaVeg = vec3(0.0); vDiscoVeg = vec3(0.0); }`}
         }`);
     sh.fragmentShader = sh.fragmentShader
@@ -562,6 +630,10 @@ function mancha(c, r, x, y, z, n, rx, ry, tipo, tinte, celda = 0) {
     c.vertice(x, y, z, n.x, n.y, n.z, q[2], q[3], q[4], tipo, q[0], q[1], q[5], 1 + celda);
   }
 }
+// 4.24.0: la celda del atlas con que se pinta la mancha lejana: las copas densa y abierta usan las dos de contorno redondo
+function celdaDeLejos(celda) {
+  return celda === CELDAS_CARTA.densa ? CELDAS_COPA_LEJOS.densa : celda === CELDAS_CARTA.abierta ? CELDAS_COPA_LEJOS.abierta : celda;
+}
 // 3.4: mientras se arma la geometría de la malla de sombras, los racimos lejanos son bultos
 let paraSombra = false;
 function geometriaSombra(armar) {
@@ -598,7 +670,7 @@ export function racimo(c, semilla, cen, rad, o) {
     // (del tamaño del racimo con sus cartas, que sobresalen del núcleo)
     const sx = (rad[0] + rad[2]) * 0.5 * (o.lejos ?? 1.25), sy = o.chato ? rad[1] * 1.3 : Math.max(rad[1] * 1.4, sx * 0.66);
     const nm = new THREE.Vector3(cen[0] * 0.25, 1, cen[2] * 0.25).normalize();
-    mancha(c, r, cen[0], cen[1], cen[2], nm, sx, sy, tipo, (dy) => tinte(cen[0], cen[1] + dy * 0.7, cen[2], 0.86).multiplyScalar(0.9), o.celda ?? 0);
+    mancha(c, r, cen[0], cen[1], cen[2], nm, sx, sy, tipo, (dy) => tinte(cen[0], cen[1] + dy * 0.7, cen[2], 0.86).multiplyScalar(0.9), celdaDeLejos(o.celda ?? 0));   // 4.24.0: las densa y abierta, con el contorno de nube (ver pintarCopasLejos)
     return;
   }
   // el núcleo. De cerca es la sombra de adentro del racimo: más chico y más oscuro (la masa
@@ -1257,6 +1329,28 @@ function mantaHojarasca(semilla) {
   return c.geometria({ soldar: true });
 }
 
+// 4.24.0: un parche de suelo del prado: hojas chatas (de trébol, de paja, de tierra) apoyadas sobre el piso, con el color por vértice.
+// Es el «suelo con variedad de color» que el verde liso del terreno no tiene entre las matas de pasto: geometría y color, sin shaders
+// ni texturas nuevas, con el mismo material de la hojarasca (una sola malla por tipo). Cada instancia, además, lleva su tinte. Son de tipo 3 (como las
+// flores): con el invierno el material las pliega a nada (aTipo entre 2,5 y 3,5 con uInvierno > 0,2), así no quedan hojas verdes tiradas sobre la nieve.
+export const TIPO_PARCHE = 3;
+export function parcheSuelo(semilla, tonos, hojas, radio, tam) {
+  const r = rng(semilla), c = new Constructor();
+  for (let i = 0; i < hojas; i++) {
+    const ang = r() * Math.PI * 2, d = Math.sqrt(r()) * radio;
+    const hoja = new THREE.CircleGeometry(tam[0] + r() * (tam[1] - tam[0]), 9);
+    c.agregar(hoja, { color: tonos[i % tonos.length], tipo: TIPO_PARCHE, variar: 0.1,
+      matriz: matriz([Math.cos(ang) * d, 0.03 + r() * 0.016, Math.sin(ang) * d], [-Math.PI / 2 + (r() - 0.5) * 0.12, r() * 6.28, 0], [1.0, 0.5 + r() * 0.5, 1.0]) });
+  }
+  return c.geometria({ soldar: true });
+}
+// los dos tipos: verdes (trébol, musgo claro, pasto tierno) y secos (paja, tierra, pasto quemado). Más claros que el piso: el material
+// oscurece lo que está a ras del suelo (la oclusión de abajo) y el piso del prado ya es de un verde medio.
+export const TONOS_PARCHE = {
+  verde: ['#6fa63c', '#5f9a36', '#7ab045', '#548f33', '#86b84e', '#478a35'],
+  seco: ['#8c9446', '#9a9a4e', '#7d883f', '#a29a52', '#707a3a', '#938c48'],
+};
+
 function arbolSeco(semilla, detalle) {
   // 3.4: con el constructor de árboles (el impostor lee las cartas, aunque acá no haya)
   const r = rng(semilla), c = new ConstructorArbol();
@@ -1637,6 +1731,15 @@ export function generarVegetacion(T, calidad, escena) {
   registrar('hojarasca0', mantaHojarasca(31), null, mats.suelo, 'suelo');
   registrar('hojarasca1', mantaHojarasca(47), null, mats.suelo, 'suelo');
   registrar('contactoArbol', discoContactoArbol(), null, mats.contacto, 'contacto');
+  // 4.24.0: más especies en el sotobosque (menos cantidad de cada una: ver el reparto más abajo) y el suelo del prado con parches de color.
+  // Los arbustos nuevos son decorativos (michay de flor naranja, rosa mosqueta, zarzaparrilla) y el helecho nuevo otra fronda; no entran en `plantas`
+  // (lo que se anota en el cuaderno y visitan los picaflores no cambia). Las semillas son nuevas: los de antes salen iguales.
+  registrar('michay', arbusto(14, '#46692c', '#e8a528', 22, 0.85), null, mats.arbusto, 'soto');
+  registrar('mosqueta', arbusto(15, '#4d7330', '#e58aa6', 16, 1.05), null, mats.arbusto, 'soto');
+  registrar('zarza', arbusto(16, '#3b5f31', '#b3263c', 24, 0.7), null, mats.arbusto, 'soto');
+  registrar('helecho2', helecho(17), null, mats.arbusto, 'soto');
+  registrar('parche0', parcheSuelo(51, TONOS_PARCHE.verde, 22, 0.95, [0.1, 0.3]), null, mats.suelo, 'suelo');
+  registrar('parche1', parcheSuelo(52, TONOS_PARCHE.seco, 22, 0.95, [0.09, 0.27]), null, mats.suelo, 'suelo');
 
   const chunks = new Map();
   const colisiones = [];
@@ -1646,13 +1749,13 @@ export function generarVegetacion(T, calidad, escena) {
   const matas = [];       // todo el sotobosque, para poder despejarlo si estorba
 
   const q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
-  function colocar(tipo, x, y, z, esc, rotY, inclinar = 0) {
+  function colocar(tipo, x, y, z, esc, rotY, inclinar = 0, azar = r) {   // (4.24.0: `azar`: los parches de suelo usan el suyo y no gastan el del valle)
     const cx = Math.floor((x + MITAD) / TAM_CHUNK), cz = Math.floor((z + MITAD) / TAM_CHUNK);
     const k = cx + ',' + cz;
     if (!chunks.has(k)) chunks.set(k, { cx, cz, x: (cx + 0.5) * TAM_CHUNK - MITAD, z: (cz + 0.5) * TAM_CHUNK - MITAD, listas: {}, mallas: [] });
     const ch = chunks.get(k);
     if (!ch.listas[tipo]) ch.listas[tipo] = [];
-    e.set(inclinar * (r() - 0.5), rotY, inclinar * (r() - 0.5), 'YXZ');
+    e.set(inclinar * (azar() - 0.5), rotY, inclinar * (azar() - 0.5), 'YXZ');
     q.setFromEuler(e);
     const escala = typeof esc === 'number' ? s.set(esc, esc, esc) : s.set(esc[0], esc[1], esc[2]);
     ch.listas[tipo].push(new THREE.Matrix4().compose(p.set(x, y, z), q, escala));
@@ -1850,6 +1953,12 @@ export function generarVegetacion(T, calidad, escena) {
       else if (tirada < 0.012 + (dAgua < 6 ? 0.03 : 0)) { tipo = 'roca'; esc = 0.35 + r() * 1.1; }
       else if (b > 0.5 && tirada < 0.02) { tipo = 'tronco'; esc = 1; }
       if (!tipo) continue;
+      // 4.24.0: menos cantidad, más variedad. Queda el 72 % de las plantas (con un sorteo por posición, sin tocar el azar del valle: la que se
+      // saca igual gasta los tres números al azar que habría gastado) y parte de lo que queda sale de una especie nueva
+      if (esPlantaDeSoto(tipo)) {
+        if (h3(x * 1.37 + 5.1, z * 0.91 - 2.3, 7.7) >= SOTO_QUE_QUEDA) { r(); r(); r(); continue; }
+        tipo = especieDeSoto(tipo, h3(x * 2.11 - 9.4, z * 1.73 + 3.6, 1.3));
+      }
       const rot = r() * Math.PI * 2;
       const ref = tipo === 'roca' ? colocarRoca(x, h - 0.2 * esc, z, esc, rot, 0.1, pend > 0.55 ? 'ladera' : dAgua < 6 ? 'orilla' : 'suelta') : colocar(tipo, x, h - 0.05, z, esc, rot, tipo === 'tronco' ? 0 : 0.1);   // 4.6.0: la roca, apoyada
       let choque = null;
@@ -1883,6 +1992,28 @@ export function generarVegetacion(T, calidad, escena) {
       const escH = 0.65 + r() * 0.8;
       const variante = Math.abs((Math.floor(x * 0.9) * 31) ^ (Math.floor(z * 0.9) * 17)) % 2;
       colocar('hojarasca' + variante, x, T.altura(x, z) + 0.012, z, [escH * (0.85 + r() * 0.35), 1, escH], r() * Math.PI * 2);
+    }
+  }
+
+  // ----- 4.24.0: parches de suelo del prado
+  // El terreno entre las matas de pasto es de un verde liso (se pinta por píxel en el material del terreno, sin color por vértice): estos
+  // parches chatos (trébol, musgo claro y paja o tierra seca) le dan variedad de color al suelo que asoma entre las hojas, sin tocar el
+  // shader ni sumar pasto. Con su propio azar (rng propio): el resto del valle sale como siempre. Sólo en el prado abierto y llano.
+  {
+    const rp = rng(4243);
+    const PASO_Q = 4.4;
+    for (let gz = -MITAD; gz < MITAD; gz += PASO_Q) {
+      for (let gx = -MITAD; gx < MITAD; gx += PASO_Q) {
+        const x = gx + rp() * PASO_Q, z = gz + rp() * PASO_Q, sorteo = rp(), tira = rp(), giro = rp() * Math.PI * 2, tam = 0.8 + rp() * 0.7;
+        if (Math.abs(x) > 495 || Math.abs(z) > 495 || sorteo > PARCHES_PRADO * dens) continue;
+        const k = T.indice(x, z);
+        if (T.distSendero[k] < 1.4 || T.agua(x, z) || T.pendiente[k] > 0.14) continue;
+        const perfil = perfilHabitatPatagonico(T, x, z);
+        if (perfil.pasto < 0.5 || perfil.bosque > 0.45 || perfil.estepa > 0.3) continue;
+        const tipo = tira < PARCHES_VERDES ? 'parche0' : 'parche1';
+        const ref = colocar(tipo, x, T.altura(x, z), z, [tam, 1, tam], giro, 0, rp);
+        matas.push({ x, z, tipo, ref, choque: null, decorativo: true, parche: true, esc: tam });
+      }
     }
   }
 
@@ -1940,6 +2071,7 @@ export function generarVegetacion(T, calidad, escena) {
 
   // ----- mallas instanciadas por chunk
   const tinte = new THREE.Color();
+  const rv = rng(4242);   // 4.24.0: el azar de los tintes del sotobosque nuevo
   for (const ch of chunks.values()) {
     // 3.3: cada chunk es un grupo que entra a la escena sólo mientras tiene algo a la vista:
     // los chunks lejanos no se recorren en cada cuadro (ni para matrices ni para dibujar).
@@ -1959,7 +2091,12 @@ export function generarVegetacion(T, calidad, escena) {
             // cada árbol con un tono apenas distinto
             if (t.grupo === 'arbol' || nombre === 'helecho' || nombre === 'colihue') {
               const v = 0.86 + r() * 0.26;
-              im.setColorAt(i, tinte.setRGB(v * (0.95 + r() * 0.1), v, v * (0.92 + r() * 0.1)));
+              // (4.24.0: el tono de cada árbol se corre un poco más —rojo ±8 %, azul de −12 % a +8 %; antes ±5 % y de −8 % a +2 %—: el bosque, de cerca y de lejos, sin la tanda pareja)
+              im.setColorAt(i, tinte.setRGB(v * (0.92 + r() * 0.16), v, v * (0.88 + r() * 0.2)));
+            } else if (Object.hasOwn(TINTE_SOTO, nombre)) {
+              // 4.24.0: cada arbusto y cada parche con su tinte (con un azar propio: el de los árboles no se mueve)
+              const [v0, dv, dh] = TINTE_SOTO[nombre], v = v0 + rv() * dv;
+              im.setColorAt(i, tinte.setRGB(v * (1 - dh + rv() * dh * 2), v, v * (1 - dh * 1.2 + rv() * dh * 2.4)));
             }
           });
           im.instanceMatrix.needsUpdate = true;
@@ -1983,20 +2120,78 @@ export function generarVegetacion(T, calidad, escena) {
       };
       const alta = hacer(t.alta, null, t.matAlta);
       const malla = { grupo: t.grupo, alta, baja: null, sombra: null };
-      if (t.baja) {
-        malla.baja = hacer(t.baja, alta, t.matBaja);
-        if (calidad.sombras) {
-          // silueta liviana que solo se usa para calcular sombras (3.4: con bultos, no manchas)
-          malla.sombra = hacer(t.sombra || t.baja, alta, t.matBaja);
-          malla.sombra.layers.set(1);
-          malla.sombra.castShadow = true;
-        }
-      }
+      if (t.baja) malla.baja = hacer(t.baja, alta, t.matBaja);
+      // 4.24.0: las siluetas que dan sombra ya no son una malla por tramo y por especie (unas 70 a 270 llamadas en cada pasada de sombras): ver
+      // `sombras` más abajo, una sola malla por especie con los árboles que caen dentro del alcance de la sombra
       ch.mallas.push(malla);
       if (!ch.porTipo) ch.porTipo = {};
       ch.porTipo[nombre] = [malla.alta, malla.baja, malla.sombra].filter(Boolean);
     }
     delete ch.listas;
+  }
+
+  // ----- 4.24.0: las siluetas de las sombras, fundidas por especie
+  // La pasada de sombras dibujaba una silueta por tramo (120 m) y por especie dentro del alcance: de 70 llamadas en el claro a unas 270 en la plaza,
+  // y cada llamada de dibujo de más cuesta ~30 µs de CPU cada vez que se rehace el mapa (hasta 6 veces por segundo al caminar). Ahora hay UNA malla
+  // por especie (capa 1 y proyectando, como las de antes: ver permitirSiluetasEnSombra) con las instancias de los mismos tramos que antes entraban
+  // en el alcance (más un margen de 5 m, lo que se camina hasta rehacerla). Se rehace cuando la cámara se movió 4 m o cambió algún árbol. Los
+  // mismos árboles dan sombra que antes; sólo cambia cuántas llamadas hacen falta.
+  const sombras = {};
+  // (las mallas cuelgan de un solo grupo de la raíz de la escena: un objeto más en el repaso de cada cuadro, no una veintena; main.js lo apaga junto con
+  // el resto de lo de afuera cuando la cámara está adentro de un edificio)
+  const sombrasGrupo = new THREE.Group();
+  sombrasGrupo.name = 'sombras-arboles';
+  sombrasGrupo.matrixAutoUpdate = false;
+  sombrasGrupo.updateMatrixWorld(true);
+  sombrasGrupo.matrixWorldAutoUpdate = false;
+  if (calidad.sombras) {
+    escena.add(sombrasGrupo);
+    for (const [nombre, t] of Object.entries(tipos)) {
+      if (t.grupo !== 'arbol') continue;
+      let total = 0;
+      for (const ch of chunks.values()) { const f = ch.porTipo?.[nombre]?.[0]; if (f) total += f.count; }
+      if (!total) continue;
+      // (silueta liviana que solo se usa para calcular sombras (3.4: con bultos, no manchas))
+      const im = new THREE.InstancedMesh(t.sombra || t.baja, t.matBaja, total);
+      // (con un tinte de relleno, sin usar: las siluetas de antes compartían el tinte de los árboles, y el material de profundidad de la pasada de sombras
+      // arma un programa distinto con y sin tinte por instancia: así es el mismo programa de siempre y no hay ninguno nuevo)
+      im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(total * 3).fill(1), 3);
+      im.count = 0;
+      im.frustumCulled = false;
+      im.castShadow = true; im.receiveShadow = false;
+      im.matrixAutoUpdate = false;
+      im.layers.set(1);
+      im.updateMatrixWorld(true);
+      im.matrixWorldAutoUpdate = false;
+      sombrasGrupo.add(im);
+      sombras[nombre] = im;
+    }
+  }
+  const MOVIDA_PARA_SOMBRA = 4;   // (como la de los árboles cercanos: el margen es chico a propósito, un tramo de más en el mapa de sombras son cientos de árboles)
+  let sombraX = Infinity, sombraZ = Infinity, sombraSucia = true;
+  function compactarSombras(cam) {
+    sombraX = cam.x; sombraZ = cam.z; sombraSucia = false;
+    const alcance = (calidad.sombraArboles ?? 45) + MOVIDA_PARA_SOMBRA + 1;   // 4.12.3: metros al borde del tramo (con la caja de sombras grande, más lejos)
+    for (const nombre in sombras) {
+      const im = sombras[nombre], dest = im.instanceMatrix.array, cap = im.instanceMatrix.count;
+      let n = 0;
+      for (const ch of chunks.values()) {
+        if (Math.max(0, Math.hypot(cam.x - ch.x, cam.z - ch.z) - TAM_CHUNK * 0.7) >= alcance) continue;
+        const fuente = ch.porTipo?.[nombre]?.[0];
+        if (!fuente) continue;
+        const M = fuente.instanceMatrix.array;
+        for (let i = 0; i < fuente.count && n < cap; i++) {
+          const o = i * 16;
+          if (M[o] === 0 && M[o + 5] === 0 && M[o + 10] === 0) continue;   // talado o despejado
+          copiarInstancia(dest, null, n, M, null, i);
+          n++;
+        }
+      }
+      im.count = n;
+      im.instanceMatrix.clearUpdateRanges();
+      im.instanceMatrix.addUpdateRange(0, Math.max(16, n * 16));
+      im.instanceMatrix.needsUpdate = true;   // (sólo las matrices: el tinte de relleno no cambia)
+    }
   }
 
   // ----- 1.4: LOD cercano compacto
@@ -2067,6 +2262,7 @@ export function generarVegetacion(T, calidad, escena) {
         }
       }
       im.count = n;
+      im.visible = n > 0;   // 4.24.0: una especie sin ningún árbol cerca no entra al repaso de dibujo (ni arma el programa y los uniformes para nada)
       subirUsado(im, n);
     }
   }
@@ -2272,7 +2468,7 @@ export function generarVegetacion(T, calidad, escena) {
     // 3.3: con impostores, el LOD simplificado sólo llega hasta donde entra el cartel y lo
     // dibuja una malla compacta por especie (como el LOD cercano), no un pedazo por chunk
     const alcanceArbol = Math.max(lejosActual, distancia.lejos);   // 3.5: la distancia de dibujo
-    const alcanceSombra = calidad.sombraArboles ?? 45;   // 4.12.3: metros al borde del tramo (calidad.sombraArboles; con la caja de sombras grande, más lejos)
+    if (sombraSucia || Math.hypot(cam.x - sombraX, cam.z - sombraZ) > MOVIDA_PARA_SOMBRA) compactarSombras(cam);   // 4.24.0
     // 3.5: el presupuesto acorta el sotobosque como antes (hasta 0,68), pero de a poco y por
     // mata (el objetivo; `suavizar` lo acerca)
     // (y sigue a la calidad automática, que cambia calidad.sotobosque)
@@ -2294,8 +2490,7 @@ export function generarVegetacion(T, calidad, escena) {
           // 1.4: el LOD cercano lo dibuja la malla compacta de su especie.
           m.alta.visible = false;
           if (m.baja) m.baja.visible = !impostores && d < alcanceArbol + 8; // simplificada siempre disponible para que el crossfade no deje huecos dentro del chunk
-          if (m.sombra) m.sombra.visible = d < alcanceSombra;   // 4.12.3: hasta dónde llega la silueta que da sombra (antes fijo en 45 m al borde del tramo)
-          algo = algo || !!m.baja?.visible || !!m.sombra?.visible;
+          algo = algo || !!m.baja?.visible;   // (4.24.0: las siluetas de las sombras ya no son del tramo: ver compactarSombras)
           continue;
         }
         // 3.4 (sotobosque): el sotobosque, la hojarasca y las sombras de contacto ya no se
@@ -2390,6 +2585,7 @@ export function generarVegetacion(T, calidad, escena) {
         }
       }
       im.count = n;
+      im.visible = n > 0;   // 4.24.0 (ver compactarCercanos)
       subirUsado(im, n);   // 3.5.2
     }
   }
@@ -2431,6 +2627,7 @@ export function generarVegetacion(T, calidad, escena) {
       compactoSucio = true;
       medioSucio = true;
       sotoSucio = true;   // 3.4 (sotobosque): la mata sale también de su bloque
+      sombraSucia = true;   // 4.24.0
     };
     for (const a of arbolesCerca(x, z, radio + 4)) { const dx = a.x - x, dz = a.z - z; if (dx * dx + dz * dz < (radio + a.r) * (radio + a.r)) quitar(a); }
     if (incluirSoto) for (const m of matasCerca(x, z, radio + 1)) { const dx = m.x - x, dz = m.z - z; if (dx * dx + dz * dz < radio * radio) quitar(m); }
@@ -2457,6 +2654,7 @@ export function generarVegetacion(T, calidad, escena) {
   }
   function ponerMatriz(ref, M) {
     compactoSucio = true;
+    sombraSucia = true;   // 4.24.0: la silueta de la sombra del árbol también se rehace
     for (const m of mallasDe(ref)) { m.setMatrixAt(ref.i, M); m.instanceMatrix.needsUpdate = true; }
     // 3.3: el impostor del árbol sigue a su instancia del chunk (y la banda media se rehace)
     if (impostores && ref.imp !== undefined) impostores.ponerMatriz(ref.imp, M.elements);
@@ -2670,5 +2868,5 @@ export function generarVegetacion(T, calidad, escena) {
   const impostoresListos = () => impostores;
   const cantidadTocones = () => tocones.length;
 
-  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, rehornearImpostores: () => (impostores ? impostores.rehornear() : 0), statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual };
+  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, rehornearImpostores: () => (impostores ? impostores.rehornear() : 0), statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual, sombrasArboles: () => sombras };
 }

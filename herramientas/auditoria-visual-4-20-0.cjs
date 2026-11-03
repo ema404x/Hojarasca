@@ -27,6 +27,8 @@ const LASTRE = Number(env('LASTRE', 2));
 const MUESTRA_MS = Number(env('MUESTRA_MS', 4000));
 const LIBRE_MS = Number(env('LIBRE_MS', 3000));   // 4.22.0: cuánto se mide la CPU sin lastre (más muestras para separar el ruido)
 const EVAL = env('EVAL', '');   // 4.23.0: un archivo .js con UNA expresión (puede ser async) que se evalúa en la página por encuadre; el resultado va a eval-<id>.json
+const SOLO_SUB = env('SOLO_SUB', '0') === '1';   // 4.24.0: AUD_SOLO_SUB=1: sólo el costo de CPU de mandar a dibujar (sin y con la pasada de sombras), rápido: varias rondas alternadas en pocos minutos
+const SIN_GENTE = env('SIN_GENTE', '0') === '1';   // 4.24.0: AUD_SIN_GENTE=1: sin la gente (ni su CPU ni sus llamadas) en el encuadre: lo que queda es el paisaje y el dibujo, sin el ruido de cuánta gente haya a la vista
 const PERFIL_MS = Number(env('PERFIL_MS', 0));   // 4.23.0: con un número, además perfila la CPU con el perfilador de Chromium durante esos ms (por encuadre) y deja perfil-<id>.json
 // 4.21.0: AUD_LLUVIA=1 pone el tiempo en lluvia plena de verdad antes de cada encuadre (el bucle de la herramienta corre los cuadros sin tiempo entre uno y otro: el clima
 // real tarda ~25 s de juego en llegar y las capturas de la 4.20.0 «con lluvia» salían a medio camino).
@@ -158,6 +160,18 @@ const PAGINA = String.raw`(() => {
     try { H.progreso.horas = window.__hora; H.__bucle(); } finally { R.renderBufferDirect = orig; }
     const l = [...cuenta.entries()].map(([k, v]) => ({ k, ...v })).sort((a, b) => b.triangulos - a.triangulos);
     return l.slice(0, 45);
+  };
+  // 4.24.0: el costo de CPU de MANDAR a dibujar (lo que tarda render en volver, sin la espera de la placa): antes de cada cuadro se vacía la cola de la placa (una lectura de un
+  // píxel espera a todo lo anterior), así el render no se frena esperándola. Se alternan cuadros sin pasada de sombras y con la pasada rehecha: la diferencia es lo que cuesta
+  // la pasada de sombras por llamadas de dibujo (la CPU de verdad, no la del cuadro del juego, que en la plaza a 1080p se pasa esperando a la placa).
+  A.submision = (n) => {
+    const buf = new Uint8Array(4), med = (a) => { const o = a.slice().sort((x, y) => x - y); return +o[Math.floor(o.length / 2)].toFixed(3); };
+    const una = (conSombras) => { gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf); R.shadowMap.needsUpdate = conSombras; const a = performance.now(); R.render(H.escena, H.camara); return performance.now() - a; };
+    H.progreso.horas = window.__hora;
+    for (let i = 0; i < 6; i++) { una(true); una(false); }
+    const sin = [], con = [];
+    for (let i = 0; i < n; i++) { sin.push(una(false)); con.push(una(true)); }
+    return { sinSombras: med(sin), conSombras: med(con), pasadaDeSombras: +(med(con) - med(sin)).toFixed(3), n };
   };
   // las capas: cada variante se activa, se miden unos cuadros y se desactiva; en ciclos, así el ruido de la PC les toca a todas igual
   const guardar = [];
@@ -341,6 +355,7 @@ app.whenReady().then(async () => {
     const lugar = await js(`(() => { const H = ${H}, T = H.T; const p = ${t.donde}; if (!p) return null; return window.__AUD.poner(p, ${t.pitch ?? -0.03}, ${t.fov || 60}) })()`);
     if (!lugar) { console.log('  ' + t.id + ': este lugar no está'); resultado.tomas[t.id] = null; continue; }
     if (FORZAR_LLUVIA) await js(`(() => { const H = ${H}, e = H.clima.estado, U = typeof H.__U === 'function' ? H.__U() : H.__U; e.nublado = 0.95; e.lluvia = 1; e.vientoBase = 0.9; e.objetivo = 'lluvia'; e.proximo = 'lluvia'; e.t = 1e9; U.uMojado.value = 1; return 1 })()`);
+    if (SIN_GENTE) await js(`(() => { const H = ${H}; if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; } for (const g of (H.gente.gente || [])) g.g.visible = false; return 1 })()`);
     await js(`window.__AUD.cuadros(${ASIENTO})`);
     await esperar(1200);
     await js(`window.__AUD.cuadros(30)`);
@@ -357,6 +372,7 @@ app.whenReady().then(async () => {
     if (EVAL) { try { const rr = await js(fs.readFileSync(path.resolve(EVAL), 'utf8')); fs.writeFileSync(path.join(salida, 'eval-' + t.id + '.json'), JSON.stringify(rr, null, 1)); } catch (e) { console.log('  (falló el eval: ' + (e && e.message) + ')'); } }
     if (medir && t.medir) {
       const intentar = async (nombre, cod) => { try { r[nombre] = await js(cod); } catch (e) { r[nombre] = { error: String(e && e.message || e) }; console.log('  (falló ' + nombre + ': ' + (e && e.message) + ')'); } };
+      if (SOLO_SUB) { await js(`window.__AUD.lastre(0)`); await intentar('conteo', `window.__AUD.contar()`); await intentar('submision', `window.__AUD.submision(120)`); } else {
       await intentar('conteo', `window.__AUD.contar()`);
       // primero SIN lastre: los ms de la CPU (con el lastre la CPU espera a la placa y se infla) y la placa como la tiene el juego (reloj elástico)
       await js(`window.__AUD.lastre(0)`);
@@ -364,11 +380,16 @@ app.whenReady().then(async () => {
       await intentar('medidaLibre', `window.__AUD.muestrear(${LIBRE_MS}, 1500)`);
       await intentar('subsistemas', `window.__AUD.perfilarFin()`);
       if (PERFIL_MS > 0) { try { const pr = await perfilarCpu(w, PERFIL_MS, t.id, salida); console.log('  perfil ' + t.id + ': ' + pr.msPerfilados + ' ms perfilados'); } catch (e) { console.log('  (falló el perfil: ' + (e && e.message) + ')'); } }
+      // 4.24.0: AUD_SOMBRAS=1: cuánto cuesta (CPU, sin lastre) un cuadro con el mapa de sombras rehecho en CADA cuadro, contra el cuadro normal; la diferencia es lo que
+      // cuesta la pasada de sombras (las llamadas de dibujo de las siluetas de los árboles, las de los edificios y la gente) cada vez que se rehace al caminar
+      if (env('SOMBRAS', '0') === '1') await intentar('submision', `window.__AUD.submision(60)`);
+      if (env('SOMBRAS', '0') === '1') await intentar('sombrasCada', `window.__AUD.variantes(['completo','rehacer-sombras'], ${CICLOS}, ${MUESTRA_MS})`);
       await js(`window.__AUD.lastre(${LASTRE})`);
       await intentar('medida', `window.__AUD.muestrear(${MUESTRA_MS}, 2500)`);
       await intentar('desglose', `window.__AUD.desglose()`);
       if (t.presupuesto && env('CAPAS', '1') !== '0') await intentar('capas', `window.__AUD.variantes(['completo','sin-post','sin-sombras','sin-instanciados','sin-arboles-y-soto','sin-pasto','sin-terreno','sin-cielo','rehacer-sombras','resolucion-1','resolucion-0.7'], ${CICLOS}, 1200)`);
       if (t.calibrar && env('CAPAS', '1') !== '0') await intentar('calibracion', `window.__AUD.variantes(['completo','+100k-triangulos','+400k-triangulos','+300-llamadas','+1-pantalla-lisa','+1-pantalla-textura','+3-pantallas-textura'], ${CICLOS}, 1200)`);
+      }
       await intentar('programasDespues', `window.__AUD.programas()`);
     }
     resultado.tomas[t.id] = r;

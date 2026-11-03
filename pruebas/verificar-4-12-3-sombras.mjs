@@ -192,10 +192,11 @@ async function revisar({ alcanceUrl, cieloUrl, configUrl, main, veg, etiqueta = 
   okm(/const CLAVES_CALIDAD_EN_VIVO = \[[^\]]*'sombraCaja', 'pixelRatio'\]/.test(main), 'al cambiar de calidad en vivo la caja de sombras sigue a la calidad');
   okm(enUnaLinea(main, ["if (new URLSearchParams(location.search).get('debug') === '1') { try { Object.assign(calidad, JSON.parse(new URLSearchParams(location.search).get('sombrasx') || '{}')); }"]), 'las variantes de las mediciones (sombrasx) sólo existen con ?debug=1');
   const okv = (c, t) => { assert.ok(c, `${etiqueta}: vegetacion.js: ${t}`); total++; };
-  okv(enUnaLinea(veg, ['const alcanceSombra = calidad.sombraArboles ?? 45;']), 'hasta dónde proyectan los árboles sale de la calidad (45 m como antes si no hay)');
-  okv(enUnaLinea(veg, ['if (m.sombra) m.sombra.visible = d < alcanceSombra;']), 'la silueta del tramo se prende dentro de ese alcance');
-  okv(veg.includes('malla.sombra.layers.set(1);') && veg.includes('malla.sombra.castShadow = true;'), 'las siluetas siguen en la capa 1 y proyectando');
-  okv(veg.includes('if (calidad.sombras) {') && veg.indexOf('if (calidad.sombras) {') < veg.indexOf('malla.sombra = hacer('), 'las siluetas sólo se arman con sombras (Baja y Mínima no gastan memoria ni dibujos)');
+  // 4.24.0: las siluetas ya no son una malla por tramo (`malla.sombra`) sino una por especie (`sombras`, ver compactarSombras): el alcance y la capa siguen igual
+  okv(enUnaLinea(veg, ['const alcance = (calidad.sombraArboles ?? 45) + MOVIDA_PARA_SOMBRA + 1;']), 'hasta dónde proyectan los árboles sale de la calidad (45 m como antes si no hay; más el margen de lo que se camina, 5 m, hasta rehacer la malla)');
+  okv(enUnaLinea(veg, ['if (Math.max(0, Math.hypot(cam.x - ch.x, cam.z - ch.z) - TAM_CHUNK * 0.7) >= alcance) continue;']), 'entran a la silueta los árboles de los tramos que caen dentro de ese alcance (la misma cuenta de antes)');
+  okv(veg.includes('im.layers.set(1);') && veg.includes('im.castShadow = true; im.receiveShadow = false;'), 'las siluetas siguen en la capa 1 y proyectando');
+  okv(veg.includes('if (calidad.sombras) {') && veg.indexOf('const sombras = {};') < veg.indexOf('if (calidad.sombras) {', veg.indexOf('const sombras = {};')) && veg.indexOf('if (calidad.sombras) {', veg.indexOf('const sombras = {};')) < veg.indexOf('const im = new THREE.InstancedMesh(t.sombra || t.baja'), 'las siluetas sólo se arman con sombras (Baja y Mínima no gastan memoria ni dibujos)');
 
   return total;
 }
@@ -252,10 +253,10 @@ const MUTACIONES = [
   ['main.js', 'el mapa se rehace a 6 m fijos', 'umbralDeRecentrado(cajaDeSombra(calidad.sombras, calidad.sombraCaja))', '6'],
   ['main.js', 'la caja no sigue a la calidad en vivo', "'aves', 'sombraCaja', 'pixelRatio'];", "'aves', 'pixelRatio'];"],
   ['main.js', 'las variantes de medición valen también sin ?debug=1', "if (new URLSearchParams(location.search).get('debug') === '1') { try { Object.assign(calidad,", "if (true) { try { Object.assign(calidad,"],
-  ['vegetacion.js', 'los árboles proyectan sólo a 45 m aunque la calidad diga otra cosa', 'const alcanceSombra = calidad.sombraArboles ?? 45;', 'const alcanceSombra = 45;'],
-  ['vegetacion.js', 'la silueta del tramo sigue en 45', 'if (m.sombra) m.sombra.visible = d < alcanceSombra;', 'if (m.sombra) m.sombra.visible = d < 45;'],
-  ['vegetacion.js', 'las siluetas salen de la capa 1', 'malla.sombra.layers.set(1);', ''],
-  ['vegetacion.js', 'las siluetas no proyectan', 'malla.sombra.castShadow = true;', ''],
+  ['vegetacion.js', 'los árboles proyectan sólo a 45 m aunque la calidad diga otra cosa', 'const alcance = (calidad.sombraArboles ?? 45) + MOVIDA_PARA_SOMBRA + 1;', 'const alcance = 45 + MOVIDA_PARA_SOMBRA + 1;'],
+  ['vegetacion.js', 'la silueta sólo toma el tramo cuando el alcance lo toca', '- TAM_CHUNK * 0.7) >= alcance) continue;', '- TAM_CHUNK * 0.7) >= 45) continue;'],
+  ['vegetacion.js', 'las siluetas salen de la capa 1', 'im.layers.set(1);', ''],
+  ['vegetacion.js', 'las siluetas no proyectan', 'im.castShadow = true; im.receiveShadow = false;', 'im.castShadow = false; im.receiveShadow = false;'],
 ];
 let atrapadas = 0;
 const sobrevivieron = [];

@@ -244,6 +244,8 @@ function materialImpostor(estado) {
           float lumV = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
           diffuseColor.rgb = mix(diffuseColor.rgb, otono * clamp(lumV / 0.12, 0.45, 1.3), uOtonoImp);
         }
+        // 4.24.0: los perennes de lejos también se entibian en otoño (la misma cuenta que materialVegetal: sin salto al cambiar de dibujo)
+        if (tipoImp > 0.5 && tipoImp < 1.5) diffuseColor.rgb *= mix(vec3(1.0), vec3(1.22, 1.05, 0.66), uOtonoImp * 0.5 * fract(vAzarImp * 3.1));
         // (3.5: el follaje con el mismo umbral que el árbol 3D: la normal horneada es la del racimo,
         // corrida como en promedio las cartas cercanas, que se nievan sólo en su mitad de arriba)
         // (3.5.2: la nieve del follaje, el mismo color que en materialVegetal)

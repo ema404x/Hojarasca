@@ -342,12 +342,16 @@ function datosMontana() {
 function datosManchas() {
   const L = 512, r = rng(40711);
   const seco = crearFbm(r, 11, 11, 3, 0.45), humedo = crearFbm(r, 14, 14, 3, 0.45), tono = crearFbm(r, 110, 110, 1, 0.5);
+  // 4.24.0: variedad de color del suelo del prado a media escala: el tono suma una capa fina (rejilla de 250: celdas de 4 m, dos téxeles) y se
+  // estira (el prado se leía de un verde parejo), y aparecen manchas secas chicas (rejilla de 70: ~15 m) además de los manchones grandes. Se crean
+  // al final: el azar de las capas de antes sigue igual. (El grano de menos de 4 m ya no cabe en una textura de 2 m por téxel.)
+  const tonoFino = crearFbm(r, 250, 250, 1, 0.5), secoFino = crearFbm(r, 70, 70, 2, 0.5);
   const d = new Uint8Array(L * L * 4);
   for (let y = 0; y < L; y++) for (let x = 0; x < L; x++) {
     const u = x / L, v = y / L, i = (y * L + x) * 4;
-    d[i] = Math.round(suave(0.52, 0.72, seco(u, v)) * 255);
+    d[i] = Math.round(Math.max(suave(0.52, 0.72, seco(u, v)), 0.55 * suave(0.6, 0.78, secoFino(u, v))) * 255);
     d[i + 1] = Math.round(suave(0.55, 0.74, humedo(u, v)) * 255);
-    d[i + 2] = Math.round(tono(u, v) * 255);
+    d[i + 2] = Math.round(sat(0.5 + (0.58 * tono(u, v) + 0.42 * tonoFino(u, v) - 0.5) * 1.7) * 255);
     d[i + 3] = 255;
   }
   return { manchas: d };

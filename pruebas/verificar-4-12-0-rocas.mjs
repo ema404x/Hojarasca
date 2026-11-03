@@ -81,9 +81,9 @@ ok(new Set(huellas).size === 5, 'los cinco modelos son distintos entre sí (alto
 
 // ---- el bosque armado: nada se mueve, y el reparto
 const HUELLAS = {   // la 4.11.5, medida con el mismo código en la rama de partida (x, z y escala de cada árbol, mata y choque)
-  media: { arboles: 6926, matas: 24793, rocas: 665, colisiones: 7341, hArb: -580541886, hMatas: -1190529502, hCol: -414093348, grupos: { rocas: 73, troncos: 11, gruposRoca: 25, gruposTronco: 9 } },
-  baja: { arboles: 4810, matas: 23062, rocas: 639, colisiones: 5237, hArb: -987983161, hMatas: -1664011902, hCol: -1458866855, grupos: { rocas: 34, troncos: 4, gruposRoca: 12, gruposTronco: 3 } },
-  alta: { arboles: 8372, matas: 25786, rocas: 640, colisiones: 8770, hArb: -1823309694, hMatas: -612024883, hCol: -595294711, grupos: { rocas: 68, troncos: 3, gruposRoca: 23, gruposTronco: 2 } },
+  media: { arboles: 6926, matas: 24793, rocas: 665, colisiones: 7341, hArb: -580541886, hMatas: -1190529502, hFijos: 1880185073, hCol: -414093348, grupos: { rocas: 73, troncos: 11, gruposRoca: 25, gruposTronco: 9 } },
+  baja: { arboles: 4810, matas: 23062, rocas: 639, colisiones: 5237, hArb: -987983161, hMatas: -1664011902, hFijos: 274562842, hCol: -1458866855, grupos: { rocas: 34, troncos: 4, gruposRoca: 12, gruposTronco: 3 } },
+  alta: { arboles: 8372, matas: 25786, rocas: 640, colisiones: 8770, hArb: -1823309694, hMatas: -612024883, hFijos: 2005012324, hCol: -595294711, grupos: { rocas: 68, troncos: 3, gruposRoca: 23, gruposTronco: 2 } },
 };
 const hashDe = (lista, f) => { let h = 0; for (const e of lista) for (const v of f(e)) h = (h * 31 + Math.round(v * 1000)) % 2147483647; return h; };
 const orilla = (x, z) => Math.hypot(x - LAGO.x, z - LAGO.z) - T.radioLago(Math.atan2(z - LAGO.z, x - LAGO.x));
@@ -94,9 +94,11 @@ for (const q of ['media', 'baja', 'alta']) {
   vegs[q] = { veg, escena };
   const H = HUELLAS[q];
   const rocas = veg.matas.filter((m) => m.tipo === 'roca');
-  ok(veg.arboles.length === H.arboles && veg.matas.length === H.matas && rocas.length === H.rocas && veg.colisiones.length === H.colisiones, `${q}: los mismos ${H.arboles} árboles, ${H.matas} matas, ${H.rocas} rocas y ${H.colisiones} choques que en la 4.11.5`);
+  // 4.24.0: el sotobosque cambió A PROPÓSITO (menos plantas, especies nuevas y parches de suelo: ver verificar-4-24-0-c); lo que no cambia son los árboles, las
+  // rocas, los troncos y los choques (la huella `hFijos` es la de las rocas y los troncos caídos, medida en la 4.23.0 con el mismo código)
+  ok(veg.arboles.length === H.arboles && rocas.length === H.rocas && veg.colisiones.length === H.colisiones, `${q}: los mismos ${H.arboles} árboles, ${H.rocas} rocas y ${H.colisiones} choques que en la 4.11.5`);
   ok(hashDe(veg.arboles, (a) => [a.x, a.z, a.esc]) === H.hArb, `${q}: ni un árbol se movió ni cambió de tamaño`);
-  ok(hashDe(veg.matas, (m) => [m.x, m.z, m.esc || 0]) === H.hMatas, `${q}: ninguna mata ni roca cambió de lugar`);
+  ok(hashDe(veg.matas.filter((m) => m.tipo === 'roca' || m.tipo === 'tronco'), (m) => [m.x, m.z, m.esc || 0]) === H.hFijos, `${q}: ninguna roca ni tronco caído cambió de lugar`);
   ok(hashDe(veg.colisiones, (c) => [c.x ?? c.ax, c.z ?? c.az, c.r]) === H.hCol, `${q}: los choques (árboles, rocas, troncos) son los mismos`);
   ok(JSON.stringify(veg.composicionPaisaje) === JSON.stringify(H.grupos), `${q}: los grupos de rocas y troncos del paisaje, los mismos`);
   // lo picable sigue siendo tipo «roca» (la lógica de oficios y de recolección lo busca así), con la escala de siempre
