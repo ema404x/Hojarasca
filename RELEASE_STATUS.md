@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.24.1 (sobre main = 4.24.0): DETALLES DE LA 4.24.0 (CAMBIOS_4_24_1_A/B/C.md) — trochita de vuelta sin espera larga, mapa y panel pulidos, silueta y plano de Elsa de la primera hora, hojas de cerca, cipreses y pisadas en la nieve
 - 4.24.0 (sobre main = 4.23.0): NO TE PIERDAS, LA PRIMERA HORA CON INDICIOS Y PAISAJE Y VEGETACIÓN (CAMBIOS_4_24_0_A/B/C.md) — banderitas del objetivo en el mapa con las teclas en la guía, indicios y un primer viaje en trochita sin espera, y un valle con copas, pastos, sotobosque y suelo más variados sin costo extra en la plaza
 - 4.23.0 (sobre main = 4.22.0): LO QUE SE PRODUCE VALE, METAS Y LOGROS DE LA HISTORIA, INTERIORES Y CPU DE LA GENTE (CAMBIOS_4_23_0_A/B/C.md) — leche, carne, chorizo, frutas y mermeladas se venden, los talleres tienen salida pública y la renta sube; 25 logros de la Historia, contadores en la guía y el cuaderno «Lo vivido»; adentro de los edificios no se dibuja el exterior y la gente lejana cuesta menos CPU
 - 4.22.0 (sobre main = 4.21.0): NOCHES CON FORMA, EL VALLE SE ACUERDA Y EDIFICIOS Y MATERIALES (CAMBIOS_4_22_0_A/B/C.md) — curva del Desafío más pareja con mandamás a la mitad y tres perillas de dificultad, ecos de las decisiones en el final con tope a los encargos del Relax, obras con tablas, zócalos, hogares de piedra y troncos con detalle sin costo en la plaza
