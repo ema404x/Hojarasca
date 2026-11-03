@@ -718,7 +718,7 @@ export function materialTerreno() {
           vec2 uvHuella = (vPosMundo.xz - uHuellasCentro) / uHuellasLado + 0.5;
           float dentroHuella = step(0.0, uvHuella.x) * step(uvHuella.x, 1.0) * step(0.0, uvHuella.y) * step(uvHuella.y, 1.0);
           float pisada = texture2D(uHuellas, clamp(uvHuella, 0.0, 1.0)).r * dentroHuella * nieve;
-          col = mix(col, col * vec3(0.58, 0.64, 0.70), pisada * 0.72);
+          col = mix(col, col * vec3(0.50, 0.58, 0.70), pisada * 0.9);   // 4.24.1: más marcada y más azul (0,58 · 0,64 · 0,70 a 0,72 con la luz de la nieve apenas se leía)
           col *= 1.0 - uLluvia * 0.25 * (1.0 - nieve);
           col = mix(col, col * vec3(0.5, 0.62, 0.66), smoothstep(0.0, -2.5, vPosMundo.y));
           // el suelo se oscurece bajo el bosque y al pie de los troncos

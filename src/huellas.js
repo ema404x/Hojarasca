@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { U } from './materiales.js';
 
 const RES = 256;        // texeles por lado
-const LADO = 64;        // metros que cubre la textura
+const LADO = 64;
+export const HUELLA_PLATEAU = 2;   // 4.24.1: cuántas veces más rápido que el cono sube el borde de la pisada hasta su valor pleno        // metros que cubre la textura
 
 export function crearHuellas() {
   const datos = new Uint8Array(RES * RES * 4);
@@ -42,7 +43,8 @@ export function crearHuellas() {
         const caida = 1 - Math.hypot(du / r, dv / (r * 0.75));
         if (caida <= 0) continue;
         const i = (vv * RES + uu) * 4;
-        const val = Math.min(255, datos[i] + caida * 235 * fuerza);
+        // 4.24.1: el borde de la pisada cae en la mitad de afuera y el centro queda parejo (antes un cono liso: de lejos y con luz difusa eran manchas tenues sin forma de pisada)
+        const val = Math.min(255, datos[i] + Math.min(1, caida * HUELLA_PLATEAU) * 235 * fuerza);
         datos[i] = val; datos[i + 1] = val; datos[i + 2] = val; datos[i + 3] = 255;
       }
     }

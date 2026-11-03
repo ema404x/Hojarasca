@@ -1,0 +1,192 @@
+[
+  {
+    "id": "a1-mirador-dia",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.14,
+    "fov": 70,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "a2-bosque-dia",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.04,
+    "fov": 62,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 12.5 } })()"
+  },
+  {
+    "id": "a3-plaza-dia",
+    "grupo": "verano",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12.5 } })()"
+  },
+  {
+    "id": "a1-mirador-noche",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.14,
+    "fov": 70,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 23.2 } })()"
+  },
+  {
+    "id": "a2-bosque-noche",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.04,
+    "fov": 62,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 0.4 } })()"
+  },
+  {
+    "id": "a3-plaza-noche",
+    "grupo": "verano",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 22.8 } })()"
+  },
+  {
+    "id": "a1-mirador-alba",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.14,
+    "fov": 70,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 6.2 } })()"
+  },
+  {
+    "id": "a2-bosque-alba",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.04,
+    "fov": 62,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 6.2 } })()"
+  },
+  {
+    "id": "a3-plaza-alba",
+    "grupo": "verano",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 6.2 } })()"
+  },
+  {
+    "id": "b1-ladera",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 70,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const ps = (H.veg.matas || []).filter((m) => (m.tipo === 'parche0' || m.tipo === 'parche1') && !m.sacado); const ar = H.veg.arboles.filter((q) => !q.sacado); let mejor = null, mp = 0; for (const m of ps) { const p = 1 - H.T.normal(m.x, m.z).y; if (p < 0.003 || p < mp) continue; if (ar.some((q) => Math.hypot(q.x - m.x, q.z - m.z) < 10)) continue; mejor = m; mp = p; } if (!mejor) return null; const n = H.T.normal(mejor.x, mejor.z); const yaw = Math.atan2(n.x, n.z); const x = mejor.x + Math.sin(yaw) * 10, z = mejor.z + Math.cos(yaw) * 10; return { x, z, y: H.T.altura(x, z) + 2.2, yaw: yaw + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "b2-ladera-tarde",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 70,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const ps = (H.veg.matas || []).filter((m) => (m.tipo === 'parche0' || m.tipo === 'parche1') && !m.sacado); const ar = H.veg.arboles.filter((q) => !q.sacado); let mejor = null, mp = 0; for (const m of ps) { const p = 1 - H.T.normal(m.x, m.z).y; if (p < 0.003 || p < mp) continue; if (ar.some((q) => Math.hypot(q.x - m.x, q.z - m.z) < 10)) continue; mejor = m; mp = p; } if (!mejor) return null; const n = H.T.normal(mejor.x, mejor.z); const yaw = Math.atan2(n.x, n.z); const x = mejor.x + Math.sin(yaw) * 10, z = mejor.z + Math.cos(yaw) * 10; return { x, z, y: H.T.altura(x, z) + 2.2, yaw: yaw + Math.PI, horas: 17.5 } })()"
+  },
+  {
+    "id": "c1-copa-cerca",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0.12,
+    "fov": 50,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const a = H.veg.arboles.filter((q) => !q.sacado && !q.caido).sort((p, q) => Math.hypot(p.x - L.x - 14, p.z - L.z - 10) - Math.hypot(q.x - L.x - 14, q.z - L.z - 10))[0]; const x = a.x + 7, z = a.z + 7; return { x, z, yaw: Math.atan2(-7, -7), horas: 11.5 } })()"
+  },
+  {
+    "id": "c2-copa-cerca-otono",
+    "grupo": "otono",
+    "medir": false,
+    "pitch": 0.12,
+    "fov": 50,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const a = H.veg.arboles.filter((q) => !q.sacado && !q.caido).sort((p, q) => Math.hypot(p.x - L.x - 14, p.z - L.z - 10) - Math.hypot(q.x - L.x - 14, q.z - L.z - 10))[0]; const x = a.x + 7, z = a.z + 7; return { x, z, yaw: Math.atan2(-7, -7), horas: 11.5 } })()"
+  },
+  {
+    "id": "d1-lejanos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.1,
+    "fov": 22,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z; return { x: M.x, z: M.z, y: H.T.altura(M.x, M.z) + 1.7, yaw: Math.atan2(-dx, -dz), horas: 11.5 } })()"
+  },
+  {
+    "id": "e1-nieve-sol-bajo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.14,
+    "fov": 70,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 9 } })()"
+  },
+  {
+    "id": "e2-nieve-sol-bajo-tarde",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.04,
+    "fov": 62,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 16.6 } })()"
+  },
+  {
+    "id": "e3-nieve-huellas",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.5,
+    "fov": 62,
+    "huellas": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 3, z = M.z + dz / d * 3; return { x, z, y: H.T.altura(x, z) + 2.6, yaw: Math.atan2(-dx, -dz), horas: 16.4 } })()"
+  },
+  {
+    "id": "e4-nieve-plaza-baja",
+    "grupo": "invierno",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 16.8 } })()"
+  },
+  {
+    "id": "e5-nieve-noche",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.14,
+    "fov": 70,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 22.5 } })()"
+  },
+  {
+    "id": "e6-nieve-copa-cerca",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0.12,
+    "fov": 50,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const a = H.veg.arboles.filter((q) => !q.sacado && !q.caido).sort((p, q) => Math.hypot(p.x - L.x - 14, p.z - L.z - 10) - Math.hypot(q.x - L.x - 14, q.z - L.z - 10))[0]; const x = a.x + 7, z = a.z + 7; return { x, z, yaw: Math.atan2(-7, -7), horas: 15.5 } })()"
+  },
+  {
+    "id": "f1-otono-sol-bajo",
+    "grupo": "otono",
+    "medir": false,
+    "pitch": -0.14,
+    "fov": 70,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 17 } })()"
+  },
+  {
+    "id": "f2-otono-bosque",
+    "grupo": "otono",
+    "medir": false,
+    "pitch": -0.04,
+    "fov": 62,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "f3-otono-plaza",
+    "grupo": "otono",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  }
+]
