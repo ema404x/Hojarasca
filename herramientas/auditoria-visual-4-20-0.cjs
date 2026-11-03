@@ -25,6 +25,7 @@ const CICLOS = Number(env('CICLOS', 5));
 const ESCALA = Number(env('ESCALA', 1.5));
 const LASTRE = Number(env('LASTRE', 2));
 const MUESTRA_MS = Number(env('MUESTRA_MS', 4000));
+const LIBRE_MS = Number(env('LIBRE_MS', 3000));   // 4.22.0: cuánto se mide la CPU sin lastre (más muestras para separar el ruido)
 // 4.21.0: AUD_LLUVIA=1 pone el tiempo en lluvia plena de verdad antes de cada encuadre (el bucle de la herramienta corre los cuadros sin tiempo entre uno y otro: el clima
 // real tarda ~25 s de juego en llegar y las capturas de la 4.20.0 «con lluvia» salían a medio camino).
 const FORZAR_LLUVIA = env('LLUVIA', '0') === '1';
@@ -327,7 +328,7 @@ app.whenReady().then(async () => {
       // primero SIN lastre: los ms de la CPU (con el lastre la CPU espera a la placa y se infla) y la placa como la tiene el juego (reloj elástico)
       await js(`window.__AUD.lastre(0)`);
       await js(`window.__AUD.perfilarInicio()`);
-      await intentar('medidaLibre', `window.__AUD.muestrear(3000, 1500)`);
+      await intentar('medidaLibre', `window.__AUD.muestrear(${LIBRE_MS}, 1500)`);
       await intentar('subsistemas', `window.__AUD.perfilarFin()`);
       await js(`window.__AUD.lastre(${LASTRE})`);
       await intentar('medida', `window.__AUD.muestrear(${MUESTRA_MS}, 2500)`);

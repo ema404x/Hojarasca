@@ -22,6 +22,11 @@ export function fuerzaPorDistancia(d, corte) {
 // ---------------------------------------------------------------- la sombra de contacto
 // Un anillo de rectángulo redondeado: el borde de adentro (a `margen` del pie) con la fuerza plena, el de afuera (a `margen + radio`) en cero.
 // Devuelve { pos, col, ind } para una huella { x, z, rot, w, d } y la altura del suelo en cada punto.
+// 4.22.0: `hacer.anillos` parte el ancho del anillo en varias tiras con una caída suave (la sombra de contacto tenía el borde de afuera en una sola tira, con la
+// fuerza bajando en línea recta y el relieve del terreno cortándola a pedazos: «polígonos facetados de borde duro» en el suelo de la plaza). Con 1 (el valor por
+// defecto) es el anillo de siempre; el juego pide `ANILLO_FINO` (pasos de 80 cm, esquinas de seis puntos y tres tiras: ~2 ms para rehacer 40 edificios, medido en Node, contra 1 ms el anillo viejo).
+export const ANILLO_FINO = { pasoMax: 0.8, esquina: 6, anillos: 3 };
+const caidaSuave = (t) => { const k = 1 - t; return k * k * (3 - 2 * k) * (1 - t * 0.12); };   // 1 en el pie, 0 en el borde de afuera, con la cola larga
 export function anilloDeContacto(e, altura, hacer = { pasoMax: 1.4, esquina: 5 }) {
   const { x, z, rot = 0, w, d, radio = 1.0, fuerza = 0.3, margen = 0.04 } = e;
   const c = Math.cos(rot), s = Math.sin(rot);
@@ -48,15 +53,22 @@ export function anilloDeContacto(e, altura, hacer = { pasoMax: 1.4, esquina: 5 }
   const lej = (lx, lz) => ({ x: x + lx * c + lz * s, z: z - lx * s + lz * c });
   // `y`: el suelo parejo de un lote nivelado (la aldea); sin `y`, el terreno punto por punto
   const suelo = Number.isFinite(e.y) ? () => e.y + 0.04 : (px, pz) => altura(px, pz) + 0.05;
+  const R = Math.max(1, Math.round(hacer.anillos || 1)), K = R + 1;   // K vértices por cada punto del perímetro: del pie al borde de afuera
   for (const [lx, lz, nx, nz] of pts) {
-    const a = lej(lx, lz), b = lej(lx + nx * radio, lz + nz * radio);
-    pos.push(a.x, suelo(a.x, a.z), a.z, b.x, suelo(b.x, b.z), b.z);
-    col.push(fuerza * 0.9, fuerza * 0.96, fuerza, 0, 0, 0);
+    for (let k = 0; k < K; k++) {
+      const t = k / R, a = lej(lx + nx * radio * t, lz + nz * radio * t);
+      const f = R === 1 ? (k === 0 ? fuerza : 0) : fuerza * (k === R ? 0 : caidaSuave(t));
+      pos.push(a.x, suelo(a.x, a.z), a.z);
+      col.push(f * 0.9, f * 0.96, f);
+    }
   }
   const n = pts.length;
   for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n, a0 = i * 2, a1 = i * 2 + 1, b0 = j * 2, b1 = j * 2 + 1;
-    ind.push(a0, a1, b1, a0, b1, b0);
+    const j = (i + 1) % n;
+    for (let k = 0; k < R; k++) {
+      const a0 = i * K + k, a1 = i * K + k + 1, b0 = j * K + k, b1 = j * K + k + 1;
+      ind.push(a0, a1, b1, a0, b1, b0);
+    }
   }
   return { pos, col, ind };
 }
@@ -101,7 +113,7 @@ export function crearAsiento(escena, { altura, lejos = () => 230 }) {
       if (cam && d2 > c2) continue;
       const f = cam ? fuerzaPorDistancia(Math.sqrt(d2), corte) : 1;   // 4.12.2 (W3)
       if (f < 0.02) continue;
-      const a = anilloDeContacto(f < 1 ? { ...h, fuerza: (h.fuerza ?? 0.3) * f } : h, altura), base = pos.length / 3;
+      const a = anilloDeContacto(f < 1 ? { ...h, fuerza: (h.fuerza ?? 0.3) * f } : h, altura, ANILLO_FINO), base = pos.length / 3;
       for (const v of a.pos) pos.push(v);
       for (const v of a.col) col.push(v);
       for (const i of a.ind) ind.push(base + i);

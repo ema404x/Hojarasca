@@ -488,7 +488,7 @@ const mando = crearMando({ sensibilidad: ajustes.sensibilidad, invertirY: ajuste
 const calidadInicial = ajustes.calidad;
 const calidad = { ...(CALIDADES[ajustes.calidad] || CALIDADES.media) };
 // 4.12.1: edificios asentados (esquinas oscurecidas, desgaste, sombra de contacto, halos de noche): sólo Media y Alta; Baja y Mínima no pagan nada
-fijarAsentado({ ocluir: !!calidad.post, contacto: !!calidad.post, halos: !!calidad.post });
+fijarAsentado({ ocluir: !!calidad.post, contacto: !!calidad.post, halos: !!calidad.post, detalle: !!calidad.post });
 // 4.12.3 (sólo con ?debug=1): `sombrasx={json}` pisa claves de la calidad para medir variantes de las sombras (herramientas/medir-sombras-4-12-3.cjs)
 if (new URLSearchParams(location.search).get('debug') === '1') { try { Object.assign(calidad, JSON.parse(new URLSearchParams(location.search).get('sombrasx') || '{}')); } catch { /* sin variante */ } }
 // 3.5: la calidad que está andando y las distancias que rigen (ver aplicarDistancias)

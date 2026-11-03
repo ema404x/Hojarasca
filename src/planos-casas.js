@@ -12,6 +12,8 @@
 import * as THREE from 'three';
 import { matriz } from './geometria.js';
 import { calce, zocalo, sueloMin } from './calces.js';
+// 4.22.0: el detalle de las casas (tablas con relieve, piedra en bloques, patas de canto rodado), sólo en Media y Alta (ver detalle-obras.js)
+import { detalleObras, semillaObra, paredDeTablas, muroDePiedra, pilarDePiedra, basaDePiedra } from './detalle-obras.js';
 
 const MADERA_OSCURA = '#4a3b2c';
 const TABLA = '#8a6b4a';
@@ -109,12 +111,15 @@ function hogar(c, M, suelo, h) {
   const cx = lado * (W / 2 + 0.45);
   const alto = cumbre + 0.4;
   const base = Math.min(-0.2, sueloMin(suelo, [[cx, zc - 0.6], [cx, zc + 0.6], [cx + lado * 0.45, zc]]) - 0.2);
-  caja(c, 0.9, alto - base, 1.3, [cx, (alto + base) / 2, zc], PIEDRA, { variar: 0.16 });
+  const det = detalleObras(), sem = det ? ((Math.round(lado * 7 + zc * 13) * 977 + 12345) >>> 0) : 0;   // 4.22.0: bloques de piedra (la cara contra la pared no se ve)
+  if (det) pilarDePiedra(c, { cx, cz: zc, w: 0.9, d: 1.3, y0: base, y1: alto, sem, omitir: [lado > 0 ? '-x' : '+x'] });
+  else caja(c, 0.9, alto - base, 1.3, [cx, (alto + base) / 2, zc], PIEDRA, { variar: 0.16 });
   caja(c, 1.05, 0.12, 1.45, [cx, alto + 0.05, zc], '#5d574f', { variar: 0.1 });
   caja(c, 0.5, 0.34, 0.7, [cx, alto + 0.28, zc], PIEDRA, { variar: 0.14 });
   // adentro
   const ix = lado * (W / 2 - 0.3);
-  caja(c, 0.56, 1.05, 1.1, [ix, PISO_Y + 0.52, zc], PIEDRA, { variar: 0.16 });
+  if (det) pilarDePiedra(c, { cx: ix, cz: zc, w: 0.56, d: 1.1, y0: PISO_Y, y1: PISO_Y + 1.045, sem: (sem + 1) | 0, omitir: [lado > 0 ? '+x' : '-x'] });
+  else caja(c, 0.56, 1.05, 1.1, [ix, PISO_Y + 0.52, zc], PIEDRA, { variar: 0.16 });
   caja(c, 0.06, 0.52, 0.62, [ix - lado * 0.29, PISO_Y + 0.36, zc], '#1d1815', { variar: 0.04 });
   caja(c, 0.66, 0.08, 1.24, [ix, PISO_Y + 1.1, zc], '#5d574f', { variar: 0.1 });
 }
@@ -142,15 +147,19 @@ function ventana(c, v) {
 
 // ---------------------------------------------------------------- las cuatro etapas
 function etapaCimientos(M, P) {
-  return (c, _P, _datos, suelo) => {
+  return (c, _P, datos, suelo) => {
     const { W, D, g } = M;
+    const det = detalleObras(), sem = det ? semillaObra(P, datos) : 0;
+    let q = 0;
     const nx = Math.max(2, Math.round(W / 2.3) + 1);
     const filas = D > 5 ? [-1, 0, 1] : [-1, 1];
     const xs = Array.from({ length: nx }, (_, i) => -W / 2 + 0.28 + i * (W - 0.56) / (nx - 1));
     for (const fz of filas) {
       const z = fz * (D / 2 - 0.28);
       for (const x of xs) {
-        cilindro(c, 0.25, 0.32, 0.42, [x, 0.16, z], PIEDRA, { variar: 0.16 });
+        // 4.22.0: cantos rodados en vez del cilindro de siete lados
+        if (det) basaDePiedra(c, { x, z, yCentro: 0.16, alto: 0.42, rBase: 0.32, rTope: 0.25, sem: (sem + 29 * ++q) | 0 });
+        else cilindro(c, 0.25, 0.32, 0.42, [x, 0.16, z], PIEDRA, { variar: 0.16 });
         calce(c, suelo, x, z, -0.04, 0.32);
       }
       caja(c, W - 0.28, 0.18, 0.18, [0, 0.42, z], MADERA_OSCURA, { tipo: 0, variar: 0.08 });
@@ -158,7 +167,8 @@ function etapaCimientos(M, P) {
     if (g) {
       const z = -D / 2 - g + 0.28;
       for (const x of xs) {
-        cilindro(c, 0.22, 0.28, 0.4, [x, 0.15, z], PIEDRA, { variar: 0.16 });
+        if (det) basaDePiedra(c, { x, z, yCentro: 0.15, alto: 0.4, rBase: 0.28, rTope: 0.22, sem: (sem + 29 * ++q) | 0 });
+        else cilindro(c, 0.22, 0.28, 0.4, [x, 0.15, z], PIEDRA, { variar: 0.16 });
         calce(c, suelo, x, z, -0.04, 0.28);
       }
       caja(c, W - 0.28, 0.16, 0.16, [0, 0.42, z], MADERA_OSCURA, { tipo: 0, variar: 0.08 });
@@ -174,7 +184,12 @@ function etapaCimientos(M, P) {
         const horizontal = Math.abs(bz - az) < 1e-6;
         // el lado de afuera (para correrlo un poco hacia fuera del eje de la pared)
         const fuera = horizontal ? Math.sign(mz) || -1 : Math.sign(mx) || -1;
-        if (horizontal) caja(c, largo, alto, 0.2, [mx, abajo + alto / 2, mz + fuera * 0.03], PIEDRA, { variar: 0.18 });
+        if (det) {
+          // 4.22.0: el zócalo de bloques de piedra a trabazón (adelante y atrás llegan hasta el canto de las paredes de los costados: sin el rincón vacío)
+          const e = 0.13, esquinaA = Math.abs(Math.min(ax, bx)) >= W / 2 - 1e-6, esquinaB = Math.abs(Math.max(ax, bx)) >= W / 2 - 1e-6;
+          if (horizontal) muroDePiedra(c, { eje: 'x', plano: mz + fuera * 0.03, u0: Math.min(ax, bx) - (esquinaA ? e : 0), u1: Math.max(ax, bx) + (esquinaB ? e : 0), y0: abajo, y1: arriba, grueso: 0.2, caras: [fuera, -fuera], sem: (sem + 31 * ++q) | 0 });
+          else muroDePiedra(c, { eje: 'z', plano: mx + fuera * 0.03, u0: Math.min(az, bz), u1: Math.max(az, bz), y0: abajo, y1: arriba, grueso: 0.2, caras: [fuera, -fuera], sem: (sem + 31 * ++q) | 0 });
+        } else if (horizontal) caja(c, largo, alto, 0.2, [mx, abajo + alto / 2, mz + fuera * 0.03], PIEDRA, { variar: 0.18 });
         else caja(c, 0.2, alto, largo, [mx + fuera * 0.03, abajo + alto / 2, mz], PIEDRA, { variar: 0.18 });
       }
     }
@@ -203,18 +218,36 @@ function etapaPiso(M) {
 }
 
 function etapaParedes(M, P) {
-  return (c) => {
+  return (c, _P, datos) => {
     const { W, D, alturaPared: h, techoPared, subida, eje } = M;
     const t = T_PARED, yc = Y0 + h / 2;
     // postes de esquina
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(c, 0.14, h + 0.3, 0.14, [sx * (W / 2 - 0.07), Y0 + (h + 0.3) / 2, sz * (D / 2 - 0.07)], MADERA_OSCURA, { tipo: 0, variar: 0.08 });
     // frente con el vano real, fondo y laterales
     const lado = (W - PUERTA) / 2;
-    for (const sx of [-1, 1]) caja(c, lado, h, t, [sx * (PUERTA / 2 + lado / 2), yc, -D / 2], sx < 0 ? '#786047' : '#81684d');
     const sobre = techoPared - ALTO_PUERTA;
-    if (sobre > 0.02) caja(c, PUERTA + 0.02, sobre, t, [0, ALTO_PUERTA + sobre / 2, -D / 2], PARED);
-    caja(c, W, h, t, [0, yc, D / 2], PARED);
-    for (const sx of [-1, 1]) caja(c, t, h, D, [sx * W / 2, yc, 0], sx > 0 ? '#80674c' : '#735a42');
+    if (detalleObras()) {
+      // 4.22.0: tablas verticales con relieve y juntas oscuras, por afuera y por adentro (antes, un panel liso por pared; los cubrejuntas de abajo siguen encima)
+      const sem = semillaObra(P, datos), colores = ['#786047', '#81684d', '#745c43', '#80674c', '#735a42', '#7b6247'];
+      const base = { y0: Y0, y1: techoPared, grueso: t, colores, nucleo: '#3a2c20' };
+      // los vidrios (ver la función ventana): ni un nudo sobre el vidrio ni sobre el marco
+      const sin = { '-z': [], '+z': [], '-x': [], '+x': [] };
+      for (const v of P.ventanas) {
+        const yv = 1.62 + (v.dy || 0);
+        const k = (v.orient === 'z' ? (v.s < 0 ? '-z' : '+z') : (v.s < 0 ? '-x' : '+x'));
+        const u = v.orient === 'z' ? v.cx : v.cz;
+        sin[k].push([u - 0.65, u + 0.65, yv - 0.62, yv + 0.62]);
+      }
+      for (const sx of [-1, 1]) paredDeTablas(c, { ...base, eje: 'x', plano: -D / 2, u0: sx < 0 ? -W / 2 : PUERTA / 2, u1: sx < 0 ? -PUERTA / 2 : W / 2, caras: [-1, 1], fuera: -1, sem: (sem + sx * 3) | 0, sinNudos: sin['-z'] });
+      if (sobre > 0.02) paredDeTablas(c, { ...base, y0: ALTO_PUERTA, eje: 'x', plano: -D / 2, u0: -PUERTA / 2 - 0.01, u1: PUERTA / 2 + 0.01, caras: [-1, 1], fuera: -1, sem: (sem + 9) | 0, sinNudos: sin['-z'] });
+      paredDeTablas(c, { ...base, eje: 'x', plano: D / 2, u0: -W / 2, u1: W / 2, caras: [1, -1], fuera: 1, sem: (sem + 5) | 0, sinNudos: sin['+z'] });
+      for (const sx of [-1, 1]) paredDeTablas(c, { ...base, eje: 'z', plano: sx * W / 2, u0: -D / 2, u1: D / 2, caras: [sx, -sx], fuera: sx, sem: (sem + 7 + sx) | 0, sinNudos: sin[sx > 0 ? '+x' : '-x'] });
+    } else {
+      for (const sx of [-1, 1]) caja(c, lado, h, t, [sx * (PUERTA / 2 + lado / 2), yc, -D / 2], sx < 0 ? '#786047' : '#81684d');
+      if (sobre > 0.02) caja(c, PUERTA + 0.02, sobre, t, [0, ALTO_PUERTA + sobre / 2, -D / 2], PARED);
+      caja(c, W, h, t, [0, yc, D / 2], PARED);
+      for (const sx of [-1, 1]) caja(c, t, h, D, [sx * W / 2, yc, 0], sx > 0 ? '#80674c' : '#735a42');
+    }
     // marco de la puerta: jambas y dintel, sin madera atravesando el paso
     for (const sx of [-1, 1]) caja(c, 0.14, 1.82, 0.17, [sx * (PUERTA / 2 + 0.07), 1.50, -D / 2 - 0.04], MADERA_OSCURA, { tipo: 0 });
     caja(c, PUERTA + 0.28, 0.14, 0.17, [0, 2.42, -D / 2 - 0.04], MADERA_OSCURA, { tipo: 0 });

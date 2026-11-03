@@ -42,6 +42,8 @@ import { PIEZAS_DEFENSAS_49 } from './planos-defensas-49.js';
 // 4.10 base: el tablero de trofeos (ver planos-trofeos.js)
 import { PIEZAS_TROFEOS } from './planos-trofeos.js';
 import { asentadoActivo, asentarGeometria, teselarGeometria, remarcarRangos, huellaDe, semillaDe, azarDe } from './asentado.js';
+// 4.22.0: el detalle de las obras del jugador (tablas con relieve, piedra en bloques, troncos redondos y patas de canto rodado), sólo en Media y Alta (ver detalle-obras.js)
+import { detalleObras, semillaObra, paredDeTablas, pilarDePiedra, troncoRedondo, basaDePiedra, listonDeCara } from './detalle-obras.js';
 
 const MADERA = '#6b5238';
 const MADERA_OSCURA = '#4a3b2c';
@@ -66,14 +68,21 @@ export const PLANOS = [
         dice: 'Se nivela el suelo y se apoyan las esquinas sobre piedra, para que la madera no toque la tierra.',
         arma(c, P, datos, suelo) {
           const { ancho: W, fondo: D } = P;
+          const det = detalleObras(), sem = det ? semillaObra(P, datos) : 0;
+          let k = 0;
           for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-            c.agregar(new THREE.CylinderGeometry(0.34, 0.42, 0.55, 7), { color: PIEDRA, tipo: 4, variar: 0.18, matriz: matriz([sx * (W / 2 - 0.3), 0.18, sz * (D / 2 - 0.3)]) });
+            // 4.22.0: dos cantos rodados apilados donde estaba el cilindro de siete lados
+            if (det) basaDePiedra(c, { x: sx * (W / 2 - 0.3), z: sz * (D / 2 - 0.3), yCentro: 0.18, alto: 0.55, rBase: 0.42, rTope: 0.34, sem: (sem + 11 * ++k) | 0 });
+            else c.agregar(new THREE.CylinderGeometry(0.34, 0.42, 0.55, 7), { color: PIEDRA, tipo: 4, variar: 0.18, matriz: matriz([sx * (W / 2 - 0.3), 0.18, sz * (D / 2 - 0.3)]) });
             calce(c, suelo, sx * (W / 2 - 0.3), sz * (D / 2 - 0.3), -0.09, 0.42);   // 3.0.1: en la ladera, hasta el suelo
           }
-          c.agregar(new THREE.CylinderGeometry(0.3, 0.36, 0.5, 7), { color: PIEDRA, tipo: 4, variar: 0.18, matriz: matriz([0, 0.16, D / 2 - 0.3]) });
+          if (det) basaDePiedra(c, { x: 0, z: D / 2 - 0.3, yCentro: 0.16, alto: 0.5, rBase: 0.36, rTope: 0.3, sem: (sem + 99) | 0 });
+          else c.agregar(new THREE.CylinderGeometry(0.3, 0.36, 0.5, 7), { color: PIEDRA, tipo: 4, variar: 0.18, matriz: matriz([0, 0.16, D / 2 - 0.3]) });
           calce(c, suelo, 0, D / 2 - 0.3, -0.08, 0.36);
           for (const sz of [-1, 1]) {
-            c.agregar(troncoCurvo(W, 0.14, 0.13, [0, 0], 4, 2), { color: MADERA_OSCURA, tipo: 0, variar: 0.08, matriz: matriz([-W / 2, 0.44, sz * (D / 2 - 0.3)], [0, 0, -Math.PI / 2]) });
+            const m = matriz([-W / 2, 0.44, sz * (D / 2 - 0.3)], [0, 0, -Math.PI / 2]);
+            if (det) troncoRedondo(c, { largo: W, r0: 0.14, r1: 0.13, m, color: MADERA_OSCURA, variar: 0.08, tapas: [true, true] });
+            else c.agregar(troncoCurvo(W, 0.14, 0.13, [0, 0], 4, 2), { color: MADERA_OSCURA, tipo: 0, variar: 0.08, matriz: m });
           }
         },
       },
@@ -101,28 +110,38 @@ export const PLANOS = [
         arma(c, P) {
           const { ancho: W, fondo: D, alto: H } = P;
           const hueco = 0.95;
+          // 4.22.0: troncos de ocho lados, con las puntas que sobresalen en las esquinas (una hilada sí y la otra no) y sus tapas de madera cortada
+          const det = detalleObras(), SAL = 0.15;
           for (let i = 0; i < 7; i++) {
             const y = 0.68 + i * 0.26;
             const desfase = (i % 2) * 0.06;
+            const salenFrente = i % 2 === 0;
             // frente, con el hueco de la puerta
             const largoLado = (W - hueco) / 2;
             for (const sx of [-1, 1]) {
               // 3.0.1: el tronco crece hacia +x desde donde arranca: el de la derecha arranca en el
               // marco (antes arrancaba en la esquina y quedaba afuera de la casa, con el frente
               // derecho abierto y una pared invisible en su lugar)
-              c.agregar(troncoCurvo(largoLado, 0.13, 0.12, [0, 0], 4, 2), {
-                color: i % 2 ? MADERA : '#5f4a33', tipo: 0, variar: 0.1,
-                matriz: matriz([sx < 0 ? -(hueco / 2 + largoLado) : hueco / 2, y, -D / 2 + desfase], [0, 0, -Math.PI / 2]),
+              const x0 = sx < 0 ? -(hueco / 2 + largoLado) : hueco / 2;
+              const color = i % 2 ? MADERA : '#5f4a33';
+              if (det) {
+                const sale = salenFrente ? SAL : 0;
+                troncoRedondo(c, { largo: largoLado + sale, r0: 0.13, r1: 0.12, color, m: matriz([sx < 0 ? x0 - sale : x0, y, -D / 2 + desfase], [0, 0, -Math.PI / 2]), tapas: sx < 0 ? [salenFrente, false] : [false, salenFrente] });
+              } else c.agregar(troncoCurvo(largoLado, 0.13, 0.12, [0, 0], 4, 2), {
+                color, tipo: 0, variar: 0.1,
+                matriz: matriz([x0, y, -D / 2 + desfase], [0, 0, -Math.PI / 2]),
               });
             }
             // fondo entero
-            c.agregar(troncoCurvo(W, 0.13, 0.12, [0, 0], 4, 2), {
+            if (det) troncoRedondo(c, { largo: W + (salenFrente ? 2 * SAL : 0), r0: 0.13, r1: 0.12, color: i % 2 ? '#5f4a33' : MADERA, m: matriz([-W / 2 - (salenFrente ? SAL : 0), y, D / 2 - desfase], [0, 0, -Math.PI / 2]), tapas: [salenFrente, salenFrente] });
+            else c.agregar(troncoCurvo(W, 0.13, 0.12, [0, 0], 4, 2), {
               color: i % 2 ? '#5f4a33' : MADERA, tipo: 0, variar: 0.1,
               matriz: matriz([-W / 2, y, D / 2 - desfase], [0, 0, -Math.PI / 2]),
             });
             // laterales
             for (const sx of [-1, 1]) {
-              c.agregar(troncoCurvo(D, 0.13, 0.12, [0, 0], 4, 2), {
+              if (det) troncoRedondo(c, { largo: D + (salenFrente ? 0 : 2 * SAL), r0: 0.13, r1: 0.12, color: i % 2 ? MADERA : '#5f4a33', m: matriz([sx * (W / 2 - desfase), y, -D / 2 - (salenFrente ? 0 : SAL)], [Math.PI / 2, 0, 0]), tapas: [!salenFrente, !salenFrente] });
+              else c.agregar(troncoCurvo(D, 0.13, 0.12, [0, 0], 4, 2), {
                 color: i % 2 ? MADERA : '#5f4a33', tipo: 0, variar: 0.1,
                 matriz: matriz([sx * (W / 2 - desfase), y, -D / 2], [Math.PI / 2, 0, 0]),
               });
@@ -199,8 +218,11 @@ PLANOS.push({
       dice: 'Cuatro horcones enterrados sobre piedra, uno en cada esquina.',
       arma(c, P, datos, suelo) {
         const { ancho: W, fondo: D, alto: H } = P;
+        const det = detalleObras(), sem = det ? semillaObra(P, datos) : 0;
         for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-          c.agregar(new THREE.CylinderGeometry(0.28, 0.34, 0.4, 7), { color: PIEDRA, tipo: 4, variar: 0.16, matriz: matriz([sx * (W / 2 - 0.2), 0.14, sz * (D / 2 - 0.2)]) });
+          // 4.22.0: cantos rodados en vez del cilindro de siete lados
+          if (det) basaDePiedra(c, { x: sx * (W / 2 - 0.2), z: sz * (D / 2 - 0.2), yCentro: 0.14, alto: 0.4, rBase: 0.34, rTope: 0.28, sem: (sem + 17 * (sx + 3 * sz + 5)) | 0 });
+          else c.agregar(new THREE.CylinderGeometry(0.28, 0.34, 0.4, 7), { color: PIEDRA, tipo: 4, variar: 0.16, matriz: matriz([sx * (W / 2 - 0.2), 0.14, sz * (D / 2 - 0.2)]) });
           calce(c, suelo, sx * (W / 2 - 0.2), sz * (D / 2 - 0.2), -0.05, 0.34);   // 3.0.1
           c.agregar(new THREE.CylinderGeometry(0.11, 0.14, H, 7), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([sx * (W / 2 - 0.2), 0.3 + H / 2, sz * (D / 2 - 0.2)]) });
         }
@@ -219,7 +241,9 @@ PLANOS.push({
         // 3.0.1: las tablas apoyan en dos travesaños clavados a los horcones (antes flotaban)
         for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.12, 0.12, D - 0.3), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([sx * (W / 2 - 0.2), 0.245, 0]) });
         for (let i = 0; i < 6; i++) {
-          c.agregar(troncoCurvo(W - 0.4, 0.11, 0.1, [0, 0], 4, 2), { color: i % 2 ? MADERA : '#5f4a33', tipo: 0, variar: 0.1, matriz: matriz([-(W - 0.4) / 2, 0.5 + i * 0.26, D / 2 - 0.2], [0, 0, -Math.PI / 2]) });
+          // 4.22.0: troncos de ocho lados con su tapa de madera cortada (los de cuatro lados parecían listones)
+          if (detalleObras()) troncoRedondo(c, { largo: W - 0.4, r0: 0.11, r1: 0.1, color: i % 2 ? MADERA : '#5f4a33', m: matriz([-(W - 0.4) / 2, 0.5 + i * 0.26, D / 2 - 0.2], [0, 0, -Math.PI / 2]), tapas: [true, true] });
+          else c.agregar(troncoCurvo(W - 0.4, 0.11, 0.1, [0, 0], 4, 2), { color: i % 2 ? MADERA : '#5f4a33', tipo: 0, variar: 0.1, matriz: matriz([-(W - 0.4) / 2, 0.5 + i * 0.26, D / 2 - 0.2], [0, 0, -Math.PI / 2]) });
         }
       },
     },
@@ -269,8 +293,11 @@ PLANOS.push({
       dice: 'Cuatro patas cruzadas con travesaños, que es lo que le da el aguante.',
       arma(c, P, datos, suelo) {
         const { ancho: W, fondo: D, alto: H } = P;
+        const det = detalleObras(), sem = det ? semillaObra(P, datos) : 0;
         for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-          c.agregar(new THREE.CylinderGeometry(0.26, 0.3, 0.35, 7), { color: PIEDRA, tipo: 4, variar: 0.16, matriz: matriz([sx * (W / 2 - 0.2), 0.12, sz * (D / 2 - 0.2)]) });
+          // 4.22.0: cantos rodados en vez del cilindro de siete lados
+          if (det) basaDePiedra(c, { x: sx * (W / 2 - 0.2), z: sz * (D / 2 - 0.2), yCentro: 0.12, alto: 0.35, rBase: 0.3, rTope: 0.26, sem: (sem + 19 * (sx + 3 * sz + 5)) | 0 });
+          else c.agregar(new THREE.CylinderGeometry(0.26, 0.3, 0.35, 7), { color: PIEDRA, tipo: 4, variar: 0.16, matriz: matriz([sx * (W / 2 - 0.2), 0.12, sz * (D / 2 - 0.2)]) });
           calce(c, suelo, sx * (W / 2 - 0.2), sz * (D / 2 - 0.2), -0.05, 0.3);   // 3.0.1
           c.agregar(new THREE.CylinderGeometry(0.1, 0.13, H, 7), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([sx * (W / 2 - 0.2), 0.25 + H / 2, sz * (D / 2 - 0.2)], [0, 0, sx * 0.03]) });
         }
@@ -348,8 +375,12 @@ PLANOS.push({
       dice: 'Seis apoyos de piedra y dos soleras levantan la madera de la humedad.',
       arma(c, P, datos, suelo) {
         const { ancho: W, fondo: D } = P;
+        const det = detalleObras(), sem = det ? semillaObra(P, datos) : 0;
+        let k = 0;
         for (const sx of [-1, 0, 1]) for (const sz of [-1, 1]) {
-          c.agregar(new THREE.CylinderGeometry(0.25, 0.32, 0.42, 7), { color: PIEDRA, tipo: 4, variar: 0.16,
+          // 4.22.0: dos cantos rodados apilados donde estaba el cilindro de siete lados
+          if (det) basaDePiedra(c, { x: sx * (W / 2 - 0.28), z: sz * (D / 2 - 0.28), yCentro: 0.16, alto: 0.42, rBase: 0.32, rTope: 0.25, sem: (sem + 13 * ++k) | 0 });
+          else c.agregar(new THREE.CylinderGeometry(0.25, 0.32, 0.42, 7), { color: PIEDRA, tipo: 4, variar: 0.16,
             matriz: matriz([sx * (W / 2 - 0.28), 0.16, sz * (D / 2 - 0.28)]) });
           calce(c, suelo, sx * (W / 2 - 0.28), sz * (D / 2 - 0.28), -0.04, 0.32);   // 3.0.1
         }
@@ -378,21 +409,37 @@ PLANOS.push({
       nombre: 'Entramado y cerramiento',
       pide: { tabla: 18, tronco: 8 },
       dice: 'Postes, tablas y marcos. El frente deja una entrada franca y la ventana mira al costado.',
-      arma(c, P) {
+      arma(c, P, datos) {
         const { ancho: W, fondo: D, alto: H } = P;
         const y0 = 0.60, h = H - 0.35, yc = y0 + h / 2, t = 0.10, puerta = 1.02;
         // postes de esquina
         for (const sx of [-1, 1]) for (const sz of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.14, H, 0.14), {
           color: MADERA_OSCURA, tipo: 0, variar: 0.08, matriz: matriz([sx * (W / 2 - 0.07), y0 + H / 2, sz * (D / 2 - 0.07)]) });
-        // frente con vano real
         const lado = (W - puerta) / 2;
-        for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(lado, h, t), {
-          color: sx < 0 ? '#786047' : '#81684d', tipo: 4, variar: 0.1,
-          matriz: matriz([sx * (puerta / 2 + lado / 2), yc, -D / 2]) });
-        // fondo y laterales
-        c.agregar(new THREE.BoxGeometry(W, h, t), { color: '#745c43', tipo: 4, variar: 0.1, matriz: matriz([0, yc, D / 2]) });
-        for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(t, h, D), { color: sx > 0 ? '#80674c' : '#735a42', tipo: 4, variar: 0.1,
-          matriz: matriz([sx * W / 2, yc, 0]) });
+        if (detalleObras()) {
+          // 4.22.0: las paredes de tablas verticales con relieve y juntas oscuras, por afuera y por adentro (antes, un panel liso por pared), con su zócalo y su cinta
+          const sem = semillaObra(P, datos), colores = ['#786047', '#81684d', '#745c43', '#80674c', '#735a42', '#7b6247'];
+          const base = { y0, y1: y0 + h, grueso: t, colores, nucleo: '#3a2c20' };
+          // la ventana del lado +x (u = z): ni un nudo sobre el vidrio ni sobre el marco
+          const ventana = [[-0.25, 1.15, 1.08, 2.08]];
+          for (const sx of [-1, 1]) paredDeTablas(c, { ...base, eje: 'x', plano: -D / 2, u0: sx < 0 ? -W / 2 : puerta / 2, u1: sx < 0 ? -puerta / 2 : W / 2, caras: [-1, 1], fuera: -1, sem: (sem + sx * 3) | 0 });
+          paredDeTablas(c, { ...base, eje: 'x', plano: D / 2, u0: -W / 2, u1: W / 2, caras: [1, -1], fuera: 1, sem: (sem + 5) | 0 });
+          for (const sx of [-1, 1]) paredDeTablas(c, { ...base, eje: 'z', plano: sx * W / 2, u0: -D / 2, u1: D / 2, caras: [sx, -sx], fuera: sx, sem: (sem + 7 + sx) | 0, sinNudos: sx > 0 ? ventana : undefined });
+          // el zócalo (una tabla ancha y oscura al pie) y la cinta de arriba, por afuera
+          const tira = (eje, plano, fuera, u0, u1, y, alto, sale) => listonDeCara(c, { eje, cara: plano + fuera * t / 2 + fuera * 0.016, fuera, u0, u1, y0: y, y1: y + alto, sale, color: MADERA_OSCURA, sem });
+          for (const sx of [-1, 1]) tira('x', -D / 2, -1, sx < 0 ? -W / 2 + 0.07 : puerta / 2, sx < 0 ? -puerta / 2 : W / 2 - 0.07, y0, 0.17, 0.02);
+          tira('x', D / 2, 1, -W / 2 + 0.07, W / 2 - 0.07, y0, 0.17, 0.02);
+          for (const sx of [-1, 1]) tira('z', sx * W / 2, sx, -D / 2 + 0.07, D / 2 - 0.07, y0, 0.17, 0.02);
+        } else {
+          // frente con vano real
+          for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(lado, h, t), {
+            color: sx < 0 ? '#786047' : '#81684d', tipo: 4, variar: 0.1,
+            matriz: matriz([sx * (puerta / 2 + lado / 2), yc, -D / 2]) });
+          // fondo y laterales
+          c.agregar(new THREE.BoxGeometry(W, h, t), { color: '#745c43', tipo: 4, variar: 0.1, matriz: matriz([0, yc, D / 2]) });
+          for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(t, h, D), { color: sx > 0 ? '#80674c' : '#735a42', tipo: 4, variar: 0.1,
+            matriz: matriz([sx * W / 2, yc, 0]) });
+        }
         // marco de la puerta: jambas + dintel, sin madera atravesando el paso
         for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.14, 1.82, 0.17), { color: MADERA_OSCURA, tipo: 4,
           matriz: matriz([sx * (puerta / 2 + 0.07), 1.50, -D / 2 - 0.04]) });
@@ -412,7 +459,7 @@ PLANOS.push({
       pide: { tabla: 14, piedra: 4, tronco: 2 },
       dice: 'Cubierta, cumbrera, aleros y una estufa chica con el caño continuo hasta arriba del techo.',
       termina: true,
-      arma(c, P) {
+      arma(c, P, datos) {
         const { ancho: W, fondo: D, alto: H } = P;
         const subida = 1.0, largo = Math.hypot(subida, W / 2) + 0.30, incl = Math.atan2(subida, W / 2);
         for (const lado of [-1, 1]) for (let i = 0; i < Math.round((D + 0.55) / 0.31); i++) {
@@ -421,7 +468,9 @@ PLANOS.push({
         }
         c.agregar(new THREE.BoxGeometry(0.16, 0.16, D + 0.6), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([0, H + 1.30, 0]) });
         // estufa de piedra + caño continuo
-        c.agregar(new THREE.BoxGeometry(0.68, 0.62, 0.58), { color: '#514b45', tipo: 4, variar: 0.12,
+        // 4.22.0: la estufa, de bloques de piedra
+        if (detalleObras()) pilarDePiedra(c, { cx: W / 2 - 0.75, cz: D / 2 - 0.70, w: 0.68, d: 0.58, y0: 0.60, y1: 1.22, sem: semillaObra(P, datos) });
+        else c.agregar(new THREE.BoxGeometry(0.68, 0.62, 0.58), { color: '#514b45', tipo: 4, variar: 0.12,
           matriz: matriz([W / 2 - 0.75, 0.91, D / 2 - 0.70]) });
         c.agregar(new THREE.CylinderGeometry(0.10, 0.12, 2.35, 10), { color: '#3b3a36', tipo: 4,
           matriz: matriz([W / 2 - 0.75, 2.38, D / 2 - 0.70]) });
@@ -454,7 +503,9 @@ PLANOS.push({
         const { ancho: W, fondo: D, alto: H } = P;
         for (const sx of [-1, 0, 1]) for (const sz of [-1, 1]) {
           const x = sx * (W / 2 - 0.24), z = sz * (D / 2 - 0.22);
-          c.agregar(new THREE.CylinderGeometry(0.25, 0.32, 0.40, 7), { color: PIEDRA, tipo: 4, variar: 0.16, matriz: matriz([x, 0.14, z]) });
+          // 4.22.0: cantos rodados en vez del cilindro de siete lados
+          if (detalleObras()) basaDePiedra(c, { x, z, yCentro: 0.14, alto: 0.40, rBase: 0.32, rTope: 0.25, sem: (semillaObra(P, datos) + 23 * (sx + 3 * sz + 5)) | 0 });
+          else c.agregar(new THREE.CylinderGeometry(0.25, 0.32, 0.40, 7), { color: PIEDRA, tipo: 4, variar: 0.16, matriz: matriz([x, 0.14, z]) });
           calce(c, suelo, x, z, -0.05, 0.32);   // 3.0.1
           c.agregar(new THREE.CylinderGeometry(0.105, 0.135, H, 7), { color: MADERA_OSCURA, tipo: 0, variar: 0.08, matriz: matriz([x, 0.34 + H / 2, z]) });
         }
@@ -466,13 +517,15 @@ PLANOS.push({
       nombre: 'Piso y reparo',
       pide: { tabla: 18, tronco: 4 },
       dice: 'Entablonado alto, pared trasera y riostras diagonales para que no bambolee con el viento.',
-      arma(c, P) {
+      arma(c, P, datos) {
         const { ancho: W, fondo: D, alto: H } = P;
         for (let i = 0; i < Math.round(D / 0.31); i++) c.agregar(new THREE.BoxGeometry(W - 0.20, 0.075, 0.285), {
           color: i % 3 ? TABLA : '#765b40', tipo: 4, variar: 0.1, matriz: matriz([0, 0.48, -D / 2 + 0.16 + i * 0.31]) });
         // 3.0.1: las tablas apoyan en tres travesaños de poste a poste (antes flotaban)
         for (const sx of [-1, 0, 1]) c.agregar(new THREE.BoxGeometry(0.12, 0.12, D - 0.3), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([sx * (W / 2 - 0.24), 0.38, 0]) });
-        c.agregar(new THREE.BoxGeometry(W - 0.28, 1.60, 0.09), { color: '#6e563d', tipo: 4, variar: 0.11,
+        // 4.22.0: la pared de atrás, de tablas parradas con juntas oscuras (la cara que se ve es la que mira al frente, -z)
+        if (detalleObras()) paredDeTablas(c, { eje: 'x', plano: D / 2 - 0.19, u0: -(W - 0.28) / 2, u1: (W - 0.28) / 2, y0: 0.54, y1: 2.14, grueso: 0.09, caras: [-1, 1], fuera: -1, sem: semillaObra(P, datos), colores: ['#6e563d', '#775d42', '#69523a', '#725a40'], nucleo: '#2f241a' });
+        else c.agregar(new THREE.BoxGeometry(W - 0.28, 1.60, 0.09), { color: '#6e563d', tipo: 4, variar: 0.11,
           matriz: matriz([0, 1.34, D / 2 - 0.19]) });
         for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.10, 2.20, 0.10), { color: MADERA, tipo: 0,
           matriz: matriz([sx * (W / 2 - 0.40), 1.35, D / 2 - 0.26], [0, 0, sx * 0.65]) });
@@ -2380,9 +2433,11 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     const terminada = datos.etapas >= plano.etapas.length;
     const sem = semillaDe(datos.x, datos.z, plano.id);
     const nivel = terminada ? (DESGASTE_OBRA[plano.categoria] ?? 0.12) * (0.6 + 0.8 * azarDe(sem, 9)) : 0;
-    const tesela = teselarGeometria(g);
+    // 4.22.0: con el detalle de las obras (más piezas chicas) los topes del teselado y de la oclusión suben: si no, las casas grandes perdían el asentado
+    const ancho = asentadoActivo().detalle;
+    const tesela = teselarGeometria(g, ancho ? { maxVerts: 48000, tope: 90000 } : undefined);
     remarcarRangos(marcas, tesela);
-    asentarGeometria(g, { semilla: sem, rot: datos.rot || 0, nivel, base: 0 });
+    asentarGeometria(g, { semilla: sem, rot: datos.rot || 0, nivel, base: 0, ...(ancho ? { maxVerts: 110000 } : {}) });
   }
 
   // 4.12.1: la sombra de contacto al pie de la obra (una malla para todo el valle, ver asentado-mundo.js). Sólo en el terreno: sobre un piso propio

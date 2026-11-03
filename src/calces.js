@@ -6,6 +6,8 @@
 // del poste): el calce va de ahí hasta enterrarse un poco. Sólo tipo 0 y 4, como las obras.
 import * as THREE from 'three';
 import { matriz } from './geometria.js';
+// 4.22.0: con el detalle de las obras (Media y Alta) el calce de una pata es un canto rodado y no un cilindro de siete lados (ver detalle-obras.js)
+import { detalleObras, piedraRodada, mezclar, PIEDRAS } from './detalle-obras.js';
 
 const PIEDRA = '#7d766c';
 
@@ -15,6 +17,13 @@ export function calce(c, suelo, lx, lz, y0, r, color = PIEDRA, tipo = 4) {
   const falta = y0 - Math.min(suelo(lx, lz), suelo(lx + r, lz), suelo(lx - r, lz), suelo(lx, lz + r), suelo(lx, lz - r));
   if (!(falta > 0.04)) return;
   const alto = falta + 0.16;
+  if (detalleObras() && color === PIEDRA && tipo === 4) {
+    // (un canto alto y angosto si la ladera es empinada, dos si hace falta: ancho = la huella del cilindro, alto = lo que falta)
+    const sem = (Math.round(lx * 100) * 73856093 ^ Math.round(lz * 100) * 19349663) | 0;
+    const col = mezclar(PIEDRAS[Math.abs(sem) % PIEDRAS.length], 0.88);
+    piedraRodada(c, { x: lx, y: y0 - alto / 2 + 0.04, z: lz, rx: r * 0.98, ry: alto / 2 + 0.06, rz: r * 0.94, sem, color: col });
+    return;
+  }
   c.agregar(new THREE.CylinderGeometry(r * 0.9, r, alto, 7), { color, tipo, variar: 0.14, matriz: matriz([lx, y0 - alto / 2, lz]) });
 }
 
