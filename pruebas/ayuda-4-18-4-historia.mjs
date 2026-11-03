@@ -91,7 +91,7 @@ export function correrEscena(S, id, opc = {}) {
   for (let i = 0; i < 20000 && dir.activa(); i++) {
     dir.actualizar(0.1);
     const d = dir.datos();
-    if (d?.eleccion) { dir.elegir(elige(d.eleccion.opciones.length)); continue; }
+    if (d?.eleccion) { dir.elegir(elige(d.eleccion.opciones.length, d.eleccion.opciones)); continue; }
     if (d?.dialogo) { dir.acelerar(true); dir.avanzar(); }
     if (saltar && ++t === 4) { dir.pedirSaltar(); dir.pedirSaltar(); }
   }
@@ -141,6 +141,7 @@ export function jugar(semilla, opc = {}) {
     if (h.capitulo !== capAnterior) { capAnterior = h.capitulo; pasosCap = 0; reporte.capitulos++; }
     if (++pasosCap > (opc.tope || 9000)) { reporte.atascado = { cap: H.capituloActual(h).id, fase: h.fase, pendientes: H.capituloActual(h).objetivos.filter((o) => h.hechos[`${H.capituloActual(h).id}:${o.id}`] === undefined).map((o) => o.id) }; break; }
     if (rnd() < 0.5) tiempo(0.25 + rnd() * 3);
+    if (opc.alPaso) opc.alPaso(h, P, paso);   // 4.23.0 (B): un gancho para mirar la partida paso a paso (los logros: cuándo se cumple cada uno)
     lugaresAzar(); X.estacionNatural = natural();
     X.estacion = H.estacionForzada(h, H.estadoHistoria(P, X)) || X.estacionNatural;
     if (rnd() < 0.35) HECHOS[r(HECHOS.length)]();
@@ -154,7 +155,7 @@ export function jugar(semilla, opc = {}) {
     if (dir.activa()) continue;
     if (H.capituloActual(h).id === 'nevada' && h.duendes.noche === 'pendiente' && h.escenas.vistas['noche-espera'] && rnd() < 0.3) { h.duendes.noche = rnd() < 0.6 ? 'ganada' : 'perdida'; continue; }
     const dec = H.decisionPendiente(h, s);
-    if (dec && rnd() < 0.5) { const ops = dec.opciones.filter((o) => !o.requiere || o.requiere(s)); H.tomarDecision(h, dec.id, ops[r(ops.length)].id, s, P.dia); continue; }
+    if (dec && rnd() < 0.5) { const ops = dec.opciones.filter((o) => !o.requiere || o.requiere(s)); const eg = opc.decide ? opc.decide(dec.id, ops.map((o) => o.id)) : null; H.tomarDecision(h, dec.id, (ops.find((o) => o.id === eg) || ops[r(ops.length)]).id, s, P.dia); continue; }   // (4.23.0: `opc.decide` elige a propósito)
     const modo = r(4);
     let id = null;
     if (modo === 0) id = D.escenaPendiente(h, s, { modo: 'auto', apuntaArbolVivo: s.apuntaArbolVivo, visitaActiva: s.visitaActiva });
@@ -177,7 +178,7 @@ export function jugar(semilla, opc = {}) {
     }
     if (id) {
       if (!dir.hay(id)) { ES.marcarVista(h, id, P.dia); aplicar(S); }
-      else correrEscena(S, id);
+      else correrEscena(S, id, opc.escena || {});   // (4.23.0: `opc.escena` = { elige, saltar } para jugar a propósito)
     }
   }
   reporte.errores = S.errores;

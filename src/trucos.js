@@ -394,6 +394,13 @@ function avisoDecisiones(tomadas, quedan) {
   if (quedan.length) t += `. Siguen tomadas las de más adelante: ${quedan.map(nombreDecision).join(', ')}`;
   return t;
 }
+// 4.23.0 (B): saltar capítulos o completar la historia con el código deja una marca en la partida (`trucos.historia`): los logros de la Historia no cuentan desde entonces (igual que las anotaciones del
+// cuaderno que puso la consola, 4.5). «historia reiniciar» deja la historia de verdad desde cero y la saca.
+function marcarHistoria(p, si) {
+  if (!si && !p.trucos) return;
+  const marca = p.trucos && typeof p.trucos === 'object' && !Array.isArray(p.trucos) ? p.trucos : (p.trucos = {});
+  if (si) marca.historia = true; else delete marca.historia;
+}
 function cmdHistoria(args, m) {
   const p = progresoDe(m); if (!p) return no(R.noHayPartida);
   const d = relax(m, 'La historia'); if (d) return d;
@@ -412,6 +419,7 @@ function cmdHistoria(args, m) {
     CAPITULOS.forEach((c, i) => marcar(c, i < idx));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = 0; h.capitulo = idx; h.fase = 'intro'; h.base = {};
     h.acompanante = null;   // 4.17.1: quien te acompañaba en otro capítulo (Graciela, Ramón) no te sigue para siempre
+    marcarHistoria(p, true);   // 4.23.0 (B)
     // 4.19.0: las decisiones de los capítulos que se saltan se toman por la primera opción (con sus lazos): sin eso, el capítulo 9 o el final salían sin D1 ni D2 y la historia
     // quedaba en un estado que jugando no se alcanza. Las escenas de esos capítulos NO se marcan como vistas (lo avisa el mensaje). Las de los capítulos que quedan por delante,
     // si ya estaban tomadas, siguen tomadas (también se avisa).
@@ -424,6 +432,7 @@ function cmdHistoria(args, m) {
     const sobra = unico(args); if (sobra) return sobra;
     CAPITULOS.forEach((c) => marcar(c, true));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = h.terminada || dia; h.capitulo = n - 1; h.fase = 'fin'; h.base = {};
+    marcarHistoria(p, true);   // 4.23.0 (B)
     const tomadas = tomarPorDefecto(h, n, dia);   // 4.19.0: igual que «capitulo N»
     activaLaHistoria(m);
     return ok(R.historiaCompleta + avisoDecisiones(tomadas, []));
@@ -436,6 +445,7 @@ function cmdHistoria(args, m) {
     for (const k of Object.keys(h.hablados && typeof h.hablados === 'object' ? h.hablados : {})) nueva.hablados[k] = true;
     nueva.activa = true; nueva.empezada = dia; nueva.terminada = 0; nueva.capitulo = 0; nueva.fase = 'intro'; nueva.base = {};
     p.historia = nueva;
+    marcarHistoria(p, false);   // 4.23.0 (B)
     activaLaHistoria(m);
     return ok(R.historiaReiniciada);
   }
@@ -513,16 +523,26 @@ export function sanearMarcaTrucos(v) {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return undefined;
   const lista = (Array.isArray(v.entradas) ? v.entradas : []).filter((id) => typeof id === 'string' && Object.hasOwn(ENTRADA, id));
   const unicas = [...new Set(lista)];
-  return unicas.length ? { entradas: unicas } : undefined;
+  const r = {};
+  if (unicas.length) r.entradas = unicas;
+  if (v.historia === true) r.historia = true;   // 4.23.0 (B): se saltaron capítulos con el código (ver marcarHistoria)
+  return Object.keys(r).length ? r : undefined;
 }
 // La partida como la ven los logros: sin las anotaciones que puso un código. No copia nada si no hubo códigos.
 export function vistaParaLogros(p) {
   const ids = p?.trucos?.entradas;
-  if (!Array.isArray(ids) || !ids.length || !p.entradas) return p;
-  const fuera = new Set(ids);
-  const entradas = {};
-  for (const [k, v] of Object.entries(p.entradas)) if (!fuera.has(k)) entradas[k] = v;
-  return { ...p, entradas };
+  // 4.23.0 (B): con capítulos saltados por el código, los logros de la Historia no ven la historia
+  const sinHistoria = p?.trucos?.historia === true && p.historia !== undefined;
+  if (!sinHistoria && (!Array.isArray(ids) || !ids.length || !p.entradas)) return p;
+  const r = { ...p };
+  if (sinHistoria) r.historia = undefined;
+  if (Array.isArray(ids) && ids.length && p.entradas) {
+    const fuera = new Set(ids);
+    const entradas = {};
+    for (const [k, v] of Object.entries(p.entradas)) if (!fuera.has(k)) entradas[k] = v;
+    r.entradas = entradas;
+  }
+  return r;
 }
 
 // ------------------------------------------------------------------ la consola

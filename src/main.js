@@ -251,6 +251,8 @@ import { sanearChinches, ponerChinche, chincheCerca, sacarChinche, rumboHacia, t
 import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-tutorial.js';
 // 3.1: la historia guiada y los eventos del valle con decisiones (ver historia-ui.js)
 import { crearValleUi } from './historia-ui.js';
+// 4.23.0 (B): el cuaderno «Lo vivido»
+import { dibujarVivido, hayVivido } from './historia-vivido.js';
 // 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce de la torta, el pan de Fermín)
 import { IDS_REGALO, gastarRegalo } from './historia-regalos.js';
 // 4.13.0 (B): la noche de defensa del final de la Historia
@@ -1279,6 +1281,8 @@ function dibujarCuadernoSinFoco() {
   else if (pestana === 'recetario') pestana = 'especies';
   if (!desafio && noticiasJuego) pestanas.push(['noticias', 'Noticias']);   // 3.7.5 (noticias): la radio, el diario, las cartas y los concursos
   else if (pestana === 'noticias') pestana = 'especies';
+  if (!desafio && hayVivido(progreso.historia)) pestanas.push(['vivido', 'Lo vivido']);   // 4.23.0 (B): las escenas que viviste, con su resumen y el día
+  else if (pestana === 'vivido') pestana = 'especies';
   // 2.0: en el Desafío, el bestiario de los invasores
   if (desafio) pestanas.push(['bestiario', 'Bestiario']);
   else if (pestana === 'bestiario') pestana = 'especies';
@@ -1302,6 +1306,7 @@ function dibujarCuadernoSinFoco() {
   if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
   if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
   if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
+  if (pestana === 'vivido' && !desafio) { dibujarVivido(lista, ficha, el, progreso.historia, dibujarCuaderno); return; }   // 4.23.0 (B)
   if (pestana === 'aldea' && desafio?.aldeaMundo) { desafio.aldeaMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.9 dias
   if (pestana === 'partidas' && desafio) { dibujarHojaPartidas(ficha, el, metaJuego.leer()); return; }   // 4.10 partidas
   if (pestana === 'guardian' && desafio?.habilidadesMundo) { desafio.habilidadesMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.10 guardian

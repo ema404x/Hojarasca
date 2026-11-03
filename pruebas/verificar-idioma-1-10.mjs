@@ -43,7 +43,8 @@ for (const id of ['e-caballo', 'e-correo', 'e-verdura', 'e-lana']) {
 for (const id of ['semillas-habas', 'semillas-papa', 'tijera']) {
   for (const campo of ['nombre', 'texto', 'efecto']) traducido(TRUEQUE[id][campo], `almacén ${id}.${campo}`);
 }
-for (const l of LOGROS_RELAX) { traducido(l.nombre, `logro ${l.id}`); traducido(l.texto, `logro ${l.id}`); traducido(`Logro: ${l.nombre}`, `aviso del logro ${l.id}`); }
+// 4.23.0 (B): los logros de la Historia (`historia: true`) se traducen al final, con el resto de la Historia: acá siguen los del Relax de siempre
+for (const l of LOGROS_RELAX.filter((x) => !x.historia)) { traducido(l.nombre, `logro ${l.id}`); traducido(l.texto, `logro ${l.id}`); traducido(`Logro: ${l.nombre}`, `aviso del logro ${l.id}`); }
 
 // ---------------------------------------------------------------- lo que se arma en el momento
 for (const [id, c] of Object.entries(CULTIVOS)) {

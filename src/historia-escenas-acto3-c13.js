@@ -65,7 +65,7 @@ const salto = (a, si) => (si ? { tipo: 'salto', a, si } : { tipo: 'salto', a });
 
 const majadaFin = {
   id: 'majada-fin', titulo: 'Los de la majada', acto: 3, capitulo: 13,
-  resumen: 'Visitaste a Ramón y a Fermín. Si Fermín llevó la majada, hay un cartel nuevo: «Puesto Catrileo». Si la cuidaste vos, Fermín se quedó o se fue con las mulas. Si la vendiste, Ramón mira el galpón vacío desde la loma. Con el lazo al máximo, te regala el mate de Chocolate.',
+  resumen: 'Visitaste a Ramón y a Fermín. Si Fermín llevó la majada, hay un cartel nuevo: «Puesto Catrileo». Si la cuidaste vos, Fermín se quedó o se fue con las mulas. Si la vendiste, Ramón mira el galpón vacío desde la loma. Y si ya sos de la casa, te regala el mate de Chocolate.',
   personajes: pj3('ramon', 'fermin', 'narra'),
   disparador: { hora: [10, 18] },
   pasos: [
