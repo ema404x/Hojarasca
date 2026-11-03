@@ -243,6 +243,9 @@ const fogonLeyenda = {
     narra('El fogón de la aldea tira chispas hacia las estrellas. Hay media aldea sentada en círculo, con mantas y mates. Las caras se ven naranjas.'),
     plano('paneo', 'herminia', { hasta: 'ramon', dist: 8, alto: 1.8, dur: 4.4, mezcla: 0.9 }),
     narra('Ercilia con una taza. Graciela con su libreta en las rodillas. Josefina un poco aparte. Ramón con el mate, sin mirar a nadie. Nahuel y Lucía, sentados casi adentro del fuego.'),
+    // 4.22.0: el valle se acuerda de la primera molienda (D3): cómo está la mesa del fogón según adónde fue la harina
+    con(narra('Graciela anota algo del flete del día y Ercilia la mira de reojo: los sacos de la trochita todavía le pesan en la libreta. Se hablan poco, pero se pasan el mate.'), siDecision('molienda', 'a')),
+    con(narra('Cada tanto alguien se acerca a Ercilia a devolverle algo del fiado de invierno: una gallina, un zapallo, una promesa. Ella lo anota todo con letra redonda y cara de estar contenta, que disimula mal.'), siDecision('molienda', 'b')),
     dlg('herminia', [
       linea('Dicen que traés algo. Dicen muchas cosas en este valle, pero esta vez dicen tres cuadernos.', { gesto: gs('mirar', 2.2) }),
       '¿Y? ¿Qué se cuenta esta noche?',

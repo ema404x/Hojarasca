@@ -74,6 +74,8 @@ const ferminTranquera = {
     // 4.18.3: lo que le cuesta a Ramón que la lleve Fermín, en palabras: depende de cuánto confíe Fermín en vos (si la optativa «Fermín quiere hablar» ya está hecha, confía)
     con(narra('Fermín ya no te mira con reserva: sabés que no se la lleva para irse. Si la lleva él, Ramón lo va a entender.'), siLazo('fermin', 2)),
     con(narra('Fermín todavía te mira con reserva. Si la lleva él, a Ramón le va a doler, aunque después se le pase.'), no(siLazo('fermin', 2))),
+    // 4.22.0: lo que elijas acá se siente el día de la nevada (quién está a tu lado y quién no); no traba nada: la noche se juega igual
+    narra('Lo que elijas se va a notar el día de la nevada: quién está a tu lado y quién no.'),
     eleccion('majada', '¿Quién sube con la majada?', [
       opcion('a', 'Que la lleve Fermín, entera.', { efecto: 'decision:majada:a' }),
       opcion('b', 'La cuido yo hasta que Ramón se cure.', { efecto: 'decision:majada:b' }),
@@ -86,9 +88,11 @@ const ferminTranquera = {
     con(dlg('ramon', ['Vos.']), siEleg('majada', 'b')),
     con(narra('Fermín no dice nada. Da media vuelta con el caballo y se va despacio, derecho, sin mirar atrás. Es la manera más educada de estar herido que viste.'), siEleg('majada', 'b')),
     con(camina('fermin', FRENTE(30, -10), { vel: 1.6 }), siEleg('majada', 'b')),
+    con(narra('Se lo ve alejarse por la ladera hasta ser un punto. Quedan Ramón, la majada y vos. Y una silla que de golpe va a hacer falta en otra parte.'), siEleg('majada', 'b')),
     con(narra('Sacás el papel que guarda Ercilia en la memoria: una hoja con el pulso de Ramón y un manchón de mate. Ramón no te mira. Mira la ladera donde la majada se mueve como una nube sucia.'), siEleg('majada', 'c')),
     con(dlg('ramon', ["Andá. Hacé lo que tengas que hacer, m'hijo."]), siEleg('majada', 'c')),
     con(narra('Fermín mira el suelo. Ramón mira el aire. Los dos saben qué se está comprando acá y cuánto cuesta, y ninguno dice nada.'), siEleg('majada', 'c')),
+    con(narra('Cuando te vas, ninguno de los dos te acompaña hasta la tranquera. Es la primera vez. El camino de vuelta se hace largo.'), siEleg('majada', 'c')),
     efecto('raro:majada-decision'),
   ],
 };

@@ -10,7 +10,7 @@
 //   · Hecha = queda anotada en `historia.optativas[id] = día` una sola vez, y en ese momento se da el premio (una sola vez). Los LAZOS del
 //     guion los da la escena (`lazo:<quién>:<n>`); si la escena vista no trae el lazo de esa persona, lo da el registro. Lo mismo con el ramal.
 //   · Los encargos de los vecinos con lazo (LAZOS_TODOS: los seis con arco y, desde la 4.18.2, también Nicanor): cada encargo cumplido con la historia en marcha suma +1 al lazo de quien lo pidió.
-import { CAPITULOS, LAZOS_TODOS, PERSONAS_LAZO_VECINOS, cambiarLazo, sumarRamal } from './historia.js';
+import { CAPITULOS, LAZOS_TODOS, PERSONAS_LAZO_VECINOS, cambiarLazo, lazoDe, sumarRamal } from './historia.js';
 import { TEXTO_LAZOS } from './historia-texto-lazos.js';
 // 4.21.0: las metas con plata (el puesto de la feria): cuánto cuesta
 import { PROPIEDAD } from './propiedad.js';
@@ -298,6 +298,12 @@ export function panDeHoy(h, dia, horas) {
 
 // ---------------------------------------------------------------- los encargos de los vecinos con arco: +1 al lazo de quien lo pidió
 // `encargos`: [{ id, quien }] (los de encargos.js y encargos-temporada.js). La primera vez se anota lo ya hecho como base (sin lazo).
+// 4.22.0: TOPE. Los 28 encargos sumaban +1 cada uno sobre un rango de 6 (−2 a 3) y lavaban cualquier decisión (Ramón con 9, Josefina con 7…): ahora los encargos de una
+// misma persona suman a lo sumo TOPE_ENCARGOS_LAZO (+2: «de confianza»; el «de la casa» hay que ganarlo en la historia) y, mientras ese vecino esté frío o tirante
+// (lazo < 0, casi siempre por una decisión dura), a lo sumo TOPE_ENCARGOS_FRIO (+1 en total: arreglan el trato pero no lo borran). Lo que da lazo queda anotado con el día
+// (≥ 1) y lo que no, con 0 (como la base): el tope se cuenta mirando lo ya anotado (nada nuevo que guardar) y no se retroceden los lazos de partidas viejas.
+export const TOPE_ENCARGOS_LAZO = 2;
+export const TOPE_ENCARGOS_FRIO = 1;
 export function revisarEncargos(h, p, encargos, dia = 1) {
   const dados = [];
   if (!h?.activa || h.fase === 'fin') return dados;
@@ -308,10 +314,15 @@ export function revisarEncargos(h, p, encargos, dia = 1) {
     return dados;
   }
   const quien = Object.fromEntries((encargos || []).map((e) => [e.id, e.quien]));
+  const pagados = (q) => Object.entries(h.encargosLazo).filter(([k, v]) => ent(v) >= 1 && quien[k] === q).length;
   for (const k of hechos) {
     if (Object.hasOwn(h.encargosLazo, k) || Object.keys(h.encargosLazo).length >= 200) continue;
     const q = quien[k];
-    if (LAZOS_TODOS.includes(q)) { cambiarLazo(h, q, 1); h.encargosLazo[k] = Math.max(1, ent(dia)); dados.push({ id: k, quien: q }); }
+    if (LAZOS_TODOS.includes(q)) {
+      const tope = lazoDe(h, q) < 0 ? TOPE_ENCARGOS_FRIO : TOPE_ENCARGOS_LAZO;
+      if (pagados(q) < tope) { cambiarLazo(h, q, 1); h.encargosLazo[k] = Math.max(1, ent(dia)); dados.push({ id: k, quien: q }); }
+      else h.encargosLazo[k] = 0;
+    }
     else h.encargosLazo[k] = 0;
   }
   return dados;

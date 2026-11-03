@@ -87,12 +87,12 @@ const encuentro = {
     plano('general', FRENTE(6), { desde: 'jugador', dist: 9, alto: 2.4, dur: 2.8, mezcla: 0.9 }),
     narra('Esto no tiene tiempo límite. El valle espera. Las bolsas, la puerta, el farol y la pala: lo que hagas ahora es lo que va a pasar.'),
     con(eleccion('duendes', '¿Qué hacés?', [
-      opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral.', { efecto: 'duendes:trato' }),
-      opcion('fuerte', 'Poner la bolsa de Eusebio en el umbral.', { efecto: 'duendes:trato-fuerte' }),
+      opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral, con las manos vacías.', { efecto: 'duendes:trato' }),
+      opcion('fuerte', 'Dejar la puerta abierta y poner la bolsa de Eusebio en el umbral: el trato más firme.', { efecto: 'duendes:trato-fuerte' }),
       opcion('pelea', 'Agarrar la pala y el farol: ¡fuera de acá!', { efecto: 'duendes:pelea' }),
     ]), siDevolver()),
     con(eleccion('duendes-sin', '¿Qué hacés?', [
-      opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral.', { efecto: 'duendes:trato' }),
+      opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral, con las manos vacías.', { efecto: 'duendes:trato' }),
       opcion('pelea', 'Agarrar la pala y el farol: ¡fuera de acá!', { efecto: 'duendes:pelea' }),
     ]), no(siDevolver())),
   ],
@@ -255,6 +255,11 @@ const mesaGuerra = {
       linea('Anselmo tiene estacas, Guido tiene miel, Martín tiene la campana vieja del taller.', { gesto: gs('contar', 2.4) }),
       'Esto es un valle, querido: acá nadie tiene todo, pero entre todos tenemos todo.',
     ]),
+    // 4.22.0: el valle se acuerda de la primera molienda (D3 A y B) y de la majada (D5 B y C: las sillas que faltan)
+    con(dlg('ercilia', ['Los sacos que salieron por la trochita, ni los menciono. Pero si falta harina para el jueves, que no se me venga a pedir al almacén.']), siDecision('molienda', 'a')),
+    con(dlg('ercilia', ['El almacén está lleno de fiado de invierno y de gente que viene a pagar con gusto. Si hace falta harina o gente, ahí hay.']), siDecision('molienda', 'b')),
+    con(narra('Hay una silla vacía junto a la ventana. Fermín no vino: sigue dolido por lo de la majada, y Ercilia, que lo sabe, no pregunta.'), siDecision('majada', 'b')),
+    con(narra('Hay dos sillas vacías en la mesa, la de Ramón y la de Fermín. Desde lo de la majada no te miran. Ercilia les dejó el mapa igual, por si cambian de idea.'), siDecision('majada', 'c')),
     con(narra('Nadie dice lo que todos piensan: que si el trato es un trato, hay que saber qué se les debe, y si no, hay que saber cómo se los frena.'), siTrato('trato')),
     con(narra('Nadie dice lo que todos piensan: que los chicos se fueron al cerro, y que un grito en un galpón se contesta con una nevada.'), siTrato('pelea')),
     eleccion('mesa-resp', '¿Qué proponés para la noche?', [
