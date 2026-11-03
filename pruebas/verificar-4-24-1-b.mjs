@@ -198,7 +198,7 @@ if (va('elsa')) {
     const q = m.posicion({ lugar: 'estacion', dx: 3, dz: -5 });
     ok(Math.abs(q.x - 103) < 1e-9 && Math.abs(q.z - 195) < 1e-9, 'y los corrimientos de siempre (dx, dz) siguen en el mundo'); }
   ok(enUnaLinea(main, [/if \(P\.estacion && Number\.isFinite\(est\?\.ang\)\) P\.estacion\.ang = est\.ang/]), 'main.js le da a la Historia hacia dónde corre la vía');
-  ok(!/dx: 3, dz: 2/.test(acto1.slice(acto1.indexOf('const elsaAnden = {'), acto1.indexOf('// ---------------------------------------------------------------- CAPÍTULO 3'))), 'la escena de Elsa ya no usa corrimientos del mundo para el andén');
+  ok(!/dx: 3, dz: 2/.test(acto1.slice(acto1.indexOf('const elsaAnden = {'), acto1.indexOf('const elsaAndenVuelta = {'))), 'la escena de Elsa ya no usa corrimientos del mundo para el andén');
 }
 
 // ---------------------------------------------------------------- 4. los indicios no repiten frases de otras escenas
