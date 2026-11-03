@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {
   TIPOS_ALIEN, composicionOleada, sinJefe, esNocheDeJefe, NOCHE_JEFE, NOCHE_FINAL,
   danoEnPuntoDebil, PUNTO_DEBIL, puedeSaltar, ALTURA_SALTO, NO_SALTABLES,
-  nocheEspecial, aplicarEspecial, multiplicadorNoche, dificultad, DIFICULTADES,
+  nocheEspecial, aplicarEspecial, multiplicadorNoche, dificultad, DIFICULTADES, cantidadDeLaNoche,
 } from '../src/desafio-reglas.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
@@ -51,7 +51,8 @@ assert.ok(jefe.vida >= bruto.vida * 4, 'el jefe tiene que aguantar muchísimo m�
 assert.ok(jefe.altura > bruto.altura * 1.2 && jefe.radio > bruto.radio, 'el jefe es mucho más grande');
 assert.ok(jefe.dano > bruto.dano && jefe.danoObra > bruto.danoObra, 'el jefe pega más fuerte que el bruto');
 assert.ok(jefe.vel <= bruto.vel, 'el jefe no es rápido');
-assert.ok(jefe.cristales[0] >= 10, 'al caer el jefe suelta muchos cristales');
+// 4.22.0: de 8 a 12 (eran 14 a 20): sigue soltando bastante más que el bruto (1 a 2)
+assert.ok(jefe.cristales[0] >= 8 && jefe.cristales[0] >= bruto.cristales[1] * 4, 'al caer el jefe suelta muchos cristales');
 assert.ok(jefe.puntoDebil && jefe.pesado && jefe.giro < 6, 'el jefe necesita punto débil, peso y giro lento para poder rodearlo');
 assert.ok(bruto.pesado && !rastreador.pesado && !saltador.pesado, 'sólo los pesados aguantan las boleadoras');
 
@@ -80,7 +81,8 @@ for (let n = 1; n <= 20; n++) {
   assert.ok(o.every((t) => TIPOS_ALIEN[t]), `noche ${n} con un tipo desconocido`);
   // 4.8 ataques: el enjambre tiene su cupo aparte (no cuenta para el techo)
   const sinEnj = o.filter((t) => t !== 'enjambre').length;
-  assert.ok(sinEnj >= anterior && sinEnj <= 18, `noche ${n}: la oleada se sale de rango (${sinEnj})`);
+  // 4.22.0: el techo ya no es 18 parejo: desde la noche 10 sube uno cada dos noches (cantidadDeLaNoche)
+  assert.ok(sinEnj >= anterior && sinEnj <= cantidadDeLaNoche(n), `noche ${n}: la oleada se sale de rango (${sinEnj})`);
   anterior = sinEnj;
 }
 for (let n = 1; n <= 2; n++) assert.equal(cuenta(composicionOleada(n), 'saltador'), 0, 'los saltadores no vienen las dos primeras noches');

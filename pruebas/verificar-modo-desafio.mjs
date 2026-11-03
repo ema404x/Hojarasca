@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {
-  HORA_ATAQUE, HORA_AMANECER, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, composicionOleada,
+  HORA_ATAQUE, HORA_AMANECER, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, composicionOleada, cantidadDeLaNoche,
   multiplicadorNoche, ARMAS, RECETAS, vidaMaxObra, costoReparacion, desafioNuevo, sanearDesafio, TIPOS_ALIEN,
   DIFICULTADES, dificultad, suministrosDelAlba, armaEfectiva, nocheEspecial, aplicarEspecial, efectoClima, nocheConRestos,
   ESPECIALES, NOCHE_FINAL, CATEGORIAS_TALLER, REFUERZOS, PLANOS_ALIEN, NUCLEO_VIDA, COMPANEROS,
@@ -27,7 +27,8 @@ for (let n = 1; n <= 12; n++) {
   const o = composicionOleada(n);
   // 4.8 ataques: el enjambre no cuenta para el techo de 18 (tiene su propio cupo, aparte)
   const sinEnjambre = o.filter((t) => t !== 'enjambre');
-  assert.ok(sinEnjambre.length >= anterior && sinEnjambre.length <= 18, `oleada ${n} fuera de rango`);
+  // 4.22.0: el techo ya no es 18 parejo: desde la noche 10 sube uno cada dos noches (cantidadDeLaNoche)
+  assert.ok(sinEnjambre.length >= anterior && sinEnjambre.length <= cantidadDeLaNoche(n), `oleada ${n} fuera de rango`);
   assert.ok(o.every((t) => TIPOS_ALIEN[t]), `oleada ${n} con tipo desconocido`);
   anterior = sinEnjambre.length;
 }

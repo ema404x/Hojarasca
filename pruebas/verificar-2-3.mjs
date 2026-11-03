@@ -187,7 +187,9 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   assert.ok(TIPOS_ALIEN.volador?.vuela, 'el volador es un tipo de invasor');
   assert.ok(!composicionOleada(7).includes('volador') && composicionOleada(8).includes('volador'));
   // 4.8 ataques: sin contar el enjambre (tiene su cupo aparte)
-  for (let n = 1; n <= 20; n++) assert.ok(composicionOleada(n).filter((t) => t !== 'enjambre').length <= 18, `la noche ${n} no pasa de 18`);
+  // 4.22.0: el techo ya no es 18 parejo desde la noche 9: es `cantidadDeLaNoche` (uno más cada dos noches desde la 10: 23 en la 19)
+  const { cantidadDeLaNoche } = await import('../src/desafio-reglas.js');
+  for (let n = 1; n <= 20; n++) assert.ok(composicionOleada(n).filter((t) => t !== 'enjambre').length <= cantidadDeLaNoche(n), `la noche ${n} no pasa de lo que trae la noche (${cantidadDeLaNoche(n)})`);
 }
 
 // ---------------------------------------------------------------- 9. la zanja de fuego

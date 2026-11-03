@@ -6,6 +6,8 @@ import { APAGON, sanearBestiario, sanearDespues } from './desafio-noche2.js';
 // 4.10 coihue: y los lugares del valle que toman los duendes
 import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR, sanearValle } from './desafio-valle.js';
 import { multiplicadorVuelta } from './desafio-vuelta.js';
+// 4.22.0: y las tres perillas de la dificultad (cuántos, cuánto aguantan, cuánto pegan: se suman a la dificultad elegida)
+import { multiplicadoresPerillas, perillasNeutras, sanearPerillas, perillasFacilitan } from './desafio-perillas.js';
 // 4.9 aliados: y los puestos marcados
 import { sanearOrdenes, sanearPuestosAliados } from './desafio-ordenes.js';
 import { VOLADOR, voladoresEnLaNoche } from './desafio-cielo.js';
@@ -63,9 +65,12 @@ export function relojCorto(seg) {
 }
 
 // ---------------------------------------------------------------- invasores
+// 4.22.0: las semillas doradas que suelta cada tipo (`cristales`): el bruto de 2 a 3 pasa a 1 a 2 y el mandamás de 14 a 20 pasa a 8 a 12. Las
+// oleadas ya habían soltado 93 semillas a la noche 7 y 499 a la 20, y todo lo que se compra con ellas suma unas 66: pasada la noche 6 a 7
+// sobraban y perderlas al caer no costaba nada. Ver `auditoria-4-22-a-noches.mjs`.
 export const TIPOS_ALIEN = {
   rastreador: { nombre: 'rastreador', vida: 40, vel: 4.3, dano: 8, cadencia: 1.0, alcance: 1.55, danoObra: 12, radio: 0.42, altura: 1.72, cristales: [0, 1], retroceso: 1 },
-  bruto: { nombre: 'bruto', vida: 180, vel: 2.3, dano: 22, cadencia: 1.7, alcance: 2.1, danoObra: 42, radio: 0.9, altura: 2.55, cristales: [2, 3], retroceso: 0.2, pesado: true },
+  bruto: { nombre: 'bruto', vida: 180, vel: 2.3, dano: 22, cadencia: 1.7, alcance: 2.1, danoObra: 42, radio: 0.9, altura: 2.55, cristales: [1, 2], retroceso: 0.2, pesado: true },
   tirador: { nombre: 'tirador', vida: 60, vel: 3.1, dano: 9, cadencia: 2.3, alcance: 24, distancia: 13, danoObra: 8, radio: 0.46, altura: 2.02, cristales: [1, 2], retroceso: 0.8, aDistancia: true },
   // Chico, liviano y rapidísimo: no se gasta en romper la empalizada, la salta de una.
   // Aguanta muy poco y pega poco, pero te aparece adentro de la base.
@@ -80,7 +85,7 @@ export const TIPOS_ALIEN = {
   // bioluminiscentes de la espalda al descubierto: ahí recibe el doble de daño.
   // `giro` es lo rápido que se da vuelta: el jefe es tan pesado que se lo puede
   // rodear corriendo, y por eso el punto débil de la espalda se puede aprovechar.
-  jefe: { nombre: 'mandamás', vida: 900, vel: 2.0, dano: 34, cadencia: 1.9, alcance: 3.4, danoObra: 130, radio: 1.45, altura: 4.2, cristales: [14, 20], retroceso: 0,
+  jefe: { nombre: 'mandamás', vida: 900, vel: 2.0, dano: 34, cadencia: 1.9, alcance: 3.4, danoObra: 130, radio: 1.45, altura: 4.2, cristales: [8, 12], retroceso: 0,
     giro: 1.1, pesado: true, jefe: true, puntoDebil: true },
   // 2.1: no salta ni rompe: cava por abajo y sale adentro (ver `desafio-valle.js`)
   excavador: { ...EXCAVADOR },
@@ -163,15 +168,29 @@ export const DIFICULTADES = {
 // empezar (fijarPartidaMeta) y una partida sin 'meta' lo deja en null: todo como siempre.
 let partidaEfectos = null;
 let dificultadesDePartida = null;
-export function fijarPartidaMeta(meta) {
-  partidaEfectos = meta ? efectosDe(meta) : null;
+// 4.22.0: las perillas se suman a la dificultad elegida (y al modo): el estado vive acá por lo mismo que la partida (se pide `dificultad()` sin ajustes a mano)
+let perillasActivas = perillasNeutras();
+// (lo que valen juntos el modo de la partida y las perillas: null si no cambian nada, y las dificultades quedan como siempre)
+function rehacerDificultades() {
   dificultadesDePartida = null;
-  const e = partidaEfectos;
-  if (e && (e.cantidad !== 1 || e.dano !== 1 || e.vida !== 1)) {
+  const e = partidaEfectos, p = multiplicadoresPerillas(perillasActivas);
+  const c = (e ? e.cantidad : 1) * p.cantidad, d = (e ? e.dano : 1) * p.dano, v = (e ? e.vida : 1) * p.vida;
+  if (c !== 1 || d !== 1 || v !== 1) {
     dificultadesDePartida = {};
-    for (const [k, b] of Object.entries(DIFICULTADES)) dificultadesDePartida[k] = { ...b, cantidad: b.cantidad * e.cantidad, dano: b.dano * e.dano, vida: b.vida * e.vida };
+    for (const [k, b] of Object.entries(DIFICULTADES)) dificultadesDePartida[k] = { ...b, cantidad: b.cantidad * c, dano: b.dano * d, vida: b.vida * v };
   }
 }
+export function fijarPartidaMeta(meta) {
+  partidaEfectos = meta ? efectosDe(meta) : null;
+  rehacerDificultades();
+}
+// 4.22.0: `null` (o nada) las deja en cero (la corrida sin fin, que tiene sus récords por dificultad, no las usa)
+export function fijarPerillas(p) {
+  perillasActivas = sanearPerillas(p);
+  rehacerDificultades();
+}
+export function perillasPartida() { return { ...perillasActivas }; }
+export function perillasFacilitanPartida() { return perillasFacilitan(perillasActivas); }
 export function efectosPartida() { return partidaEfectos; }
 // 4.11.0: cuántos duendes (comunes, sin contar el enjambre) caben en una oleada y en la base a la vez. Siempre fueron 24, y en Implacable la
 // pesadilla (x1,3 de cantidad) perdía su +30 % desde la noche ~7: 18 x 1,4 ya pasaba de 24. Sólo en la pesadilla el tope sube a 31
@@ -190,9 +209,17 @@ export function dificultad(clave) {
 // Composición de la oleada número `n` (1 = primera noche). El jefe ocupa el lugar
 // de un invasor común, así que la noche que baja no vienen más bichos que antes.
 // El jefe va siempre último: los refuerzos que cortan la lista no se lo llevan.
+// 4.22.0: cuántos duendes trae la noche `n` (antes de la dificultad): dos más por noche hasta la 9 (18) y, desde ahí, uno más cada dos
+// noches (23 en la 19). Hasta la 4.21.0 se clavaba en 18 desde la noche 9 hasta la 20 y de la 11 a la 19 la oleada sólo crecía 3,7 % por noche.
+export const CANTIDAD_NOCHE = { inicio: 3, porNoche: 2, tope: 18, desdeNoche: 9, cadaNoches: 2 };
+export function cantidadDeLaNoche(n) {
+  const noche = Math.max(1, Math.floor(n));
+  const C = CANTIDAD_NOCHE;
+  return Math.min(C.tope + Math.max(0, Math.floor((noche - C.desdeNoche) / C.cadaNoches)), C.inicio + (noche - 1) * C.porNoche);
+}
 export function composicionOleada(n, claveDificultad = 'normal', vuelta = 0) {
   const noche = Math.max(1, Math.floor(n));
-  const total = Math.max(2, Math.min(topeOleada(), Math.round(Math.min(18, 3 + (noche - 1) * 2) * dificultad(claveDificultad).cantidad * multiplicadorVuelta(vuelta).cantidad)));
+  const total = Math.max(2, Math.min(topeOleada(), Math.round(cantidadDeLaNoche(noche) * dificultad(claveDificultad).cantidad * multiplicadorVuelta(vuelta).cantidad)));
   const jefes = esNocheDeJefe(noche) ? 1 : 0;
   const comunes = Math.max(1, total - jefes);
   const brutos = noche >= 2 ? Math.min(4, Math.floor(comunes / 5) + (noche >= 5 ? 1 : 0)) : 0;
@@ -240,8 +267,23 @@ export function composicionOleada(n, claveDificultad = 'normal', vuelta = 0) {
 }
 // La lista sin el jefe: para los refuerzos de madrugada y lo que larga la nodriza.
 export function sinJefe(lista) { return lista.filter((t) => t !== 'jefe'); }
-// Con cada noche los invasores pegan y aguantan un poco más.
-export function multiplicadorNoche(n) { return 1 + Math.max(0, Math.floor(n) - 1) * 0.08; }
+// Con cada noche los invasores pegan y aguantan un poco más: 8 % por noche hasta la 10 y 10 % por noche desde la 11 (4.22.0: antes 8 % parejo;
+// con la cantidad clavada, de la 11 a la 19 lo único que crecía era esto, y las noches comunes valían menos que la anterior al mandamás).
+export const DUREZA_NOCHE = { porNoche: 0.08, hastaNoche: 10, porNocheDespues: 0.10 };
+export function multiplicadorNoche(n) {
+  const k = Math.max(0, Math.floor(n) - 1), D = DUREZA_NOCHE;
+  const hasta = Math.max(0, D.hastaNoche - 1);
+  return 1 + Math.min(k, hasta) * D.porNoche + Math.max(0, k - hasta) * D.porNocheDespues;
+}
+// 4.22.0: el primer mandamás (noche 5) era un salto de 3,6 veces sobre la noche 4 (627 → 2.286 de vida total) y la noche más dura de la campaña
+// hasta la 8. Esa primera vez aguanta la mitad (el resto de la oleada no cambia): queda en 2,7 veces la noche 4 y 1,5 veces el promedio de las
+// dos noches de al lado, como los demás mandamases (10, 15 y 20: 1,5 a 1,6 veces), que no se tocan. En la partida corta el mandamás es el
+// final (noche 7): tampoco. Ver `auditoria-4-22-a-noches.mjs --jefe`.
+export const ESCALA_PRIMER_JEFE = { noche: 5, vida: 0.5 };
+export function escalaDelJefe(n) {
+  if (partidaEfectos?.nocheFinal) return 1;
+  return Math.floor(n) === ESCALA_PRIMER_JEFE.noche ? ESCALA_PRIMER_JEFE.vida : 1;
+}
 
 // ---------------------------------------------------------------- armas del jugador
 export const ARMAS = {

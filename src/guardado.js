@@ -2,6 +2,8 @@
 // RC2: guardado transaccional, migraciones y saneamiento de datos.
 import { LIMITE, sanearDistancia, sanearPlantas } from './config.js';
 import { sanearDesafio } from './desafio-reglas.js';
+// 4.22.0: las perillas de la dificultad del Desafío
+import { pasoDe } from './desafio-perillas.js';
 import { sanearChinches } from './chinches.js';
 import { sanearTalados, sanearPicados } from './bosque.js';
 import { sanearBase } from './encargos-temporada.js';
@@ -254,6 +256,8 @@ export const AJUSTES_BASE = {
   sonidosEscritos: true, vibracion: true,
   // 3.0: en el Desafío, la campaña de siempre o la supervivencia sin fin
   desafioTipo: 'campana',
+  // 4.22.0: las tres perillas de la dificultad del Desafío (−2 a +2 sobre la dificultad elegida; 0, como siempre)
+  perillaCantidad: 0, perillaVida: 0, perillaDano: 0,
   // 3.1: en el Relax, libre o con la historia guiada
   relaxTipo: 'libre',
   // 3.3: modo fluido (resolución dinámica entre 70% y 100%), apagado de fábrica
@@ -413,6 +417,7 @@ function sanearAjustes(a) {
     sonidosEscritos: typeof x.sonidosEscritos === 'boolean' ? x.sonidosEscritos : AJUSTES_BASE.sonidosEscritos,
     vibracion: typeof x.vibracion === 'boolean' ? x.vibracion : AJUSTES_BASE.vibracion,
     desafioTipo: opcion(x.desafioTipo, ['campana', 'sinfin'], AJUSTES_BASE.desafioTipo),
+    perillaCantidad: pasoDe(x.perillaCantidad), perillaVida: pasoDe(x.perillaVida), perillaDano: pasoDe(x.perillaDano),   // 4.22.0
     relaxTipo: opcion(x.relaxTipo, ['libre', 'historia'], AJUSTES_BASE.relaxTipo),
     modoFluido: typeof x.modoFluido === 'boolean' ? x.modoFluido : AJUSTES_BASE.modoFluido,
     distancia: sanearDistancia(x.distancia),   // 3.5 (un guardado viejo: la de su calidad)

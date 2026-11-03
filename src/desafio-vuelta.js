@@ -19,9 +19,13 @@ export const SE_LLEVA = ['hacha', 'lanza', 'arco', 'honda', 'boleadoras', 'marti
 export const VUELTA_MAXIMA = 9;
 
 // Cuánto más difícil es cada vuelta. La primera (0) es la de siempre.
+// 4.22.0: antes +20 % de cantidad, +25 % de vida y +15 % de daño por vuelta: la cantidad chocaba con el tope de 24 en la vuelta 3 y de ahí en más
+// cada vuelta sólo sumaba vida y daño (en la vuelta 10 la noche 20 traía la misma cantidad que en la 3, con 3,7 veces la vida: una esponja).
+// Ahora +12 / +15 / +10 %: el tope se alcanza después y la vuelta 10 queda en 17.239 de vida en vez de 22.088.
+export const SUBE_POR_VUELTA = { cantidad: 0.12, vida: 0.15, dano: 0.10 };
 export function multiplicadorVuelta(vuelta) {
   const v = Math.max(0, Math.min(VUELTA_MAXIMA, Math.floor(Number(vuelta) || 0)));
-  return { cantidad: 1 + v * 0.2, vida: 1 + v * 0.25, dano: 1 + v * 0.15 };
+  return { cantidad: 1 + v * SUBE_POR_VUELTA.cantidad, vida: 1 + v * SUBE_POR_VUELTA.vida, dano: 1 + v * SUBE_POR_VUELTA.dano };
 }
 
 export function textoVuelta(vuelta) {

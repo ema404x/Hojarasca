@@ -800,6 +800,13 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <span>Dificultad</span>
         <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
         <p class="modo-texto" id="dificultad-texto"></p>
+        <span data-perillas>Cuántos duendes vienen</span>
+        <div class="segmentos" data-ajuste="perillaCantidad" data-perillas><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
+        <span data-perillas>Cuánto aguantan</span>
+        <div class="segmentos" data-ajuste="perillaVida" data-perillas><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
+        <span data-perillas>Cuánto pegan</span>
+        <div class="segmentos" data-ajuste="perillaDano" data-perillas><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
+        <p class="modo-texto" data-perillas data-perillas-texto></p>
         <span>Código de partida</span>
         <div class="fila-codigo">
           <input id="codigo-partida" maxlength="18" placeholder="Sin código: noches al azar" autocomplete="off" spellcheck="false" aria-label="Código de partida">
@@ -1015,6 +1022,16 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       <div class="fila-ajuste" id="fila-dificultad"><span>Dificultad de La noche de los duendes</span>
         <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
       </div>
+      <div class="fila-ajuste" data-perillas="ajustes"><span>Cuántos duendes vienen</span>
+        <div class="segmentos" data-ajuste="perillaCantidad"><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
+      </div>
+      <div class="fila-ajuste" data-perillas="ajustes"><span>Cuánto aguantan</span>
+        <div class="segmentos" data-ajuste="perillaVida"><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
+      </div>
+      <div class="fila-ajuste" data-perillas="ajustes"><span>Cuánto pegan</span>
+        <div class="segmentos" data-ajuste="perillaDano"><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
+      </div>
+      <div class="fila-ajuste" data-perillas="ajustes"><small data-perillas-texto></small></div>
       <div class="fila-ajuste"><span>Clima</span>
         <div class="segmentos" data-ajuste="clima"><button data-valor="variable">Cambiante</button><button data-valor="despejado">Siempre despejado</button><button data-valor="lluvioso">Lluvioso</button></div>
       </div>

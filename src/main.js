@@ -298,7 +298,9 @@ import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 // 4.10 partidas: lo de entre partidas (semillas del Coihue, ventajas, reglas, modos y finales; ver desafio-meta.js)
-import { fijarPartidaMeta, efectosPartida } from './desafio-reglas.js';
+import { fijarPartidaMeta, fijarPerillas, efectosPartida } from './desafio-reglas.js';
+// 4.22.0: las tres perillas de la dificultad del Desafío y lo que cuesta caer
+import { perillasDeAjustes, textoPerillas, castigoDeCaer, aplicarCastigo, textoCaida } from './desafio-perillas.js';
 import { crearMetaJuego } from './desafio-meta-juego.js';
 import { sumarBono, quitarBonosDeOrigen, saludMaximaConBonos } from './desafio-bonos.js';
 import { crearPantallaNuevaPartida, dibujarHojaPartidas } from './desafio-meta-pantalla.js';
@@ -434,6 +436,8 @@ if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso
 if (esSinFin && progreso.desafio && !progreso.desafio.sinFin) progreso.desafio.sinFin = corridaNueva();
 // 4.10 partidas: el modo, las ventajas y las reglas de la partida que se abrió (una partida vieja no trae nada: campaña de siempre)
 if (esDesafio) fijarPartidaMeta(progreso.desafio?.meta || null);
+// 4.22.0: las perillas de la dificultad (en cero, como siempre, si nunca se tocaron; la corrida sin fin no las usa: sus récords son por dificultad)
+if (esDesafio) fijarPerillas(esSinFin ? null : perillasDeAjustes(ajustes));
 const metaJuego = crearMetaJuego({
   almacen: () => localStorage, progreso: () => progreso, desafio: () => desafio, esSinFin: () => esSinFin,
   sumarMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); }, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
@@ -2831,6 +2835,9 @@ function sincronizarAjustes() {
   // la dificultad sólo tiene sentido en el Desafío (y se puede cambiar en cualquier momento)
   $('opcion-dificultad')?.classList.toggle('oculto', ajustes.modo !== 'desafio');
   $('fila-dificultad')?.classList.toggle('oculto', !esDesafio);
+  // 4.22.0: las perillas, sólo en la campaña del Desafío (la corrida sin fin tiene sus récords por dificultad)
+  document.querySelectorAll('[data-perillas]').forEach((el) => el.classList.toggle('oculto', ajustes.desafioTipo === 'sinfin' || (el.dataset.perillas === 'ajustes' && !esDesafio)));
+  document.querySelectorAll('[data-perillas-texto]').forEach((el) => { el.textContent = textoPerillas(perillasDeAjustes(ajustes)); });
   if ($('desafio-tipo-texto')) $('desafio-tipo-texto').textContent = ajustes.desafioTipo === 'sinfin'   // 3.0
     ? 'Una sola vida y ninguna noche final: cada noche vienen más duros. Caer termina la corrida y queda el récord. Tu campaña no se toca.'
     : 'Veinte noches hasta el Coihue Viejo, y después la cueva.';
@@ -2850,6 +2857,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     if (clave === 'limiteFps' && v !== 'libre' && v !== 'auto') v = Number(v);   // 3.2: 'auto', según el monitor
     if (clave === 'musica' || clave === 'invertirY' || clave === 'autoCalidad' || clave === 'subtitulos' || clave === 'guiaPrimerDia' || clave === 'sonidosEscritos' || clave === 'vibracion') v = v === 'true';
     if (clave === 'modoFluido') v = v === 'true';   // 3.3
+    if (clave.startsWith('perilla')) v = Number(v);   // 4.22.0: las perillas de la dificultad (−2 a +2)
     // 3.8.4: la corrida sin fin ya empezada no cambia de dificultad (vale para la próxima corrida)
     if (clave === 'dificultad' && corridaFijada() && v !== dificultadEnJuego()) {
       nota('La dificultad queda fija', TEXTO_DIFICULTAD_FIJA);
@@ -2864,6 +2872,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     guardarAjustes(ajustes);
     if (clave === 'musica') sonido.setMusica(v);
     if (clave === 'invertirY') mando.opciones.invertirY = v;   // 3.5.1: el mando también, sin reiniciar
+    if (clave.startsWith('perilla') && esDesafio) fijarPerillas(esSinFin ? null : perillasDeAjustes(ajustes));   // 4.22.0: rige desde los duendes que bajen después
     if (clave === 'clima' && clima?.estado) clima.estado.t = 0; // aplicar el modo elegido en el siguiente tick
     if (clave === 'clima' && clima?.estado) clima.estado.tramo = undefined;   // 2.9: y el programa del tiempo, desde el tramo de ahora (ver `meteo.js`)
     if (clave === 'virado') acumuladoTinte = 9;
@@ -5181,15 +5190,16 @@ function caerEnDesafio() {
   desafio?.abrirTaller(false);
   // 4.0.1: si caés arriba del velero, el kayak o la trochita, te bajan (antes seguías en el lago o en el tren y se guardaba el muelle o la estación)
   { const js = jugador.estado; if (js.enVela) vela.soltar(jugador); if (js.enKayak) kayak.soltar(jugador); if (js.enTren) tren.soltar(jugador); }
-  nota('Los duendes te dejaron fuera de combate', 'Perdiste las semillas doradas y parte de los materiales', true);
+  // 4.22.0: lo que se pierde crece con la noche (20 % + 1 % por noche, hasta 40 %) y en Tranquila se guarda un cuarto de las semillas (castigoDeCaer)
+  const castigo = castigoDeCaer(Math.max(1, progreso.desafio?.oleadas || 1), dificultadEnJuego());
+  nota('Los duendes te dejaron fuera de combate', textoCaida(castigo), true);
   // 3.8.4: la caída se anota en el momento y se guarda: antes todo pasaba al final del fundido y cerrar el juego en
   // ese segundo y medio la evitaba (ni materiales perdidos ni noche perdida, y al abrir seguías donde caíste)
   // (lo que se llevaron los duendes vuelve primero y se pierde con lo demás, como hasta ahora: si no, las semillas
   // robadas volvían después de la pérdida, al limpiar)
   desafio.devolverRobado?.();
   const M = progreso.materiales || {};
-  M.cristal = 0;
-  for (const k of ['tronco', 'tabla', 'piedra']) if (M[k]) M[k] = Math.floor(M[k] * 0.7);
+  aplicarCastigo(M, castigo);
   const despierta = despertarDeCaida(progreso.dia, progreso.horas);
   // 3.8.4: caer de día, antes de la noche, te hace dormir hasta mañana: esa noche cuenta como perdida
   const perdida = despierta.dia > progreso.dia ? desafio.perderNocheSalteada(progreso.dia) : 0;   // (si esa noche ya se jugó, no hace nada)

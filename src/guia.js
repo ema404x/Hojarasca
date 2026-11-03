@@ -18,7 +18,7 @@ export const SECCIONES_GUIA = [
       ['El objetivo', 'Cada noche, a las 20:30, salen los duendes del bosque. Resistí hasta el amanecer. Después de la noche 20 despierta el Coihue Viejo.'],
       ['El día es para preparar', 'Talá árboles, picá piedra, aserrá tablas, fabricá armas (K) y levantá defensas (O) alrededor de tu base.'],
       ['Lo primero', '1) Talá un árbol con H. 2) Fabricá la lanza con K. 3) Levantá dos tramos de empalizada y un portón. 4) Poné una antorcha.'],
-      ['Si caés', 'Perdés las semillas doradas y un 30% de los troncos, tablas y piedras, y amanecés en la base. La cabaña y las defensas se quedan.'],
+      ['Si caés', 'Perdés las semillas doradas (en Tranquila te queda un cuarto) y entre un 20% y un 40% de los troncos, tablas y piedras: más cuanto más avanzada la noche. Amanecés en la base. La cabaña y las defensas se quedan.'],
     ],
   },
   {

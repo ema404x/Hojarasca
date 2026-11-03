@@ -8,7 +8,7 @@ import { crearBanco } from './desafio-sonidos.js';
 import { esperaVoz } from './voz-alien.js';
 import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
-import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, enVentanaDeNoche, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida, topeOleada } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, enVentanaDeNoche, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, escalaDelJefe, perillasFacilitanPartida, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida, topeOleada } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, refuerzosDeLaNoche, esSoloTiradores, nocheConRestos, efectoClima } from './desafio-reglas.js';
 import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX, nocheActualNueva } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
@@ -995,7 +995,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.brota = true;
     a.m.g.rotation.set(0, 0, 0);
     a.m.g.scale.setScalar(1);
-    a.vida = a.vidaMax = Math.round(a.def.vida * mult * mv.vida * dificultad(ctx.dificultad?.()).vida);
+    a.vida = a.vidaMax = Math.round(a.def.vida * mult * mv.vida * dificultad(ctx.dificultad?.()).vida * (a.def.jefe ? escalaDelJefe(D().oleadas) : 1));   // 4.22.0: el primer mandamás aguanta menos (escalaDelJefe)
     a.danoMult = mult * mv.dano;
     a.estado = 'bajar'; a.t = 0; a.fase = Math.random() * 6; a.rumbo = 0; a.cd = 1 + Math.random();
     a.obra = null; a.desvio = 0; a.desvioT = 0; a.atasco = 0; a.flash = 0; a.frenoT = 0; a.giroMuerte = 0;
@@ -1423,7 +1423,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const ganados = evaluarNoche({
       sobrevivida: true, danoRecibido: nocheActual.dano, abatidos: nocheActual.abatidos, abatidosLanza: nocheActual.abatidosLanza,
       abatidosOtros: nocheActual.abatidosOtros, invasores: nocheActual.invasores, obrasPerdidas: nocheActual.perdidas,
-      especial, noche: d.oleadas, dificultad: ctx.dificultad?.() || 'normal',
+      especial, noche: d.oleadas, dificultad: perillasFacilitanPartida() ? 'facilitada' : (ctx.dificultad?.() || 'normal'),   // 4.22.0: con una perilla más fácil no vale el logro de Implacable
     }, totalLogros());
     anunciarLogros(ganados);
     registrarRecords();
@@ -1459,6 +1459,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function registrarRecords(victoria = false) {
     const d = D();
     if (d.sinFin) return;   // 3.0: la corrida sin fin tiene sus propios récords (main.js, desafio-supervivencia.js)
+    if (perillasFacilitanPartida()) return;   // 4.22.0: con alguna perilla más fácil que la dificultad elegida no se anota el récord
     logros.registrarRecord({ dificultad: ctx.dificultad?.() || 'normal', noches: d.noches, racha: d.mejorRacha, abatidos: d.abatidos, victoria });
     if (!victoria) recordDeSemilla();   // 2.3: el récord de este código (el amanecer lo avisa)
   }

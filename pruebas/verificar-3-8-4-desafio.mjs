@@ -210,7 +210,9 @@ const DR = await import('../src/desafio-duendes-reglas.js');
 // ---------------------------------------------------------------- 29. caer y cerrar durante el fundido
 {
   const guardados = [], timers = [];
+  const PP = await import('../src/desafio-perillas.js');   // 4.22.0: lo que se pierde al caer sale de castigoDeCaer (noche 1 en Normal: 21 %, y 10 de tronco quedan en 7, como con el 30 %)
   const ctx = {
+    castigoDeCaer: PP.castigoDeCaer, aplicarCastigo: PP.aplicarCastigo, textoCaida: PP.textoCaida, dificultadEnJuego: () => 'normal',
     esSinFin: false, modoObra: false, mochilaAbierta: false, ajustes: { duracion: 20 },
     progreso: { dia: 4, horas: 22.5, materiales: { cristal: 9, tronco: 10, tabla: 10, piedra: 3 } },
     $: () => ({ classList: { add() {}, remove() {} } }), nota() {}, refrescarBarra() {}, abrirObra() {}, abrirMochila() {},

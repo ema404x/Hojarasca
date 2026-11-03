@@ -16,7 +16,7 @@ import * as L from '../src/desafio-lados.js';
 import * as TA from '../src/desafio-tacticas.js';
 import * as N from '../src/desafio-duendes-nuevos.js';
 import { crearAtaques, FUERA_DE_LA_BASE, DISTANCIA_ENTRADA, MAX_INVASORES } from '../src/desafio-ataques.js';
-import { TIPOS_ALIEN, composicionOleada, aplicarEspecial, ESPECIALES, sanearDesafio, DIFICULTADES, NOCHE_JEFE, esNocheDeJefe } from '../src/desafio-reglas.js';
+import { TIPOS_ALIEN, composicionOleada, aplicarEspecial, ESPECIALES, sanearDesafio, DIFICULTADES, NOCHE_JEFE, esNocheDeJefe, cantidadDeLaNoche } from '../src/desafio-reglas.js';
 
 const leer = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -282,9 +282,10 @@ const ok = (c, m) => { assert.ok(c, m); pasos++; };
 {
   const cuenta = (l, t) => l.filter((x) => x === t).length;
   // el tamaño de cada oleada en la 4.7.0, medido en main antes de tocar nada (de la noche 1 a la 40)
+  // 4.22.0: la cantidad ya no se clava en 18 desde la noche 9: sigue uno más cada dos noches (23 en la 19; ver cantidadDeLaNoche), con el tope de 24 de siempre
   const BASE_47 = {
-    tranquila: [2, 3, 4, 5, 7, 8, 9, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],
-    normal: [3, 5, 7, 9, 11, 13, 15, 17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+    tranquila: [2, 3, 4, 5, 7, 8, 9, 10, 11, 11, 11, 11, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 19, 19, 19, 19, 20, 20],
+    normal: [3, 5, 7, 9, 11, 13, 15, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24],
     implacable: [4, 7, 10, 13, 15, 18, 21, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24],
   };
   const base = (n, dif) => BASE_47[dif][n - 1];
@@ -294,7 +295,10 @@ const ok = (c, m) => { assert.ok(c, m); pasos++; };
       const l = composicionOleada(n, dif), sinEnj = l.filter((t) => t !== 'enjambre');
       ok(l.every((t) => Object.hasOwn(TIPOS_ALIEN, t)), `${dif} ${n}: sólo tipos que existen`);
       // el total de siempre se mantiene: lo nuevo sale de los rastreadores y el enjambre va aparte
-      ok(sinEnj.length === base(n, dif), `${dif} ${n}: ${sinEnj.length} comunes contra ${base(n, dif)} de siempre (el curandero ocupa un lugar; el enjambre va aparte)`);
+      // 4.22.0: con la cantidad nueva, Tranquila llega a 12 comunes (noches 13 y 14, 23 y 24): ahí no queda de dónde sacar el lugar del segundo (o tercer) curandero
+      // (los pesados no se tocan y los rastreadores ya están en uno) y queda de más, uno: así lo dice la composición («lo que no alcanza a pagarse queda de más»)
+      const deMas = sinEnj.length - base(n, dif);
+      ok(deMas === 0 || (dif === 'tranquila' && deMas === 1 && sinEnj.filter((t) => t === 'rastreador').length === 1 && sinEnj.filter((t) => t === 'curandero').length >= 2), `${dif} ${n}: ${sinEnj.length} comunes contra ${base(n, dif)} de siempre (el curandero ocupa un lugar; el enjambre va aparte)`);
       ok(sinEnj.length <= 24 && sinEnj.length >= anterior - (esNocheDeJefe(n) ? 99 : 0), `${dif} ${n}: sin pasar el techo (${sinEnj.length})`);
       if (!esNocheDeJefe(n)) anterior = sinEnj.length;
       const cur = cuenta(l, 'curandero'), enj = cuenta(l, 'enjambre');
@@ -326,7 +330,8 @@ const ok = (c, m) => { assert.ok(c, m); pasos++; };
   for (const esp of Object.keys(ESPECIALES)) for (const n of [4, 6, 9, 12]) {
     const l = aplicarEspecial(composicionOleada(n), esp);
     ok(l.every((t) => Object.hasOwn(TIPOS_ALIEN, t)) && l.length >= 2, `especial ${esp} noche ${n}: lista válida`);
-    ok(l.length <= 24 + N.MAX_ENJAMBRE + 6, `especial ${esp} noche ${n}: ${l.length} no se desmadra`);
+    // 4.22.0: lo que trae la noche (cantidadDeLaNoche, que ya no se clava en 18) por lo más que multiplica una noche especial (la roja, x1,8), más el enjambre
+    ok(l.length <= Math.ceil(cantidadDeLaNoche(n) * 1.8) + N.MAX_ENJAMBRE + 6, `especial ${esp} noche ${n}: ${l.length} no se desmadra`);
   }
   ok(aplicarEspecial(composicionOleada(9), 'silenciosa').every((t) => t === 'tirador'), 'la silenciosa sigue siendo de tiradores');
 }
