@@ -1,0 +1,332 @@
+[
+  {
+    "id": "01-paisaje-mirador-dia",
+    "grupo": "verano",
+    "pitch": -0.14,
+    "fov": 70,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "02-bosque-dia",
+    "grupo": "verano",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()",
+    "calibrar": true
+  },
+  {
+    "id": "03-bosque-noche",
+    "grupo": "verano",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 22 } })()"
+  },
+  {
+    "id": "04-refugio-dia",
+    "grupo": "verano",
+    "pitch": -0.05,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x + 26, z: L.z + 26, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "05-plaza-dia",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "calibrar": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "06-plaza-ocaso",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": 0,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 18.6 } })()"
+  },
+  {
+    "id": "07-aldea-noche",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.02,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-38, 22), c = A.centro; return { x: p.x, z: p.z, yaw: Math.atan2(-(c.x - p.x), -(c.z - p.z)), horas: 22 } })()"
+  },
+  {
+    "id": "08-aldea-loma-tarde",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": 0,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52); return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 17 } })()"
+  },
+  {
+    "id": "09-interior-casa-te-dia",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const c = H.est.casaTe; if (!c) return null; const lz = 2.3; return { x: c.x + lz * Math.sin(c.rot), z: c.z + lz * Math.cos(c.rot), yaw: c.rot, horas: 14.5 } })()"
+  },
+  {
+    "id": "10-interior-cantina-noche",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-153.5, 40.4), q = A.aMundo(-153.5, 33), b = A.estadoEdificio('cantina'); return { x: p.x, z: p.z, y: (b && b.sitio ? b.sitio.y : H.T.altura(p.x, p.z)) + 1.6, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 21 } })()"
+  },
+  {
+    "id": "11-gente-cerca-fermin",
+    "grupo": "verano",
+    "pitch": -0.05,
+    "fov": 45,
+    "medir": true,
+    "npc": "fermin",
+    "npcDist": 3.2,
+    "donde": "(()=>{ const g = (H.gente.gente || []).find((q) => q.clave === 'fermin'); if (!g) return null; return window.__AUD.camaraGente(g, 3.4, 12) })()"
+  },
+  {
+    "id": "12-gente-lejos-fermin",
+    "grupo": "verano",
+    "pitch": -0.03,
+    "fov": 62,
+    "medir": true,
+    "npc": "fermin",
+    "npcDist": 26,
+    "donde": "(()=>{ const g = (H.gente.gente || []).find((q) => q.clave === 'fermin'); if (!g) return null; return window.__AUD.camaraGente(g, 12, 12) })()"
+  },
+  {
+    "id": "13-gente-aldea-plaza",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 50,
+    "medir": true,
+    "npc": "aldea",
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; return window.__AUD.camaraGente(g, 4, 12) })()"
+  },
+  {
+    "id": "14-agua-lago-tarde",
+    "grupo": "verano",
+    "pitch": -0.05,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const M = H.T.lugares.muelle; if (!M) return null; const c = Math.cos(M.ang), s = Math.sin(M.ang); return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: Math.atan2(-c, -s), horas: 19 } })()"
+  },
+  {
+    "id": "15-cielo-ocaso-sol",
+    "grupo": "verano",
+    "pitch": 0.1,
+    "fov": 70,
+    "medir": true,
+    "haciaSol": true,
+    "donde": "(()=>{ const M = H.T.lugares.muelle; if (!M) return null; const c = Math.cos(M.ang), s = Math.sin(M.ang); return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: 0, horas: 18.8 } })()"
+  },
+  {
+    "id": "16-cielo-noche",
+    "grupo": "verano",
+    "pitch": 0.65,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x + 26, z: L.z + 26, yaw: Math.PI * 0.25, horas: 23 } })()",
+    "presupuesto": true
+  },
+  {
+    "id": "17-edificios-casas-dia",
+    "grupo": "verano",
+    "obras": true,
+    "pitch": -0.02,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 20, z = d.z + 24; return { x, z, yaw: Math.atan2(-(d.x + 5 - x), -(d.z + 4 - z)), horas: 14 } })()"
+  },
+  {
+    "id": "18-edificios-casas-noche",
+    "grupo": "verano",
+    "obras": true,
+    "pitch": -0.02,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 20, z = d.z + 24; return { x, z, yaw: Math.atan2(-(d.x + 5 - x), -(d.z + 4 - z)), horas: 22 } })()"
+  },
+  {
+    "id": "19-material-madera-casilla",
+    "grupo": "verano",
+    "obras": true,
+    "pitch": -0.05,
+    "fov": 50,
+    "medir": true,
+    "donde": "(()=>{ const d = window.__demo; if (!d) return null; const x = d.x + 11 + 4.2, z = d.z - 1 + 4.8; return { x, z, yaw: Math.atan2(-(d.x + 11 - x), -(d.z - 1 - z)), horas: 14.5 } })()"
+  },
+  {
+    "id": "20-material-piedra-cabana",
+    "grupo": "verano",
+    "obras": true,
+    "pitch": 0,
+    "fov": 50,
+    "medir": true,
+    "donde": "(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 4, z = d.z + 12 + 8; return { x, z, yaw: Math.atan2(-(d.x - x), -(d.z + 12 - z)), horas: 13 } })()"
+  },
+  {
+    "id": "21-material-suelo-pasto",
+    "grupo": "verano",
+    "pitch": -0.95,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 12, z = L.z + 12; return { x, z, yaw: Math.PI * 0.25, horas: 12 } })()"
+  },
+  {
+    "id": "22-material-suelo-plaza",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.85,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 7, z: s.z + fz * 7, yaw: Math.atan2(fx, fz) + Math.PI, horas: 12 } })()"
+  },
+  {
+    "id": "23-estacion-tren-dia",
+    "grupo": "verano",
+    "pitch": -0.03,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const p = (H.tren.paradas || []).find((q) => q.nombre === 'Estación del Valle'); if (!p) return null; return { x: p.anden.x + 16, z: p.anden.z + 16, yaw: Math.atan2(16, 16), horas: 12 } })()"
+  },
+  {
+    "id": "24-molino-campo-tarde",
+    "grupo": "verano",
+    "pitch": -0.05,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const m = H.est.molino; if (!m) return null; const c = Math.cos(m.rot), s = Math.sin(m.rot); const w = (lx, lz) => ({ x: m.x + lx * c + lz * s, z: m.z - lx * s + lz * c }), a = w(-6, 20), b = w(6, 14); return { x: a.x, z: a.z, yaw: Math.atan2(-(b.x - a.x), -(b.z - a.z)), horas: 18.4 } })()"
+  },
+  {
+    "id": "25-agua-amanecer",
+    "grupo": "verano",
+    "pitch": -0.05,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const M = H.T.lugares.muelle; if (!M) return null; const c = Math.cos(M.ang), s = Math.sin(M.ang); return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: Math.atan2(-c, -s), horas: 7 } })()"
+  },
+  {
+    "id": "31-nieve-valle",
+    "grupo": "invierno",
+    "pitch": -0.08,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; return { x: M.x, z: M.z, yaw: Math.atan2(-(R.x - M.x), -(R.z - M.z)), horas: 12.5 } })()"
+  },
+  {
+    "id": "32-nieve-bosque",
+    "grupo": "invierno",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "presupuesto": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "33-nieve-plaza",
+    "grupo": "invierno",
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "34-nieve-casas",
+    "grupo": "invierno",
+    "obras": true,
+    "pitch": -0.02,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 20, z = d.z + 24; return { x, z, yaw: Math.atan2(-(d.x + 5 - x), -(d.z + 4 - z)), horas: 14 } })()"
+  },
+  {
+    "id": "35-nieve-gente-fermin",
+    "grupo": "invierno",
+    "pitch": -0.05,
+    "fov": 45,
+    "medir": true,
+    "npc": "fermin",
+    "npcDist": 3.2,
+    "donde": "(()=>{ const g = (H.gente.gente || []).find((q) => q.clave === 'fermin'); if (!g) return null; return window.__AUD.camaraGente(g, 3.4, 12) })()"
+  },
+  {
+    "id": "41-otono-valle",
+    "grupo": "otono",
+    "pitch": -0.14,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "42-otono-bosque",
+    "grupo": "otono",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "43-otono-plaza",
+    "grupo": "otono",
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "51-lluvia-valle",
+    "grupo": "lluvia",
+    "pitch": -0.14,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const M = H.T.lugares.mirador, R = H.T.lugares.refugio; const dx = R.x - M.x, dz = R.z - M.z, d = Math.hypot(dx, dz); const x = M.x + dx / d * 7, z = M.z + dz / d * 7; return { x, z, y: H.T.altura(x, z) + 5.5, yaw: Math.atan2(-dx, -dz), horas: 12.5 } })()"
+  },
+  {
+    "id": "52-lluvia-bosque",
+    "grupo": "lluvia",
+    "pitch": -0.04,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 11.5 } })()"
+  },
+  {
+    "id": "53-lluvia-plaza",
+    "grupo": "lluvia",
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "44-otono-casas",
+    "grupo": "otono",
+    "obras": true,
+    "pitch": -0.02,
+    "fov": 62,
+    "medir": true,
+    "donde": "(()=>{ const d = window.__demo; if (!d) return null; const x = d.x - 20, z = d.z + 24; return { x, z, yaw: Math.atan2(-(d.x + 5 - x), -(d.z + 4 - z)), horas: 14 } })()"
+  }
+]
