@@ -4105,6 +4105,8 @@ document.addEventListener('keydown', (e) => {
       // 4.6.1: lo que hace la E sale de la misma lista que el aviso (INTERACCIONES en interacciones.js, con el contexto
       // `ctxInteraccion`): la primera interacción que aplica. Una interacción nueva se agrega ahí, una sola vez
       if (!charla.npc) armarMantenerE();   // 4.4.2: mantener E un instante: ampliar un depósito o abrir el panel del local (antes Mayús + E, que es correr)
+      // 4.25.0: lo que se mira se elige de nuevo al apretar E (el objeto y la puerta de la Historia se cachean 250 ms: recién parado frente a las botas, la E usaba lo de antes y te sentaba en el banco)
+      cacheObjetoHist.t = -1; cachePuertaHist.t = -1;
       hacerConE(ctxInteraccion);
       break;
     }

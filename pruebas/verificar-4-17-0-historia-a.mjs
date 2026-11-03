@@ -410,7 +410,7 @@ const MUT = [
   ['historia-noche.js', "  if (gano) { n.estado = 'ganada';", "  if (true) { n.estado = 'ganada';", 'perder ya cierra la noche'],
   ['historia-noche.js', "S.enjambreUsado = true; g.pegado = NOCHE.enjambre.traba;", "g.pegado = NOCHE.enjambre.traba;", 'el enjambre traba siempre'],
   ['historia-noche.js', "if (S.cola[0] === 'excavador' && ayudas && op.deuda !== true)", "if (S.cola[0] === 'excavador' && ayudas)", 'con deuda igual ayudan'],
-  ['historia-noche.js', "ramon: (lazos.ramon ?? 0) >= 1 && decisiones.majada !== 'c'", "ramon: (lazos.ramon ?? 0) >= 1", 'Ramón ayuda aunque vendas la majada'],
+  ['historia-noche.js', "ramon: (lazos.ramon ?? 0) >= 1 && !ausenteDeLaMajada(decisiones, 'ramon')", "ramon: (lazos.ramon ?? 0) >= 1", 'Ramón ayuda aunque vendas la majada'],
   ['historia-noche.js', "if (b.caido > 0) continue;", "", 'el blanco caído se sigue pegando'],
   ['historia.js', "  if (opcion === 'c') { d.trato = 'pelea'; d.deuda = 0; return d.trato; }", "  if (opcion === 'c') { d.trato = 'trato'; return d.trato; }", 'la pelea es trato'],
   ['historia.js', "  d.deuda = (dec.bolsa === 'b' ? 1 : 0) + (dec.coihue === 'b' ? 1 : 0) > 0 ? 1 : 0;", "  d.deuda = 0;", 'el trato no deja deuda'],

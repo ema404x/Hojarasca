@@ -14,6 +14,7 @@ import { TEXTO_ACTO2 } from '../src/historia-texto-acto2.js';
 import { TEXTO_ACTO3, entradaDe3, cierreDe3, premioDe3, paginaTratosDe3, finalDe3, charlaDe3 } from '../src/historia-texto-acto3.js';
 import { efectosDe, condicionesDe, POSE_DE } from '../src/historia-escenas-util.js';
 import { PERSONAJES_ACTO3, pj3, parsearEfectoActo3, CONDICIONES_ACTO3, TIPOS_EFECTO_ACTO3, VALORES_CONDICION, CONDICIONES_BOOLEANAS } from '../src/historia-escenas-acto3-util.js';
+import { ausenteDeLaMajada } from '../src/historia-noche.js';
 import { crearDirector, validarEscena, PERSONAJES_BASE, POSES_ESCENA, MAX_OPCIONES } from '../src/escenas.js';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -128,7 +129,7 @@ function condicionesMiradas(e) {
     else if (v && typeof v === 'object') {
       if (typeof v.cond === 'string') {
         if (v.cond === 'decision' && v.args) decs.add(v.args.d);
-        else if (v.cond === 'lazo' && v.args) lazos.add(v.args.quien);
+        else if ((v.cond === 'lazo' || v.cond === 'esta') && v.args) lazos.add(v.args.quien);   // (4.25.0: «esta» es el lazo con la majada)
         else otras.add(v.cond);
       }
       for (const x of Object.values(v)) rec(x);
@@ -237,6 +238,8 @@ function correrEscena(escena, { script = [], decisiones = {}, lazos = {}, st = {
   const condiciones = {
     decision: (c) => (dec[c.args.d] ?? 'ninguna') === c.args.es,
     lazo: (c) => { const v = lazos[c.args.quien] ?? 0; return (c.args.min === undefined || v >= c.args.min) && (c.args.max === undefined || v <= c.args.max); },
+    // 4.25.0: «esta» es el lazo salvo que se haya ido por la majada (la regla es la de la noche, `ausenteDeLaMajada`); se ajustó a propósito: esta prueba arma su propio juego de condiciones
+    esta: (c) => { if (ausenteDeLaMajada(dec, c.args.quien)) return false; const v = lazos[c.args.quien] ?? 0; return (c.args.min === undefined || v >= c.args.min) && (c.args.max === undefined || v <= c.args.max); },
     evento: (c) => eventos.includes(c.args.id),
     trato: (c) => (c.args.es === 'trato' ? estado.trato === 'trato' || estado.trato === 'fuerte' : estado.trato === c.args.es),
     noche: (c) => estado.noche === c.args.es,

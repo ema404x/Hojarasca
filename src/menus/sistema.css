@@ -336,6 +336,14 @@
    arriba, el velo de los modales y el ancho angosto; lo largo se desplaza adentro de la carta */
 :root[data-menu] #valle-tarjeta { background: var(--velo, rgba(10,14,11,.55)); backdrop-filter: var(--velo-desenfoque, blur(2px)); }
 :root[data-menu] #valle-tarjeta .valle-carta { width: min(var(--ancho-angosto), calc(100vw - 2 * var(--margen-pantalla))); max-width: none; max-height: calc(100vh - 2 * var(--margen-pantalla)); overflow-y: auto; font-family: var(--f-texto); }
+/* 4.25.0: las tarjetas largas y las pantallas bajas (visto en 1366x768 y 1024x600 con Electron). La entrada de «El arco y la honda» trae doce renglones y se salía hasta en
+   1366x768: la tarjeta con lista larga (clase `ancha`, la pone historia-ui.js) usa el ancho medio y la lista va en dos columnas. Con la pantalla baja (hasta 700 px) todas las tarjetas usan
+   el ancho medio, menos relleno y el título más chico: sin barra de desplazamiento en las entradas de capítulo. El panel de objetivos se aprieta en historia-ui.js */
+:root[data-menu] #valle-tarjeta .valle-carta.ancha { width: min(var(--ancho-medio), calc(100vw - 2 * var(--margen-pantalla))); }
+@media (max-height: 700px) {
+  :root[data-menu] #valle-tarjeta .valle-carta { width: min(var(--ancho-medio), calc(100vw - 2 * var(--e-3))); max-height: calc(100vh - var(--e-4)); padding: var(--e-3) var(--e-5) var(--e-2); }
+  :root[data-menu] #valle-tarjeta .valle-carta h2 { font-size: 27px; margin: 0 0 var(--e-1); }
+}
 :root[data-menu] #valle-tarjeta .valle-carta :is(p, ul, small.arriba) { color: inherit; }
 :root[data-menu] #valle-tarjeta .valle-opciones button { display: grid; width: 100%; padding: var(--e-2) var(--e-3); }
 :root[data-menu] #valle-tarjeta .valle-opciones kbd { border: 0; background: var(--pincel-fino, none) 0 0 / 100% 100% no-repeat, rgba(255,250,235,.35); }

@@ -134,6 +134,18 @@ export function jugar(semilla, opc = {}) {
   const lugaresAzar = () => { X.lugares = {}; for (const l of LISTA_LUGARES) X.lugares[l] = 999; const n = 1 + r(3); for (let i = 0; i < n; i++) X.lugares[LISTA_LUGARES[r(LISTA_LUGARES.length)]] = r(20); };
   const natural = () => ['verano', 'otono', 'invierno'][Math.min(2, H.capituloActual(h).acto - 1)];
   const tiempo = (dh) => { P.horas += dh; while (P.horas >= 24) { P.horas -= 24; P.dia++; } };
+  // 4.25.0 (B): el jugador paciente. Elige un disparador automático del capítulo que todavía no se vio (con sus escenas previas ya vistas), se para en su lugar, pone la hora
+  // adentro de su ventana y, si la escena sale desde sentado (la guardia), se sienta. Si con eso el capítulo no avanza, el atasco es del juego y no del azar del jugador.
+  const esperarVentana = () => {
+    const cap = H.capituloActual(h).id;
+    const ds = Object.entries(D.DISPARADORES).filter(([k, d]) => d.modo === 'auto' && (Array.isArray(d.cap) ? d.cap.includes(cap) : d.cap === cap)
+      && !h.escenas.vistas[d.escena || k] && (!d.requiere || d.requiere.every((x) => h.escenas.vistas[x])) && (!d.no || !d.no.some((x) => h.escenas.vistas[x])));
+    if (!ds.length) return;
+    const [k, d] = ds[r(ds.length)];
+    if (d.lugar) X.lugares[d.lugar[0]] = 0;
+    if (d.hora) { const a = d.hora[0], b = d.hora[1]; const ancho = ((b - a) % 24 + 24) % 24; P.horas = ((a + Math.min(ancho / 2, 0.5) + 24) % 24); }
+    X.sentado = A2D.ESCENAS_DESDE_SENTADO.includes(d.escena || k) ? true : X.sentado;
+  };
   const reporte = { semilla, capitulos: 0, atascado: null };
   let pasosCap = 0, capAnterior = -1;
   for (let paso = 0; paso < 80000; paso++) {
@@ -143,6 +155,7 @@ export function jugar(semilla, opc = {}) {
     if (rnd() < 0.5) tiempo(0.25 + rnd() * 3);
     if (opc.alPaso) opc.alPaso(h, P, paso);   // 4.23.0 (B): un gancho para mirar la partida paso a paso (los logros: cuándo se cumple cada uno)
     lugaresAzar(); X.estacionNatural = natural();
+    if (opc.paciente && pasosCap > (opc.paciente.desde || 1200) && rnd() < (opc.paciente.prob || 0.15)) esperarVentana();   // 4.25.0 (B): un jugador que, trabado un rato, va a donde la historia lo espera y espera la hora (sentado si hace falta)
     X.estacion = H.estacionForzada(h, H.estadoHistoria(P, X)) || X.estacionNatural;
     if (rnd() < 0.35) HECHOS[r(HECHOS.length)]();
     X.conduciendo = X.conduciendo && rnd() < 0.5;

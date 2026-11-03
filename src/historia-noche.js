@@ -33,8 +33,13 @@ const aNum = (v) => { try { return Number(v); } catch { return NaN; } };
 export const MODOS_NOCHE = ['pelea', 'trato'];
 // 4.17.0: los aliados que tiene la noche según los lazos y lo decidido: el perro (si tenés), Ramón (lazo ≥ 1 y no vendiste la majada), Josefina (lazo ≥ 1) y
 // Fermín con la honda (lazo ≥ 2). `lazos`: { ramon, ema, fermin }; `decisiones`: { majada }
+// 4.25.0: lo que se decidió con la majada (D5) manda sobre el lazo: con «Cuidarla vos» (b) Fermín «se va dolido» y con «Venderla a Belisario» (c) no están ni Ramón ni Fermín, como lo dicen
+// la tarjeta de la decisión y las escenas. Antes sólo Ramón con c lo respetaba: con el lazo de Fermín en 3 antes de decidir, b lo dejaba en 2 y subía igual al techo en la noche (y a la vez las
+// escenas decían que faltaba), y con el de Ramón en 3, c lo dejaba en 0 y la mesa de guerra lo sentaba al lado de «la silla vacía de Ramón».
+export const AUSENTES_POR_LA_MAJADA = { ramon: ['c'], fermin: ['b', 'c'] };
+export const ausenteDeLaMajada = (decisiones, quien) => Object.hasOwn(AUSENTES_POR_LA_MAJADA, quien) && AUSENTES_POR_LA_MAJADA[quien].includes(decisiones?.majada);
 export function aliadosDe({ lazos = {}, decisiones = {}, perro = false } = {}) {
-  return { perro: !!perro, ramon: (lazos.ramon ?? 0) >= 1 && decisiones.majada !== 'c', josefina: (lazos.ema ?? 0) >= 1, fermin: (lazos.fermin ?? 0) >= 2 };
+  return { perro: !!perro, ramon: (lazos.ramon ?? 0) >= 1 && !ausenteDeLaMajada(decisiones, 'ramon'), josefina: (lazos.ema ?? 0) >= 1, fermin: (lazos.fermin ?? 0) >= 2 && !ausenteDeLaMajada(decisiones, 'fermin') };
 }
 export const ESTADOS_NOCHE = ['pendiente', 'ganada', 'perdida'];
 

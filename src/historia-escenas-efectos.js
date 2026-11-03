@@ -3,6 +3,7 @@
 // con la escena que los pidió, así un efecto que corre dos veces (la escena saltada y después vuelta a ver) no cuenta doble.
 import { cambiarLazo, anotarRaro, marcarObjeto, marcarTema, marcarEntrega, sumarRamal, lazoDe, anotarCharla, LAZOS_TODOS, ACOMPANANTES, PRESTADOS, DECISIONES, alDecidirDuendes, convidadosDe } from './historia.js';
 import { parsearEfecto } from './historia-escenas-util.js';
+import { ausenteDeLaMajada } from './historia-noche.js';
 // 4.17.0: los efectos del acto III (duendes:, noche:, armas:, perfil:) y lo que cambian en la partida
 import { parsearEfectoActo3 } from './historia-escenas-acto3-util.js';
 import { hacerTrato, ganarArma, dejarPerdidaDe, duendesDe, esConvidado, alDecidirMajada, majadaSinCosto } from './historia.js';
@@ -24,6 +25,8 @@ export function registrarEfectosHistoria(reg, ctx) {
   // condiciones
   reg.registrarCondicion('decision', (c) => { const h = H(); const a = c?.args || {}; const d = a.d ?? a.id; if (!h || typeof d !== 'string' || a.es === undefined) return false; const v = Object.hasOwn(h.decisiones || {}, d) ? h.decisiones[d] : null; return a.es === 'ninguna' ? v == null : v === a.es; });
   reg.registrarCondicion('lazo', (c) => { const h = H(); const a = c?.args || {}; if (!h) return false; const l = lazoDe(h, a.quien); return l >= (a.min === undefined || a.min === null ? -9 : Number(a.min)) && l <= (a.max === undefined || a.max === null ? 9 : Number(a.max)); });
+  // 4.25.0: «está»: como `lazo`, pero quien se fue por lo que hiciste con la majada (D5) no está aunque el lazo alcance (ver `ausenteDeLaMajada`, la misma regla que usa la noche)
+  reg.registrarCondicion('esta', (c) => { const h = H(); const a = c?.args || {}; if (!h || ausenteDeLaMajada(h.decisiones, a.quien)) return false; const l = lazoDe(h, a.quien); return l >= (a.min === undefined || a.min === null ? -9 : Number(a.min)) && l <= (a.max === undefined || a.max === null ? 9 : Number(a.max)); });
   reg.registrarCondicion('ramal', (c) => { const h = H(); const a = c?.args || {}; return !!h && (Number(h.ramal) || 0) >= (Number(a.min) || 0) && (Number(h.ramal) || 0) <= (a.max === undefined || a.max === null ? 99 : Number(a.max)); });   // (4.17.0: y máximo)
   reg.registrarCondicion('evento', (c) => { const s = ctx.estado?.(); const a = c?.args || {}; return !!s && s.eventos?.has(a.id) && (a.opcion === undefined || ctx.opcionDeEvento?.(a.id) === a.opcion); });
   reg.registrarCondicion('derrumbe-ayudo', () => ctx.opcionDeEvento?.('derrumbe') === 'ayudar');
