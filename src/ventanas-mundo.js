@@ -2,8 +2,8 @@
 // todas las ventanas: una llamada de dibujo, se rehace cada tanto y no por cuadro.
 import * as THREE from 'three';
 
-export function crearVentanas(escena, max = 64) {
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffb867, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+export function crearVentanas(escena, max = 128) {   // 4.21.0: 128 (antes 64): las casas armadas suman las suyas
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffc77c,   /* 4.21.0: un poco más claro y amarillo (era 0xffb867): el mismo calor de las ventanas de la aldea */ transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
   const malla = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mat, max);
   malla.count = 0;
   malla.frustumCulled = false;

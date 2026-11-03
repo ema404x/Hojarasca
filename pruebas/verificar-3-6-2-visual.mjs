@@ -63,7 +63,7 @@ const L = await import(pathToFileURL(path.join(src, 'techo-lluvia.js')).href);
 {
   const clima = leer('src/clima.js');
   ok(/const techos = mundo\.techos && mundo\.techos\.hay \? mundo\.techos : null;/.test(clima)
-    && clima.includes('(techos && techos.tapa(x - inc, y - 0.55, z - inc * 0.3))'), 'clima.js: la gota que llega a un techo vuelve a salir de arriba');
+    && clima.includes('(techos && techos.tapa(x - inc, y - LARGO_GOTA, z - inc * 0.3))'), 'clima.js: la gota que llega a un techo vuelve a salir de arriba');   // 4.21.0: el largo de la gota (0,55 → 0,9) es la constante LARGO_GOTA
   const main = leer('src/main.js');
   ok(main.includes('const mapaLluvia = crearMapaCubiertas();') && /function revisarMapaLluvia\(cam, dt\)/.test(main), 'main.js: el mapa de techos de alrededor');
   ok(main.includes("...(est?.cubiertas || [])") && main.includes('p.cubiertas') && main.includes('aldeaMundo.cubiertas()') && main.includes('obras.cubiertasLluvia(cam, 70)'), 'los techos del valle, las estaciones, la aldea y tus obras');

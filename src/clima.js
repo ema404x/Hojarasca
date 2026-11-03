@@ -66,11 +66,12 @@ export function crearClima(escena, T, ajustes) {
   let rafagaT = 3 + Math.random() * 5, rafagaObjetivo = 0;
 
   // lluvia: segmentos que caen alrededor de la cámara
-  const NL = 3200, CAJA = 36;
+  // 4.21.0 (luz y atmósfera): la gota más larga (0,55 → 0,9 m: con 1 px de ancho la rayita corta casi no se leía) y más opaca (0,35 → 0,5)
+  const NL = 3200, CAJA = 36, LARGO_GOTA = 0.9;
   const posL = new Float32Array(NL * 6), velL = new Float32Array(NL);
   for (let i = 0; i < NL; i++) {
     const x = (Math.random() - 0.5) * CAJA * 2, y = Math.random() * 30, z = (Math.random() - 0.5) * CAJA * 2;
-    posL.set([x, y, z, x, y - 0.5, z], i * 6); velL[i] = 14 + Math.random() * 6;
+    posL.set([x, y, z, x, y - LARGO_GOTA, z], i * 6); velL[i] = 14 + Math.random() * 6;
   }
   const gLluvia = new THREE.BufferGeometry();
   gLluvia.setAttribute('position', new THREE.BufferAttribute(posL, 3));
@@ -94,7 +95,10 @@ export function crearClima(escena, T, ajustes) {
   };
   const nieve = crearNube(2600, puntosMaterial({ color: '#f4f6fa', tam: 0.35, opacidad: 0.9 }), 34, 26);
   const hojas = crearNube(500, puntosMaterial({ color: '#c8661e', tam: 0.6, forma: 'hoja' }), 30, 20);
-  const luciernagas = crearNube(160, puntosMaterial({ color: '#e8ff9a', tam: 0.9, aditivo: true, forma: 'brillo' }), 40, 3);
+  // 4.21.0 (luz y atmósfera): las luciérnagas eran 160 manchas de 0,9 (a 3 m, un halo del tamaño de una cabeza); ahora 240 puntos de 0,3: de cerca una
+  // chispa con su brillo chico, de lejos un puntito (el tamaño en pantalla sigue la distancia); más cantidad y más variedad, no más tamaño
+  const NLUCI = 240, TAM_LUCI = 0.3;
+  const luciernagas = crearNube(NLUCI, puntosMaterial({ color: '#f0ffa8', tam: TAM_LUCI, aditivo: true, forma: 'brillo' }), 40, 3);
 
   // humo de chimenea
   const NH = 120;   // 3.6: más bocanadas (con la aldea hay hasta ocho chimeneas a la vista)
@@ -257,7 +261,7 @@ export function crearClima(escena, T, ajustes) {
     const bajoTecho = !!mundo.bajoTecho;
     lluvia.visible = !invierno && precip > 0.05 && !bajoTecho;
     if (lluvia.visible) {
-      mLluvia.opacity = 0.35 * precip;
+      mLluvia.opacity = 0.5 * precip;
       mLluvia.color.setRGB(0.55 + luz.r * 0.2, 0.6 + luz.g * 0.2, 0.66 + luz.b * 0.2);
       const n = Math.floor(NL * precip);
       gLluvia.setDrawRange(0, n * 2);
@@ -270,11 +274,11 @@ export function crearClima(escena, T, ajustes) {
         let y = posL[j + 1] - velL[i] * dt;
         let x = posL[j], z = posL[j + 2];
         const rx = x - cam.x, rz = z - cam.z;
-        if (y < cam.y - 8 || Math.abs(rx) > CAJA || Math.abs(rz) > CAJA || (techos && techos.tapa(x - inc, y - 0.55, z - inc * 0.3))) {
+        if (y < cam.y - 8 || Math.abs(rx) > CAJA || Math.abs(rz) > CAJA || (techos && techos.tapa(x - inc, y - LARGO_GOTA, z - inc * 0.3))) {
           x = cam.x + (Math.random() - 0.5) * CAJA * 2; z = cam.z + (Math.random() - 0.5) * CAJA * 2; y = cam.y + 12 + Math.random() * 14;
         }
         posL[j] = x; posL[j + 1] = y; posL[j + 2] = z;
-        posL[j + 3] = x - inc; posL[j + 4] = y - 0.55; posL[j + 5] = z - inc * 0.3;
+        posL[j + 3] = x - inc; posL[j + 4] = y - LARGO_GOTA; posL[j + 5] = z - inc * 0.3;
       }
       gLluvia.attributes.position.needsUpdate = true;
     }
@@ -326,7 +330,7 @@ export function crearClima(escena, T, ajustes) {
     if (luciernagas.visible) {
       const p = luciernagas.geometry.attributes.position.array, az = luciernagas.geometry.attributes.aAzar.array;
       luciernagas.material.uniforms.uOpacidad.value = (mundo.noche - 0.6) * 2.5;
-      for (let i = 0; i < 160; i++) {
+      for (let i = 0; i < NLUCI; i++) {
         const j = i * 3;
         p[j] += Math.sin(tt * 0.6 + az[i] * 50) * 0.5 * dt;
         p[j + 2] += Math.cos(tt * 0.5 + az[i] * 40) * 0.5 * dt;
@@ -336,7 +340,7 @@ export function crearClima(escena, T, ajustes) {
           p[j] = cam.x + (Math.random() - 0.5) * 80; p[j + 2] = cam.z + (Math.random() - 0.5) * 80;
         }
       }
-      luciernagas.material.uniforms.uTam.value = 0.9;
+      luciernagas.material.uniforms.uTam.value = TAM_LUCI;
       luciernagas.geometry.attributes.position.needsUpdate = true;
     }
 
