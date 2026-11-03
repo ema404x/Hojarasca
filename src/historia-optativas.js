@@ -12,6 +12,9 @@
 //   · Los encargos de los vecinos con lazo (LAZOS_TODOS: los seis con arco y, desde la 4.18.2, también Nicanor): cada encargo cumplido con la historia en marcha suma +1 al lazo de quien lo pidió.
 import { CAPITULOS, LAZOS_TODOS, PERSONAS_LAZO_VECINOS, cambiarLazo, sumarRamal } from './historia.js';
 import { TEXTO_LAZOS } from './historia-texto-lazos.js';
+// 4.21.0: las metas con plata (el puesto de la feria): cuánto cuesta
+import { PROPIEDAD } from './propiedad.js';
+import { formatoPesos } from './economia.js';
 // 4.18.3: lo que se lleva de regalo (algo rico a Ramón, lo dulce para la torta de Herminia)
 import { PARA_RAMON, PARA_LA_TORTA, QUE_LLEVAR_RAMON, QUE_LLEVAR_TORTA, COMO_HACER_TORTA, nombreDeRegalo } from './historia-regalos.js';
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
@@ -77,6 +80,11 @@ export const OPTATIVAS = [
     avance: (s) => (s.pan >= 1 || s.harina >= 1 ? 'llevale un pan o una medida de harina al galpón de esquila (E sobre él)' : 'te falta un pan casero o una medida de harina'),
     hecha: vista('pan-fermin'), escenas: ['pan-fermin'], disparadores: ['pan-fermin'],
     premio: { lazos: { fermin: 1 }, texto: 'Fermín no dice nada, pero te guarda un mate' } },
+  // 4.21.0: una meta con plata en cada acto (los pesos tienen un lugar en el relato). Nunca traban, no cruzan de acto y no dan lazo ni premio: lo que se gana es la obra.
+  { id: 'puesto-feria', desde: 'mesa', hasta: 'ramal', quien: 'ercilia',
+    ofrece: () => true,
+    avance: () => `cuesta ${formatoPesos(PROPIEDAD.puesto.precio)}, en el banco del pueblo`,
+    hecha: (s) => s.puestoFeria === true, premio: null },
   { id: 'vuelta-ingeniera', desde: 'ramal', hasta: 'ramal', quien: 'graciela',
     ofrece: (s) => s.escenas.has('anden-graciela'),
     enCurso: (s) => vueltasDe(s) >= 1,
@@ -86,6 +94,10 @@ export const OPTATIVAS = [
   { id: 'vuelta-completa', desde: 'ramal', hasta: 'ramal', quien: 'guarda', ventana: true,
     ofrece: () => true, hecha: encargoHecho('e-vuelta'), premio: null },
   // ---- ACTO II
+  { id: 'establo-zaino', desde: 'rueda', hasta: 'cuaderno', quien: 'ramon',   // (4.21.0: la meta con plata del acto II)
+    ofrece: (s) => s.escenas.has('zaino-ramon'),
+    avance: () => 'un establo para el caballo, en tu lote (O → Trabajo): tablas y unos pesos',
+    hecha: (s) => s.terminadas.has('establo-caballo'), premio: null },
   { id: 'trigo-abuelo', desde: 'rueda', hasta: 'cuaderno', quien: 'ema',
     ofrece: (s) => s.decisiones.bolsa === 'c' && s.escenas.has('piedras-molino'),
     hecha: vista('trigo-abuelo'), escenas: ['trigo-abuelo'], disparadores: ['trigo-abuelo'], premio: { lazos: { ema: 1 } } },
@@ -117,6 +129,10 @@ export const OPTATIVAS = [
     avance: (s) => (s.regaloTorta ? `llevale ${nombreDeRegalo(PARA_LA_TORTA, s.regaloTorta)} a Herminia para sus noventa (E sobre ella)` : `te falta una torta casera: se hornea con ${COMO_HACER_TORTA}`),
     hecha: vista('herminia-noventa'), escenas: ['herminia-noventa'], disparadores: ['herminia-noventa'], premio: null },
   // ---- ACTO III
+  { id: 'heno-majada', desde: 'frios', hasta: 'arco', quien: 'fermin',   // (4.21.0: la meta con plata del acto III)
+    ofrece: (s) => s.escenas.has('ramon-cama'),
+    avance: () => 'un cobertizo de heno junto a tu refugio (O → Trabajo): tablas y unos pesos',
+    hecha: (s) => s.terminadas.has('cobertizo-heno'), premio: null },
   { id: 'papel-elsa', desde: 'frios', hasta: 'arco', quien: 'guarda',
     ofrece: (s) => s.escenas.has('ramon-cama'), hecha: vista('papel-elsa'), escenas: ['papel-elsa'], disparadores: ['papel-elsa'], premio: { lazos: { guarda: 1 } } },
   { id: 'visita-ramon', desde: 'frios', hasta: 'arco', quien: 'ramon',

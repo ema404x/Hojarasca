@@ -122,6 +122,9 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .segmentos { display: inline-flex; border: 1px solid rgba(239,230,210,.35); border-radius: 999px; padding: 3px; gap: 2px; }
 .segmentos button { font-size: 15px; padding: 5px 13px 4px; border-radius: 999px; color: rgba(239,230,210,.82); }
 .segmentos button[aria-pressed="true"] { background: var(--luz); color: var(--tinta); }
+/* 4.21.0: un chip apagado por la Historia (la estación y la hora de tu reloj) y el motivo debajo */
+.segmentos button:disabled { opacity: .38; cursor: default; }
+.aviso-ajuste { font-size: 13px; line-height: 1.35; color: rgba(239,230,210,.62); max-width: 36ch; }
 /* selector de modo en la portada */
 .modo-juego { display: grid; gap: 8px; margin: 0 0 30px; max-width: 520px; }
 .modo-juego > span { font-size: 14px; color: rgba(239,230,210,.7); }
@@ -768,6 +771,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <div class="segmentos" data-ajuste="estacion">
           <button data-valor="verano">Verano</button><button data-valor="otono">Otoño</button><button data-valor="invierno">Invierno</button><button data-valor="auto">Solas</button>
         </div>
+        <small class="aviso-ajuste oculto" data-aviso-ajuste="estacion"></small>
       </div>
       <div class="opcion"><span>Calidad gráfica</span>
         <div class="segmentos" data-ajuste="calidad">
@@ -1006,6 +1010,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       <h3>Ajustes</h3>
       <div class="fila-ajuste"><span>Estación</span>
         <div class="segmentos" data-ajuste="estacion"><button data-valor="verano">Verano</button><button data-valor="otono">Otoño</button><button data-valor="invierno">Invierno</button><button data-valor="auto">Que pasen solas</button></div>
+        <small class="aviso-ajuste oculto" data-aviso-ajuste="estacion"></small>
       </div>
       <div class="fila-ajuste" id="fila-dificultad"><span>Dificultad de La noche de los duendes</span>
         <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
@@ -1015,6 +1020,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       </div>
       <div class="fila-ajuste"><span>Duración del día</span>
         <div class="segmentos" data-ajuste="duracion"><button data-valor="20">20 minutos</button><button data-valor="30">30 minutos</button><button data-valor="45">45 minutos</button><button data-valor="reloj">Hora de tu reloj</button></div>
+        <small class="aviso-ajuste oculto" data-aviso-ajuste="reloj"></small>
       </div>
       <div class="fila-ajuste"><span>Calidad gráfica</span>
         <div class="segmentos" data-ajuste="calidad"><button data-valor="muybaja">Mínima</button><button data-valor="baja">Baja</button><button data-valor="media">Media</button><button data-valor="alta">Alta</button></div>

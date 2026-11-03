@@ -25,6 +25,8 @@ import { aliadosDe } from './historia-noche.js';
 import { tarjetaFinal } from './historia-final.js';
 import { leerPagina, proximaPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO, ESCENAS_DESDE_VEHICULO } from './historia-disparadores-acto2.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
+// 4.21.0: la línea gris de espera del panel (historia-espera.js)
+import { esperasDelCapitulo } from './historia-espera.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
 // 4.13.0 (B): la noche de defensa y los dos finales (historia-noche*.js)
@@ -59,6 +61,7 @@ export const CSS_VALLE = `
 .historia-hud .ramal { margin: 6px 0 2px; font-size: 12px; opacity: .85; }
 .historia-hud .ramal i { display: block; height: 6px; margin-top: 3px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
 .historia-hud .ramal i b { display: block; height: 100%; background: var(--notro, #b8432f); }
+.historia-hud p.espera { display: block; margin: -1px 0 4px 28px; font-size: 12px; font-style: italic; color: rgba(239,230,210,.66); }   /* 4.21.0: la línea de espera */
 .historia-hud .optativas { margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,.14); font-size: 12px; }
 .historia-hud .optativas small { display: block; opacity: .7; margin-bottom: 2px; }
 .historia-hud .optativas p { opacity: .85; }
@@ -155,6 +158,8 @@ const AVISOS_ARREO = {
   'oveja-ramon': ['La oveja llegó al Puesto Alto', 'Porfiada, pero llegó'],
   'corral-ramon': ['Las ovejas están otra vez en el corral', 'Todas: las contaste dos veces'],
 };
+// 4.21.0: el premio de un capítulo, con lo que dice el libro de pesos (el texto del premio es largo: el renglón dice el capítulo)
+const premioConLibro = (premio, c) => ({ ...premio, motivo: `La historia del valle · ${c.titulo}`, con: 'Los vecinos del valle' });
 export function crearValleUi(ctx) {
   const doc = ctx.documento || document;
   const $ = (id) => doc.getElementById(id);
@@ -202,8 +207,9 @@ export function crearValleUi(ctx) {
     panel.classList.toggle('oculto', !datos);
     if (!datos) return;
     if (h.fase === 'jugando') datos.optativas = optativasDelPanel(h, s);   // 4.18.0
+    const esperas = h.fase === 'jugando' ? esperasDelCapitulo(h, s) : {};   // 4.21.0: lo único que falta es la hora
     const html = `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
-      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>`).join('')
+      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>${!o.hecho && esperas[o.id] ? `<p class="espera">${escP(esperas[o.id])}</p>` : ''}`).join('')
       + (datos.ramal ? `<div class="ramal">La trochita · el ramal: ${escP(datos.ramal.estado)}<i><b style="width:${Math.round((datos.ramal.valor / datos.ramal.max) * 100)}%"></b></i></div>` : '')
       // 4.18.0: las optativas abiertas (con la estrellita) y las hechas en esta ventana (con la tilde); nunca traban el capítulo
       + (datos.optativas?.length ? `<div class="optativas"><small>De paso (si querés)</small>${datos.optativas.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : '☆'}</kbd>${escP(o.texto)}</p>`).join('')}</div>` : '');
@@ -236,7 +242,7 @@ export function crearValleUi(ctx) {
   function mostrarPuerta(pu) {
     tarjetas.mostrar({
       clase: 'despues', arriba: 'La historia del valle', titulo: pu.titulo, texto: pu.lineas,
-      opciones: [{ id: 'seguir', texto: 'Seguir con mi vida en el valle', detalle: 'El capítulo empieza solo cuando cambie la estación' }],
+      opciones: [{ id: 'seguir', texto: 'Seguir con mi vida en el valle', detalle: pu.dias ? 'El capítulo empieza solo en un par de días' : 'El capítulo empieza solo en un par de días, o antes si cambia la estación' }],   // (4.21.0: antes decía «cuando cambie la estación» y con el verano fijo nunca cambiaba)
       alElegir: () => { tarjetas.cerrar(); return true; },
     });
   }
@@ -261,7 +267,7 @@ export function crearValleUi(ctx) {
     };
     const cerrarFinal = (id) => {
       const r = cerrarCapitulo(h, ctx.progreso().dia);
-      if (r?.premio) ctx.cobrar(r.premio);
+      if (r?.premio) ctx.cobrar(premioConLibro(r.premio, c));
       ctx.diario('capitulo', `terminé «${c.titulo}»`);
       ctx.sonido?.()?.anotar?.();
       ctx.guardar();
@@ -284,7 +290,7 @@ export function crearValleUi(ctx) {
       alElegir: () => {
         const r = cerrarCapitulo(h, ctx.progreso().dia);
         if (r) alCerrarCapitulo(h, c.id, ctx.progreso().dia);   // 4.15.0: lo raro que dejó la decisión, la ingeniera que se va
-        if (r?.premio) ctx.cobrar(r.premio);
+        if (r?.premio) ctx.cobrar(premioConLibro(r.premio, c));
         ctx.diario('capitulo', `terminé «${c.titulo}»`);
         ctx.sonido?.()?.anotar?.();
         ctx.guardar();
@@ -540,7 +546,10 @@ export function crearValleUi(ctx) {
       const r = revisarHistoria(h, s);
       for (const o of r.nuevos) {
         ctx.nota(`✓ ${textoObjetivo(o, s)}`, `${capituloActual(h).titulo} · la historia del valle`); ctx.sonido?.()?.anotar?.();
-        if (alCumplirObjetivo(h, capituloActual(h).id, o.id, s)) ctx.nota('Josefina frunce la nariz', 'Las plumas se quedan en el bosque. Te lo dijo el primer día', true);   // 4.17.0
+        // 4.17.0 (las plumas) y 4.21.0 (la risa de la primera noche): lo que mueve un objetivo recién cumplido
+        const mov = alCumplirObjetivo(h, capituloActual(h).id, o.id, s);
+        if (mov === 'plumas-bosque') ctx.nota('Josefina frunce la nariz', 'Las plumas se quedan en el bosque. Te lo dijo el primer día', true);
+        else if (mov === 'risa-primera-noche') { ctx.nota('El cuaderno anota algo raro', textoRaro('risa-primera-noche')); ctx.diario?.('evento', textoRaro('risa-primera-noche')); }
       }
       if (r.nuevos.length) ctx.guardar();
       if (revisarNoche(h)) ctx.guardar();   // 4.13.0 (A): con el encuentro y las dos armas, la noche queda pendiente

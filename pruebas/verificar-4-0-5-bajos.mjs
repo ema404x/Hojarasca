@@ -14,7 +14,8 @@ const ok = (cond, que) => { assert.ok(cond, que); console.log('✓', que); };
   const m = main.match(/function estacionObjetivo\(\) \{[\s\S]*?\n\}\n/);
   assert.ok(m, 'existe estacionObjetivo()');
   const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-  const crear = (ajustes, progreso) => new Function('ajustes', 'progreso', 'DIAS_ANIO', 'smoothstep', `${m[0]}; return estacionObjetivo;`)(ajustes, progreso, 12, smoothstep);
+  const crear = (ajustes, progreso) => new Function('ajustes', 'progreso', 'DIAS_ANIO', 'smoothstep', `function estacionAjuste() { return ajustes.estacion; }
+${m[0]}; return estacionObjetivo;`)(ajustes, progreso, 12, smoothstep);
   // la cuenta de siempre (la que estaba escrita en cada cuadro)
   const vieja = (dia, horas) => {
     const fase = (((dia - 1 + horas / 24) % 12) + 12) % 12 / 12;
@@ -37,7 +38,7 @@ const ok = (cond, que) => { assert.ok(cond, que); console.log('✓', que); };
   ajustes.estacion = 'invierno'; ok(f().oto === 0 && f().inv === 1, 'fija en invierno: invierno');
   ajustes.estacion = 'verano'; ok(f().oto === 0 && f().inv === 0, 'fija en verano: verano');
   // al cargar el mundo se arranca en esa estación, y cada cuadro usa la misma cuenta
-  tiene(main, "const e0 = ajustes.estacion === 'auto' ? estacionObjetivo() : null;", 'construir: «auto» arranca en la estación de la fecha');
+  tiene(main, "const e0 = estacionAjuste() === 'auto' ? estacionObjetivo() : null;", 'construir: «auto» arranca en la estación de la fecha');
   tiene(main, 'const { oto, inv } = estacionObjetivo();', 'cada cuadro: la misma cuenta');
 }
 

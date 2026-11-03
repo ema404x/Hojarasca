@@ -157,7 +157,7 @@ async function chequear(arch = '', sufijo = '') {
     // la minga: algo cocinado desde que empezó el capítulo; el galpón y el cuaderno
     vista(h, 'minga-aldea'); ok(hecho(h, p, 'minga'), 'la minga'); vista(h, 'galpon-ronda'); ok(hecho(h, p, 'ronda'), 'el galpón en ronda');
     ok(!hecho(h, p, 'cuaderno'), 'el cuaderno todavía no'); H.marcarObjeto(h, 'cuaderno-eusebio', 7); ok(hecho(h, p, 'cuaderno'), 'el cuaderno del pozo');
-    ok(H.CAPITULOS[6].premio.cuenta.yerba > 0, 'un premio chico: yerba y el cuaderno');
+    ok(H.CAPITULOS[6].premio.pesos > 0, 'un premio chico: pesos (4.21.0: antes yerba) y el cuaderno');   // 4.21.0: las yerbas pasaron a pesos
     // los fletes de la molienda cuentan desde la decisión (los de antes, no)
     const f = H.historiaNueva(); f.activa = true; f.capitulo = 6; f.decisiones.molienda = 'a';
     H.sumarFletes(f, { entregas: 2 }); ok(f.entregasVistas === 2 && f.fletesHarina === 0, 'los fletes anteriores a la decisión no cuentan');
@@ -187,11 +187,11 @@ async function chequear(arch = '', sufijo = '') {
     for (const [d, re, mat, cosa] of [['a', /leña/, 'tronco', null], ['b', /poncho/, null, 'poncho'], ['c', /flete/, null, null]]) {
       h.decisiones.cuaderno = d;
       const pr = H.premioDeCapitulo(H.CAPITULOS[7], h);
-      ok(re.test(pr.texto) && pr.cuenta.yerba === 4 && pr.cosas.includes('pluma-condor'), `el premio, variante ${d}`);
+      ok(re.test(pr.texto) && pr.pesos === 1900 && pr.cosas.includes('pluma-condor'), `el premio, variante ${d}`);   // 4.21.0: 4 yerbas pasaron a pesos ($1.900 con lo del capítulo)
       ok(!mat || pr.materiales[mat] === 6, `variante ${d}: la leña`); ok(!cosa || pr.cosas.includes(cosa), `variante ${d}: lo regalado`);
     }
     h.decisiones.cuaderno = null; ok(H.premioDeCapitulo(H.CAPITULOS[7], h) === H.CAPITULOS[7].premio, 'sin decidir, el premio base');
-    H.CAPITULOS[7].premio.cuenta.yerba === 4;
+    H.CAPITULOS[7].premio.pesos === 1900;
     const h2 = H.historiaNueva(); h2.activa = true; D.alCerrarCapitulo(h2, 'cuaderno', 9); ok(h2.ramal === 0, 'cerrar el capítulo 8 sin decidir no suma al ramal');
   }
 
