@@ -1,0 +1,14 @@
+# Hojarasca 4.20.0 — Auditorías: equilibrio y economía, la Historia y lo visual
+
+Ramas v4200-a (equilibrio y economía), v4200-b (la Historia) y v4200-c (lo visual), juntadas. Informes en AUDITORIA_4_20_0_A.md, _B.md y _C.md. No cambia el juego: sólo informes y herramientas de medición en `herramientas/`.
+
+- Equilibrio y economía (A): los fletes de la trochita pagan unos $45.700 por hora de manejo (1,4 veces jugar a fondo, 5 veces lo de un jugador tranquilo, sin tope); el mercado de los puestos tiene un techo de $7.700 por día y separa 3,5 veces a los jugadores (83 contra 290 días para juntar el catálogo de obras); la Historia casi no usa pesos ($400) y sus premios traen 26 yerbas que ya no se venden; la curva del Desafío se clava en 18 de cantidad desde la noche 9 y el primer mandamás es un salto de 3,6 veces; las semillas doradas sobran desde la noche 6 o 7. Con tabla de valores nuevos y simulación.
+- La Historia (B): de fábrica, del capítulo 5 al 13 pasa en verano (el clima propio sólo se aplica con la estación en «Que pasen solas»); las consecuencias de las decisiones están desparejas y los 28 encargos del Relax pueden lavar el lazo; ningún logro es de la Historia (26 propuestos con datos que ya se guardan); las dos primeras horas son de tareas más que de historia; faltan avisos de espera y la marca del objetivo en el mapa.
+- Lo visual (C): la plaza está limitada por la CPU (15,3 ms de día y 16,8 al ocaso: 6 de la gente y 7 del envío de dibujo), no por la placa; la geometría y las texturas casi no cuestan (100 mil triángulos = 0,05 ms) y lo caro es lo que se dibuja por píxel (terreno, pasto y matas instanciados, capas de pantalla completa de unos 0,85 ms cada una); lo más flojo son materiales sin detalle, la noche de exterior y la lluvia; las manos y las caras son simples. 37 mediciones por captura y tabla de presupuesto.
+- Orden de las versiones que siguen (tres zonas por versión): 4.21.0 plata pareja + la Historia arranca bien + luz y atmósfera; 4.22.0 noches con forma + el valle se acuerda + edificios y materiales; 4.23.0 lo que se produce vale + metas y logros de la Historia + interiores y CPU de la gente; 4.24.0 no te pierdas (marca del objetivo) + paisaje y vegetación; 4.25.0 personajes y pasada final.
+
+## Sin ver / pendiente
+- Los tiempos reales de cada acción (jornal, turno, venta, viaje a la aldea), el poder real del jugador en el Desafío, los días reales por capítulo de la Historia y cuánta gente haría lo que los jugadores de mentira de B.
+- Calidad Media y Baja, el Desafío y la noche de los duendes, la tormenta con rayos, el kayak, el velero y la trochita a bordo, y la mayoría de los interiores; los ms son de la notebook (Ryzen 7 7730U) a 60 Hz, no de la 4600G.
+- La cadena grande de las noches (R12) no se tocó ni se midió; sigue esperando que se juegue el equilibrio.
+- Logros de Steam sin hacer; textos sólo en castellano.
