@@ -496,7 +496,7 @@ const MUT = [
   ['historia-optativas.js', "if (!PERSONAS_LAZO_VECINOS.includes(quien)) continue;", "", 'las charlas de lazo valen también para los seis'],
   ['historia-optativas.js', "|| (!deEscena && !Number.isFinite(w.min) && !Number.isFinite(w.max))) continue;", ") continue;", 'una charla sin condición de lazo vale siempre'],
   // encargos
-  ['historia-optativas.js', "if (LAZOS_TODOS.includes(q)) { cambiarLazo(h, q, 1);", "if (['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'].includes(q)) { cambiarLazo(h, q, 1);", 'los encargos de Nicanor no suman'],
+  ['historia-optativas.js', "if (pagados(q) < tope) { cambiarLazo(h, q, 1);", "if (pagados(q) < tope && ['ramon', 'ema', 'ercilia', 'guarda', 'fermin', 'graciela'].includes(q)) { cambiarLazo(h, q, 1);", 'los encargos de Nicanor no suman'],   // (4.22.0: la línea del código ahora lleva el tope por encargos)
   // optativa de Sofía
   ['historia-optativas.js', "&& !ya.lazos.has(q)) r.lazos[q] = n;", ") r.lazos[q] = n;", 'el lazo de la escena de Sofía se duplica'],
   ['historia-optativas.js', "desde: 'cosecha', hasta: 'cuaderno', quien: 'sofia',", "desde: 'cosecha', hasta: 'golpea', quien: 'sofia',", 'la optativa de Sofía cruza de acto'],

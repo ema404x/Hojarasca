@@ -726,8 +726,8 @@ DEFINICION_DECISIONES.majada = {
   ],
   opciones: [
     { id: 'a', texto: 'Que se la lleve Fermín', detalle: 'Lo ayudás a arrearla al galpón de esquila. Ramón dice «no me la devuelvas flaca».', lazos: { fermin: 1 }, palabras: (s) => palabrasMajadaA(s), diario: 'Dejé que Fermín se lleve la majada de Ramón al galpón de esquila.' },
-    { id: 'b', texto: 'Cuidarla vos', detalle: 'Tres mañanas con agua y forraje en el corral. Ramón: «Vos».', lazos: { ramon: 1, fermin: -1 }, diario: 'Decidí cuidar yo la majada de Ramón.' },
-    { id: 'c', texto: 'Venderla a Belisario', detalle: 'Se la llevás al Puesto del Paso. Ramón no te mira: «Andá».', lazos: { ramon: -3, fermin: -1 }, diario: 'Decidí venderle la majada de Ramón a Belisario.' },
+    { id: 'b', texto: 'Cuidarla vos', detalle: 'Tres mañanas con agua y forraje en el corral. Ramón: «Vos». Fermín se va dolido: el día de la nevada no va a estar a tu lado.', lazos: { ramon: 1, fermin: -1 }, diario: 'Decidí cuidar yo la majada de Ramón.' },
+    { id: 'c', texto: 'Venderla a Belisario', detalle: 'Se la llevás al Puesto del Paso. Ramón no te mira: «Andá». El día de la nevada, ni Ramón ni Fermín van a estar a tu lado.', lazos: { ramon: -3, fermin: -1 }, diario: 'Decidí venderle la majada de Ramón a Belisario.' },
   ],
 };
 DEFINICION_DECISIONES.duendes = {
@@ -737,8 +737,8 @@ DEFINICION_DECISIONES.duendes = {
     '¿Qué hacés?',
   ],
   opciones: [
-    { id: 'a', texto: 'Dejar la puerta abierta y sentarte en el umbral', detalle: 'Un trato, sin palabras.', lazos: {}, diario: 'Me senté en el umbral y dejé que los duendes se llevaran su bolsa.' },
-    { id: 'b', texto: 'Poner la bolsa en el umbral', detalle: 'Un trato fuerte, de los que se devuelven. Sólo si ya convidaste.', lazos: {}, requiere: (s) => s.decisiones.bolsa === 'a' || s.decisiones.molienda === 'c', sinRequisito: 'Todavía no les convidaste nada', diario: 'Puse una bolsa en el umbral para los duendes.' },
+    { id: 'a', texto: 'Dejar la puerta abierta y sentarte en el umbral', detalle: 'Un trato, sin palabras: les dejás el lugar y nada más.', lazos: {}, diario: 'Me senté en el umbral y dejé que los duendes se llevaran su bolsa.' },
+    { id: 'b', texto: 'Poner la bolsa en el umbral', detalle: 'Un trato firme, de los que se devuelven: los duendecitos se acuerdan la noche de la nevada. Sólo si ya convidaste.', lazos: {}, requiere: (s) => s.decisiones.bolsa === 'a' || s.decisiones.molienda === 'c', sinRequisito: 'Todavía no les convidaste nada', diario: 'Puse una bolsa en el umbral para los duendes.' },
     { id: 'c', texto: 'Agarrar la pala y el farol: ¡fuera de acá!', detalle: 'Una pelea. Se van corriendo, menos el grande.', lazos: {}, diario: 'Les grité a los duendes que se fueran de mi galpón.' },
   ],
 };
