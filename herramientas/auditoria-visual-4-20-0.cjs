@@ -25,6 +25,9 @@ const CICLOS = Number(env('CICLOS', 5));
 const ESCALA = Number(env('ESCALA', 1.5));
 const LASTRE = Number(env('LASTRE', 2));
 const MUESTRA_MS = Number(env('MUESTRA_MS', 4000));
+// 4.21.0: AUD_LLUVIA=1 pone el tiempo en lluvia plena de verdad antes de cada encuadre (el bucle de la herramienta corre los cuadros sin tiempo entre uno y otro: el clima
+// real tarda ~25 s de juego en llegar y las capturas de la 4.20.0 «con lluvia» salían a medio camino).
+const FORZAR_LLUVIA = env('LLUVIA', '0') === '1';
 fs.mkdirSync(salida, { recursive: true });
 dialog.showErrorBox = (t, c) => { try { fs.writeFileSync(path.join(salida, 'error.txt'), t + String.fromCharCode(10) + c); } catch { /* sin carpeta */ } };
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -304,12 +307,14 @@ app.whenReady().then(async () => {
   for (const t of tomas) {
     const lugar = await js(`(() => { const H = ${H}, T = H.T; const p = ${t.donde}; if (!p) return null; return window.__AUD.poner(p, ${t.pitch ?? -0.03}, ${t.fov || 60}) })()`);
     if (!lugar) { console.log('  ' + t.id + ': este lugar no está'); resultado.tomas[t.id] = null; continue; }
+    if (FORZAR_LLUVIA) await js(`(() => { const H = ${H}, e = H.clima.estado, U = typeof H.__U === 'function' ? H.__U() : H.__U; e.nublado = 0.95; e.lluvia = 1; e.vientoBase = 0.9; e.objetivo = 'lluvia'; e.proximo = 'lluvia'; e.t = 1e9; U.uMojado.value = 1; return 1 })()`);
     await js(`window.__AUD.cuadros(${ASIENTO})`);
     await esperar(1200);
     await js(`window.__AUD.cuadros(30)`);
     if (t.haciaSol) { lugar.yaw = await js(`window.__AUD.haciaSol()`); await js(`window.__AUD.cuadros(40)`); }
     const r = { id: t.id, donde: lugar, programasAntes: await js(`window.__AUD.programas()`) };
     // captura (a veces la placa devuelve UnknownVizError: se reintenta con la ventana al frente)
+    await js(`(() => { const H = ${H}; if (H.__actualizarCasaViva) H.__actualizarCasaViva(3); return 1 })()`);   // 4.21.0: las ventanas encendidas de las casas se rehacen cada 2 s de juego: acá, al momento
     await js(`window.__AUD.cuadros(3)`);
     let img = null;
     for (let intento = 0; intento < 5 && !img; intento++) {

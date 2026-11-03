@@ -182,7 +182,8 @@ const COMPONER = `
     c *= mix(sombra, media, smoothstep(0.04, 0.42, luma));
     c *= mix(vec3(1.0), alta, smoothstep(0.4, 0.92, luma));
     // 3.4: saturación moderada (antes 1.16): el color lo dan la luz y la paleta
-    c = mix(vec3(luma), c, 1.06 - uNoche * 0.06);
+    // 4.21.0: con lluvia o cielo cubierto (uHumedad, 0 a 1) los colores se apagan hasta un 18 %: la lluvia se leía casi igual que un día despejado
+    c = mix(vec3(luma), c, 1.06 - uNoche * 0.06 - uHumedad * 0.18);
     c = pow(max(c, vec3(0.0)), vec3(0.97));
     c = mix(c, c * vec3(1.1, 0.99, 0.84), uTarde * 0.32);
     c = mix(c, c * vec3(0.97, 0.995, 1.03), uNublado * 0.08 + uHumedad * 0.06);

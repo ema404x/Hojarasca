@@ -490,14 +490,16 @@ export function crearCielo(escena, calidad) {
   escena.fog = new THREE.FogExp2(0xb9d3e3, 0.005);
 
   const tmp = new THREE.Color(), tmp2 = new THREE.Color();
-  const AMBIENTE_NOCHE = C('#2c3752');
+  // 4.21.0 (luz y atmósfera): el ambiente de la noche sube un escalón y se vuelve más azul (era '#2c3752'): de noche las casas y el suelo dejaban de leerse (silueta negra)
+  const AMBIENTE_NOCHE = C('#34426a');
   // 2.6.1: vectores y colores fijos reutilizados: antes se creaban/parseaban en cada cuadro
   const solDir = new THREE.Vector3(), lunaDir = new THREE.Vector3();
   // 3.2: sol dorado (cálido también a mediodía) y ambiente de color: el cielo turquesa
   // rellena las sombras y el suelo devuelve verde. Al ocaso las sombras tiran a lavanda.
   // 3.4: el sol bajo es naranja, el de la tarde dorado (SOL_DORADO) y el del mediodía crema;
   // el suelo devuelve una luz parda tibia (troncos y caras de abajo con color, no negras).
-  const SOL_BAJO = C('#ff8f40'), SOL_ALTO = C('#ffe9c6'), SOL_DORADO = C('#ffbb66'), LUZ_LUNA = C('#8aa2d6');
+  // 4.21.0: la luz de la luna, más azul-plateada y más clara (era '#8aa2d6')
+  const SOL_BAJO = C('#ff8f40'), SOL_ALTO = C('#ffe9c6'), SOL_DORADO = C('#ffbb66'), LUZ_LUNA = C('#9bb6f0');
   const AMBIENTE_OCASO = C('#b8a6d2'), SUELO_HEMI = C('#6e5c3e'), CIELO_TURQUESA = C('#a6cdd6');
   // 3.2: la bruma del estilo: turquesa de día, dorada a la tarde; hacia el sol, más cálida
   // 3.4: de día la bruma es gris azulada pálida (funde el bosque lejano en siluetas); a la
@@ -547,8 +549,9 @@ export function crearCielo(escena, calidad) {
     cenit.lerp(CENIT_DORADO, dorada * dia * 0.5 * (1 - tarde));
     horiz.lerp(HORIZ_DORADO, dorada * dia * 0.55 * (1 - tarde));
     tmp.copy(PALETA.gris).multiplyScalar(0.12 + 0.75 * dia);
-    cenit.lerp(tmp, nub * 0.75);
-    horiz.lerp(tmp, nub * 0.65);
+    // 4.21.0: con el cielo cubierto (la lluvia) el cenit y el horizonte se van más al gris (antes 0,75 y 0,65: quedaba un celeste de día despejado)
+    cenit.lerp(tmp, nub * 0.86);
+    horiz.lerp(tmp, nub * 0.78);
     // 4.8 ambiente: de noche la bruma cierra el cielo; con luna llena el cielo se aclara azul
     if (nieblaK > 0 || lunaK > 0) {
       const oscuro = 1 - dia;
@@ -565,10 +568,11 @@ export function crearCielo(escena, calidad) {
     colorSol.lerp(SOL_DORADO, dorada * 0.75 * smoothstep(0.02, 0.2, solDir.y));   // 3.4
     let intensidad;
     if (deDia) {
-      intensidad = 3.4 * smoothstep(-0.04, 0.22, solDir.y) * (1 - nub * 0.72);
+      // 4.21.0: el sol un poco más fuerte (3,4 → 3,6) y, con cielo cubierto, más tapado (0,72 → 0,8): el ambiente baja (ver hemi.intensity) y las sombras del follaje se leen
+      intensidad = 3.6 * smoothstep(-0.04, 0.22, solDir.y) * (1 - nub * 0.8);
       sol.color.copy(colorSol);
     } else {
-      intensidad = 0.7 * smoothstep(-0.02, 0.2, -solDir.y) * (1 - nub * 0.6) * luzLuna;
+      intensidad = 0.98 * smoothstep(-0.02, 0.2, -solDir.y) * (1 - nub * 0.6) * luzLuna;   // 4.21.0: 0,7 → 0,98 (la noche de exterior)
       intensidad *= (1 + 1.0 * lunaK) * (1 - 0.35 * nieblaK);   // 4.8 ambiente: la luna llena alumbra más y la niebla la tapa
       sol.color.copy(LUZ_LUNA);
       if (lunaK > 0) sol.color.lerp(LUZ_LUNA_LLENA, 0.6 * lunaK);
@@ -589,7 +593,8 @@ export function crearCielo(escena, calidad) {
     hemi.color.lerp(tmp2.copy(AMBIENTE_OCASO), 0.5 * Math.max(tarde, dorada * 0.7));   // el ambiente del ocaso, lavanda (3.4: toda la hora dorada)
     hemi.groundColor.copy(SUELO_HEMI).multiplyScalar(0.4 + 0.6 * dia);
     // 3.2: de día el ambiente pesa un poco menos que el sol: más contraste, sombras de color
-    hemi.intensity = 0.78 + 0.95 * dia + 0.4 * lunaK * (1 - dia);   // 4.8 ambiente: la luna llena rellena las sombras
+    // 4.21.0: de noche 0,78 → 0,9 y de día 1,73 → 1,6 (0,9 + 0,7 · dia): la noche sube y el día gana contraste entre el sol y la sombra del follaje
+    hemi.intensity = 0.9 + 0.7 * dia + 0.4 * lunaK * (1 - dia);   // 4.8 ambiente: la luna llena rellena las sombras
 
     U.uSolDir.value.copy(dirLuz);
     U.uSolColor.value.copy(sol.color).multiplyScalar(intensidad / Math.PI);
@@ -623,7 +628,7 @@ export function crearCielo(escena, calidad) {
     // medio a 250-350 m. Mantener atmósfera sin convertir el valle en una pared gris.
     // 3.5: `nieblaDistancia` (main.js): con otra distancia de dibujo la niebla se estira o se
     // acorta con el borde del bosque (1 con la distancia de la calidad)
-    escena.fog.density = (0.00185 + neblinaManana * 0.0029 + neblinaManana * (calidad.post ? 0.0013 : 0) + nub * 0.0009 + clima.lluvia * 0.0028 + extraNiebla * 0.55 - claridadMediodia * 0.00025) * calidad.niebla * (calidad.nieblaDistancia || 1) * NIEBLA_ESTILO;
+    escena.fog.density = (0.00185 + neblinaManana * 0.0029 + neblinaManana * (calidad.post ? 0.0013 : 0) + nub * 0.0009 + clima.lluvia * 0.0040 + extraNiebla * 0.55 - claridadMediodia * 0.00025) * calidad.niebla * (calidad.nieblaDistancia || 1) * NIEBLA_ESTILO;
     const rasante = factorLuzRasante(solDir.y, nub);
     const humedadAire = clamp(nub * 0.5 + clima.lluvia * 0.85 + neblinaManana * 0.42 + extraNiebla * 18, 0, 1);
     matCord.uniforms.uNiebla.value = 1 + nub * 2.1 + clima.lluvia * 3.2;

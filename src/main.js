@@ -207,7 +207,7 @@ import { sanearMeteo, crearPrograma, pronostico as pronosticoMeteo, nochesQueVie
 import { sanearRadio, escucharRadio, cumplirPedido, pedidoRadio, alcanzaPedido, textoPide as textoPideRadio, nombreEstacionRadio } from './radio.js';
 import { MAQUINAS_QUE_TRABAJAN } from './planos-maquinas.js';
 import { comoDormiste, horasDescansado, gastarDescanso, casaCerrada } from './abrigo.js';
-import { chimeneaDe, ventanasEncendidas, brilloVentanas, VENTANAS } from './casa-viva.js';
+import { chimeneaDe, ventanasEncendidas, ventanasDeCasa, brilloVentanas, VENTANAS } from './casa-viva.js';
 import { crearVentanas } from './ventanas-mundo.js';
 import { fijarAsentado } from './asentado.js';
 import { crearAsiento, crearHalosValle, ventanasDeVidrio } from './asentado-mundo.js';
@@ -8987,6 +8987,8 @@ function actualizarCasaViva(dt) {
     const luces = obras.obras.filter((o) => o.plano.luzInterior && obraTerminada(o)).map((o) => ({ x: o.datos.x, y: o.datos.y + 1, z: o.datos.z }));
     for (const propio of propios) luces.push({ x: propio.datos.x, y: propio.datos.y + 1, z: propio.datos.z });
     if (luces.length) lista = ventanasEncendidas(obras.obras.filter((o) => VENTANAS[o.plano.id] && obraTerminada(o)).map(lugarObra), luces);
+    // 4.21.0 (luz y atmósfera): las casas armadas (casilla, cabaña, casa con galería, casona y las ampliaciones) también se encienden de noche; adentro no
+    for (const o of obras.obras) { if (o === obras.editando || !obraTerminada(o)) continue; for (const v of ventanasDeCasa(lugarObra(o), o.plano, jugador.estado.pos)) lista.push(v); }
   }
   ventanasMundo?.actualizar(lista, brillo);
   if (halosValle) {
