@@ -15,6 +15,7 @@ import { sanearPerro } from './personal-perro.js';
 import { sanearCaballoPersonal } from './personal-caballo.js';
 import { ANIMALES_ALDEA, SEGUIR_PERRO, perrosPresentes, tallaMascota, MASCOTA } from './aldea-vida.js';
 import { PARADA_ALDEA, marcoAldea, puntosFijosDe } from './aldea.js';
+import { cadaCuantosCuadrosChoca, leTocaElChoque } from './rendimiento.js';
 
 const VER = 120;            // a cuántos metros se los ve
 const ARMAR = 220;          // a cuántos metros se arman las mallas
@@ -33,7 +34,7 @@ export function crearAnimalesAldea(ctx) {
   const caballos = [];          // { m, def, x, z, rot }
   let gallinas = null, aves = [];
   let cachorro = null;          // { m, x, z, rumbo, vel, fase, t, talla }
-  let armada = false;
+  let armada = false, cuadroAves = 0;   // (4.23.0: el contador de cuadros de las gallinas, para repartir el choque)
   const _M = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _e = new THREE.Euler();
   const _pos = new THREE.Vector3();
   // la altura de los pies (el piso de una galería o de una casa, si está encima)
@@ -157,7 +158,8 @@ export function crearAnimalesAldea(ctx) {
         if (c.m.cuello) c.m.cuello.rotation.x = 0.35 + Math.sin(c.fase / 2.4) * 0.25;
       }
       // las gallinas, de día y de cerca
-      let n = 0;
+      let n = 0, ia = 0;
+      cuadroAves++;
       if (deDia && dAldea < VER) for (const a of aves) {
         if (Math.hypot(a.cx - js.pos.x, a.cz - js.pos.z) > VER) continue;
         a.t -= dt;
@@ -166,7 +168,12 @@ export function crearAnimalesAldea(ctx) {
         if (dj < 1.4) a.rumbo = Math.atan2(a.x - js.pos.x, a.z - js.pos.z);
         const vel = dj < 1.4 ? 1.6 : a.picotea > 0 ? 0 : 0.35;
         a.picotea = Math.max(0, a.picotea - dt);
-        if (vel > 0) { const x0 = a.x, z0 = a.z; mover(a, a.x + Math.sin(a.rumbo) * vel * dt, a.z + Math.cos(a.rumbo) * vel * dt, 0.15); if (Math.hypot(a.x - x0, a.z - z0) < vel * dt * 0.3) a.rumbo += 1.2; }
+        // 4.23.0: lejos (más de 35 m) el choque y el pie se resuelven cada tres o seis cuadros (ver cadaCuantosCuadrosChoca en rendimiento.js); en los otros, sólo camina
+        if (vel > 0) {
+          if (leTocaElChoque(cadaCuantosCuadrosChoca(dj, dt), cuadroAves, ia)) { const x0 = a.x, z0 = a.z; mover(a, a.x + Math.sin(a.rumbo) * vel * dt, a.z + Math.cos(a.rumbo) * vel * dt, 0.15); if (Math.hypot(a.x - x0, a.z - z0) < vel * dt * 0.3) a.rumbo += 1.2; }
+          else { a.x += Math.sin(a.rumbo) * vel * dt; a.z += Math.cos(a.rumbo) * vel * dt; }
+        }
+        ia++;
         _e.set(a.picotea > 0 ? Math.max(0, Math.sin(a.picotea * 18)) * 0.5 : 0, a.rumbo, 0, 'YXZ');
         gallinas.setMatrixAt(n++, _M.compose(_p.set(a.x, Number.isFinite(a.y) ? a.y : T.altura(a.x, a.z), a.z), _q.setFromEuler(_e), _s));
       }

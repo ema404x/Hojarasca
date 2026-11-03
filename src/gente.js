@@ -1,6 +1,6 @@
 // Gente del bosque: personajes que cuentan historias de la Patagonia
 import * as THREE from 'three';
-import { limitarSombrasPorDistancia } from './rendimiento.js';
+import { limitarSombrasPorDistancia, cadaCuantosCuadrosChoca, leTocaElChoque, POSE_ENTERA_M, PASO_POSE_MEDIA } from './rendimiento.js';
 import { precalentarPiel, precalentarSilueta } from './animales-piel.js';
 import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
@@ -875,11 +875,13 @@ function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
   const nx = g.pos.x + Math.sin(rumbo) * paso, nz = g.pos.z + Math.cos(rumbo) * paso;
   // 3.6: `sinChoque`: el tramo de la puerta para adentro (y de adentro a la puerta) de un
   // edificio de la aldea no se frena contra el marco ni contra un mueble
-  if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; if (!destino.sinChoque) col.resolver(g.pos, 0.3); }
+  // 4.23.0: lejos, el choque y la altura del pie se resuelven cada tres o seis cuadros (`g.__sinChoque`, ver `actualizar`): era casi todo el costo de la gente en la calle
+  const conChoque = !g.__sinChoque;
+  if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; if (!destino.sinChoque && conChoque) col.resolver(g.pos, 0.3); }
   // 3.7.0 (integración): en una escalera (la de la torreta del observatorio) el punto trae su altura: se sube por
   // la rampa de los escalones (entre un escalón y el piso de arriba hay una rendija y se caía al piso de abajo)
   if (Number.isFinite(destino.y)) g.pos.y += (destino.y - g.pos.y) * Math.min(1, paso / d);
-  else g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
+  else if (conChoque) g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
   return false;
 }
 
@@ -1129,7 +1131,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     return mejor;
   }
 
+  let cuadroGente = 0, faseGente = 0;   // 4.23.0: el contador de cuadros y la fase de cada persona para el choque espaciado
   function actualizar(dt, js, camara, hablando, presupuestoNivel = 0) {
+    cuadroGente++;
     if (!atlasListo()) completarAtlas();   // 3.7.0: si se empezó a jugar antes de que la portada lo terminara
     if (pendientesRopa) cambiarRopa(dt, js, camara);
     for (const g of gente) {
@@ -1145,6 +1149,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       g.fase += dt;
       // rutina: camina hasta su próximo punto y se queda un rato haciendo lo suyo
       const charlando = hablando === g;
+      // 4.23.0: el choque con los obstáculos y la altura del pie, espaciados con la distancia (la que charla, la de una escena y el cuadro lento, siempre)
+      if (g.__faseChoque === undefined) g.__faseChoque = faseGente++ % 6;
+      g.__sinChoque = !leTocaElChoque(cadaCuantosCuadrosChoca(d, dt, charlando || !!g.enEscena), cuadroGente, g.__faseChoque);
       // en el Desafío, los vecinos instalados en la base siguen con lo suyo aunque pases cerca
       // 1.11: el que viene de visita no se frena a mitad de camino: llega a la mesa y ahí te mira
       // 3.6: los vecinos de la aldea que charlan entre ellos se miran a ellos, no a vos
@@ -1194,7 +1201,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       // lejanos se recalculan a menor frecuencia. Cerca o charlando = tiempo real.
       g.paso += dt * (2.6 + g.vel * 5);
       g.__poseAcum = (g.__poseAcum || 0) + dt;
-      const pasoPose = (charlando || d < 38 || g.enEscena) ? 0 : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
+      const pasoPose = (charlando || d < 38 || g.enEscena) ? (charlando || g.enEscena || d < POSE_ENTERA_M ? 0 : PASO_POSE_MEDIA) : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
       const actualizarPose = pasoPose === 0 || g.__poseAcum >= pasoPose;
       if (actualizarPose) {
         g.__poseAcum = 0;

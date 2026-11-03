@@ -185,7 +185,8 @@ const A = ctx.__A;
 {
   const main = leer('src/main.js');
   ok(/if \(o\.isInstancedMesh && o\.visible && o\.count === 0\) \{ o\.visible = false; vaciasApagadas\.push\(o\); \}/.test(main), 'las instanciadas sin instancias se apagan mientras se dibuja el cuadro');
-  ok(/function dibujar\(luz, noche\) \{\n  apagarVacias\(\);\n  try \{ dibujarCuadro\(luz, noche\); \} finally \{ prenderVacias\(\); \}/.test(main), 'y se vuelven a prender después (aunque falle el dibujo)');
+  // 4.23.0 (C): entre medio, `apagarExterior()` (adentro de un edificio cerrado no se dibuja lo de afuera) y su `prenderExterior()` en el mismo `finally`
+  ok(/function dibujar\(luz, noche\) \{\n  apagarVacias\(\);\n  apagarExterior\(\);\n  try \{ dibujarCuadro\(luz, noche\); \} finally \{ prenderExterior\(\); prenderVacias\(\); \}/.test(main), 'y se vuelven a prender después (aunque falle el dibujo)');
 }
 
 console.log(`verificar-3-6-2-visual: ${pasos} comprobaciones en verde`);

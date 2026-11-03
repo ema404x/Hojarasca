@@ -89,6 +89,7 @@ import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpes
 import { crearOficiosUI } from './oficios-ui.js';
 import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera, fiestaDeCumple, ORDEN_PERSONAS_ALDEA, esCumpleanos, esVecinoAldea } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
+import { apagarExteriorAhora, quedaAfuera, cosVistaDe, interiorDeCaja } from './interior-visible.js';
 import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
@@ -10921,10 +10922,56 @@ function prenderVacias() {
   for (let i = 0; i < vaciasApagadas.length; i++) vaciasApagadas[i].visible = true;
   vaciasApagadas.length = 0;
 }
+// 4.23.0 (C): adentro de un edificio cerrado de la aldea no se dibuja lo de afuera (el terreno, el pasto, el bosque, lo instanciado, la gente que
+// quedó afuera): entre las cuatro paredes y con los vidrios opacos no se ve, y en la casa de té, la cantina o la panadería era la mitad del costo de
+// la placa. Con una puerta abierta a la vista se dibuja todo (ver interior-visible.js). Se apaga sólo mientras se dibuja el cuadro y se vuelve a prender
+// después, como las instancias vacías: no se toca lo que decide cada sistema. Al salir (o al abrir la puerta) el mapa de sombras se rehace una vez
+// con el exterior prendido, para que no falten las sombras de afuera hasta la próxima vez.
+const exteriorApagado = [];
+let exteriorEstabaApagado = false;
+const miraDeInterior = new THREE.Vector3(), miraPlana = { x: 0, z: 0 };
+const statsInterior = { cuadros: 0, apagados: 0, ultimosApagados: 0 };
+// la casa de té es una estructura del valle puesta en la aldea (no un edificio de aldeaMundo): sus paredes y su frente (la puerta y el ventanal) a lo ancho
+const salidaCasaTe = { id: '', x: 0, z: 0, radio: 0, puertas: null };
+let cajaCasaTe = null;
+function interiorDeLaCasaDeTe(cam) {
+  const c = T.lugares['casa-te'];
+  if (!c || !(c.ancho > 0)) return null;
+  if (!cajaCasaTe || cajaCasaTe.x !== c.x || cajaCasaTe.z !== c.z || cajaCasaTe.rot !== c.rot) cajaCasaTe = { id: 'casa-te', x: c.x, z: c.z, y: c.y, rot: c.rot, ancho: c.ancho, fondo: c.fondo, alto: 4, frente: [[-c.ancho / 2, c.fondo / 2], [0, c.fondo / 2], [c.ancho / 2, c.fondo / 2]] };
+  return interiorDeCaja(cam, cajaCasaTe, salidaCasaTe);
+}
+function apagarExterior() {
+  const cam = camara.position;
+  const it = aldeaMundo && !window.__hojarasca?.__sinInteriorVisible ? (aldeaMundo.interiorDe(cam) || interiorDeLaCasaDeTe(cam)) : null;
+  let apagar = false;
+  if (it) { camara.getWorldDirection(miraDeInterior); miraPlana.x = miraDeInterior.x; miraPlana.z = miraDeInterior.z; apagar = apagarExteriorAhora(it, cam, miraPlana, cosVistaDe(camara.fov, camara.aspect)); }
+  if (!apagar) {
+    if (exteriorEstabaApagado) { exteriorEstabaApagado = false; if (renderer.shadowMap.enabled) renderer.shadowMap.needsUpdate = true; }
+    return;
+  }
+  exteriorEstabaApagado = true;
+  const ocultar = (o) => { if (o && o.visible) { o.visible = false; exteriorApagado.push(o); } };
+  const hijos = escena.children;
+  for (let i = 0, n = hijos.length; i < n; i++) {
+    const o = hijos[i];
+    if (!o.visible) continue;
+    const nombre = o.name;
+    if (o.isInstancedMesh ? (nombre === '' || nombre === 'impostores') : (nombre === 'terreno' || nombre === 'terreno-aldea' || nombre === 'sotobosque' || nombre === 'sombras-de-contacto' || nombre === 'molino-paisaje' || nombre === 'tren')) ocultar(o);
+  }
+  if (pasto?.malla) { if (Array.isArray(pasto.malla)) for (const m of pasto.malla) ocultar(m); else ocultar(pasto.malla); }
+  for (const ch of veg.chunks.values()) ocultar(ch.grupo);
+  for (const g of gente.gente) if (g.g.visible && quedaAfuera(g.pos, it)) ocultar(g.g);
+  statsInterior.cuadros++; statsInterior.ultimosApagados = exteriorApagado.length; statsInterior.apagados += exteriorApagado.length;
+}
+function prenderExterior() {
+  for (let i = 0; i < exteriorApagado.length; i++) exteriorApagado[i].visible = true;
+  exteriorApagado.length = 0;
+}
 // Dibuja la escena: con post-procesado si la calidad lo permite, o directo
 function dibujar(luz, noche) {
   apagarVacias();
-  try { dibujarCuadro(luz, noche); } finally { prenderVacias(); }
+  apagarExterior();
+  try { dibujarCuadro(luz, noche); } finally { prenderExterior(); prenderVacias(); }
 }
 function dibujarCuadro(luz, noche) {
   if (HOJARASCA_DEBUG && window.__hojarasca?.__camaraFija) { const f = window.__hojarasca.__camaraFija; camara.position.set(f.x, f.y, f.z); camara.rotation.order = 'YXZ'; camara.rotation.set(f.pitch, f.yaw, 0); }   // 3.9.0: sólo para las capturas de las pruebas (?debug=1): una cámara quieta, sin mover tu cuerpo
@@ -12173,7 +12220,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // solo se exponen en builds de QA iniciados con ?debug=1.
   window.__hojarasca = { guardar, nota };
   if (HOJARASCA_DEBUG) Object.assign(window.__hojarasca, {
-    jugador, progreso, ajustes, T, clima, camara, renderer, abrir, volverAlJuego, objetos, veg, fauna, vida, bichos, gente, perro, tren, pesca, kayak, linterna, est, col, hablar, diario, escena, sonido, renovales, refugioVivo, medidor, obras, PLANOS, puertas, desafio, modoJuego, perfilador,
+    jugador, progreso, ajustes, T, clima, camara, renderer, abrir, volverAlJuego, objetos, veg, fauna, vida, bichos, gente, perro, tren, pesca, kayak, linterna, est, col, hablar, diario, escena, sonido, renovales, refugioVivo, medidor, obras, PLANOS, puertas, desafio, modoJuego, perfilador, statsInterior,
     THREE: { Raycaster: THREE.Raycaster, Vector3: THREE.Vector3, Group: THREE.Group, Mesh: THREE.Mesh, BoxGeometry: THREE.BoxGeometry, MeshLambertMaterial: THREE.MeshLambertMaterial },
     __ranuraActual: () => (ranuras[elegida]?.nombre || ''),
     revisarRebrote, talados, acopio, conMateriales, materialesVisibles, autoCalidad, mando, revisarGuiaRelax, abrirBase,

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "61-interior-casa-te-centro",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const c = H.est.casaTe; if (!c) return null; const lz = -0.4; return { x: c.x + lz * Math.sin(c.rot), z: c.z + lz * Math.cos(c.rot), yaw: c.rot, horas: 14.5 } })()"
+  },
+  {
+    "id": "62-interior-panaderia-fondo",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('panaderia'); if (!e || !e.puertas.length) return null; const s = e.sitio, d = e.puertas[0], vx = s.x - d.x, vz = s.z - d.z; return { x: s.x, z: s.z, yaw: Math.atan2(-vx, -vz), horas: 12.5 } })()"
+  },
+  {
+    "id": "63-interior-biblioteca-fondo",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('biblioteca'); if (!e || !e.puertas.length) return null; const s = e.sitio, d = e.puertas[0], vx = s.x - d.x, vz = s.z - d.z; return { x: s.x, z: s.z, yaw: Math.atan2(-vx, -vz), horas: 15 } })()"
+  },
+  {
+    "id": "64-interior-cantina-fondo",
+    "grupo": "verano",
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 70,
+    "medir": true,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('cantina'); if (!e || !e.puertas.length) return null; const s = e.sitio, d = e.puertas[0], vx = s.x - d.x, vz = s.z - d.z; return { x: s.x, z: s.z, yaw: Math.atan2(-vx, -vz), horas: 19 } })()"
+  }
+]
