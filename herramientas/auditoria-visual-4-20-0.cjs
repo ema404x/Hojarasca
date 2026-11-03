@@ -355,10 +355,15 @@ app.whenReady().then(async () => {
     const lugar = await js(`(() => { const H = ${H}, T = H.T; const p = ${t.donde}; if (!p) return null; return window.__AUD.poner(p, ${t.pitch ?? -0.03}, ${t.fov || 60}) })()`);
     if (!lugar) { console.log('  ' + t.id + ': este lugar no está'); resultado.tomas[t.id] = null; continue; }
     if (FORZAR_LLUVIA) await js(`(() => { const H = ${H}, e = H.clima.estado, U = typeof H.__U === 'function' ? H.__U() : H.__U; e.nublado = 0.95; e.lluvia = 1; e.vientoBase = 0.9; e.objetivo = 'lluvia'; e.proximo = 'lluvia'; e.t = 1e9; U.uMojado.value = 1; return 1 })()`);
+    // 4.24.1: `huellas`: antes de la captura se camina (a medio metro por paso) desde 12 m delante de la cámara hasta la cámara, así quedan pisadas en la nieve a la vista
+    if (t.huellas) await js(`(async () => { const H = ${H}, E = H.jugador.estado, f = H.__camaraFija; for (let i = 24; i >= 0; i--) { H.jugador.ubicar(f.x - Math.sin(f.yaw) * i * 0.5, f.z - Math.cos(f.yaw) * i * 0.5, f.yaw + Math.PI); E.enSuelo = true; E.nadando = false; H.progreso.horas = window.__hora; H.__bucle(); } E.yaw = f.yaw; return 1 })()`);
     if (SIN_GENTE) await js(`(() => { const H = ${H}; if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; } for (const g of (H.gente.gente || [])) g.g.visible = false; return 1 })()`);
     await js(`window.__AUD.cuadros(${ASIENTO})`);
     await esperar(1200);
     await js(`window.__AUD.cuadros(30)`);
+    // 4.24.1: la vegetación cercana (árboles, sotobosque) se rehace en el juego cada 0,25 s de reloj o más: con la cámara fija recién puesta lejos, las capturas a veces salían
+    // sin los árboles de al lado o sin el pasto (según la carga de la PC). Acá se la fuerza antes de mirar (AUD_FORZAR_VEG=0 la apaga, para comparar con las de antes)
+    if (env('FORZAR_VEG', '1') !== '0') { await js(`(() => { const H = ${H}, c = H.camara.position; for (let i = 0; i < 4; i++) { H.veg.actualizar(c, 1); H.objetos.actualizar?.(c); } return 1 })()`); await esperar(800); await js(`window.__AUD.cuadros(40)`); }
     if (t.haciaSol) { lugar.yaw = await js(`window.__AUD.haciaSol()`); await js(`window.__AUD.cuadros(40)`); }
     const r = { id: t.id, donde: lugar, programasAntes: await js(`window.__AUD.programas()`) };
     // captura (a veces la placa devuelve UnknownVizError: se reintenta con la ventana al frente)

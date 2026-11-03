@@ -39,7 +39,8 @@ const BASE = {
 // lo que da el sotobosque de la 4.24.0 en Media (determinista)
 const MEDIA_NUEVA = { matas: 20028, helecho: 1702, helecho2: 943, maqui: 621, zarza: 298, chaura: 254, mosqueta: 114, michay: 709, neneo: 1685, colihue: 1467, nalca: 113, coiron: 8631,
   chilco: 74, notro: 145, calafate: 975, roca: 665, tronco: 11, parche0: 858, parche1: 763 };
-const CELDAS_ATLAS_4230 = ['7de7d3f9cdf6', 'bbc5b2dc993a', '69a80c13c66a', '3c9be461dae5', '8551bb6e7d49', '8894f0d59c7e', '67d809d0c1c9', 'a3ad45dcd747', '789ee74da997', '0226f7d4cad0'];
+// (4.24.1, a propósito: las celdas 0, 1 y 5 —las hojas de las copas y matas de cerca— se pintan ahora con la punta más roma, la rampa de alfa más ancha y el alfa suavizado: sus huellas son las de la 4.24.1; las otras ocho, las de la 4.23.0. Ver verificar-4-24-1-c.mjs)
+const CELDAS_ATLAS_4230 = ['4038154774da', '3d626c9238da', '69a80c13c66a', '3c9be461dae5', '8551bb6e7d49', 'b21f16cc3723', '67d809d0c1c9', 'a3ad45dcd747', '789ee74da997', '0226f7d4cad0'];
 const CELDA_VACIA = 'e12763bce5f0';
 const MANCHAS_G_4230 = { media: 0.1714, desvio: 0.3132 };
 

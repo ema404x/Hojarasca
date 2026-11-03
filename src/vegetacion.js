@@ -103,9 +103,16 @@ const perfilHoja = {
   escama: tablaHoja((t) => Math.pow(Math.sin(Math.PI * t), 0.45)),
   aguja: tablaHoja((t) => (t < 0.12 ? t / 0.12 : (1 - t) / 0.88)),
   fina: tablaHoja((t) => Math.sin(Math.PI * t)),
+  // 4.24.1: las hojas de las copas de cerca (celdas 0, 1 y 5): la punta y el pie más romos (0,75 → 0,6 y 0,55 → 0,5) y el borde en una rampa de alfa más ancha (ver `RAMPA_SUAVE`):
+  // sin las puntas finas de la hoja, el recorte de la carta salía en dientes; las demás celdas (flores, helecho, cortina, cipreses, copas de lejos) no cambian
+  ovalSuave: tablaHoja((t) => Math.pow(Math.sin(Math.PI * t), 0.6)),
+  redondaSuave: tablaHoja((t) => Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.08)), 0.5) * (0.92 + 0.08 * Math.cos(t * 38))),
   tallo: tablaHoja(() => 1),
 };
 // (`gb`, opcional: [verde, centro] en 0..1 para las celdas de flores; sin él, G y B copian a R)
+// 4.24.1: el ancho (en téxeles) de la rampa de alfa del borde de la hoja: 1,4 como siempre y 2,4 en las formas suaves
+export const RAMPA_HOJA = 1.4;
+export const RAMPA_SUAVE = 2.4;
 function pintarHoja(D, celda, bx, by, ang, largo, ancho, l0, l1, forma, gb = null) {
   // los tallos largos se pintan en tramos cortos (la caja de un trazo en diagonal es enorme)
   if (forma === 'tallo' && largo > 14) {
@@ -115,6 +122,7 @@ function pintarHoja(D, celda, bx, by, ang, largo, ancho, l0, l1, forma, gb = nul
   }
   const ox = (celda % 4) * CARTA_CELDA, oy = Math.floor(celda / 4) * CARTA_CELDA;
   const perfil = perfilHoja[forma], ca = Math.cos(ang), sa = Math.sin(ang), hoja = forma !== 'tallo';
+  const rampa = forma === 'ovalSuave' || forma === 'redondaSuave' ? RAMPA_SUAVE : RAMPA_HOJA;
   const tx = bx + ca * largo, ty = by + sa * largo, m = ancho + 2;
   const y0 = Math.max(4, Math.floor(Math.min(by, ty) - m)), y1 = Math.min(CARTA_CELDA - 5, Math.ceil(Math.max(by, ty) + m));
   for (let y = y0; y <= y1; y++) {
@@ -130,8 +138,8 @@ function pintarHoja(D, celda, bx, by, ang, largo, ancho, l0, l1, forma, gb = nul
       const t = (dx * ca + dy * sa) / largo;
       if (t < 0 || t > 1) continue;
       const v = -dx * sa + dy * ca, w = ancho * perfil[(t * 64 + 0.5) | 0], av = v < 0 ? -v : v;
-      if (av > w + 0.7) continue;
-      let a = (w - av) / 1.4 + 0.5; if (a > 1) a = 1;
+      if (av > w + rampa / 2) continue;
+      let a = (w - av) / rampa + 0.5; if (a > 1) a = 1;
       let l = l0 + (l1 - l0) * t;
       // nervio más oscuro, una mitad de la hoja más clara que la otra y el borde apagado:
       // la hoja pintada de a dos tonos
@@ -176,13 +184,13 @@ function generarCartas() {
     }
   };
   // 0 · hojas chicas, en punta y densas (coihue, arrayán, maitén): ramillete lleno que cuelga
-  relleno(0, 70, 128, 128, 86, 84, 128, 60, [20, 27, 5, 6.5], [0.38, 0.55], 'oval');
-  ramillete(0, 128, 38, 7, 2.0, [118, 168], [19, 26, 5, 6.5], 9, 'oval', [0.5, 0.9]);
-  relleno(0, 34, 124, 104, 72, 52, 128, 70, [18, 24, 5, 6.5], [0.76, 0.98], 'oval');
+  relleno(0, 70, 128, 128, 86, 84, 128, 60, [20, 27, 5, 6.5], [0.38, 0.55], 'ovalSuave');
+  ramillete(0, 128, 38, 7, 2.0, [118, 168], [19, 26, 5, 6.5], 9, 'ovalSuave', [0.5, 0.9]);
+  relleno(0, 34, 124, 104, 72, 52, 128, 70, [18, 24, 5, 6.5], [0.76, 0.98], 'ovalSuave');
   // 1 · hojitas redondeadas y aserradas, más abierto (lenga, ñire)
-  relleno(1, 30, 128, 120, 72, 70, 128, 50, [15, 19, 6.5, 8], [0.38, 0.52], 'redonda');
-  ramillete(1, 128, 40, 8, 2.5, [104, 158], [14, 19, 6.5, 8], 11, 'redonda', [0.52, 0.95]);
-  relleno(1, 14, 126, 104, 62, 46, 128, 70, [14, 18, 6.5, 8], [0.76, 0.98], 'redonda');
+  relleno(1, 30, 128, 120, 72, 70, 128, 50, [15, 19, 6.5, 8], [0.38, 0.52], 'redondaSuave');
+  ramillete(1, 128, 40, 8, 2.5, [104, 158], [14, 19, 6.5, 8], 11, 'redondaSuave', [0.52, 0.95]);
+  relleno(1, 14, 126, 104, 62, 46, 128, 70, [14, 18, 6.5, 8], [0.76, 0.98], 'redondaSuave');
   // 2 · cortina colgante (maitén): una franja de hojas arriba y hebras que caen
   relleno(2, 34, 128, 50, 100, 30, 128, 20, [20, 26, 7, 9], [0.34, 0.76], 'oval');
   for (let k = 0; k < 10; k++) {
@@ -217,12 +225,22 @@ function generarCartas() {
     }
   }
   // 5 · mata (arbustos): hojas medianas que salen de un centro, redonda y llena
-  relleno(5, 60, 128, 140, 86, 78, 128, 140, [28, 35, 11, 14], [0.26, 0.45], 'oval');
-  relleno(5, 44, 128, 136, 78, 70, 128, 150, [27, 34, 11, 13.5], [0.45, 0.72], 'oval');
-  relleno(5, 28, 124, 112, 58, 44, 128, 150, [25, 31, 11, 13], [0.74, 1.0], 'oval');
+  relleno(5, 60, 128, 140, 86, 78, 128, 140, [28, 35, 11, 14], [0.26, 0.45], 'ovalSuave');
+  relleno(5, 44, 128, 136, 78, 70, 128, 150, [27, 34, 11, 13.5], [0.45, 0.72], 'ovalSuave');
+  relleno(5, 28, 124, 112, 58, 44, 128, 150, [25, 31, 11, 13], [0.74, 1.0], 'ovalSuave');
   pintarSotobosque(D, r, azar);
   pintarCopasLejos(D, r, azar);
+  // 4.24.1: el alfa de las tres celdas de las copas y matas de cerca, apenas suavizado (1-2-1 a lo ancho y a lo alto): el recorte con la hoja pintada sigue donde estaba (el borde medio
+  // no se mueve), pero los dientes de a un téxel y los agujeros de a uno entre hojas se redondean. Va al final y no gasta azar: las demás celdas salen iguales.
+  for (const celda of CELDAS_ALFA_SUAVE) suavizarAlfa(D, celda);
   return D;
+}
+export const CELDAS_ALFA_SUAVE = [0, 1, 5];
+function suavizarAlfa(D, celda) {
+  const ox = (celda % 4) * CARTA_CELDA, oy = Math.floor(celda / 4) * CARTA_CELDA, N = CARTA_CELDA, tmp = new Float32Array(N * N);
+  const a = (x, y) => D[((oy + y) * CARTA_ANCHO + ox + x) * 4 + 3];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) tmp[y * N + x] = (a(Math.max(0, x - 1), y) + 2 * a(x, y) + a(Math.min(N - 1, x + 1), y)) / 4;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) D[((oy + y) * CARTA_ANCHO + ox + x) * 4 + 3] = Math.round((tmp[Math.max(0, y - 1) * N + x] + 2 * tmp[y * N + x] + tmp[Math.min(N - 1, y + 1) * N + x]) / 4);
 }
 
 // 4.24.0: las manchas del LOD medio (de 66 a 135 m: las copas que miran a la cámara) se recortaban con las puntas de las hojas de las
@@ -825,15 +843,17 @@ function aplanarBase(g, f) {
 // 3.2: un piso de conífera: una falda cónica cuyo borde termina en puntas (las ramas) y
 // cuya cara de abajo se hunde hacia el tronco (de abajo se ve la sombra, no una tapa).
 // El degradado va de adentro/abajo (oscuro) a las puntas de arriba (claro).
-function pisoConifera(radio, h, lados) {
+// 4.24.1: `suave` (los cipreses a media distancia): más puntas, entrantes menos hondos y puntas que cuelgan menos: el borde de cada falda sale en onda y no en dientes de sierra
+export const PISO_SUAVE = { entrante: 0.84, cuelga: 0.11, sube: 0.08 };
+export function pisoConifera(radio, h, lados, suave = false) {
   const cima = [0, h * 0.5, 0], hueco = [0, -h * 0.18, 0];
   const borde = [];
   for (let i = 0; i < lados * 2; i++) {
     const a = (i / (lados * 2)) * Math.PI * 2;
     const punta = i % 2 === 0;
-    const rr = radio * (punta ? 1 : 0.72) * (0.93 + 0.14 * h3(radio * 3.1, i * 1.7, h));
+    const rr = radio * (punta ? 1 : suave ? PISO_SUAVE.entrante : 0.72) * (0.93 + 0.14 * h3(radio * 3.1, i * 1.7, h));
     // las puntas cuelgan (la falda del abeto) y los entrantes suben hacia el tronco
-    borde.push([Math.cos(a) * rr, -h * 0.5 + (punta ? -h * 0.16 : h * 0.14), Math.sin(a) * rr]);
+    borde.push([Math.cos(a) * rr, -h * 0.5 + (punta ? -h * (suave ? PISO_SUAVE.cuelga : 0.16) : h * (suave ? PISO_SUAVE.sube : 0.14)), Math.sin(a) * rr]);
   }
   const pos = [];
   for (let i = 0; i < borde.length; i++) {
@@ -1010,7 +1030,7 @@ function coiron(semilla) {
 // 3.4: el ciprés de la cordillera: cónico y angosto, de follaje escamoso y denso. Los pisos
 // son las faldas en punta de la 3.2 y, de cerca, cada falda lleva en el borde ramitas de
 // escamas (cartas) que le rompen el contorno, con la misma normal de follaje del piso.
-function cipres(semilla, detalle) {
+export function cipres(semilla, detalle) {
   const r = rng(semilla), c = new ConstructorArbol();
   const alto = 14 + r() * 5;
   // (3.5.2: de cerca el fuste sigue hasta arriba, afinándose: antes terminaba a los 3 m, tapado por
@@ -1031,7 +1051,7 @@ function cipres(semilla, detalle) {
     // caras planas grandes debajo de las cartas)
     // (3.5: 0.9 → 0.8 y más oscura de cerca: con las cartas acotadas de tamaño, la falda asomaba
     // entre ellas con caras planas claras; ahora queda adentro, como la sombra del piso)
-    const cono = pisoConifera(radio * (detalle ? 0.8 : 1.1), h, detalle ? 11 : 7);
+    const cono = pisoConifera(radio * (detalle ? 0.8 : 1.1), h, detalle ? 11 : 9, !detalle);
     // 2.7: verde de ciprés más natural (antes casi negro a contraluz); 3.2: más turquesa
     const colorPiso = i % 2 ? '#214636' : '#284f3c';
     const px = (r() - 0.5) * 0.3, py = 2.2 + alto * t * 0.82 + h * 0.5, pz = (r() - 0.5) * 0.3;

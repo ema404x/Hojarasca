@@ -54,7 +54,8 @@ assert.ok(veg.includes('if (dOjoHoja < 2.6 && fract(52.9829189 * fract(dot(gl_Fr
 const tope = (largo, d) => largo * Math.min(1, (0.35 * d) / largo);
 assert.ok(Math.abs(tope(1.6, 2.5) - 0.875) < 1e-9);
 assert.equal(tope(0.4, 1.2), 0.4);
-assert.ok(veg.includes('const cono = pisoConifera(radio * (detalle ? 0.8 : 1.1), h, detalle ? 11 : 7);'), 'la falda cercana del ciprés queda adentro');
+// (4.24.1, a propósito: la falda de media distancia lleva nueve puntas y la forma suave; la cercana sigue con 11 lados, igual: ver verificar-4-24-1-c.mjs)
+assert.ok(veg.includes('const cono = pisoConifera(radio * (detalle ? 0.8 : 1.1), h, detalle ? 11 : 9, !detalle);'), 'la falda cercana del ciprés queda adentro');
 
 // ---------------------------------------------------------------- 4. flores e invierno
 assert.ok(mat.includes('(aTipo > 1.5 && aTipo < 2.5 && uInvierno > 0.5) || (aTipo > 2.5 && aTipo < 3.5 && uInvierno > 0.2)'), 'las flores de los arbustos se cierran antes');
