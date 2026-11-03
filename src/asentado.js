@@ -15,10 +15,12 @@
 //
 // Todo es de Media y Alta: con `fijarAsentado({ ocluir: false })` (Baja y Mínima) las funciones de ahora no hacen nada.
 
-const CONFIG = { ocluir: false, contacto: false, halos: false };
+// 4.22.0: `detalle` prende el detalle de las obras del jugador (tablas, piedra en bloques, troncos redondos: detalle-obras.js) y, con él, los topes más
+// anchos del teselado y de la oclusión (una obra con detalle tiene más vértices). Se prende junto con el resto (Media y Alta).
+const CONFIG = { ocluir: false, contacto: false, halos: false, detalle: false };
 export function fijarAsentado(o = {}) {
-  CONFIG.ocluir = !!o.ocluir; CONFIG.contacto = !!o.contacto; CONFIG.halos = !!o.halos;
-  return { ...CONFIG };
+  CONFIG.ocluir = !!o.ocluir; CONFIG.contacto = !!o.contacto; CONFIG.halos = !!o.halos; CONFIG.detalle = !!o.detalle;
+  return { ocluir: CONFIG.ocluir, contacto: CONFIG.contacto, halos: CONFIG.halos };   // (`detalle` se lee con asentadoActivo(): el resultado de siempre no cambia)
 }
 export const asentadoActivo = () => CONFIG;
 
