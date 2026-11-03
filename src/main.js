@@ -2275,6 +2275,8 @@ function presenciaHistoria() {
       libre: () => modo === 'jugando' && !(jugador.estado.enTren || jugador.estado.enKayak || jugador.estado.enVela || jugador.estado.montado),
       enTierra: (x, z) => alt(x, z) >= 0.45,
       cercaDeArbol: (x, z) => { p.set(x, alt(x, z), z); try { col.resolver(p, 2.4, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) > 0.05; },
+      // 4.24.1: la silueta de la primera hora tiene que verse: sin un tronco a menos de 1,1 m y sin troncos en la línea desde donde estás (cada 2 m, a 0,5 m de ancho)
+      despejada: (x, z) => { const j = jugador?.estado.pos; if (!j) return true; const libre = (px, pz, r) => { p.set(px, alt(px, pz), pz); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - px, p.z - pz) < 0.05; }; if (!libre(x, z, 1.1)) return false; const dx = x - j.x, dz = z - j.z, n = Math.max(2, Math.ceil(Math.hypot(dx, dz) / 2)); for (let k = 1; k < n; k++) if (!libre(j.x + dx * k / n, j.z + dz * k / n, 0.5)) return false; return true; },
       refugio: () => T.lugares.refugio, galpon: () => T.lugares.galpon || null,
       cobrar: (premio) => cobrarPremio({ premio }), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
       indicio: (id) => valle?.anotarIndicio?.(id),   // 4.24.0: la silueta de la primera hora anota su indicio en el cuaderno
@@ -2319,6 +2321,7 @@ function puntosDeHistoria() {
   if (ref) ponr('tocon-hacha', aMundoRefugio(ref, -5.5, 6.0));   // (4.16.0: el tocón del hacha: ver OBJETOS)
   const e = est?.espera || est;
   ponr('estacion', e);
+  if (P.estacion && Number.isFinite(est?.ang)) P.estacion.ang = est.ang;   // 4.24.1: hacia dónde corre la vía: las escenas piden lugares del andén con `lx` (a lo largo) y `lz` (alejándose de la vía)
   if (ref && e) ponr('sendero', { x: (ref.x + e.x) / 2, z: (ref.z + e.z) / 2 });
   ponr('aldea', PARADA_ALDEA);
   try { ponr('plaza', edificioEnMundo('plaza')); ponr('ramos', edificioEnMundo('almacen')); } catch { /* sin aldea */ }

@@ -110,16 +110,24 @@ const FORMAS = {
     caja(c, [0.2, 0.15, 0.05], [0.12, 1.52, 0.02], '#8d949a', [0, 0, 0.18], 0.06);
   },
   // 4.24.0: dos objetos movidos de la primera hora. La leña apilada en dos pilas parejas (troncos finos arriba) y las botas de goma de la puerta con calafates adentro.
+  // (4.24.1: los troncos de punta hacia vos, con el corte claro: de costado se leían como tablas)
   'lena-apilada': (c) => {
-    for (const x of [-0.62, 0.62]) {
-      [3, 2, 1].forEach((n, capa) => { for (let i = 0; i < n; i++) palo(c, capa === 2 ? 0.055 : 0.075, 0.95, [x, 0.075 + capa * 0.125, (i - (n - 1) / 2) * 0.15], [0, 0, Math.PI / 2], (i + capa) % 2 ? '#8a6a45' : '#a98558'); });
+    for (const x of [-0.55, 0.55]) {
+      [4, 3, 2].forEach((n, capa) => {
+        for (let i = 0; i < n; i++) {
+          const r = capa === 2 ? 0.07 : 0.085, px = x + (i - (n - 1) / 2) * 0.19, py = 0.085 + capa * 0.165;
+          palo(c, r, 0.7, [px, py, 0], [Math.PI / 2, 0, 0], (i + capa) % 2 ? '#7d5c3a' : '#946f46');
+          palo(c, r * 0.82, 0.02, [px, py, 0.355], [Math.PI / 2, 0, 0], (i + capa) % 2 ? '#d2b88c' : '#c4a577');
+        }
+      });
     }
   },
   'botas-calafate': (c) => {
     for (const x of [-0.17, 0.17]) {
       caja(c, [0.17, 0.34, 0.14], [x, 0.17, 0], '#3d5a3a', [0, 0, 0], 0.08);
       caja(c, [0.19, 0.09, 0.26], [x, 0.045, 0.06], '#2f4a2f', [0, 0, 0], 0.06);
-      for (const [dx, dz] of [[-0.03, -0.02], [0.035, 0.01], [0, 0.03]]) esfera(c, 0.03, [x + dx, 0.355, dz], '#3b3578', [1, 0.9, 1], 0.1);
+      caja(c, [0.15, 0.02, 0.12], [x, 0.345, 0], '#17261a', [0, 0, 0], 0.04);   // (la boca de la bota)
+      for (const [dx, dz] of [[-0.03, -0.02], [0.035, 0.01], [0, 0.03], [-0.01, 0.045], [0.04, -0.03]]) esfera(c, 0.032, [x + dx, 0.37, dz], '#3b3578', [1, 0.9, 1], 0.1);
     }
   },
   // 4.16.0: los props del acto II y los del acto I que antes sólo dejaban una marca

@@ -124,6 +124,7 @@ export function crearDuendesHistoria(ctx) {
       rumbo: Number.isFinite(o.rumbo) ? o.rumbo : Math.atan2(yo.x - (Number(o.x) || 0), yo.z - (Number(o.z) || 0)),
       estado: 'quieto', mira: !!o.mira, objetivo: null, correr: false, alLlegar: null, desaparecer: false,
       disolver: 0, tEstado: 0, agazapado: !!o.agazapado, saludo: 0, e, vel: 0,
+      pisoNoche: Number.isFinite(o.pisoNoche) ? Math.max(0, Math.min(1, o.pisoNoche)) : 0,   // 4.24.1: la «noche» mínima de este duende (los ojos prendidos ya al anochecer, sin cambiar la luz del mundo)
     };
     const d = {
       m, tipo,
@@ -218,7 +219,7 @@ export function crearDuendesHistoria(ctx) {
       e.dt = dt; e.jugador = yo; e.velocidad = vel; e.carrera = correr;
       e.agazapado = s.agazapado || s.estado === 'escondiendo';
       e.apuntando = s.estado === 'saludando';
-      e.noche = n;
+      e.noche = Math.max(n, s.pisoNoche);
       s.m.animar(e);
       s.m.detalle(Math.hypot(yo.x - s.x, yo.z - s.z));
     }

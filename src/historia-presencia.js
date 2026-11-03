@@ -32,7 +32,11 @@ export const TIEMPOS = {
 };
 // 4.24.0: la presencia «suave» de los capítulos 2 a 4 (la primera hora): sólo la silueta del anochecer, más espaciada, y el indicio del cuaderno la primera
 //   vez que la ves de verdad en cada capítulo (sin risas, luces, regalos ni galpón, y sin contar entre los `vistos` de los duendes)
-export const TIEMPOS_SUAVES = { entreSiluetas: [160, 280] };   // (la primera sale con la espera de siempre: 25 a 50 s de juego, que ya pasaron al caer la tarde)
+export const TIEMPOS_SUAVES = { entreSiluetas: [160, 280] };
+// 4.24.1: la silueta de la primera hora se tiene que LEER (a 30 m, entre el pasto alto, casi no se veía): más cerca (sigue sin huir: el umbral sin trato es 16 m),
+//   un poco más grande, adelante de donde mirás (abanico más angosto), sobre el terreno más alto de los lugares posibles (así asoma del pasto) y con los ojos ya
+//   prendidos al anochecer. Sigue siendo la misma figurita de siempre, quieta y a lo lejos: no un cartel.
+export const SILUETA_SUAVE = { dist: [18, 24], escala: 2.0, abanico: 0.6, pisoNoche: 0.5, candidatos: 6 };   // (la primera sale con la espera de siempre: 25 a 50 s de juego, que ya pasaron al caer la tarde)
 const entre = (r, [a, b]) => a + r() * (b - a);
 // Un punto en el abanico delante de la cámara (`rumbo` = adónde mira, en la convención atan2(dx, dz)), a una distancia dada
 export function puntoEnAbanico(yo, rumbo, r, [dmin, dmax], abanico = 0.9) {
@@ -53,6 +57,7 @@ export const PUERTA_GALPON = { lx: 0, lz: -6.6 };   // delante del portón corre
 // ---------------------------------------------------------------- el controlador
 // ctx: { dh, escena, historia: () => h, jugador: () => ({x, z}), rumbo: () => radianes (hacia dónde mira la cámara), altura, hora: () => horas,
 //        libre: () => ¿jugando, sin tarjeta ni vehículo?, enTierra: (x, z) => bool, cercaDeArbol: (x, z) => bool,
+//        despejada: (x, z) => bool (4.24.1: sin tronco pegado ni entre vos y ese punto; sólo la primera hora),
 //        refugio: () => ({x, z}), galpon: () => ({x, z, rot}) | null, cobrar: (premio) => void, nota, guardar, azar }
 export function crearPresencia(ctx) {
   const azar = ctx.azar || Math.random;
@@ -68,12 +73,23 @@ export function crearPresencia(ctx) {
   const h = () => ctx.historia();
 
   // ---- las siluetas
-  function aparecerSilueta() {
+  function aparecerSilueta(suave = false) {
     const j = yo(), rumbo = ctx.rumbo?.() ?? 0;
-    for (let i = 0; i < 14; i++) {
-      const p = puntoEnAbanico(j, rumbo, azar, TIEMPOS.distSilueta);
+    const S = suave ? SILUETA_SUAVE : null;
+    let mejor = null, nCand = 0;
+    for (let i = 0; i < (S ? 30 : 14); i++) {
+      const p = puntoEnAbanico(j, rumbo, azar, S ? S.dist : TIEMPOS.distSilueta, S ? (i < 18 ? S.abanico : 0.9) : undefined);   // (si adelante no hay un buen lugar, se abre el abanico)
       if (!ctx.enTierra(p.x, p.z) || !ctx.cercaDeArbol(p.x, p.z)) continue;
-      const d = dh.aparecer('rastreador', { x: p.x, z: p.z, mira: true, escala: ESCALA_SILUETA });
+      if (!S) { mejor = { p }; break; }
+      if (ctx.despejada && !ctx.despejada(p.x, p.z)) continue;   // (la primera hora: ni pegada a un tronco ni detrás de uno, vista desde donde estás)
+      // (la primera hora: entre unos cuantos lugares posibles, el más alto del terreno: asoma del pasto)
+      const alto = (ctx.altura?.(p.x, p.z) ?? 0) - (ctx.altura?.(j.x, j.z) ?? 0);
+      if (!mejor || alto > mejor.alto) mejor = { p, alto };
+      if (++nCand >= S.candidatos) break;
+    }
+    if (mejor) {
+      const p = mejor.p;
+      const d = dh.aparecer('rastreador', { x: p.x, z: p.z, mira: true, escala: S ? S.escala : ESCALA_SILUETA, pisoNoche: S ? S.pisoNoche : 0 });
       if (!d) return false;
       sil = d; silEdad = 0; silVista = 0; silVisto = false;
       return true;
@@ -85,7 +101,7 @@ export function crearPresencia(ctx) {
     if (!sil) {
       espera -= dt;
       if (espera > 0 || !enVentana(ctx.hora(), VENTANAS.silueta) || !dh.listo()) return;
-      espera = aparecerSilueta() ? entre(azar, suave ? TIEMPOS_SUAVES.entreSiluetas : TIEMPOS.entreSiluetas) : 8;
+      espera = aparecerSilueta(suave) ? entre(azar, suave ? TIEMPOS_SUAVES.entreSiluetas : TIEMPOS.entreSiluetas) : 8;
       return;
     }
     if (sil.estado === 'fuera') { sil = null; return; }
@@ -283,6 +299,7 @@ export function crearPresencia(ctx) {
     // ¿estás a menos de `radio` metros del galpón? (la puerta del momento del capítulo 5)
     cercaDelGalpon: (radio = TIEMPOS.galponTarjeta) => { const g = ctx.galpon?.(); return !!g && dist(delGalpon(g, PUERTA_GALPON.lx, PUERTA_GALPON.lz)) < radio; },
     hayGalpon: () => galpon.duendes.length > 0,
-    silueta: () => sil, luces: () => luces.length, regalo: () => regalo,
+    silueta: () => sil, forzarSilueta: () => { if (sil) { sil.quitar(); sil = null; } return aparecerSilueta(hayIndicios(h())); },   // (4.24.1, QA: la silueta ya, con las reglas de colocación del capítulo en que estás)
+    luces: () => luces.length, regalo: () => regalo,
   };
 }

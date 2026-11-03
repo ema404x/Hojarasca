@@ -166,7 +166,7 @@ export const TEXTO_ACTO1 = {
     'ovejas-silencio': { titulo: 'Las ovejas se callan', texto: 'Fermín dice que a las diez en punto las ovejas dejan de balar, todas juntas, como si alguien les pidiera silencio. Lo cuenta de pasada, como el que habla del tiempo.', cap: 3, donde: 'galpón de esquila' },
     'migas-rosa': { titulo: 'Las migas de Rosa', texto: 'A Rosa se le van las migas del mostrador. Las migas, no el pan. Y el mostrador queda más limpio que antes.', cap: 3, donde: 'panadería' },
     'botas-calafate': { titulo: 'Calafates en las botas', texto: 'Alguien llenó de calafates las botas que dejé en la puerta, un puñadito en cada una. Y no pisó el barro de la entrada.', cap: 3, donde: 'umbral del refugio' },
-    'silueta-ramal': { titulo: 'La silueta, más cerca', texto: 'Hoy la silueta petisa miraba desde más cerca. Elsa dice que son chicos de la aldea. Los chicos de la aldea no andan a esta hora, y menos tan quietos.', cap: 4, donde: 'borde del bosque' },
+    'silueta-ramal': { titulo: 'La silueta, más cerca', texto: 'Hoy la silueta petisa miraba desde más cerca. Será algún chico de la aldea, pensé. Pero los chicos de la aldea no andan a esta hora, y menos tan quietos.', cap: 4, donde: 'borde del bosque' },
     'almacen-acomodado': { titulo: 'El almacén acomodado', texto: 'Ercilia dice que de noche se le acomoda el almacén: las latas por tamaño, las velas por color. No falta nada. Ella no las acomoda así.', cap: 4, donde: 'almacén' },
     'puertita-noche': { titulo: 'Una puertita en mi puerta', texto: 'A la noche, apoyada contra mi puerta, una puertita de coihue del tamaño de una mano. No había nadie en el camino.', cap: 4, donde: 'refugio' },
   },
