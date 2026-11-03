@@ -1,0 +1,473 @@
+[
+  {
+    "id": "p-z-previab",
+    "grupo": "verano",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "p-z-previac",
+    "grupo": "verano",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "p-z-previa",
+    "grupo": "verano",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "p-z-panadera-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'poblador-panadera'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.57, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-panadera-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'poblador-panadera'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.45, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-panadera-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'poblador-panadera'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.55, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nene-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.11,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nene'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.25, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nene-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.22,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nene'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.38, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nene-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.12,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nene'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.98, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nena-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.11,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nena'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.2000000000000002, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nena-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.22,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nena'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.33, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nena-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.12,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nena'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.9300000000000002, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-abuela-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-abuela'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.52, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-abuela-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-abuela'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.4, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-abuela-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-abuela'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.5, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-jefe-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-jefe'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.67, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-jefe-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-jefe'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.5499999999999998, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-jefe-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-jefe'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.65, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-ramon-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.62, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-ramon-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.8, z: s.z + Math.cos(a) * 2.8, y: T.altura(s.x, s.z) + 1.3, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-ramon-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.6, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-ramon-perfil",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 32,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 1.2; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 1.4, z: s.z + Math.cos(a) * 1.4, y: T.altura(s.x, s.z) + 1.6, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-cara",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.62, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-cuerpo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.8, z: s.z + Math.cos(a) * 2.8, y: T.altura(s.x, s.z) + 1.3, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-lejos",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.6, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-perfil",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": 0,
+    "fov": 32,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 1.2; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 1.4, z: s.z + Math.cos(a) * 1.4, y: T.altura(s.x, s.z) + 1.6, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-z-previab-invierno",
+    "grupo": "invierno",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "p-z-previac-invierno",
+    "grupo": "invierno",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "p-z-previa-invierno",
+    "grupo": "invierno",
+    "medir": false,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "p-z-panadera-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'poblador-panadera'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.57, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-panadera-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'poblador-panadera'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.45, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-panadera-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'poblador-panadera'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.55, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nene-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.11,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nene'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.25, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nene-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.22,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nene'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.38, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nene-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.12,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nene'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.98, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nena-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.11,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nena'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.2000000000000002, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nena-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.22,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nena'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.33, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-nena-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": -0.12,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-nena'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.9300000000000002, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-abuela-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-abuela'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.52, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-abuela-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-abuela'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.4, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-abuela-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-abuela'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.5, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-jefe-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-jefe'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.67, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-jefe-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-jefe'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.5499999999999998, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-z-jefe-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'aldea-jefe'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.65, yaw: a, horas: 12 } })()",
+    "aldea": true
+  },
+  {
+    "id": "p-ramon-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.62, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-ramon-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.8, z: s.z + Math.cos(a) * 2.8, y: T.altura(s.x, s.z) + 1.3, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-ramon-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'ramon'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.6, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-invierno-cara",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 26,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 0.75, z: s.z + Math.cos(a) * 0.75, y: T.altura(s.x, s.z) + 1.62, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-invierno-cuerpo",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 42,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 2.8, z: s.z + Math.cos(a) * 2.8, y: T.altura(s.x, s.z) + 1.3, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-guarda-invierno-lejos",
+    "grupo": "invierno",
+    "medir": false,
+    "pitch": 0,
+    "fov": 55,
+    "donde": "(()=>{ const T = H.T, g = (H.gente.gente || []).find((q) => q.clave === 'guarda'); if (!g) return null;\n    if (!H.gente.__orig) { H.gente.__orig = H.gente.actualizar; H.gente.actualizar = () => 0; }\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0; for (const q of H.gente.gente) q.g.visible = q === g; g.g.position.set(s.x, T.altura(s.x, s.z), s.z); g.g.rotation.y = a; g.rumbo = a; g.rumboObjetivo = a;\n    return { x: s.x + Math.sin(a) * 12, z: s.z + Math.cos(a) * 12, y: T.altura(s.x, s.z) + 1.6, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "p-perro",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.15,
+    "fov": 42,
+    "donde": "(()=>{ const P = H.perro; if (!P || !P.est) return null; const p = P.est.pos; const yaw = 0.8; const x = p.x + Math.sin(yaw) * 2.6, z = p.z + Math.cos(yaw) * 2.6; return { x, z, y: H.T.altura(x, z) + 1.4, yaw, horas: 12 } })()"
+  },
+  {
+    "id": "05-plaza-dia",
+    "grupo": "verano",
+    "medir": true,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()"
+  },
+  {
+    "id": "06-plaza-ocaso",
+    "grupo": "verano",
+    "medir": true,
+    "aldea": true,
+    "pitch": 0.03,
+    "fov": 62,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 18.6 } })()"
+  },
+  {
+    "id": "13-gente-aldea-plaza",
+    "grupo": "verano",
+    "medir": true,
+    "aldea": true,
+    "pitch": -0.03,
+    "fov": 50,
+    "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; return window.__AUD.camaraGente(g, 4, 12) })()"
+  }
+]

@@ -210,6 +210,8 @@ function formaCraneo(v, F) {
   v.z += 0.0048 * pom * F.cachete; v.x += Math.sign(v.x) * 0.002 * pom * F.cachete;
   return v;
 }
+// 4.25.0: la nariz, un poco más esculpida (misma grilla del cráneo, 0 triángulos de más): lo que suma al puente, a la punta y a las aletas, y la fosa que se hunde debajo de la punta
+export const NARIZ_4_25 = { puente: 0.0098, punta: 0.0068, aletas: 0.0048, fosas: 0.0016 };
 // Los rasgos, suaves: cuencas poco hondas, la nariz chica con la punta redonda, el morro donde
 // apoyan los labios, los cachetes llenos; los pómulos, la mandíbula y el mentón con carácter
 function rasgos(v, F) {
@@ -219,12 +221,13 @@ function rasgos(v, F) {
   const top = F.ey - 0.004;
   if (y < top + 0.012 && y > F.base - 0.01) {
     const s = sv(top, F.punta, y);
-    const h = (0.0012 + 0.0085 * s * s) * (1 - sv(F.punta + 0.001, F.base - 0.004, y));
+    const h = (0.0012 + NARIZ_4_25.puente * s * s) * (1 - sv(F.punta + 0.001, F.base - 0.004, y));   // (4.25.0: el puente un poco más alto)
     const w = 0.0058 + 0.003 * s;
     v.z += h * F.nariz * Math.exp(-((v.x / w) ** 2)) * fr * sv(top + 0.012, top, y);
   }
-  v.z += 0.0055 * F.nariz * gauss(v.x, y - F.punta - 0.0015, 0.0074, 0.0074) * fr;      // la punta, redonda
-  v.z += 0.0034 * F.nariz * gauss(ax - 0.0102, y - F.base - 0.0045, 0.0054, 0.0044) * fr;   // las aletas
+  v.z += NARIZ_4_25.punta * F.nariz * gauss(v.x, y - F.punta - 0.0015, 0.0072, 0.0072) * fr;      // la punta, redonda (4.25.0: más llena)
+  v.z += NARIZ_4_25.aletas * F.nariz * gauss(ax - 0.0108, y - F.base - 0.0045, 0.0056, 0.0048) * fr;   // las aletas (4.25.0: más marcadas)
+  v.z -= NARIZ_4_25.fosas * F.nariz * gauss(ax - 0.0062, y - F.base - 0.0008, 0.0032, 0.0024) * fr;   // 4.25.0: las fosas, hundidas bajo la punta
   v.z += 0.003 * gauss(v.x, y - F.boca, 0.024, 0.012) * fr;                              // el morro
   v.z -= 0.0011 * gauss(v.x, y - F.boca + 0.016, 0.018, 0.004) * fr;                     // bajo el labio
   v.z += 0.003 * F.cachete * gauss(ax - 0.038, y + 0.024, 0.017, 0.015) * fr;            // los cachetes
@@ -263,7 +266,7 @@ function pintarCara(c, p, n, F, colPiel) {
   tinta(c, mezcla(colPiel, '#ffe4cc', 0.5), 0.16 * gauss(p.x, y - 0.035, 0.03, 0.025) * fr);
   const abajo = sv(-0.1, -0.6, n.y);
   tinta(c, mezcla(matiz(colPiel, 0.75), '#7a4040', 0.2), 0.28 * gauss(p.x, y - F.base, 0.012, 0.004) * fr * abajo);
-  tinta(c, '#5a3430', 0.4 * gauss(ax - 0.0064, y - F.base - 0.0015, 0.0026, 0.0019) * fr * abajo);   // las fosas
+  tinta(c, '#5a3430', 0.52 * gauss(ax - 0.0064, y - F.base - 0.0015, 0.0028, 0.0021) * fr * abajo);   // las fosas (4.25.0: más oscuras)
   if (F.mujer && !F.chico) tinta(c, mezcla(colPiel, '#8a5a52', 0.45), 0.2 * gauss(ax - F.ex - 0.003, y - F.ey - 0.012, 0.014, 0.005) * fr);
   tinta(c, mezcla(matiz(colPiel, 0.82), '#7a4a46', 0.2), 0.12 * gauss(ax - F.ex, y - F.ey - 0.015, 0.015, 0.0035) * fr);
   c.multiplyScalar(1 - 0.12 * sv(-0.2, -0.8, n.y) * sv(F.menton + 0.02, F.menton, y));   // sólo bajo la mandíbula
@@ -900,7 +903,7 @@ function sombreros(cabeza, F, colores, R) {
     // el gorro tejido, con el borde doblado y un pompón
     const y0 = F.cy + 0.03;
     const gp = torno(ropa, [[1.03, 0.0], [1.07, 0.012], [1.07, 0.028], [1.02, 0.032], [0.99, 0.06], [0.84, 0.088], [0.46, 0.104], [0.0, 0.108]], [0, y0, -0.006], [-0.12, 0, 0], [kx, 1, kz], 18);
-    pintarPieza(gp, (c, q) => { if (q.y < 0.03) c.multiplyScalar(0.9); });
+    pintarPieza(gp, (c, q) => { if (q.y < 0.03) c.multiplyScalar(0.9); tinta(c, mezcla(ropa, '#e8d8b0', 0.55), 0.5 * Math.exp(-(((q.y - 0.06) / 0.012) ** 2))); });   // (4.25.0: la franja clara del gorro)
     cabeza.add(gp);
     cabeza.add(bola(mezcla(ropa, '#e8d8b0', 0.45), [0.019, 0.017, 0.019], [0, y0 + 0.11, -0.02], null, [8, 6]));
   }
@@ -1017,6 +1020,32 @@ function marcasManos(R) {
   };
   return null;
 }
+// 4.25.0: las medidas de la mano (en metros, para un varón de 1,0 de escala: `kb` las agranda). La palma, un torno [radio, alto] que se achata a lo grueso; los cuatro dedos
+// (a lo ancho de la palma, `dz` hacia adelante; el largo; cuánto se curva: el meñique más que el índice), las tres falanges de cada uno (el largo de cada una como fracción y cuánto
+// gira cada una, en radianes), el radio de cada dedo y el pulgar.
+export const MANO_4_25 = {
+  palma: [[0.0001, -0.043], [0.016, -0.041], [0.0255, -0.034], [0.029, -0.02], [0.0285, 0], [0.0265, 0.02], [0.0225, 0.034], [0.0165, 0.043], [0.0001, 0.046]],
+  ladosPalma: 9,
+  lados: 6,
+  dedos: [{ dz: 0.0215, L: 0.054, curva: 0.85 }, { dz: 0.0075, L: 0.06, curva: 1 }, { dz: -0.0065, L: 0.057, curva: 1.15 }, { dz: -0.02, L: 0.046, curva: 1.35 }],
+  falanges: [0.4, 0.33, 0.27],
+  giros: [0.12, 0.5, 0.9],
+  radios: [0.0078, 0.0075, 0.0071, 0.0067],
+  tramos: 6,
+  pulgar: [[0.004, 0.034, 0.024], [0.01, 0.05, 0.032], [0.016, 0.064, 0.035], [0.022, 0.076, 0.033]],
+  radiosPulgar: [0.0095, 0.0085, 0.0075, 0.0066],
+};
+// 4.25.0: la mano que sostiene el mate: los cuatro dedos dan la vuelta por delante de la calabaza (un arco alrededor de su eje, a la altura `y` desde el centro del mate, de
+// `a0` a `a1` grados contados desde el costado de la palma hacia adelante) y el pulgar da la vuelta por atrás, arriba. `perfil` es [alto, radio] de la calabaza (el mismo torno).
+export const MANO_MATE_4_25 = {
+  perfil: [[-0.055, 0.0], [-0.05, 0.04], [-0.015, 0.058], [0.025, 0.056], [0.05, 0.045], [0.058, 0.042]],
+  dedos: [{ y: 0.0145, a0: 8, a1: 100 }, { y: 0.001, a0: 8, a1: 106 }, { y: -0.0125, a0: 8, a1: 98 }, { y: -0.026, a0: 8, a1: 82 }],
+  pulgar: { y: 0.03, a0: -14, a1: -78 },
+  radios: [0.0076, 0.0073, 0.0070, 0.0066],
+  radiosPulgar: [0.0098, 0.0088, 0.0078, 0.0070],
+  tramos: 6,
+  lados: 6,
+};
 // La paleta de tierra, para quien no tiene ropa propia en gente-ropa.js: el tono se corre hacia el
 // ocre (unos 30°) y se apaga un poco
 const _hsl = { h: 0, s: 0, l: 0 };
@@ -1479,12 +1508,15 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       if (!conGuarda && v.y >= -0.1465 && v.y <= -0.1195) c.set(claroP);
       else if (!conGuarda && v.y >= -0.1165 && v.y <= -0.0895) c.set(oscuroP);
       else if (Math.floor(i / perfilP.length) % 7 === 3) c.set(listaP);
+      // 4.25.0: capas de color: la esclavina (los hombros, un tono más hondo que el cuerpo) con su costura
+      if (v.y >= 0.425) c.lerp(colorDe(oscuroP), 0.3 * sv(0.425, 0.5, v.y));
+      if (Math.abs(v.y - 0.43) < 0.012) c.multiplyScalar(0.8);
     });
     torso.add(rol(conTela(deformar(p, caida), TELA.lana), 'poncho', perfilP.length, 30));
     const flecos = torno(colPoncho, [[0.352 * sx, -0.215], [0.35 * sx, -0.178]], null, null, null, 56);
     pintarPieza(flecos, (c, v, nn, i) => { c.multiplyScalar(Math.floor(i / 2) % 2 ? 0.6 : 1.08); });
     torso.add(conTela(deformar(flecos, caida), TELA.lana));
-    torso.add(conTela(torno(matiz(colPoncho, 0.8), [[0.08, 0.578], [0.077, 0.605], [0.066, 0.612]], null, null, null, 14), TELA.lana));
+    torso.add(conTela(torno(mezcla(colPoncho, '#d8c49c', 0.34), [[0.08, 0.578], [0.077, 0.605], [0.066, 0.612]], null, null, null, 14), TELA.lana));   // (4.25.0: el cuello del poncho, con el forro claro)
     yCuello = 0.6; rCuello = 0.078; pechoBuf = 0.2;
   }
   if (R.fiesta) {
@@ -1590,20 +1622,41 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   const telaManga = R.chaleco ? TELA.lienzo : R.telaCampera ? TELA[R.telaCampera] : TELA.lana;
   // (3.7.0: con guantes, la mano es de lana)
   const colMano = R.guantes || colPiel, deMano = (m) => (R.guantes ? conTela(m, TELA.punto) : piel(m));
+  // 4.25.0: la mano con forma. La palma es un torno achatado (más ancha en los nudillos que en la muñeca) y los dedos nacen a lo ancho de toda la palma (antes eran
+  // cuatro agujas juntas debajo de una bola): cada dedo con sus tres falanges (el largo y cuánto se curva), la uña pintada en la yema y el pulgar con su base carnosa.
+  // Los dedos y el pulgar son piezas finas (lejos no se dibujan); la palma queda como siempre.
   const manoCon5 = (grupo, W, l) => {
-    // la palma (de canto, mirando al muslo), cuatro dedos un poco curvos y el pulgar adelante
-    const palma = deMano(bola(colMano, [0.015 * kb, 0.043 * kb, 0.029 * kb], [W[0] - l * 0.002, W[1] - 0.045, W[2] + 0.003], [0.05, 0, 0], [9, 7]));
+    const palma = deMano(torno(colMano, MANO_4_25.palma.map(([r, y]) => [r * kb, y * kb]), [W[0] - l * 0.002, W[1] - 0.045, W[2] + 0.003], [0.05, 0, 0], [0.52, 1, 1], MANO_4_25.ladosPalma));
     if (marcaMano) pintarPieza(palma, marcaMano);
     grupo.add(palma);
-    const dedos = [[0.016, 0.041], [0.0055, 0.046], [-0.005, 0.044], [-0.015, 0.037]];
-    const kd = 1.25, curva = 2.1;
-    for (const [dz, L] of dedos) {
+    const unia = mezcla(colPiel, '#f2d6c4', 0.55);
+    for (const { dz, L, curva } of MANO_4_25.dedos) {
       const y0 = W[1] - 0.078 * kb, z0 = W[2] + dz * kb, Lk = L * kb;
-      const pts = [[W[0] - l * 0.001, y0 + 0.006, z0], [W[0] - l * 0.003 * curva, y0 - Lk * 0.45, z0 + 0.004], [W[0] - l * 0.011 * curva, y0 - Lk * 0.85, z0 + 0.003], [W[0] - l * 0.017 * curva, y0 - Lk, z0 + 0.001]];
-      const d = huso(colMano, pts, [0.0064 * kb * kd, 0.0058 * kb * kd, 0.0052 * kb * kd, 0.0047 * kb * kd], 4, 5);
-      grupo.add(fino(deMano(pintarPieza(d, (c, p) => { if (!R.guantes) tinta(c, mezcla(colPiel, '#c4544a', 0.4), 0.25 * sv(y0 - Lk * 0.6, y0 - Lk, p.y)); if (marcaMano) marcaMano(c, p); }))));
+      const pts = [[W[0] - l * 0.001, y0 + 0.008, z0]];
+      let px = pts[0][0], py = pts[0][1], fi = 0;
+      for (let k = 0; k < 3; k++) {
+        const largo = Lk * MANO_4_25.falanges[k] * (k === 0 ? 1.18 : 1), fi2 = MANO_4_25.giros[k] * curva;
+        px -= l * Math.sin(fi2) * largo; py -= Math.cos(fi2) * largo; fi = fi2;
+        pts.push([px, py, z0 + 0.0008 * (k + 1)]);
+      }
+      const punta = pts[3], atrasX = l * Math.cos(fi), atrasY = -Math.sin(fi);   // (el lomo del dedo: hacia afuera de la curva)
+      const d = huso(colMano, pts, MANO_4_25.radios.map((r) => r * kb), MANO_4_25.tramos, MANO_4_25.lados);
+      grupo.add(fino(deMano(pintarPieza(d, (c, p, n) => {
+        if (!R.guantes) {
+          tinta(c, mezcla(colPiel, '#c4544a', 0.4), 0.25 * sv(y0 - Lk * 0.6, y0 - Lk, p.y));
+          const dist = Math.hypot(p.x - punta[0], p.y - punta[1]);
+          tinta(c, unia, 0.62 * sv(0.45, 0.8, n.x * atrasX + n.y * atrasY) * sv(0.016 * kb, 0.006 * kb, dist));   // la uña
+        }
+        if (marcaMano) marcaMano(c, p);
+      }))));
     }
-    grupo.add(fino(deMano(huso(colMano, [[W[0] - l * 0.006, W[1] - 0.03, W[2] + 0.02], [W[0] - l * 0.012, W[1] - 0.055, W[2] + 0.029], [W[0] - l * 0.012, W[1] - 0.077, W[2] + 0.03]], [0.0095 * kb, 0.0068 * kb, 0.0055 * kb], 4, 5))));
+    // el pulgar: la base carnosa sobre la palma y dos falanges hacia adelante
+    grupo.add(fino(deMano(bola(colMano, [0.0115 * kb, 0.021 * kb, 0.0125 * kb], [W[0] - l * 0.004, W[1] - 0.04 * kb, W[2] + 0.024 * kb], [0.3, 0, 0], [6, 4]))));
+    const pg = MANO_4_25.pulgar.map(([a, b, c]) => [W[0] - l * a, W[1] - b * kb, W[2] + c * kb]);
+    grupo.add(fino(deMano(pintarPieza(huso(colMano, pg, MANO_4_25.radiosPulgar.map((r) => r * kb), 5, MANO_4_25.lados), (c, p, n) => {
+      if (!R.guantes) { const dist = Math.hypot(p.x - pg[3][0], p.y - pg[3][1]); tinta(c, unia, 0.55 * sv(0.3, 0.8, n.x * l) * sv(0.015 * kb, 0.005 * kb, dist)); }
+      if (marcaMano) marcaMano(c, p);
+    }))));
   };
   for (const l of [-1, 1]) {
     const piv = new THREE.Group(); piv.position.set(l * hx, 1.3, 0); piv.scale.set(anchoB, 1, anchoB);
@@ -1630,11 +1683,15 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       }
       muneca = new THREE.Group(); muneca.position.set(W[0], W[1], W[2]);
       const MC = [-0.045, 0.035, 0.03], en2 = (a, b, c) => [MC[0] + a, MC[1] + b, MC[2] + c];
-      const mano = [
-        deMano(bola(colMano, [0.02, 0.04, 0.031], [0.01, 0.02, 0.016], [0.35, 0, -0.25])),
-        deMano(bola(colMano, [0.02, 0.028, 0.046], en2(0.02, -0.011, 0.037), [0, -0.75, 0])),
-        deMano(bola(colMano, [0.011, 0.028, 0.013], en2(0.018, 0.011, -0.042), [0.3, 0, 0.5])),
-      ];
+      // 4.25.0: la palma de siempre, al costado de la calabaza; los dedos le dan la vuelta por delante y el pulgar por atrás (antes: dos bolas)
+      const mano = [deMano(bola(colMano, [0.02, 0.04, 0.031], [0.01, 0.02, 0.016], [0.35, 0, -0.25]))];
+      const rMate = (y) => { const P = MANO_MATE_4_25.perfil; if (y <= P[0][0]) return P[0][1]; for (let i = 1; i < P.length; i++) if (y <= P[i][0]) return P[i - 1][1] + (P[i][1] - P[i - 1][1]) * (y - P[i - 1][0]) / (P[i][0] - P[i - 1][0]); return P[P.length - 1][1]; };
+      const arco = (y, a0, a1, radios) => {
+        const pts = [0, 1, 2, 3].map((i) => { const a = (a0 + (a1 - a0) * (i / 3)) * Math.PI / 180, r = rMate(y) + (0.0062 - 0.0018 * (i / 3)) * kb; return [MC[0] + Math.cos(a) * r, MC[1] + y, MC[2] + Math.sin(a) * r]; });
+        return huso(colMano, pts, radios.map((r) => r * kb), MANO_MATE_4_25.tramos, MANO_MATE_4_25.lados);
+      };
+      for (const d of MANO_MATE_4_25.dedos) mano.push(fino(deMano(arco(d.y, d.a0, d.a1, MANO_MATE_4_25.radios))));
+      mano.push(fino(deMano(arco(MANO_MATE_4_25.pulgar.y, MANO_MATE_4_25.pulgar.a0, MANO_MATE_4_25.pulgar.a1, MANO_MATE_4_25.radiosPulgar))));
       for (const m of mano) { if (marcaMano) pintarPieza(m, marcaMano); muneca.add(m); }
       for (const m of [
         torno('#6b4a2c', [[0.0, -0.055], [0.04, -0.05], [0.058, -0.015], [0.056, 0.025], [0.045, 0.05], [0.042, 0.058]], MC, null, null, 14),
@@ -1658,7 +1715,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       const Wc = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z];
       if (!remango) {
         const puno = torno(matiz(colManga, 0.82), [[0.03, -0.02], [0.033, -0.004], [0.032, 0.016], [0.028, 0.02]], [Wc[0], Wc[1] - 0.004, Wc[2]], [-0.1, 0, 0], null, 12);
-        pintarPieza(puno, (c, p) => { if (Math.abs(p.y) < 0.003) c.multiplyScalar(0.8); });
+        pintarPieza(puno, (c, p, n, i) => { if (Math.abs(p.y) < 0.003) c.multiplyScalar(0.8); c.multiplyScalar(Math.floor(i / 4) % 2 ? 0.93 : 1.04); });   // (4.25.0: el puño de punto, con las costillas)
         codo.add(rol(puno, 'puno', 4, 12));
         codo.add(fino(bola('#d8d0c0', [0.004, 0.004, 0.003], [Wc[0] + l * 0.03, Wc[1] + 0.004, Wc[2] + 0.004])));
       }
