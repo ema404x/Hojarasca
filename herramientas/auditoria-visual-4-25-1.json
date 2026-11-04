@@ -1,0 +1,626 @@
+[
+  {
+    "id": "q-ramon-ninguna",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    \n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-saludo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'saludo', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-senalar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'senalar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-asentir",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'asentir', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-negar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'negar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-encoger",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'encoger', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-pensar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'pensar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-cruzados",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'cruzados', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-cintura",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'cintura', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-barba",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'barba', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-gorro",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'gorro', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-atras",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'atras', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-delantal",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'delantal', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-juntas",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'juntas', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-mirar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'mirar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-aplaudir",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'aplaudir', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-contar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'contar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-brindar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'brindar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-tocar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'tocar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-palear",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'palear', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-hachar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'hachar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-regar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'regar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-martillar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'martillar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-serruchar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'serruchar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-bailar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'bailar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-ramon-sentado",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('ramon'); const g = (H.gente.gente || []).find((q) => q.clave === 'ramon');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('ramon', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('ramon', 'sentado', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-ninguna",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    \n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-saludo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'saludo', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-senalar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'senalar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-asentir",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'asentir', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-negar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'negar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-encoger",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'encoger', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-pensar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'pensar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-cruzados",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'cruzados', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-cintura",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'cintura', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-barba",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'barba', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-gorro",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'gorro', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-atras",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'atras', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-delantal",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'delantal', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-juntas",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'juntas', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-mirar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'mirar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-aplaudir",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'aplaudir', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-contar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'contar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-brindar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'brindar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-tocar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'tocar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-palear",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'palear', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-hachar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'hachar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-regar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'regar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-martillar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'martillar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-serruchar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'serruchar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-bailar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'bailar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-guarda-sentado",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('guarda'); const g = (H.gente.gente || []).find((q) => q.clave === 'guarda');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('guarda', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('guarda', 'sentado', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-ninguna",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    \n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-saludo",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'saludo', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-senalar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'senalar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-asentir",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'asentir', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-negar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'negar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-encoger",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'encoger', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-pensar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'pensar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-cruzados",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'cruzados', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-cintura",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'cintura', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-barba",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'barba', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-gorro",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'gorro', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-atras",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'atras', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-delantal",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'delantal', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-juntas",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'juntas', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-mirar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'mirar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-aplaudir",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'aplaudir', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-contar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'contar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-brindar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'brindar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-tocar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'tocar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-palear",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'palear', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-hachar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'hachar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-regar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'regar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-martillar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'martillar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-serruchar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'serruchar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-bailar",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'bailar', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  },
+  {
+    "id": "q-graciela-sentado",
+    "grupo": "verano",
+    "medir": false,
+    "pitch": -0.2,
+    "fov": 36,
+    "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E.mundo;\n    for (const k of E.capturados()) M.soltar(k);\n    M.capturar('graciela'); const g = (H.gente.gente || []).find((q) => q.clave === 'graciela');\n    if (!g) return null;\n    const L = T.lugares.refugio, ar = H.veg.arboles.filter((q) => !q.sacado && !q.caido); let s = null;\n    for (let r = 30; r < 200 && !s; r += 3) for (let a = 0; a < 6.28 && !s; a += 0.2) { const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;\n      if (T.agua(x, z) || 1 - T.normal(x, z).y > 0.02 || ar.some((q) => Math.hypot(q.x - x, q.z - z) < 12)) continue; s = { x, z }; }\n    if (!s) return null;\n    const a = 0.7 + 0;\n    for (const q of H.gente.gente) q.g.visible = q === g;\n    M.teletransportar('graciela', { x: s.x, z: s.z }, { x: s.x + Math.sin(a) * 10, z: s.z + Math.cos(a) * 10 });\n    M.posar('graciela', 'sentado', 600);\n    return { x: s.x + Math.sin(a) * 2.6, z: s.z + Math.cos(a) * 2.6, y: T.altura(s.x, s.z) + 1.85, yaw: a, horas: 12 } })()"
+  }
+]
