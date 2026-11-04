@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.25.1 (sobre main = 4.25.0): BUGS DE LAS CINEMÁTICAS (CAMBIOS_4_25_1_A/B/C.md) — NPC que quedaban trabados en escena, personas y cámara que traspasaban paredes y rocas, y mate, planilla y caña pegados al brazo en las poses
 - 4.25.0 (sobre main = 4.24.1): PERSONAJES Y PASADA FINAL (CAMBIOS_4_25_0_A/B/C.md) — manos con dedos y mate, nariz con volumen y capas de color en el poncho y la lana; la decisión D5 se respeta en la noche; tarjetas y panel sin barras en pantallas chicas; caza de bugs de lo nuevo
 - 4.24.1 (sobre main = 4.24.0): DETALLES DE LA 4.24.0 (CAMBIOS_4_24_1_A/B/C.md) — trochita de vuelta sin espera larga, mapa y panel pulidos, silueta y plano de Elsa de la primera hora, hojas de cerca, cipreses y pisadas en la nieve
 - 4.24.0 (sobre main = 4.23.0): NO TE PIERDAS, LA PRIMERA HORA CON INDICIOS Y PAISAJE Y VEGETACIÓN (CAMBIOS_4_24_0_A/B/C.md) — banderitas del objetivo en el mapa con las teclas en la guía, indicios y un primer viaje en trochita sin espera, y un valle con copas, pastos, sotobosque y suelo más variados sin costo extra en la plaza
