@@ -182,7 +182,7 @@ const PAGINA = String.raw`(() => {
     frames(8);
     aviso = { f: 0, mapa: new Map(), lista: [], prev: null, puestos: 0, caminatas: [], solidoCam: 0, vivas: new Map() };
     let disparo = false;
-    for (let k = 0; k < 12 && !disparo; k++) { if (H.__escenas.activa()) { d.saltar(); frames(12); } disparo = H.__escenas.disparar(id, { forzar: true }); if (!disparo) { for (const b of document.querySelectorAll('#valle-tarjeta button[data-valle-opcion]')) { b.click(); break; } frames(20); } }
+    for (let k = 0; k < 40 && !disparo; k++) { if (H.__escenas.activa()) { d.saltar(); frames(12); } disparo = H.__escenas.disparar(id, { forzar: true }); if (!disparo) { for (const b of document.querySelectorAll('#valle-tarjeta button[data-valle-opcion]')) { b.click(); break; } frames(20); } }
     // (algunas escenas no arrancan porque el jugador queda «en el tren» o con algo abierto: se las fuerza igual para mirarlas, y se anota el motivo)
     if (!disparo) { const js = H.jugador.estado; res.motivo = { enTren: !!js.enTren, enKayak: !!js.enKayak, enVela: !!js.enVela, cuerpo: document.body.className.slice(0, 120), tarjeta: !!document.querySelector('#valle-tarjeta:not(.oculto)'), activa: H.__escenas.activa(), paneles: [...document.querySelectorAll('[id]')].filter((e) => !e.classList.contains('oculto') && getComputedStyle(e).display !== 'none' && /panel|menu|charla|dialogo|dormir|foto|pausa/i.test(e.id)).map((e) => e.id).slice(0, 6) }; const orig = mundo.puedeEmpezar; mundo.puedeEmpezar = () => true; disparo = H.__escenas.disparar(id, { forzar: true }); mundo.puedeEmpezar = orig; res.forzada = disparo; }
     if (!disparo) { res.noDisparo = true; aviso = null; return res; }
@@ -190,6 +190,7 @@ const PAGINA = String.raw`(() => {
     for (let f = 0; f < maxF; f++) {
       aviso.f = f;
       frames(1); res.frames++;
+      if (o.hasta !== undefined && f >= o.hasta) { res.pausado = true; aviso = null; return res; }
       if (o.modo === 'saltar' && f === 12) { d.saltar(); }
       mirarCuadro(f);
       let dat = d.datos();
@@ -245,6 +246,21 @@ app.whenReady().then(async () => {
   const resultados = [];
   try {
     await abrir();
+    // TRASP_FOTO=id:cuadro,id:cuadro: se corre cada escena (leyéndola) hasta ese cuadro y se saca una captura (para mirar a ojo un hallazgo)
+    if (process.env.TRASP_FOTO) {
+      const dirFotos = process.env.TRASP_FOTOS_DIR || path.join(raiz, 'pruebas', 'salidas', 'traspasos-4-25-1-b'); fs.mkdirSync(dirFotos, { recursive: true });
+      for (const q of process.env.TRASP_FOTO.split(',').filter(Boolean)) {
+        const [id, cuadro] = q.split(':'); donde = 'foto ' + q;
+        await js('window.__N.jugar(' + JSON.stringify(id) + ', { perfil: "trato", modo: "leer", hasta: ' + Number(cuadro) + ' })');
+        await esperar(500);
+        let ok = false;
+        for (let k = 0; k < 3 && !ok; k++) { try { fs.writeFileSync(path.join(dirFotos, id + '-' + cuadro + '.png'), (await w.webContents.capturePage()).toPNG()); ok = true; } catch (e) { await esperar(600); } }
+        console.log('captura ' + id + '-' + cuadro + '.png ' + (ok ? '' : '(NO SE PUDO)'));
+        await js('window.__N.cerrar()');
+      }
+      try { app.exit(0); } catch { process.exit(0); }
+      return;
+    }
     let ids = await js('window.__N.ids()');
     console.log(`escenas registradas: ${ids.length}`);
     if (SOLO.length) ids = ids.filter((x) => SOLO.includes(x));
