@@ -99,6 +99,8 @@ export function crearEscenasMundo(ctx) {
     for (const n of lista) if (n.clave === clave) return n;
     return null;
   };
+  // 4.25.1: la entrada de captura de una clave (si la clave es otro nombre de alguien ya capturado —«pareja» y la persona de verdad—, la de él)
+  const toma = (clave) => { const c = captura.get(clave); return c?.alias ? (captura.get(c.alias) || null) : (c || null); };
   function capturar(clave) {
     if (!clave || captura.has(clave)) return;
     let n = actor(clave);
@@ -107,6 +109,9 @@ export function crearEscenasMundo(ctx) {
     const real = clave === 'pareja' ? (ctx.parejaClave?.() || clave) : clave;
     if (!n && ctx.armarYa) { try { n = ctx.armarYa(real) || actor(clave); } catch (e) { ctx.fallo?.(e, 'escenas-armar'); n = null; } }
     if (!n) { captura.set(clave, { n: null }); return; }
+    // 4.25.1: la misma persona pedida con dos nombres («pareja» y «rosa» cuando tu pareja es Rosa): la segunda captura guardaba el estado YA tomado por la escena
+    // como si fuera el de antes, y al soltar quedaba con `enEscena`, `conVos` y `enCita` para siempre (la aldea ya no la movía). Ahora el segundo nombre es un alias del primero.
+    for (const [k, otra] of captura) if (otra.n === n && !otra.alias) { captura.set(clave, { n, alias: k }); return; }
     const guardado = {};
     for (const k of ['conVos', 'enCita', 'pose', 'asiento', 'soloCerca', 'dormido', 'charlaVecinos', 'sinFrenar', 'camino', 'velocidad', 'miraFinal', '__quietud', 'alAmor', 'aBordo', 'enViaje', 'enEscena']) guardado[k] = { tiene: Object.hasOwn(n, k), v: n[k] };
     captura.set(clave, { n, guardado, propia: null, pose: null });
@@ -114,18 +119,65 @@ export function crearEscenasMundo(ctx) {
     n.enEscena = true;   // 4.19.0: gente.js lo dibuja aunque esté a más de 130 m del jugador (Herminia en su casa, desde el refugio); `soltar` lo devuelve a su estado
     n.aBordo = false; n.enViaje = false;   // 4.16.0: Elsa (la guarda) vive «a bordo» de la trochita y no se dibuja fuera de ella: en una escena sí
     n.camino = []; n.__quietud = null; n.alAmor = false;
+    n.animSocial = null; n.__volverA = null;   // 4.25.1: un abrazo o una charla a medias (social-anim.js) le seguía pisando hacia dónde mira durante toda la escena
     delete n.miraFinal;
   }
   function soltar(clave) {
     const c = captura.get(clave);
     if (!c) return;
     captura.delete(clave);
+    if (c.alias) return;
+    for (const [k, otra] of [...captura]) if (otra.alias === clave) captura.delete(k);
     const n = c.n;
     if (!n) return;
     for (const [k, o] of Object.entries(c.guardado)) { if (o.tiene && o.v !== undefined) n[k] = o.v; else delete n[k]; }
     n.camino = c.guardado.camino.tiene ? c.guardado.camino.v : undefined;
     n.vel = 0;
+    // 4.25.1: el de rutina (Ramón, Nicanor, Josefina) que la escena dejó lejos de su parada no se queda haciendo la tarea (Nicanor pescando en el pasto, Josefina anotando) lo que le faltaba de espera: vuelve a su parada
+    if (Array.isArray(n.ruta) && n.ruta.length && n.camino === undefined && n.espera > 0) {
+      const e = n.ruta[(n.etapa || 0) % n.ruta.length];
+      if (e && Number.isFinite(e.x) && Math.hypot(n.pos.x - e.x, n.pos.z - e.z) > 1.5) n.espera = 0;
+    }
     if (n.g?.visible === false && !n.dormido) n.g.visible = true;
+  }
+  // 4.25.1: la caminata de una escena no espera minutos. (1) Si quien camina arranca a más de LEJOS_M de la meta (la gente de la aldea o del campo puede estar a
+  // trescientos metros), se lo pone a LLEGADA_M de la meta, del lado de donde venía, sobre tierra: la escena tardaba 8 minutos en ver llegar a Ramón o a Belisario.
+  // (2) Si no avanza (agua en el medio, un tronco, la meta adentro de un obstáculo), a los 2 s rodea por un costado y, si a los 2 s siguientes sigue sin avanzar, llega de golpe: antes se
+  // lo dejaba empujando contra el agua hasta el límite de tiempo del director (casi un minuto en una caminata de 40 m).
+  const LEJOS_M = 50, LLEGADA_M = 34, ATASCO_S = 2;
+  function acercarSiEstaLejos(n, d) {
+    const dx = n.pos.x - d.x, dz = n.pos.z - d.z;
+    if (!(Math.hypot(dx, dz) > LEJOS_M)) return;
+    const base = Math.atan2(dx, dz);
+    for (const g of [0, 0.4, -0.4, 0.8, -0.8, 1.2, -1.2, 1.6, -1.6, Math.PI]) {
+      const x = d.x + Math.sin(base + g) * LLEGADA_M, z = d.z + Math.cos(base + g) * LLEGADA_M;
+      if (ctx.T?.agua?.(x, z)) continue;
+      ubicar(n, { x, z }, null);
+      return;
+    }
+  }
+  function vigilarPaseo(c, dt) {
+    const p = c.paseo, n = c.n;
+    if (!p) return;
+    if (!n || !n.camino || !n.camino.length) { c.paseo = null; return; }
+    p.t += dt;
+    if (p.t < 1) return;
+    p.t = 0;
+    const d = Math.hypot(n.pos.x - p.x, n.pos.z - p.z);
+    const avance = p.ref - d;
+    p.ref = d;
+    if (avance > 0.12) { p.malos = 0; return; }
+    if (++p.malos < ATASCO_S) return;
+    p.malos = 0;
+    if (p.desvios < 1 && d > 1.2) {
+      const a = Math.atan2(p.x - n.pos.x, p.z - n.pos.z) + 1.1;
+      const q = { x: n.pos.x + Math.sin(a) * 5, z: n.pos.z + Math.cos(a) * 5 };
+      p.desvios++;
+      if (!ctx.T?.agua?.(q.x, q.z)) { n.camino = [{ x: q.x, z: q.z, cerca: 0.4 }, { x: p.x, z: p.z, cerca: 0.22 }]; p.ref = Infinity; }
+      return;
+    }
+    c.paseo = null;
+    ubicar(n, { x: p.x, z: p.z }, null);
   }
   function soltarTodos() { for (const k of [...captura.keys()]) soltar(k); }
   function ubicar(n, p, mira) {
@@ -210,21 +262,23 @@ export function crearEscenasMundo(ctx) {
     capturar,
     soltar,
     caminar(clave, d, o) {
-      const c = captura.get(clave); if (!c?.n) return;
+      const c = toma(clave); if (!c?.n) return;
       const n = c.n;
+      acercarSiEstaLejos(n, d);
+      c.paseo = { x: d.x, z: d.z, ref: Math.hypot(n.pos.x - d.x, n.pos.z - d.z), t: 0, malos: 0, desvios: 0 };
       n.velocidad = num(o?.vel, 1.4);
       n.camino = [{ x: d.x, z: d.z, cerca: 0.22 }];
       if (o?.mira) n.miraFinal = Math.atan2(o.mira.x - d.x, o.mira.z - d.z); else delete n.miraFinal;
     },
-    ocupado(clave) { const c = captura.get(clave); return !!c?.n && !!c.n.camino && c.n.camino.length > 0; },
+    ocupado(clave) { const c = toma(clave); return !!c?.n && !!c.n.camino && c.n.camino.length > 0; },
     mirar(clave, p, instante) {
-      const c = captura.get(clave); if (!c?.n) return;
+      const c = toma(clave); if (!c?.n) return;
       const n = c.n, r = Math.atan2(p.x - n.pos.x, p.z - n.pos.z);
       n.miraFinal = r; n.rumboObjetivo = r;
       if (instante) { n.g.rotation.y = r; n.rumbo = r; }
     },
     posar(clave, pose, dur) {
-      const c = captura.get(clave); if (!c?.n) return;
+      const c = toma(clave); if (!c?.n) return;
       const n = c.n;
       limpiarPose(c);
       // 4.18.0 (C): «sentado» es una pose de base (Ramón en cama, con la manta): queda sentado toda la escena y los gestos de brazos y cabeza
@@ -236,9 +290,9 @@ export function crearEscenasMundo(ctx) {
       if (POSES_DEL_JUEGO.has(pose) && !c.base) n.pose = pose;
       else if (POSES_QUIETUD.has(pose)) n.__quietud = pose;
     },
-    aparecer(clave, p, mira) { const c = captura.get(clave); if (!c?.n) return; c.n.dormido = false; c.n.g.visible = true; ubicar(c.n, p, mira); },
-    desaparecer(clave) { const c = captura.get(clave); if (!c?.n) return; c.n.dormido = true; c.n.g.visible = false; },
-    teletransportar(clave, p, mira) { const c = captura.get(clave); if (!c?.n) return; ubicar(c.n, p, mira); },
+    aparecer(clave, p, mira) { const c = toma(clave); if (!c?.n) return; c.n.dormido = false; c.n.g.visible = true; ubicar(c.n, p, mira); },
+    desaparecer(clave) { const c = toma(clave); if (!c?.n) return; c.n.dormido = true; c.n.g.visible = false; },
+    teletransportar(clave, p, mira) { const c = toma(clave); if (!c?.n) return; ubicar(c.n, p, mira); },
     alEmpezar() { empezarVista(); try { ctx.alEmpezar?.(); } catch (e) { ctx.fallo?.(e, 'escenas-empezar'); } },
     alTerminar(r) { soltarTodos(); terminarVista(); try { ctx.alTerminar?.(r); } catch (e) { ctx.fallo?.(e, 'escenas-terminar'); } },
   };
@@ -415,6 +469,7 @@ export function crearEscenasMundo(ctx) {
   function despuesDeGente(dt) {
     if (!captura.size) return;
     for (const [clave, c] of captura) {
+      if (c.paseo) { try { vigilarPaseo(c, dt); } catch (e) { ctx.fallo?.(e, 'escenas-paseo'); } }
       if (!c.n || !c.pose) continue;
       c.pose.t += dt;
       const p = c.pose;
