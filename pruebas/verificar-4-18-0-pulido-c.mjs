@@ -280,7 +280,7 @@ const MUTACIONES = [
   ['historia-props-acto3.js', 'Fermín no mira al lado de ataque', 'const rumbo = Number.isFinite(ux) && Number.isFinite(uz) && (ux || uz) ? Math.atan2(ux, uz) : rot;', 'const rumbo = rot;'],
   ['historia-props-acto3.js', 'la cumbrera no gira con el galpón', 'const lz = 0.9, x = galpon.x + lz * Math.sin(rot), z = galpon.z + lz * Math.cos(rot);', 'const lz = 0.9, x = galpon.x, z = galpon.z + lz;'],
   ['escenas-mundo.js', 'un gesto del juego levanta a Ramón', "if (POSES_DEL_JUEGO.has(pose) && !c.base) n.pose = pose;", 'if (POSES_DEL_JUEGO.has(pose)) n.pose = pose;'],
-  ['escenas-mundo.js', 'la altura pedida no se respeta', 'n.pos.set(p.x, Number.isFinite(p.y) && p.y > piso + 1.2 ? p.y : piso, p.z);', 'n.pos.set(p.x, piso, p.z);'],
+  ['escenas-mundo.js', 'la altura pedida no se respeta', 'n.pos.set(p.x, alto ? p.y : piso, p.z);', 'n.pos.set(p.x, piso, p.z);'],
   ['escenas-mundo.js', 'el ancla del techo sin galponcito flota', "&& lugarDe('galpon-propio') && ctx.T?.altura) q.y", '&& ctx.T?.altura) q.y'],
   ['historia-objetos.js', 'un material nuevo para lo que brilla', 'if (!matBrillo) matBrillo = new THREE.MeshBasicMaterial({ vertexColors: true });', 'if (!matBrillo) matBrillo = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true });'],
   ['historia-objetos.js', 'lo que brilla hace sombra', 'b.castShadow = false; b.receiveShadow = false;', 'b.castShadow = true; b.receiveShadow = false;'],
