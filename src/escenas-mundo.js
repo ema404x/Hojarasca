@@ -128,10 +128,45 @@ export function crearEscenasMundo(ctx) {
     if (n.g?.visible === false && !n.dormido) n.g.visible = true;
   }
   function soltarTodos() { for (const k of [...captura.keys()]) soltar(k); }
+  // 4.25.1 (B): un lugar donde alguien se PARA no puede ser adentro de un sólido (un árbol, una roca, la pared del galpón, el vagón parado en el andén, una pirca) ni en el agua.
+  // Los guiones piden los lugares en coordenadas del mundo o corridos de un punto, y a veces caen adentro de algo; al caminar, el choque lo saca de a poco (y no llega), pero
+  // `aparecer`, `teletransportar` (también el que hace el director al saltar la escena o al trabarse una caminata) lo dejaban metido. Se lo saca con el mismo choque de la gente
+  // (radio 0,22: sólo si de verdad se solapa) y, si queda en el agua o todavía solapado, se busca el lugar libre más cercano en anillos de 0,4 m hasta 4 m.
+  const RADIO_PUESTO = 0.22;
+  const sonda = { x: 0, y: 0, z: 0 };
+  function libreDeSolidos(x, z, y) {
+    const col = ctx.col;
+    if (!col?.resolver) return true;
+    sonda.x = x; sonda.y = y; sonda.z = z;
+    col.resolver(sonda, RADIO_PUESTO, 1.65);
+    return Math.hypot(sonda.x - x, sonda.z - z) < 0.02;
+  }
+  function despejarPuesto(x, z, y) {
+    const col = ctx.col, T = ctx.T;
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return { x, z };
+    const agua = (a, b) => !!(T?.agua && T.agua(a, b));
+    if (col?.resolver) {
+      sonda.x = x; sonda.y = y; sonda.z = z;
+      col.resolver(sonda, RADIO_PUESTO, 1.65);
+      if (Math.hypot(sonda.x - x, sonda.z - z) < 0.02 && !agua(x, z)) return { x, z };
+      if (!agua(sonda.x, sonda.z) && libreDeSolidos(sonda.x, sonda.z, y)) return { x: sonda.x, z: sonda.z };
+    } else if (!agua(x, z)) return { x, z };
+    for (let r = 0.4; r <= 4; r += 0.4) {
+      const k = Math.max(8, Math.round(r * 10));
+      for (let i = 0; i < k; i++) {
+        const a = (i / k) * Math.PI * 2, qx = x + Math.cos(a) * r, qz = z + Math.sin(a) * r;
+        if (!agua(qx, qz) && libreDeSolidos(qx, qz, y)) return { x: qx, z: qz };
+      }
+    }
+    return { x, z };
+  }
   function ubicar(n, p, mira) {
     // 4.18.0 (C): una altura pedida bien por encima de donde se pisa (el techo del galpón) se respeta; si no, el piso o el entablado de abajo
-    const piso = alturaDePie(ctx.T, ctx.col, p.x, p.z, num(p.y));
-    n.pos.set(p.x, Number.isFinite(p.y) && p.y > piso + 1.2 ? p.y : piso, p.z);
+    let piso = alturaDePie(ctx.T, ctx.col, p.x, p.z, num(p.y));
+    const alto = Number.isFinite(p.y) && p.y > piso + 1.2;
+    // 4.25.1 (B): y nunca adentro de un sólido ni en el agua (ver `despejarPuesto`); arriba de un techo no hay con qué chocar
+    if (!alto) { const q = despejarPuesto(p.x, p.z, piso); if (q.x !== p.x || q.z !== p.z) { p = { ...p, x: q.x, z: q.z }; piso = alturaDePie(ctx.T, ctx.col, p.x, p.z, num(p.y)); } }
+    n.pos.set(p.x, alto ? p.y : piso, p.z);
     n.camino = []; n.vel = 0;
     if (mira) { const r = Math.atan2(mira.x - p.x, mira.z - p.z); n.rumboObjetivo = r; n.miraFinal = r; n.g.rotation.y = r; n.rumbo = r; }
   }
@@ -213,7 +248,10 @@ export function crearEscenasMundo(ctx) {
       const c = captura.get(clave); if (!c?.n) return;
       const n = c.n;
       n.velocidad = num(o?.vel, 1.4);
-      n.camino = [{ x: d.x, z: d.z, cerca: 0.22 }];
+      // 4.25.1 (B): la meta de una caminata tampoco puede ser adentro de un sólido (se frenaba contra el borde sin llegar nunca y el director lo plantaba adentro al trabarse)
+      let meta = { x: d.x, z: d.z };
+      try { if (!(Number.isFinite(d.y) && d.y > alturaDePie(ctx.T, ctx.col, d.x, d.z, num(d.y)) + 1.2)) meta = despejarPuesto(d.x, d.z, alturaDePie(ctx.T, ctx.col, d.x, d.z, n.pos.y)); } catch { /* sin mundo para mirar: la meta pedida */ }
+      n.camino = [{ x: meta.x, z: meta.z, cerca: 0.22 }];
       if (o?.mira) n.miraFinal = Math.atan2(o.mira.x - d.x, o.mira.z - d.z); else delete n.miraFinal;
     },
     ocupado(clave) { const c = captura.get(clave); return !!c?.n && !!c.n.camino && c.n.camino.length > 0; },
@@ -380,6 +418,11 @@ export function crearEscenasMundo(ctx) {
     const suelo = ctx.T?.altura ? ctx.T.altura(r.x, r.z) : null;
     const piso = (L >= DESPEJE.lejos ? DESPEJE.bajoLejos : DESPEJE.bajo);
     if (Number.isFinite(suelo) && r.y < suelo + piso) r.y = suelo + piso;
+    // 4.25.1 (B): la lente misma nunca queda adentro de un sólido (el tronco del coihue, la pared del galpón, un tablón): el barrido de 0,3 m de arriba arranca a 1,3 m del foco y
+    // no ve lo que hay pegado al foco; se la saca por el costado con el mismo choque (radio 0,25)
+    bola.x = r.x; bola.y = r.y - 0.45; bola.z = r.z;
+    col.resolver(bola, 0.25, 0.7);
+    if (Math.hypot(bola.x - r.x, bola.z - r.z) > 0.02) { r.x = bola.x; r.z = bola.z; }
     if (r.x !== c.x || r.y !== c.y || r.z !== c.z) {
       dx = f.x - r.x; dy = f.y - r.y; dz = f.z - r.z;
       r.yaw = Math.atan2(-dx, -dz); r.pitch = Math.atan2(dy, Math.hypot(dx, dz));
