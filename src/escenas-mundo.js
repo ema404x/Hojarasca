@@ -51,17 +51,22 @@ export const CUMBRERA_GALPONCITO = 3.52;
 // Las poses que se hacen acá (el juego no las tiene): se aplican después de gente.actualizar, mezcladas con lo que ya hizo.
 // Cada brazo: x (adelante, negativo), z (abrirlo; en el brazo 1, positivo es hacia afuera) y el codo (negativo, doblado).
 const mezclar = (o, k, v, w) => { o[k] += (v - o[k]) * w; };
-const POSES_PROPIAS = {
+// 4.25.1 (C): el brazo del mate (derecho, sin codo, con la calabaza fundida en la mano) no hace los gestos de escena: levantado, la calabaza subía con el brazo y quedaba
+// pegada boca abajo junto a la cabeza. Quien lleva el mate gesticula con el otro brazo (como las poses de quietud: `uno`); `s` es el signo de «hacia afuera» en el brazo z.
+export const brazoLibre = (g) => (g.brazos[1].userData.muneca || g.planilla || g.caña ? { b: g.brazos[0], s: -1 } : { b: g.brazos[1], s: 1 });   // (la planilla y la caña también van en la mano derecha: con el brazo en alto la tabla quedaba pegada al brazo)
+// la muñeca del mate se contra-gira para que la calabaza quede derecha (lo hace gente.js antes de las poses de escena: si una pose mueve ese brazo hay que rehacerlo)
+export const rectificarMate = (g) => { const m = g.muneca, b = g.brazos?.[1]; if (m && b?.userData?.muneca === m) { m.quaternion.copy(b.quaternion).invert(); } };
+export const POSES_PROPIAS = {
   saludo: (g, t, w) => {
-    const b = g.brazos[1], cd = b.userData.codo;
+    const { b, s } = brazoLibre(g), cd = b.userData.codo;
     const o = Math.sin(t * 8.5);
-    mezclar(b.rotation, 'x', -2.5, w); mezclar(b.rotation, 'z', 0.42 + o * 0.22, w);
+    mezclar(b.rotation, 'x', -2.5, w); mezclar(b.rotation, 'z', s * (0.42 + o * 0.22), w);
     if (cd) mezclar(cd.rotation, 'x', -0.55 + o * 0.2, w);
     g.cabeza.rotation.y += Math.sin(t * 1.4) * 0.05 * w;
   },
   senalar: (g, t, w) => {
-    const b = g.brazos[1], cd = b.userData.codo;
-    mezclar(b.rotation, 'x', -1.5, w); mezclar(b.rotation, 'z', 0.1, w);
+    const { b, s } = brazoLibre(g), cd = b.userData.codo;
+    mezclar(b.rotation, 'x', -1.5, w); mezclar(b.rotation, 'z', s * 0.1, w);
     if (cd) mezclar(cd.rotation, 'x', -0.12, w);
   },
   asentir: (g, t, w) => { g.cabeza.rotation.x += (0.06 + Math.sin(t * 7) * 0.16) * w; },
@@ -73,11 +78,14 @@ const POSES_PROPIAS = {
       if (cd) mezclar(cd.rotation, 'x', -1.25, w);
     });
     g.cabeza.position.y -= 0.025 * w; g.cabeza.rotation.z += 0.08 * w;
+    rectificarMate(g);   // (encoger mueve los dos brazos, también el del mate)
   },
 };
 // las que ya trae el juego en `g.pose` (gente.js) y en la quietud (gente-cuerpo.js)
 const POSES_DEL_JUEGO = new Set(['mirar', 'aplaudir', 'contar', 'brindar', 'tocar', 'palear', 'hachar', 'regar', 'martillar', 'serruchar', 'bailar']);
 const POSES_QUIETUD = new Set(['cruzados', 'cintura', 'barba', 'gorro', 'atras', 'delantal', 'juntas']);
+export const OBJETOS_EN_MANO = ['planilla', 'caña'];   // (el mate va fundido en la mano y se cuida aparte: ver brazoLibre)
+const OCUPAN_LA_MANO = new Set([...POSES_QUIETUD, 'aplaudir', 'palear', 'hachar', 'martillar', 'serruchar', 'tocar', 'bailar', 'contar', 'brindar']);
 
 // ctx: { doc, gente(), jugador(), camara, T, col, progreso(), clima(), sonido, modo(), ajustes(), nota(t, s), puedeEmpezar(), fallo(e, donde),
 //        alEmpezar(), alTerminar(r), alquilerDeTiempo }
@@ -138,6 +146,7 @@ export function crearEscenasMundo(ctx) {
       const e = n.ruta[(n.etapa || 0) % n.ruta.length];
       if (e && Number.isFinite(e.x) && Math.hypot(n.pos.x - e.x, n.pos.z - e.z) > 1.5) n.espera = 0;
     }
+    devolverObjetos(c);
     if (n.g?.visible === false && !n.dormido) n.g.visible = true;
   }
   // 4.25.1: la caminata de una escena no espera minutos. (1) Si quien camina arranca a más de LEJOS_M de la meta (la gente de la aldea o del campo puede estar a
@@ -327,6 +336,7 @@ export function crearEscenasMundo(ctx) {
       c.pose = { nombre: pose, t: 0, dur };
       if (POSES_DEL_JUEGO.has(pose) && !c.base) n.pose = pose;
       else if (POSES_QUIETUD.has(pose)) n.__quietud = pose;
+      if (OCUPAN_LA_MANO.has(pose)) guardarObjetos(c);
     },
     aparecer(clave, p, mira) { const c = toma(clave); if (!c?.n) return; c.n.dormido = false; c.n.g.visible = true; ubicar(c.n, p, mira); },
     desaparecer(clave) { const c = toma(clave); if (!c?.n) return; c.n.dormido = true; c.n.g.visible = false; },
@@ -334,7 +344,19 @@ export function crearEscenasMundo(ctx) {
     alEmpezar() { empezarVista(); try { ctx.alEmpezar?.(); } catch (e) { ctx.fallo?.(e, 'escenas-empezar'); } },
     alTerminar(r) { soltarTodos(); terminarVista(); try { ctx.alTerminar?.(r); } catch (e) { ctx.fallo?.(e, 'escenas-terminar'); } },
   };
+  // 4.25.1 (C): lo que se lleva en la mano (la planilla, la caña) no acompaña a los gestos de brazos cruzados, a la cintura, atrás, etc.: la tabla asomaba por la espalda y el hombro.
+  // Se guarda mientras dura la pose y se devuelve al terminarla (o al soltar al personaje, aunque la escena se corte).
+  function guardarObjetos(c) {
+    c.guardados ||= [];
+    for (const k of OBJETOS_EN_MANO) { const o = c.n?.[k]; if (o && o.visible !== false) { o.visible = false; c.guardados.push(k); } }
+  }
+  function devolverObjetos(c) {
+    if (!c?.guardados?.length) return;
+    for (const k of c.guardados) { const o = c.n?.[k]; if (o) o.visible = true; }
+    c.guardados = [];
+  }
   function limpiarPose(c) {
+    if (c) devolverObjetos(c);
     if (!c.pose || !c.n) { if (c) c.pose = null; return; }
     const n = c.n, p = c.pose.nombre;
     if (POSES_DEL_JUEGO.has(p) && n.pose === p) n.pose = null;
