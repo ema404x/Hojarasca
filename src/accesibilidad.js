@@ -33,6 +33,25 @@ export const ACCIONES_TECLA = Object.keys(TECLAS_POR_DEFECTO);
 export const TECLAS_RESERVADAS = ['Escape', 'F1', 'F11'];
 export const esFija = (accion) => TECLAS_RESERVADAS.includes(TECLAS_POR_DEFECTO[accion]);
 
+// 4.25.2 (G3-1): las teclas fijas del juego, que no son acciones que se puedan mover (el `switch` de main.js las mira por su código). Si
+// una acción se ponía en una de estas, esa función se quedaba sin tecla: la Q dejaba de sacar la caña, la V de soltar lo de la mano.
+// No se aceptan al cambiar una tecla, y un mapa guardado con alguna vuelve a la de fábrica para esa acción.
+const RANURAS = 'elegir la ranura de la mano';
+export const TECLAS_DEL_JUEGO = {
+  KeyQ: 'sacar y guardar la caña', KeyR: 'sentarse y girar la obra', KeyV: 'soltar lo que tenés en la mano', KeyG: 'cocinar',
+  KeyB: 'plantar', KeyT: 'armar la carpa y teñir', KeyN: 'el encastre de las obras', KeyX: 'pescar y repetir la obra',
+  KeyU: 'usar lo que tenés en la mano', Tab: 'pasar de categoría o de página', Enter: 'elegir en las listas', NumpadEnter: 'elegir en las listas',
+  BracketLeft: 'pasar de página en los planos', BracketRight: 'pasar de página en los planos', Delete: 'cancelar o retirar una obra',
+  Backspace: 'deshacer una etapa de la obra',
+  Digit1: RANURAS, Digit2: RANURAS, Digit3: RANURAS, Digit4: RANURAS, Digit5: RANURAS, Digit6: RANURAS, Digit7: RANURAS, Digit8: RANURAS, Digit9: RANURAS,
+};
+export const esTeclaDelJuego = (codigo) => typeof codigo === 'string' && Object.hasOwn(TECLAS_DEL_JUEGO, codigo);
+// Las acciones de un mapa guardado que estaban en una tecla fija del juego (para avisar al cargar que volvieron a la de fábrica)
+export function accionesEnTeclasDelJuego(guardado) {
+  const g = guardado && typeof guardado === 'object' && !Array.isArray(guardado) ? guardado : {};
+  return ACCIONES_TECLA.filter((a) => !esFija(a) && typeof g[a] === 'string' && esTeclaDelJuego(g[a].trim()));
+}
+
 export function mapaPorDefecto() {
   return { ...TECLAS_POR_DEFECTO };
 }
@@ -72,6 +91,7 @@ export function cambiarTecla(mapa, accion, codigo) {
     return { ok: false, mapa: { ...base }, motivo: `"${NOMBRES_ACCIONES[accion]}" va siempre en ${textoTecla(TECLAS_POR_DEFECTO[accion])}.` };
   }
   if (TECLAS_RESERVADAS.includes(c)) return { ok: false, mapa: { ...base }, motivo: `${textoTecla(c)} está reservada por el juego.` };
+  if (esTeclaDelJuego(c)) return { ok: false, mapa: { ...base }, motivo: `${textoTecla(c)} ya la usa el juego para ${TECLAS_DEL_JUEGO[c]}: elegí otra.` };   // 4.25.2 (G3-1)
   const duena = accionDeTecla(base, c);
   if (duena && duena !== accion) {
     return { ok: false, mapa: { ...base }, motivo: `${textoTecla(c)} ya la usa "${NOMBRES_ACCIONES[duena] || duena}".` };
@@ -91,7 +111,7 @@ export function sanearMapaTeclas(guardado) {
   for (const a of ACCIONES_TECLA) {
     if (salida[a]) continue;
     const c = typeof g[a] === 'string' ? g[a].trim() : '';
-    if (CODIGO_VALIDO.test(c) && !usadas.has(c) && !TECLAS_RESERVADAS.includes(c)) { salida[a] = c; usadas.add(c); }
+    if (CODIGO_VALIDO.test(c) && !usadas.has(c) && !TECLAS_RESERVADAS.includes(c) && !esTeclaDelJuego(c)) { salida[a] = c; usadas.add(c); }   // 4.25.2 (G3-1): ni una tecla fija del juego
   }
   for (const a of ACCIONES_TECLA) {   // lo que faltó, de fábrica, si la tecla está libre
     if (salida[a]) continue;

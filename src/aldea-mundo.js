@@ -2247,6 +2247,10 @@ export function crearAldeaMundo(ctx) {
   function interiorDe(pos) {
     const b = edificioEn(pos, false);
     if (!b) return null;
+    // 4.25.2 (G3-3): por encima del alero la cámara ya está afuera (arriba de la chapa, en el modo foto o en un plano alto de una escena):
+    // el exterior se dibuja. Antes el tope era 4,2 m fijos y el techo arranca a ~3,07 m: había una franja sobre el techo que apagaba el valle
+    const alero = b.techo?.alero ?? (Number.isFinite(b.techo?.cubiertas?.[0]?.y) ? b.techo.cubiertas[0].y + 0.06 : null);
+    if (Number.isFinite(pos.y) && Number.isFinite(alero) && pos.y > b.sitio.y + alero) return null;
     interiorEn.id = b.id; interiorEn.x = b.sitio.x; interiorEn.z = b.sitio.z; interiorEn.radio = Math.hypot(b.ancho, b.fondo) / 2 + 2; interiorEn.puertas = b.puertas;
     return interiorEn;
   }

@@ -66,8 +66,8 @@ const MUTACIONES = [
   ['perillas: no se fijan al abrir', 'src/main.js', 'if (esDesafio) fijarPerillas(esSinFin ? null : perillasDeAjustes(ajustes));\nconst metaJuego', 'const metaJuego'],
   ['perillas: tocar una en Ajustes no las fija', 'src/main.js', "    if (clave.startsWith('perilla') && esDesafio) fijarPerillas(esSinFin ? null : perillasDeAjustes(ajustes));", "    if (clave.startsWith('perilla') && esDesafio) { /* nada */ }"],
   ['perillas: el valor del botón queda como texto', 'src/main.js', "if (clave.startsWith('perilla')) v = Number(v);", "if (clave.startsWith('perilla')) v = v;"],
-  ['perillas: con una más fácil se anotan los récords', 'src/desafio.js', '    if (perillasFacilitanPartida()) return;   // 4.22.0: con alguna perilla', '    // 4.22.0: con alguna perilla'],
-  ['perillas: con una más fácil vale el logro de Implacable', 'src/desafio.js', "dificultad: perillasFacilitanPartida() ? 'facilitada' : (ctx.dificultad?.() || 'normal'),", "dificultad: (ctx.dificultad?.() || 'normal'),"],
+  ['perillas: con una más fácil se anotan los récords', 'src/desafio.js', '    if (sinRecords()) return;   // 4.22.0: con alguna perilla', '    // 4.22.0: con alguna perilla'],
+  ['perillas: con una más fácil vale el logro de Implacable', 'src/desafio.js', "dificultad: D().facilitada || perillasFacilitanPartida() ? 'facilitada' : (ctx.dificultad?.() || 'normal'),", "dificultad: (ctx.dificultad?.() || 'normal'),"],
   ['perillas: falta un botón en Ajustes (la vida)', 'src/plantilla.html', '<div class="fila-ajuste" data-perillas="ajustes"><span>Cuánto aguantan</span>\n        <div class="segmentos" data-ajuste="perillaVida"><button data-valor="-2">−2</button><button data-valor="-1">−1</button>', '<div class="fila-ajuste" data-perillas="ajustes"><span>Cuánto aguantan</span>\n        <div class="segmentos" data-ajuste="perillaVida"><button data-valor="-1">−1</button>'],
   ['perillas: las filas de Ajustes no se esconden en el Relax', 'src/main.js', "(el.dataset.perillas === 'ajustes' && !esDesafio)", '(false)'],
 ];

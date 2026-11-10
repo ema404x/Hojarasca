@@ -12,6 +12,8 @@ import { negociosDe } from './negocios.js';
 import { cobrar, pagar, pesosDe, hayEconomia } from './economia.js';
 import { tengoDe } from './pedidos.js';
 import { abonarAlMoroso } from './prestamos.js';
+// 4.25.2 (M4): lo comprado en el tren (para que tus negocios no lo revendan con ganancia)
+import { marcarAlDejar, precioDelLote, devolverAlSacar } from './reventa.js';
 import { registrarPrecios, precioDeEtapa as precioDeEtapaComun, puedePagarEtapa as puedePagarEtapaComun, pagarEtapa as pagarEtapaComun, devolverEtapasPagadas as devolverEtapasPagadasComun } from './obra-pesos.js';
 
 export const PROPIEDAD = {
@@ -117,6 +119,8 @@ export function dejarEnPuesto(p, bien, lotes = 1) {
   if (!pu.stock[bien] && Object.keys(pu.stock).length >= PROPIEDAD.puesto.tiposMax) return { ok: false, motivo: 'tipos' };
   if ((pu.stock[bien] || 0) + Math.floor(lotes) > PROPIEDAD.puesto.stockMax) return { ok: false, motivo: 'lleno' };
   pu.stock[bien] = (pu.stock[bien] || 0) + Math.floor(lotes);
+  marcarAlDejar(p, (pu.reventa ||= {}), bien, Math.floor(lotes), BIENES[bien].lote, tengoDe(p, bien));   // 4.25.2 (M4): el que llama saca las unidades después
+  if (!Object.keys(pu.reventa).length) delete pu.reventa;
   return { ok: true, unidades };
 }
 export function sacarDelPuesto(p, bien, lotes = 1) {
@@ -126,6 +130,7 @@ export function sacarDelPuesto(p, bien, lotes = 1) {
   if (q < 1) return { ok: false, motivo: 'nada' };
   pu.stock[bien] -= q;
   if (pu.stock[bien] <= 0) delete pu.stock[bien];
+  if (pu.reventa) { devolverAlSacar(p, pu.reventa, bien, q, BIENES[bien].lote); if (!Object.keys(pu.reventa).length) delete pu.reventa; }   // 4.25.2 (M4)
   return { ok: true, unidades: q * BIENES[bien].lote };
 }
 export function retirarCajaPuesto(p) {
@@ -149,7 +154,8 @@ export function ventasDelPuesto(p, dia, demanda = 1, factor = () => 1) {
     const hay = Object.keys(pu.stock).filter((b) => pu.stock[b] > 0).sort((a, b) => BIENES[b].valor - BIENES[a].valor || (a < b ? -1 : 1));
     if (!hay.length) break;
     const b = hay[0];
-    pu.caja = Math.min(1e6, pu.caja + precioDeConsigna(b, demanda, factor(b)));
+    pu.caja = Math.min(1e6, pu.caja + precioDelLote(pu.reventa, b, precioDeConsigna(b, demanda, factor(b))));   // 4.25.2 (M4): lo comprado en el tren, como mucho lo que costó
+    if (pu.reventa && !Object.keys(pu.reventa).length) delete pu.reventa;
     pu.stock[b]--;
     if (pu.stock[b] <= 0) delete pu.stock[b];
     vendidos++;

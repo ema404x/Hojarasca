@@ -6,6 +6,8 @@
 // guarda en la partida es una marca chica (`progreso.trucos.entradas`) con las anotaciones del cuaderno que se completaron con el código,
 // para que los logros no las cuenten (ver `vistaParaLogros`). Lo del jugador (velocidad, salto, vuelo, frío) y el reloj congelado viven
 // en memoria y se apagan al reiniciar.
+// 4.25.2 (M3): en el Desafío, el primer código que cambia algo deja otra marca chica, `progreso.desafio.trucos`: esa partida no da logros ni anota
+// récords (ver `esInofensivo` y desafio.js).
 //
 // El motor no conoce el juego: todo lo que necesita se lo pasa `m` (el «mundo»):
 //   m.desafio (bool) · m.progreso() · m.ajustes() · m.jugador() (el estado del jugador) · m.reloj ({ congelado }) · m.limite (hasta dónde se camina)
@@ -490,6 +492,8 @@ function cmdAmigos(args, m) {
   return cambiaron ? ok(R.amigos(cambiaron, nombreNivel.replace(/s$/, todos || cambiaron > 1 ? 's' : ''))) : ok(R.amigosNinguno(nombreNivel.replace(/s$/, '')));
 }
 
+// 4.25.2 (B2): las anotaciones que la Historia toma como objetivo (anotación → objetivo; ver estadoHistoria y los capítulos 1 y 2)
+export const LEE_LA_HISTORIA = { refugio: 'refugio', viaje: 'viaje' };
 function cmdCuaderno(args, m) {
   const p = progresoDe(m); if (!p) return no(R.noHayPartida);
   const d = relax(m, 'El cuaderno'); if (d) return d;
@@ -506,16 +510,23 @@ function cmdCuaderno(args, m) {
   const marca = p.trucos && typeof p.trucos === 'object' ? p.trucos : (p.trucos = {});
   const anotadas = new Set(Array.isArray(marca.entradas) ? marca.entradas : []);
   let nuevas = 0;
+  const nuevasIds = [];
   for (const e of ENTRADAS) {
     if (seccion && e.seccion !== seccion) continue;
     if (p.entradas[e.id]) continue;
     p.entradas[e.id] = { dia: diaDe(p), hora: Number.isFinite(Number(p.horas)) ? Number(p.horas) : 12, cantidad: 0 };
     anotadas.add(e.id);
+    nuevasIds.push(e.id);
     nuevas++;
   }
   marca.entradas = [...anotadas];
+  // 4.25.2 (B2): la Historia lee algunas anotaciones como objetivos (el refugio y la trochita): si el código anotó una cuyo objetivo
+  // todavía no estaba hecho, la partida queda con la marca de la historia (sus logros no cuentan), igual que «historia capitulo N»
+  const hechos = Object.keys(p.historia?.hechos && typeof p.historia.hechos === 'object' ? p.historia.hechos : {});
+  const tocaHistoria = Object.entries(LEE_LA_HISTORIA).some(([e, o]) => nuevasIds.includes(e) && !hechos.some((k) => k.endsWith(`:${o}`)));
+  if (tocaHistoria) marcarHistoria(p, true);
   m.refrescar?.();
-  return ok(R.cuaderno(nuevas));
+  return ok(R.cuaderno(nuevas) + (tocaHistoria ? R.cuadernoHistoria : ''));
 }
 
 // La marca de la partida: sólo qué anotaciones del cuaderno se completaron con el código. Se sanea al guardar y cargar.
@@ -577,7 +588,8 @@ function cmdEscena(args, m) {
   if (a === 'demo') return m.escena(ID_ESCENA_DEMO) ? ok(R.escenaDemo, { cerrar: true }) : no(R.escenaNo);
   return no(R.escenaUso);
 }
-function cmdGuardar(args, m) { if (!m.guardar) return no(R.noHayPartida); m.guardar(); return ok(R.guardado); }
+// 4.25.2 (B1): `m.guardar()` devuelve false cuando no guardó (partida de una versión más nueva, banco de pruebas, reiniciando): no se dice «guardada»
+function cmdGuardar(args, m) { if (!m.guardar) return no(R.noHayPartida); return m.guardar() === false ? no(R.noGuardado) : ok(R.guardado); }
 function cmdLimpiar(args, m) { m.limpiar?.(); return ok(R.limpia, { limpiar: true }); }
 function cmdSalir(args, m) { m.salir?.(); return ok(R.salio, { cerrar: true }); }
 
@@ -643,6 +655,12 @@ export function buscarComando(txt) {
   return { cmd: null, parecidos: contienen.slice(0, 3) };
 }
 
+// 4.25.2 (M3): los códigos que no cambian nada de la partida (los de la consola, «donde», «descongelar» y «ir» sin destino, que sólo lista)
+const INOFENSIVOS = new Set(['donde', 'descongelar', 'planos']);
+export function esInofensivo(cmd, args = []) {
+  return cmd?.grupo === 'consola' || INOFENSIVOS.has(cmd?.nombre) || (cmd?.nombre === 'ir' && !args.length);
+}
+
 // Ejecuta una línea escrita. Nunca tira: siempre devuelve { ok, texto, lineas? , cerrar?, limpiar? }
 export function ejecutar(linea, m) {
   const partes = partir(linea);
@@ -651,7 +669,13 @@ export function ejecutar(linea, m) {
   if (!b.cmd) return no(b.ambiguo ? R.ambiguo(partes[0], b.parecidos) : R.noEntendi(partes.slice(0, 3).join(' '), b.parecidos));
   try {
     const r = b.cmd.correr(partes.slice(1), m);
-    return r && typeof r.texto === 'string' ? r : no(R.noEntendi(partes[0], []));
+    if (!r || typeof r.texto !== 'string') return no(R.noEntendi(partes[0], []));
+    // 4.25.2 (M3): en el Desafío, un código que cambia algo deja la partida marcada: desde ahí no se dan logros ni se anotan récords
+    if (r.ok && m.desafio && !esInofensivo(b.cmd, partes.slice(1))) {
+      const d = progresoDe(m)?.desafio;
+      if (d && typeof d === 'object' && !d.trucos) { d.trucos = true; return { ...r, texto: r.texto + R.marcaDesafio }; }
+    }
+    return r;
   } catch (err) {
     return no('No pude hacerlo y dejé todo como estaba. Probá de nuevo o escribí «ayuda»');
   }

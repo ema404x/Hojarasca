@@ -10,6 +10,8 @@ import { kmh, CABINA } from './maquinista.js';
 import { factorEvento } from './aldea-viva.js';
 import { temporadaDelDia } from './negocios-fx.js';
 import { tienda, factorDe, nivelDe, existencias, registrarCompra, registrarVenta, puedeComprarte, puedeVenderte, destacados, nombreDelBien } from './mercado.js';
+// 4.25.2 (M4): lo comprado en el tren (para que tus negocios no lo revendan con ganancia)
+import { anotarCompraTren } from './reventa.js';
 import { PESOS_POR_YERBA, formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
 
 export const MODOS_PUESTO = ['comprar', 'vender', 'fletes'];
@@ -206,6 +208,7 @@ export function crearPuestoDeCargas(ctx) {
     if (!pago.ok) { ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`); return false; }
     registrarCompra(m, nombre, bien, aPesos(r.precio));   // el puesto tiene un lote menos y la plata en la caja
     sumar(bien, r.cantidad);
+    anotarCompraTren(P(), bien, r.cantidad, aPesos(r.precio));   // 4.25.2 (M4)
     ctx.sonido?.juntar?.();
     ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`, `Pagaste ${formatoPesos(aPesos(r.precio))} · te quedan ${formatoPesos(plata())}`);
     ctx.refrescar(); ctx.guardar(); dibujar();

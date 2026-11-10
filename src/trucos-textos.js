@@ -144,10 +144,13 @@ export const R = {
   amigoNo: (txt) => `No conozco al vecino «${txt}»`,
   nivelNo: (txt) => `No conozco el nivel «${txt}»: conocido, amigo o compadre`,
   cuaderno: (n) => (n ? `Listo: ${n} ${n === 1 ? 'anotación nueva' : 'anotaciones nuevas'} en el cuaderno (no cuentan para los logros)` : 'El cuaderno ya estaba completo'),
+  cuadernoHistoria: '. Algunas las pide la historia: desde ahora los logros de la historia no cuentan en esta partida',   // 4.25.2 (B2)
   cuadernoSeccion: (txt) => `No conozco la sección «${txt}» del cuaderno`,
 
   estado: (dia, hora, pesosTxt, lugar) => `Día ${dia}, ${hora}${pesosTxt ? ` · ${pesosTxt}` : ''}${lugar ? ` · ${lugar}` : ''}`,
   guardado: 'Listo: partida guardada',
+  noGuardado: 'No se guardó la partida: puede ser de una versión más nueva del juego (se abre sólo para mirar) o no hubo lugar para guardar. Probá de nuevo en un rato',   // 4.25.2 (B1)
+  marcaDesafio: '. Ojo: con códigos, esta partida de La noche de los duendes ya no da logros ni anota récords',   // 4.25.2 (M3)
   limpia: 'Pantalla limpia',
   ayudaTitulo: 'Códigos disponibles (escribí «ayuda plata» para el detalle de uno):',
   ayudaUno: (uso, detalle) => `${uso}: ${detalle}`,

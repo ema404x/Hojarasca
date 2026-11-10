@@ -514,6 +514,9 @@ export function desafioNuevo() {
     armasTiradas: {},
     // 4.9 defensas: el farol de mano prendido (las brasas de la pala y los frascos de miel van con la munición)
     farolOn: false,
+    // 4.25.2: marcas de la partida: alguna noche se jugó con una perilla más fácil (`facilitada`) o se usó la consola de códigos
+    // (`trucos`). Con cualquiera de las dos no se anotan récords; con `trucos`, tampoco logros
+    facilitada: false, trucos: false,
     // Segundo acto: aparece recién cuando cae la nodriza (ver desafio-nido.js).
     nido: null,
     // 3.0: el asedio final: aparece si al alba de la noche final la nodriza sigue arriba (desafio-asedio.js)
@@ -688,6 +691,7 @@ export function sanearDesafio(d) {
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
     meta: sanearMetaPartida(x.meta),   // 4.10 partidas: una partida vieja carga en modo normal, sin ventajas ni reglas
     nocheActual: sanearNocheActual(x.nocheActual), quedan: sanearQuedan(x.quedan),   // 4.10.1: guardar a mitad de noche ya no borra el daño ni las obras perdidas
+    facilitada: x.facilitada === true, trucos: x.trucos === true,   // 4.25.2: una partida vieja carga sin marcas
     farolOn: !!x.farolOn, brasas: ent(x.brasas, 0, PALA.cargas),   // 4.9 defensas: una partida vieja carga con el farol apagado y la pala vacía
   };
 }

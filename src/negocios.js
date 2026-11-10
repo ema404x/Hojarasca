@@ -12,6 +12,8 @@
 //   casas     { poseidas, alquiladas, cobrado, puesto } → las casas que levantaste, las que alquilás y tu puesto (ver propiedad.js)
 import { hayEconomia } from './economia.js';
 import { esBien } from './comercio.js';
+// 4.25.2 (M4): lo comprado en el tren (para que tus negocios no lo revendan con ganancia)
+import { sanearCuentaReventa, sanearMarcasReventa } from './reventa.js';
 
 export const TOPE_CAJA = 12000;
 export const CAJA_INICIAL = 3000;
@@ -66,6 +68,9 @@ export function sanearNegocios(v, hoy = 1e6) {
   const b = objeto(v.banco) ? v.banco : {};
   const c = objeto(v.casas) ? v.casas : {};
   const puesto = objeto(c.puesto) ? { desde: Math.min(dia, Math.max(1, entero(c.puesto.desde, 1e6))), caja: entero(c.puesto.caja, 1e6), stock: mapa(c.puesto.stock, (n, b) => (esBien(b) && entero(n, 30) > 0 ? entero(n, 30) : null), 12), dia: Math.min(dia, entero(c.puesto.dia, 1e6)) } : null;
+  // 4.25.2 (M4): lo comprado en el tren (la cuenta y los lotes marcados del puesto): sólo si hay algo, una partida vieja carga igual que antes
+  if (puesto) { const rv = sanearMarcasReventa(c.puesto.reventa, puesto.stock); if (Object.keys(rv).length) puesto.reventa = rv; }
+  const reventa = sanearCuentaReventa(v.reventa);
   return {
     oficio: mapa(v.oficio, (n) => entero(n, 1e5) || null),
     jornal: mapa(v.jornal, (d) => Math.min(dia, entero(d, 1e6))),
@@ -84,6 +89,7 @@ export function sanearNegocios(v, hoy = 1e6) {
       cobrado: entero(c.cobrado, 1e8),
       puesto,
     },
+    ...(Object.keys(reventa).length ? { reventa } : {}),
   };
 }
 // La reputación con un local y el nivel que da (0 a 3): 0 recién llegado, 3 de confianza

@@ -213,8 +213,8 @@ limpio();
   ok(!logros.includes('implacable'), 'una dificultad facilitada no da el logro de Implacable');
   ok(LG.evaluarNoche({ sobrevivida: true, danoRecibido: 5, abatidos: 3, abatidosLanza: 0, abatidosOtros: 3, invasores: 10, obrasPerdidas: 1, noche: 9, dificultad: 'implacable' }, {}).includes('implacable'), 'y la Implacable de verdad, sí');
   const desafio = leer('src/desafio.js');
-  ok(enUnaLinea(desafio, ["dificultad: perillasFacilitanPartida() ? 'facilitada'", 'ctx.dificultad?.()']), 'el logro de la noche mira las perillas');
-  ok(enUnaLinea(desafio, ['if (perillasFacilitanPartida()) return;']), 'registrarRecords no anota si una perilla facilita');
+  ok(enUnaLinea(desafio, ["dificultad: D().facilitada || perillasFacilitanPartida() ? 'facilitada'", 'ctx.dificultad?.()']), 'el logro de la noche mira las perillas');   // (4.25.2: y la marca de la partida)
+  ok(enUnaLinea(desafio, ['if (sinRecords()) return;']) && enUnaLinea(desafio, ['const sinRecords = () =>', 'perillasFacilitanPartida()']), 'registrarRecords no anota si una perilla facilita');   // (4.25.2: por sinRecords)
 
   // en el juego: se fijan al abrir (menos en la sin fin) y al tocarlas
   const main = leer('src/main.js');

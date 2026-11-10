@@ -269,7 +269,8 @@ export function crearValleUi(ctx) {
     if (panel.style.top !== `${arriba}px`) panel.style.top = `${arriba}px`;
     const html = armar(false, true);
     const alto = altoDeVentana();
-    const clave = `${html}|${alto}|${arriba}`;
+    // 4.25.2 (G3-4): también el ancho de la ventana y el tamaño de letra: cambiar sólo uno de esos no volvía a medir el panel (quedaba pasado del borde, o compacto de más)
+    const clave = `${html}|${alto}|${arriba}|${Number(doc.defaultView?.innerWidth) || 0}|${doc.documentElement?.dataset?.escalaLetra || ''}`;
     if (clave !== htmlPanel) {
       htmlPanel = clave; panel.innerHTML = html; ctx.traducir?.(panel);
       // 4.24.0: si el panel no entra en la ventana (1024x600 con las doce líneas del capítulo 11), de cada cadena queda el próximo paso y cuántos más hay;

@@ -287,7 +287,7 @@ import { ferminEnElTecho } from './historia-props-acto3.js';
 import { resolverColocacion } from './historia-colocacion.js';
 // 4.17 C (sólo para el gancho de depuración __colocarEscena)
 import { COLOCACION_ESCENA } from './historia-disparadores.js';
-import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';
+import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia, avisoImportarHistoria } from './historia-reinicio.js';
 // 4.17.1: la copia previa en el formato de «Exportar» (con el texto crudo de la carga y las fotos), la puerta del refugio y la bolsa del umbral
 import { textoPaqueteCopia } from './historia-reinicio.js';
 import { cedeALaPuerta, hayEDespuesDelFinal, objetoMirado } from './historia-disparadores.js';
@@ -310,7 +310,7 @@ import { crearPantallaNuevaPartida, dibujarHojaPartidas } from './desafio-meta-p
 import { MODOS as MODOS_META, modoDe as modoMetaDe, textoSemillas, FACTOR_NOCHE_LARGA, resumenFinales, textoMult } from './desafio-meta.js';
 // 4.10 guardian: los estudios del bestiario
 import { renglonesEstudio } from './desafio-bestiario-premia.js';
-import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos, notaRepetida, notaASacar } from './accesibilidad.js';
+import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, accionesEnTeclasDelJuego, escalaLetra, colorDe, apilarAviso, subtitulos, notaRepetida, notaASacar } from './accesibilidad.js';
 import { crearDesafio } from './desafio.js';
 import { contenidoFortin } from './desafio-fortin.js';
 import { crearBanco } from './desafio-sonidos.js';
@@ -472,6 +472,15 @@ const empezadaAlAbrir = !!(habiaGuardado && progreso.pos);
 let entroAlJuego = false;
 // 1.6: teclas propias, mando y accesibilidad
 let teclasPropias = sanearMapaTeclas(ajustes.teclas);
+// 4.25.2 (G3-1): una acción guardada en una tecla fija del juego (la Q de la caña, la V de soltar…) vuelve a la suya, se guarda así y se avisa
+{
+  const pisadas = accionesEnTeclasDelJuego(ajustes.teclas);
+  if (pisadas.length) {
+    ajustes.teclas = teclasPropias;
+    try { guardarAjustes(ajustes); } catch { /* se guarda la próxima vez que cambie un ajuste */ }
+    setTimeout(() => nota('Volvieron algunas teclas', `${pisadas.map((a) => NOMBRES_ACCIONES[a] || a).join(', ')}: estaban en una tecla que el juego ya usa para otra cosa. Podés elegir otra en Pausa → Teclas`), 4000);
+  }
+}
 // Una tecla del jugador llega traducida a la de fábrica: el resto del juego no se entera.
 // Y la tecla de fábrica que quedó libre deja de hacer lo que hacía antes.
 let huerfanas = new Set();
@@ -984,6 +993,7 @@ async function construir() {
       registrarEfectosActo1(escenasMundo, { ...ctxEfectos, dar: (cosa, n) => darCosaHistoria(cosa, n), mundo: (id, args, escena) => efectoMundoHistoria(id, args, escena), duende: (id, args) => efectoDuendeHistoria(id, args), quitar: (cosa, n) => gastarCosaHistoria(cosa, n) }, [...new Set([...EFECTOS_ACTO1, ...EFECTOS_ACTO2, ...EFECTOS_ACTO3, ...EFECTOS_OPTATIVAS, ...EFECTOS_LAZOS])]);   // (4.16.0: y los del acto II; 4.17.0: y los del III; 4.18.0: y los de las optativas; 4.18.2: y los de Sofía)
     } catch (e) { fallaSistema('historia-escenas', e); }
     document.addEventListener('keyup', (e) => { escenasMundo?.teclaSuelta(e); });   // (soltar Mayús: la escritura vuelve a su velocidad)
+    window.addEventListener('blur', () => { escenasMundo?.teclaSuelta({ code: 'ShiftLeft' }); });   // 4.25.2 (G3-5): perder el foco con Mayús apretada no deja la escena acelerada (el keyup no llega)
   }
   escena.add(camara);
   huellas = crearHuellas();
@@ -1513,6 +1523,7 @@ function dentroDelRefugio(p) {
 }
 function dormir(opRincon = null) {
   if (durmiendo) return;
+  if (nocheMundo?.activa?.()) { nota('No podés dormir ahora', 'Esta noche no se duerme: hay que defender el valle'); return; }   // 4.25.2 (G3-2): durante la noche de la nevada, por ninguna puerta
   const enCarpa = !!opRincon?.carpa;   // 3.8.6: la carpa se anota después de las guardas (antes, «Dormí en la carpa» aunque no se durmiera)
   const op = { enTren: dormirEnElTren };
   const enCasaAldea = !desafio && (!!opRincon?.casaAldea || !!opRincon?.puestoRuta);   // (4.6 puestos: el catre de un puesto de ruta también es techo propio y tibio)
@@ -2294,7 +2305,7 @@ function puedeEmpezarEscena(deSentado = false) {
 let nocheMundo = null;
 function nocheDelMundo() {
   if (esDesafio) return null;
-  if (!nocheMundo) nocheMundo = crearNocheMundo({ alAliados: (al, dis) => aliadosDeNoche(al, dis), sinAliados: () => soltarAliadosDeNoche(), T, escena, camara, col, sonido, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
+  if (!nocheMundo) nocheMundo = crearNocheMundo({ traducirTecla: (c) => codigoCanonico(c), alAliados: (al, dis) => aliadosDeNoche(al, dis), sinAliados: () => soltarAliadosDeNoche(), T, escena, camara, col, sonido, jugador: () => jugador, puntoDe: (k) => puntosCacheadosDeHistoria()[k] || null, progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), modo: () => modo, compilar: (o) => { const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post && ajustes.post !== 'apagado' ? post.destino : null); try { renderer.compile(o, camara, escena); } finally { renderer.setRenderTarget(rt); } } });   // (contra la salida del posproceso, como la compilación de la carga)
   return nocheMundo;
 }
 // 4.15.0: dónde están las cosas de la Historia nueva. Los puntos con nombre del mundo (y de la aldea); se recalculan cada medio segundo con la
@@ -3342,7 +3353,7 @@ function importarTexto(ranura, texto, preguntar = true) {
     return { ok: false, motivo };
   }
   // 3.5.1: preguntando, la respuesta llega después (cuadro del juego): devuelve una promesa
-  if (preguntar) return dialogos.confirmar(avisoImportar(r.paquete, infoPartida(modoJuego, ranura), versionNuevaDe(r.paquete)))
+  if (preguntar) return dialogos.confirmar(avisoImportar(r.paquete, infoPartida(modoJuego, ranura), versionNuevaDe(r.paquete), modoJuego === 'relax' ? avisoImportarHistoria(r.paquete.progreso) : ''))   // 4.25.2 (B4)
     .then((si) => (si ? importarTexto(ranura, texto, false) : { ok: false, motivo: 'cancelado' }));
   if (!escribirPartida(modoJuego, ranura, r.paquete.progreso, r.paquete.fotos)) {
     nota('No se pudo guardar la partida importada', 'Puede que no haya espacio libre');
@@ -3906,7 +3917,8 @@ function terminarCorrida() {
   if (!esSinFin || !d || d.sinFin?.terminada) return null;
   d.sinFin = { terminada: true, dificultad: dificultadEnJuego() };
   const entrada = { noches: d.noches || 0, abatidos: d.abatidos || 0, fecha: new Date().toISOString().slice(0, 10), codigo: d.semilla, dificultad: dificultadEnJuego() };   // 3.8.4: la de la corrida
-  const r = registrarCorrida(recordsSinFin(), entrada);
+  // 4.25.2 (M3): con la consola de códigos usada en la corrida, el récord no se anota (la corrida se cierra igual)
+  const r = d.trucos ? { records: recordsSinFin(), puesto: 0, puestoCodigo: 0 } : registrarCorrida(recordsSinFin(), entrada);
   try { localStorage.setItem(CLAVE_SIN_FIN, JSON.stringify(r.records)); } catch {}
   corridaUltima = { ...entrada, puesto: r.puesto, puestoCodigo: r.puestoCodigo, meta: metaJuego.terminar() };   // 4.10 partidas: y su semilla del Coihue
   guardar();
@@ -8592,7 +8604,7 @@ function usarOficioPropio(o) {
     const dejado = dejarEnTienda(progreso, t);
     const partes = [];
     if (caja > 0) partes.push(`Retiraste ${formatoPesos(caja)} de la caja`);
-    if (dejado.length) partes.push(`Dejaste a la venta ${dejado.map((x) => aTexto(x.k, x.lotes)).join(', ')}`);
+    if (dejado.length) partes.push(`Dejaste a la venta ${dejado.map((x) => aTexto(x.k, x.lotes)).join(', ')}${dejado.some((x) => x.comprados) ? ' (lo comprado en la trochita se vende a lo que te costó)' : ''}`);   // 4.25.2 (M4)
     if (partes.length) { sonido.juntar(); nota(caja > 0 ? `+${formatoPesos(caja)} de la tienda` : 'Tu tienda de campo', partes.join('. '), true); }
     else {
       const hay = lotesEnTienda(t);
@@ -10984,10 +10996,12 @@ const statsInterior = { cuadros: 0, apagados: 0, ultimosApagados: 0 };
 // la casa de té es una estructura del valle puesta en la aldea (no un edificio de aldeaMundo): sus paredes y su frente (la puerta y el ventanal) a lo ancho
 const salidaCasaTe = { id: '', x: 0, z: 0, radio: 0, puertas: null };
 let cajaCasaTe = null;
+// 4.25.2 (G3-3): hasta el alero (estructuras.js: zócalo de 0,38 m y paredes de 2,7 m), no 4 m: arriba de eso la cámara está sobre el techo
+const ALERO_CASA_TE = 0.38 + 2.7;
 function interiorDeLaCasaDeTe(cam) {
   const c = T.lugares['casa-te'];
   if (!c || !(c.ancho > 0)) return null;
-  if (!cajaCasaTe || cajaCasaTe.x !== c.x || cajaCasaTe.z !== c.z || cajaCasaTe.rot !== c.rot) cajaCasaTe = { id: 'casa-te', x: c.x, z: c.z, y: c.y, rot: c.rot, ancho: c.ancho, fondo: c.fondo, alto: 4, frente: [[-c.ancho / 2, c.fondo / 2], [0, c.fondo / 2], [c.ancho / 2, c.fondo / 2]] };
+  if (!cajaCasaTe || cajaCasaTe.x !== c.x || cajaCasaTe.z !== c.z || cajaCasaTe.rot !== c.rot) cajaCasaTe = { id: 'casa-te', x: c.x, z: c.z, y: c.y, rot: c.rot, ancho: c.ancho, fondo: c.fondo, alto: ALERO_CASA_TE, frente: [[-c.ancho / 2, c.fondo / 2], [0, c.fondo / 2], [c.ancho / 2, c.fondo / 2]] };
   return interiorDeCaja(cam, cajaCasaTe, salidaCasaTe);
 }
 function apagarExterior() {
