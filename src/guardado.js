@@ -81,6 +81,8 @@ import { empleadosNuevo, sanearEmpleadosNegocio } from './empleados-negocio.js';
 import { sanearAjusteBorrachera } from './pena.js';
 // 4.6 gente: el tablón de encargos y lo de la gente del campo (pedidos, tienditas, historias)
 import { sanearGenteCampo, genteCampoNueva } from './gente-campo.js';
+// 4.25.2: los bultos de lo que tiraste con V
+import { sanearBultos, sanearDejadas } from './tirar.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -642,6 +644,9 @@ function sanearProgreso(p) {
     // 3.8.6: el entumecido y el descansado, en horas de juego (una partida vieja no lo trae)
     cuerpo: objeto(p.cuerpo) ? { entumecido: Math.max(0, Math.min(12, finito(p.cuerpo.entumecido, 0))), descansado: Math.max(0, Math.min(12, finito(p.cuerpo.descansado, 0))) } : undefined,
     soltados: arr(p.soltados).filter((s) => objeto(s) && ['ramita', 'pinon', 'calafate', 'frutilla', 'pluma', 'canto'].includes(s.tipo) && Number.isFinite(s.x) && Number.isFinite(s.z) && Math.abs(s.x) <= LIMITE && Math.abs(s.z) <= LIMITE).slice(-64).map((s) => ({ tipo: s.tipo, x: s.x, z: s.z })),
+    // 4.25.2: lo que tiraste con V que no tiene forma en el suelo (los bultos) y si la caña o la linterna quedaron tiradas (tirar.js).
+    // Una partida vieja no los trae: sin bultos y con todo encima
+    bultos: sanearBultos(p.bultos, LIMITE), dejadas: sanearDejadas(p.dejadas),
     // 2.8: una partida vieja no lo tiene: sale con lo de fábrica de cada sección
     personal: sanearPersonal(p.personal),
     // 2.9: una partida vieja no lo tiene: arranca sin fletes ni cuentas

@@ -7,6 +7,7 @@ import { ENTRADA } from './cuaderno.js';
 import { LAGO, LIMITE } from './config.js';
 import { MELODIAS, MELODIA, anotarPartitura, tocadiscos, tocadiscosSuena, sanearMusica, disponibles, siguienteDisco, escucharMuestra } from './personal-musica.js';
 import { crearTocadiscos } from './tocadiscos-mundo.js';
+import { ponerBulto, devolverAMochila, textoBulto, modeloDe, sanearBultos, TOPE_BULTOS } from './tirar.js';
 
 const NOMBRE_ESPECIE = { coihue: 'coihue', lenga: 'lenga', cipres: 'ciprés', arrayan: 'arrayán', pehuen: 'pehuén', nire: 'ñire', maiten: 'maitén' };
 const NOMBRE_PLANTA = { helecho: 'helecho', nalca: 'nalca', colihue: 'caña colihue', chilco: 'chilco', notro: 'notro', maqui: 'maqui', chaura: 'chaura', coiron: 'coirón', neneo: 'neneo' };
@@ -74,6 +75,46 @@ function geoPartitura() {
     for (let k = 0; k < 6; k++) c.agregar(new THREE.BoxGeometry(0.01, 0.003, 0.008), { color: '#2a2521', tipo: 4, variar: 0, matriz: matriz([-0.07 + k * 0.028, 0.0155, z0 + Math.floor(r() * 9) * 0.0055]) });
   }
   c.agregar(new THREE.IcosahedronGeometry(0.045, 0), { color: '#8a8378', tipo: 4, variar: 0.1, matriz: matriz([0.075, 0.03, -0.115], [0.3, 0.5, 0], [1.2, 0.7, 1]) });
+  return c.geometria();
+}
+
+// 4.25.2: lo que tirás con V que no tiene forma propia en el suelo (tirar.js): un atado de arpillera atado con tiento, una
+// herramienta envuelta en un paño, y para los materiales grandes su forma: el tronco, unas tablas, unas piedras, un haz de leña
+function geoAtado() {
+  const c = new Constructor();
+  c.agregar(abollar(new THREE.IcosahedronGeometry(0.17, 1), 0.018, 40), { color: '#9c8460', tipo: 4, variar: 0.08, matriz: matriz([0, 0.11, 0], [0, 0, 0], [1, 0.72, 0.9]) });
+  c.agregar(new THREE.CylinderGeometry(0.045, 0.075, 0.09, 7), { color: '#8f7856', tipo: 4, variar: 0.05, matriz: matriz([0, 0.23, 0]) });
+  c.agregar(new THREE.CylinderGeometry(0.052, 0.052, 0.022, 8), { color: '#5a4630', tipo: 4, variar: 0, matriz: matriz([0, 0.215, 0]) });
+  c.agregar(new THREE.CylinderGeometry(0.03, 0.05, 0.05, 6), { color: '#9c8460', tipo: 4, variar: 0.05, matriz: matriz([0, 0.285, 0]) });
+  return c.geometria();
+}
+function geoHerramienta() {
+  const c = new Constructor();
+  c.agregar(new THREE.CylinderGeometry(0.065, 0.07, 0.5, 8), { color: '#7d6a50', tipo: 4, variar: 0.08, matriz: matriz([0, 0.07, 0], [0, 0, Math.PI / 2]) });
+  for (const x of [-0.15, 0.15]) c.agregar(new THREE.CylinderGeometry(0.072, 0.072, 0.025, 8), { color: '#4f3e2a', tipo: 4, variar: 0, matriz: matriz([x, 0.07, 0], [0, 0, Math.PI / 2]) });
+  c.agregar(new THREE.CylinderGeometry(0.018, 0.02, 0.22, 6), { color: '#6b5238', tipo: 4, variar: 0.05, matriz: matriz([0.34, 0.06, 0.01], [0, 0, Math.PI / 2]) });
+  return c.geometria();
+}
+function geoTroncoSuelto() {
+  const c = new Constructor();
+  c.agregar(new THREE.CylinderGeometry(0.13, 0.14, 1.1, 9), { color: '#6b5238', tipo: 4, variar: 0.1, matriz: matriz([0, 0.13, 0], [0, 0, Math.PI / 2]) });
+  for (const x of [-0.556, 0.556]) c.agregar(new THREE.CircleGeometry(0.128, 9), { color: '#a8855a', tipo: 4, variar: 0.05, matriz: matriz([x, 0.13, 0], [0, x > 0 ? Math.PI / 2 : -Math.PI / 2, 0]) });
+  return c.geometria();
+}
+function geoTablas() {
+  const c = new Constructor();
+  for (let i = 0; i < 3; i++) c.agregar(new THREE.BoxGeometry(1.0, 0.03, 0.17), { color: i % 2 ? '#8a6b4a' : '#9a7a55', tipo: 4, variar: 0.06, matriz: matriz([0, 0.017 + i * 0.031, (i - 1) * 0.02], [0, (i - 1) * 0.06, 0]) });
+  return c.geometria();
+}
+function geoPiedras() {
+  const c = new Constructor(), r = rng(17);
+  for (const [x, z, s] of [[0, 0, 0.16], [0.17, 0.08, 0.11], [-0.12, 0.12, 0.1]]) c.agregar(abollar(new THREE.IcosahedronGeometry(s, 1), 0.02, 30 + r() * 20), { color: '#857f76', tipo: 4, variar: 0.15, matriz: matriz([x, s * 0.55, z], [0, r() * 6, 0], [1.1, 0.7, 1]) });
+  return c.geometria();
+}
+function geoLena() {
+  const c = new Constructor();
+  for (const [x, y] of [[-0.035, 0.03], [0.035, 0.03], [0, 0.085]]) c.agregar(troncoCurvo(0.6, 0.026, 0.02, [0, 0], 5, 1), { color: '#6b5238', tipo: 4, matriz: matriz([x, y, -0.3], [Math.PI / 2, 0, 0]) });
+  c.agregar(new THREE.CylinderGeometry(0.075, 0.075, 0.025, 8), { color: '#9c8460', tipo: 4, variar: 0, matriz: matriz([0, 0.05, 0], [Math.PI / 2, 0, 0]) });
   return c.geometria();
 }
 
@@ -272,7 +313,57 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     if (Math.hypot(cam.x - ultimaCam.x, cam.z - ultimaCam.z) < 4) return;
     ultimaCam.x = cam.x; ultimaCam.z = cam.z;
     for (const tipo of Object.keys(vistas)) compactar(tipo);
+    verBultos();   // 4.25.2
   }
+
+  // 4.25.2: los bultos de lo que tiraste con V (`progreso.bultos`, ver tirar.js). Una malla instanciada por forma, con lugar
+  // para el tope de bultos del valle (TOPE_BULTOS): no crece nunca, y sólo se dibuja la forma que tiene algún bulto cerca
+  progreso.bultos = sanearBultos(progreso.bultos);
+  const BULTO_GEO = { atado: geoAtado, herramienta: geoHerramienta, tronco: geoTroncoSuelto, tabla: geoTablas, piedra: geoPiedras, 'leña': geoLena };
+  const mallasBulto = {};
+  for (const [forma, geo] of Object.entries(BULTO_GEO)) {
+    const im = new THREE.InstancedMesh(geo(), mat, TOPE_BULTOS);
+    im.count = 0;
+    im.visible = false;
+    im.frustumCulled = false;
+    im.receiveShadow = true;
+    im.matrixAutoUpdate = false;
+    escena.add(im);
+    mallasBulto[forma] = im;
+  }
+  const RADIO_VISTA_BULTO = 90;
+  function verBultos() {
+    const lista = progreso.bultos || [];
+    for (const [forma, im] of Object.entries(mallasBulto)) {
+      im.visible = im.count > 0 && lista.some((b) => modeloDe(b.carga) === forma && Math.hypot(b.x - ultimaCam.x, b.z - ultimaCam.z) < RADIO_VISTA_BULTO);
+    }
+  }
+  function armarBultos() {
+    const n = {};
+    for (const forma of Object.keys(mallasBulto)) n[forma] = 0;
+    for (const b of progreso.bultos || []) {
+      if (!Number.isFinite(b.y)) b.y = T.altura(b.x, b.z);
+      const forma = modeloDe(b.carga), im = mallasBulto[forma];
+      if (!im || n[forma] >= TOPE_BULTOS) continue;
+      // (un montón grande se ve un poco más grande: hasta una vez y media)
+      const esc = b.carga?.n > 1 ? Math.min(1.5, 1 + Math.log10(b.carga.n) * 0.25) : 1;
+      M.copy(matriz([b.x, b.y, b.z], [0, b.rot || 0, 0], [esc, esc, esc]));
+      im.setMatrixAt(n[forma]++, M);
+    }
+    for (const [forma, im] of Object.entries(mallasBulto)) { im.count = n[forma]; im.instanceMatrix.needsUpdate = true; }
+    verBultos();
+  }
+  armarBultos();
+  // Tirar: la carga ya salió de la mochila (tirar.js, sacarDeMochila). Si no hay lugar en el valle, devuelve { ok: false } y quien
+  // llama la devuelve a la mochila
+  function tirarBulto(carga, x, y, z) {
+    if (!Array.isArray(progreso.bultos)) progreso.bultos = [];
+    const r = ponerBulto(progreso.bultos, carga, x, y, z, Math.random() * 6.28);
+    if (r.ok) armarBultos();
+    return r;
+  }
+  // El límite de la mochila para juntar un bulto entero (main.js: lugarEn). Sin él, entra todo
+  let lugarMochila = null;
 
   // grilla de búsqueda
   const grilla = new Map();
@@ -329,6 +420,11 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       // 2.6.1: el candidato (y su texto) se arma sólo si le gana al mejor
       // (3.8.6: con doce ramitas la E no junta otra: el aviso lo dice, en vez de «Juntar ramita»)
       if (dot > 0 && dot + 0.02 > puntaje) probar({ tipo: 'item', it, texto: it.tipo === 'ramita' && progreso.ramitas >= 12 ? 'Ya llevás doce ramitas' : cabe && def.entrada && (def.accion === 'juntar' || progreso.entradas[def.entrada]) && !cabe(def.entrada) ? `Mochila llena: no te entra más ${def.etiqueta}` : (def.accion === 'anotar' && !anotado ? 'Anotar ' : 'Juntar ') + def.etiqueta }, dot + 0.02);
+    }
+    // 4.25.2: los bultos de lo que tiraste (son pocos: TOPE_BULTOS en todo el valle)
+    for (const b of progreso.bultos || []) {
+      const dot = mira(b.x, b.y + 0.15, b.z, 3.2);
+      if (dot > 0 && dot + 0.02 > puntaje) probar({ tipo: 'bulto', b, texto: textoBulto(b) }, dot + 0.02);
     }
     for (const p of vecinos(grillaPlantas, ojo.x, ojo.z, vecinosPlantas)) {
       if (progreso.entradas[p.tipo]) continue;
@@ -392,6 +488,18 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       sonido.juntar?.();
       try { tocadiscos.nota?.(d.encendido ? MELODIA[d.elegida].nombre : 'Tocadiscos apagado', d.encendido ? 'Suena en el tocadiscos' : 'E lo vuelve a prender'); tocadiscos.guardar?.(); } catch {}
       return { tocadiscos: d.encendido ? MELODIA[d.elegida].nombre : null };
+    }
+    // 4.25.2: un bulto vuelve a la mochila tal cual salió (tirar.js); lo que no entra queda en el suelo
+    if (obj.tipo === 'bulto') {
+      const lista = progreso.bultos || [], i = lista.indexOf(obj.b);
+      if (i < 0) return null;
+      const r = devolverAMochila(progreso, obj.b.carga, lugarMochila);
+      if (!r.ok) return { bultoNo: { titulo: r.titulo, texto: r.texto } };
+      const { id, nombre } = obj.b.carga;
+      if (r.resto) obj.b.carga = r.resto; else lista.splice(i, 1);
+      armarBultos();
+      sonido.juntar();
+      return { bulto: { id, nombre, juntados: r.juntados, quedan: r.resto ? r.resto.n : 0 } };
     }
     if (obj.tipo === 'item' && obj.it.tipo === 'partitura') {
       if (!quitar(obj.it)) return null;
@@ -472,5 +580,6 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
   // 3.8.4: lo soltado de la partida guardada, otra vez en el suelo
   for (const s of soltadosGuardados) soltar(s.tipo, s.x, s.z, s);
 
-  return { buscar, usar, soltar, items, tipos, ENTRADA, actualizar, tocadiscos: vitrola, ponerCabe: (f) => { cabe = f; } };
+  return { buscar, usar, soltar, items, tipos, ENTRADA, actualizar, tocadiscos: vitrola, ponerCabe: (f) => { cabe = f; },
+    tirarBulto, bultos: () => progreso.bultos, ponerLugar: (f) => { lugarMochila = typeof f === 'function' ? f : null; } };   // 4.25.2
 }

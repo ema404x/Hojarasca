@@ -41,6 +41,8 @@ import { crearPasto } from './pasto.js';
 import { crearColisiones } from './colisiones.js';
 import { crearEstructuras } from './estructuras.js';
 import { crearObjetos } from './objetos.js';
+// 4.25.2: tirar casi todo con V
+import { motivoParaNoTirar, sacarDeMochila, devolverAMochila, dejada } from './tirar.js';
 import { crearFauna } from './fauna.js';
 import { crearVida } from './vida.js';
 import { crearBichos } from './bichos.js';
@@ -938,6 +940,7 @@ async function construir() {
   pasto = await paso('Dejando crecer el pasto', 78, async () => { await esperarTexturas('manchas'); const p = crearPasto(calidad); escena.add(p.malla); return p; });
   objetos = await paso('Escondiendo frutillas y plumas', 82, () => crearObjetos(T, veg, est, escena, progreso, edificios));
   objetos.ponerCabe((k) => lugarEn(k, 1) >= 1);   // 4.7 carga: sin lugar en la mochila, lo del suelo se queda en el suelo
+  objetos.ponerLugar((k, n) => lugarEn(k, n));   // 4.25.2: un bulto tirado vuelve hasta donde entra
   // 2.8: cuántos animales, según la receta con que empezó la partida (Tu partida)
   fauna = await paso('Despertando la fauna patagónica', 86, () => crearFauna(T, veg, col, escena, sonido, registrar, progreso, { animales: factorAnimales(progreso) }));
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
@@ -4166,7 +4169,7 @@ document.addEventListener('keydown', (e) => {
     case 'KeyG': if (!js.enTren && !js.enKayak) cocinar(); break;
     case 'KeyT': if (modoObra && obras) { tenirPieza(); break; } armarCarpa(); break;
     case 'KeyB': plantarRenoval(); break;
-    case 'KeyV': soltarRanura(); break;
+    case 'KeyV': soltarRanura(e.shiftKey); break;   // 4.25.2: Mayús + V tira la pila entera
     case 'F4': if (HOJARASCA_DEBUG) alternarCamaraLibre(); break;
     case 'KeyH': if (!modoObra) usarHacha(); break;
     case 'Backspace':
@@ -4242,10 +4245,12 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'KeyQ':
       if (js.nadando || js.enTren) break;
+      if (dejada(progreso, 'cana')) { nota('No tenés la caña', 'La dejaste en el suelo: juntala con E'); break; }   // 4.25.2
       pesca.equipar(!pesca.est.equipada);
       if (pesca.est.equipada && !progreso.entradas.arcoiris) nota('Caña de mosca', 'Clic para lanzar al agua; clic de nuevo cuando pique');
       break;
     case 'KeyL':
+      if (!progreso.cosas.farol && dejada(progreso, 'linterna')) { nota('No tenés la linterna', 'La dejaste en el suelo: juntala con E'); break; }   // 4.25.2
       linterna.distance = progreso.cosas.farol ? 78 : 42;
       linterna.angle = progreso.cosas.farol ? 0.52 : 0.42;
       linterna.intensity = linterna.intensity > 0 ? 0 : (progreso.cosas.farol ? 80 : 45);
@@ -4574,21 +4579,35 @@ function elegirRanura(i) {
   if (enMano) enMano.mostrar(ranuras[elegida]?.id);
 }
 // Dejar en el suelo lo que tenés en la mano: queda ahí y se puede volver a juntar
-function soltarRanura() {
+// 4.25.2: se tira casi todo (tirar.js). Lo juntado del suelo cae de a uno con su forma, como antes; lo demás (y con Mayús, la
+// pila entera) cae en un bulto que E devuelve tal cual. No se tira lo de la Historia ni la cámara, ni en el Desafío lo que no es del suelo
+function soltarRanura(todo = false) {
   const r = ranuras[elegida];
   const js = jugador.estado;
   if (!r || js.enTren || js.enKayak || js.nadando) return;
+  if (js.enCable || durmiendo || escenasMundo?.activa()) return;   // 4.25.2: ni colgado del cable, ni dormido, ni en una escena
   const sueltos = { ramita: 'ramitas', pinon: 'pinon', calafate: 'calafate', frutilla: 'frutilla', pluma: 'pluma', canto: 'canto' };
   const clave = sueltos[r.id];
-  if (!clave) { nota('Eso no se suelta', 'Solo lo que juntaste del suelo'); return; }
+  const no = motivoParaNoTirar(progreso, r.id);
+  if (no) { nota(no.titulo, no.texto); return; }
   const x = js.pos.x - Math.sin(js.yaw) * 1.3, z = js.pos.z - Math.cos(js.yaw) * 1.3;
   if (T.agua(x, z)) { nota('Ahí no', 'Se te va con el agua'); return; }
-  const ok = objetos.soltar(r.id, x, z);
-  if (!ok) { nota('No se pudo dejar', 'Probá en un lugar más despejado'); return; }
-  if (clave === 'ramitas') progreso.ramitas = Math.max(0, progreso.ramitas - 1);
-  else if (progreso.entradas[clave]) progreso.entradas[clave].cantidad = Math.max(0, (progreso.entradas[clave].cantidad || 0) - 1);
+  if (Math.abs(x) > LIMITE || Math.abs(z) > LIMITE || col?.paredEntre?.(js.pos.x, js.pos.z, x, z, js.pos.y + 0.5)) { nota('No se pudo dejar', 'Probá en un lugar más despejado'); return; }
+  if (clave && !todo && objetos.soltar(r.id, x, z)) {
+    if (clave === 'ramitas') progreso.ramitas = Math.max(0, progreso.ramitas - 1);
+    else if (progreso.entradas[clave]) progreso.entradas[clave].cantidad = Math.max(0, (progreso.entradas[clave].cantidad || 0) - 1);
+  } else {
+    const t = sacarDeMochila(progreso, r.id, { todo, nombre: r.nombre });
+    if (!t.ok) { nota(t.titulo, t.texto); return; }
+    const puesto = objetos.tirarBulto(t.carga, x, alturaDePie(T, col, x, z, js.pos.y), z);
+    if (!puesto.ok) { devolverAMochila(progreso, t.carga); nota(puesto.titulo, puesto.texto); refrescarBarra(true); return; }
+    if (r.id === 'cana' && pesca.est.equipada) pesca.equipar(false);
+    if (r.accion === 'luz' && linterna) linterna.intensity = 0;   // (la luz que llevabas se apaga en el suelo)
+    if (t.carga.n > 1) nota(`${r.nombre} (${t.carga.n})`, 'Quedó todo en un bulto: E lo junta');
+  }
   sonido.paso('hojarasca', 0.5);
   refrescarBarra(true);
+  if (enMano) enMano.mostrar(ranuras[elegida]?.id);
   guardar();
 }
 
@@ -10788,6 +10807,8 @@ function usarTrenInteraccion() {
 function usarObjetivo() {
   const js = jugador.estado;
   const r = objetos.usar(objetivo, registrar, sonido);
+  if (r?.bultoNo) { nota(r.bultoNo.titulo, r.bultoNo.texto); return; }   // 4.25.2: lo tirado (tirar.js) que no entra queda en el suelo
+  if (r?.bulto) { destellarRanura(r.bulto.id); nota(r.bulto.juntados > 1 ? `${r.bulto.nombre} (${r.bulto.juntados})` : r.bulto.nombre, r.bulto.quedan ? `No te entró todo: quedan ${r.bulto.quedan} en el suelo` : 'Lo guardaste en la mochila'); if (enMano) enMano.mostrar(ranuras[elegida]?.id); guardar(); return; }
   if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
   if (r?.llenaMochila) { nota(`Mochila llena: no te entra más ${r.llenaMochila}`, 'Gastá, vendé o guardá algo en un depósito'); return; }   // 4.7 carga: se queda en el suelo (ni destella la casilla)
   if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
