@@ -46,7 +46,8 @@ async function cargarGrupo(grupo, mut) {
     writeFileSync(destino, t);
     copias.push(destino);
   }
-  for (const f of grupo) mods[f] = await import(pathToFileURL(join(SRC, nombre(f))).href);
+  try { for (const f of grupo) mods[f] = await import(pathToFileURL(join(SRC, nombre(f))).href); }
+  finally { for (const f of grupo) { try { rmSync(join(SRC, nombre(f)), { force: true }); } catch { /* ya no está */ } } }   // (ya cargados: se borran enseguida, así las pruebas que recorren src/ casi no las ven)
   return mods;
 }
 // Texto de un archivo, con la mutación si es ese
