@@ -568,10 +568,12 @@ export function armarMochila(progreso, estado) {
   const ranuras = [];
 
   ranuras.push({ id: 'camara', nombre: 'Cámara', icono: 'camara', accion: 'foto', texto: 'Sacá una foto de lo que estés mirando.' });
-  ranuras.push({ id: 'cana', nombre: 'Caña de pescar', icono: 'cana', accion: 'cana', activo: estado.canaEquipada, texto: 'Lanzá a la orilla del lago o del arroyo.' });
+  // 4.25.2: la caña y la linterna se pueden tirar (tirar.js): mientras están en el suelo, `progreso.dejadas` las saca de la barra
+  const dejada = (id) => progreso.dejadas?.[id] === true;
+  if (!dejada('cana')) ranuras.push({ id: 'cana', nombre: 'Caña de pescar', icono: 'cana', accion: 'cana', activo: estado.canaEquipada, texto: 'Lanzá a la orilla del lago o del arroyo.' });
   if (progreso.cosas?.farol) {
     ranuras.push({ id: 'farol', nombre: 'Farol de kerosene', icono: 'farol', accion: 'luz', activo: estado.luzEncendida, texto: 'Alumbra mucho más lejos que la linterna.' });
-  } else {
+  } else if (!dejada('linterna')) {
     ranuras.push({ id: 'linterna', nombre: 'Linterna', icono: 'linterna', accion: 'luz', activo: estado.luzEncendida, texto: 'Para no andar a tientas de noche.' });
   }
   if (progreso.cosas?.manta) {
