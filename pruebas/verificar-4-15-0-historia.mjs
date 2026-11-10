@@ -684,7 +684,8 @@ async function chequear(arch = '', sufijo = '') {
       'if (debeReiniciar(progreso, \'relax\')) {',
       'registrarEfectosHistoria(escenasMundo,',
       'for (const e of [...Object.values(ESCENAS_ACTO1), ...Object.values(ESCENAS_ACTO2), ...Object.values(ESCENAS_ACTO3), ...Object.values(ESCENAS_OPTATIVAS), ...Object.values(ESCENAS_LAZOS)])',   // (4.18.0: y las de las optativas; 4.18.2: y la de Sofía)
-      "if (!desafio && valle?.alHablarCon?.(npc.clave)) return;",
+      "if (!desafio && valle?.alHablarCon?.(claveHist)) return;",   // (4.25.2: con la clave corta de la Historia)
+      'const claveHist = npc.claveAldea || npc.clave;',
       'valle?.hablo(npc.clave);',
       'historiaPuerta: () => historiaPuertaCerca(),',
       '!escenasMundo?.activa(),   // (4.15.0: ni una tarjeta encima de una escena)',

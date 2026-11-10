@@ -171,6 +171,9 @@ export function crearGenteCampoMundo({ T, col, gente }) {
     for (const k in figuras) {
       const n = figuras[k].npc;
       if (!n || !n.g.visible) continue;
+      // 4.25.2: ni el que tomó una escena de la Historia (la pose de `posar` se borraba al cuadro siguiente: Fermín no brindaba) ni el que te acompaña o
+      // va con vos (Tobías picaba en el aire al lado tuyo): esos llevan `conVos`/`enCita`, y la pose la manda quien los tomó
+      if (n.conVos || n.enCita) continue;
       const e = n.ruta?.[n.etapa % n.ruta.length];
       const pose = e?.pose && hablando !== n && n.espera > 0 && n.vel < 0.05 ? e.pose : null;
       if (n.pose !== pose) n.pose = pose;

@@ -263,7 +263,8 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   const s = VI.sanearVidaAldea({ visitante: { ...vis } }, 8);
   ok(s.visitante === null, 'aldea: y al cargar, ya se fue (3.8.7: antes volvía al andén dándote las gracias como recién llegado)');
   ok(leer('src/aldea-vida.js').includes("((visitante.estado === 'guiando' || visitante.estado === 'llego') && visitante.dia === tope - 1)"), 'aldea: el saneo deja al que llegó ayer');
-  ok(leer('src/aldea-gente.js').includes('if (js.enKayak || js.enVela || js.enTren) { n.camino = []; return; }'), 'aldea: en el kayak, el velero o el tren, el que guiás te espera (caminaba por el fondo del lago)');
+  ok(/if \(js\.enKayak \|\| js\.enVela \|\| js\.enTren(?: \|\| js\.nadando)?\) \{ n\.camino = \[\]; return; \}/.test(leer('src/aldea-gente.js')),   // (4.25.2: y nadando)
+    'aldea: en el kayak, el velero o el tren, el que guiás te espera (caminaba por el fondo del lago)');
   // el chico que estudia afuera no va al club ni a la noche de estrellas
   const a = aldeaCompleta();
   const chico = AL.CHICOS_ALDEA.find((k) => k !== 'nene' && k !== 'nena') || AL.CHICOS_ALDEA[0];

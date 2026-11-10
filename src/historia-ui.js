@@ -26,7 +26,7 @@ import { tarjetaFinal } from './historia-final.js';
 import { leerPagina, proximaPagina, alTalarCoihue, NOTAS_ESCENA_ACTO2, ESCENAS_DESDE_SENTADO, ESCENAS_DESDE_VEHICULO } from './historia-disparadores-acto2.js';
 import { enVentana, VENTANAS } from './historia-presencia.js';
 // 4.21.0: la línea gris de espera del panel (historia-espera.js)
-import { esperasDelCapitulo } from './historia-espera.js';
+import { esperasDelCapitulo, escenasDeEspera, frenoDeEspera } from './historia-espera.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
 // 4.13.0 (B): la noche de defensa y los dos finales (historia-noche*.js)
@@ -423,7 +423,7 @@ export function crearValleUi(ctx) {
     // una escena que todavía no está escrita (o no se pudo registrar) se da por vista: la historia nunca se traba por una escena que falta
     if (typeof dir.hay === 'function' && !dir.hay(id)) { marcarVista(h, id, ctx.progreso().dia); aplicarEscenas(h); return true; }
     if (o.soloVehiculo && !ESCENAS_DESDE_VEHICULO.includes(id)) return false;   // 4.17.1: en el kayak o el velero, sólo la del faro
-    const deSentado = !!s.sentado && ESCENAS_DESDE_SENTADO.includes(id);
+    const deSentado = !!s.sentado && (ESCENAS_DESDE_SENTADO.includes(id) || escenasDeEspera(h, s).has(id));   // (4.25.2: y las que el panel te manda a esperar sentado: R no te levanta solo)
     if (ESCENAS_DESDE_VEHICULO.includes(id)) ctx.permitirVehiculo?.(true);   // (el faro de noche: la escena empieza con vos en el kayak o el velero)
     try {
       // 4.17.1: primero se pregunta si la escena puede empezar y recién después se mueve al jugador (antes te llevaba al lugar de la escena
@@ -654,7 +654,7 @@ export function crearValleUi(ctx) {
     // 4.18.0: las optativas recién hechas (con su premio), el +1 de lazo de los encargos y el pan de Rosa de cada mañana
     if (jugando && h.activa) revisarLoOptativo(h);
     // 4.16.0: esperar sentado un objetivo de hora acelera el reloj (×8, no ×40: que no se pase de largo la escena) y el clima propio de la historia
-    aceleracion = jugando && h.activa ? aceleracionDeEspera(h, s) : 1;
+    aceleracion = jugando && h.activa ? Math.max(aceleracionDeEspera(h, s), frenoDeEspera(h, s)) : 1;   // (4.25.2: y cerca de la ventana de cualquier escena con hora, ver historia-espera.js)
     forzada = h.activa && s ? estacionForzada(h, s) : null;
     if (ctx.objetos) ctx.objetos.mostrar(h.activa && s ? objetosVisibles(h, s) : []);
     dibujarPanel(h, s);

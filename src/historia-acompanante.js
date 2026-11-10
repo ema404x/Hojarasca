@@ -15,6 +15,27 @@ export function puntoDeSeguimiento(pos, yaw, atras = DIST_ATRAS, lado = DIST_LAD
   const fx = -Math.sin(yaw), fz = -Math.cos(yaw);   // hacia adelante (jugador.js: con yaw 0 mira hacia −z)
   return { x: pos.x - fx * atras + fz * lado, z: pos.z - fz * atras - fx * lado };
 }
+// 4.25.2: el punto detrás de vos, pero sobre tierra. Al bajar del kayak mirando a tierra, «detrás tuyo» es el lago: el acompañante aparecía en el fondo del agua y
+// no salía más (gente.js no da pasos hacia el agua). Se prueba el de siempre, el del otro costado y después dos anillos alrededor tuyo (empezando por atrás);
+// si todo es agua (vas nadando, estás en la punta del muelle), null: no se lo pone en ningún lado. `agua(x, z)`: la del terreno; sin ella, todo es tierra.
+export function puntoEnTierra(pos, yaw, agua) {
+  const p = puntoDeSeguimiento(pos, yaw);
+  if (typeof agua !== 'function') return p;
+  if (!agua(p.x, p.z)) return p;
+  const q = puntoDeSeguimiento(pos, yaw, DIST_ATRAS, -DIST_LADO);
+  if (!agua(q.x, q.z)) return q;
+  const atras = Math.atan2(Math.sin(yaw), Math.cos(yaw));   // (con yaw 0 se mira hacia −z: atrás es +z, o sea el ángulo `yaw` medido desde +z)
+  for (const r of [DIST_ATRAS, 1.5]) {
+    for (let i = 1; i <= 6; i++) {
+      for (const s of i === 6 ? [1] : [1, -1]) {
+        const a = atras + s * i * (Math.PI / 6);
+        const x = pos.x + Math.sin(a) * r, z = pos.z + Math.cos(a) * r;
+        if (!agua(x, z)) return { x, z };
+      }
+    }
+  }
+  return null;
+}
 // Qué hace según la distancia: 'quieto' | 'caminar' | 'apurar' | 'correr' | 'aparecer'. Devuelve también la velocidad (m/s).
 export function decidirPaso(distancia) {
   const d = Number(distancia);
@@ -28,7 +49,8 @@ export function decidirPaso(distancia) {
 export const acompananteActual = (h) => (h && h.activa && typeof h.acompanante === 'string' ? h.acompanante : null);
 
 // `ctx`: { historia: () => h, jugador: () => ({ pos: {x, y, z}, yaw }), npcDe: (clave) => npc | null, altura: (x, z) => y,
-//          tomada: () => ¿una escena lo usa?, enVehiculo: () => ¿vas en el tren, el kayak o el velero? }
+//          tomada: () => ¿una escena lo usa?, enVehiculo: () => ¿vas en el tren, el kayak o el velero?,
+//          agua: (x, z) => ¿es agua? (4.25.2), nadando: () => ¿vas nadando? (4.25.2) }
 export function crearAcompanante(ctx) {
   let clave = null, npc = null, guardado = null, acum = 0, esperando = false;
   function tomar(n) {
@@ -64,13 +86,19 @@ export function crearAcompanante(ctx) {
     const j = ctx.jugador?.();
     if (!j) return;
     if (ctx.enVehiculo?.()) { if (!esperando) { esperando = true; npc.dormido = true; } return; }   // en el tren no se lo ve: aparece al bajar
-    if (esperando) { esperando = false; npc.dormido = false; ponerA(puntoDeSeguimiento(j.pos, j.yaw)); return; }
+    // 4.25.2: siempre sobre tierra (ver `puntoEnTierra`); si no hay (bajaste en la punta del muelle), sigue esperando y aparece cuando pisás tierra
+    const agua = ctx.agua ? (x, z) => !!ctx.agua(x, z) : null;
+    if (esperando) { const t = puntoEnTierra(j.pos, j.yaw, agua); if (!t) return; esperando = false; npc.dormido = false; ponerA(t); return; }
     npc.dormido = false;
     const d = Math.hypot(npc.pos.x - j.pos.x, npc.pos.z - j.pos.z);
+    const mirarte = () => { npc.camino = []; npc.rumboObjetivo = Math.atan2(j.pos.x - npc.pos.x, j.pos.z - npc.pos.z); };
+    // 4.25.2: nadando, te espera en la orilla mirándote (te seguía hasta el agua y se metía detrás tuyo)
+    if (ctx.nadando?.() && d < DIST_TELETRANSPORTE) { mirarte(); return; }
     const p = decidirPaso(d);
-    if (p.accion === 'aparecer') { ponerA(puntoDeSeguimiento(j.pos, j.yaw)); return; }
-    if (p.accion === 'quieto') { npc.camino = []; npc.rumboObjetivo = Math.atan2(j.pos.x - npc.pos.x, j.pos.z - npc.pos.z); return; }
-    const meta = puntoDeSeguimiento(j.pos, j.yaw);
+    if (p.accion === 'aparecer') { const t = puntoEnTierra(j.pos, j.yaw, agua); if (t) ponerA(t); return; }
+    if (p.accion === 'quieto') { mirarte(); return; }
+    const meta = puntoEnTierra(j.pos, j.yaw, agua);
+    if (!meta) { mirarte(); return; }
     npc.camino = [{ x: meta.x, z: meta.z, cerca: 0.9 }];
     npc.velocidad = p.velocidad * (Number(ctx.factor?.(q)) || 1);   // (4.17.0: Ramón convaleciente camina despacio)
   }

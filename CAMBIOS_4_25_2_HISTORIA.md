@@ -1,0 +1,27 @@
+# 4.25.2 · Historia — la zona G1 de la revisión (el modo Historia y su enganche con `main.js`)
+
+Rama `bugs-4-25-2-npc` (sobre `main` = 4.25.1), después de la zona F2 (ver `CAMBIOS_4_25_2_NPC.md`). Insumo: `trabajo/bugs10/zona-G1.md` (escrito sobre la 4.25.1). No se subió la versión. **0 programas de shader, 0 texturas, 0 llamadas de dibujo, ninguna clave nueva de guardado** (`arranqueNuevo` ya existía). No hay texto nuevo en la interfaz. No se tocó lo que trabaja otra rama (las teclas, la noche de la nevada en `historia-noche-mundo.js`, el panel de `historia-ui.js`, el shift de `escenas-mundo.js`): en `historia-ui.js` sólo cambian una línea de `lanzarEscena`, una de `actualizar` y el import de `historia-espera.js`.
+
+## Arreglado
+
+| # | Qué pasaba | Arreglo |
+|---|---|---|
+| **G1-1** (alta) | La E sobre la gente de la aldea le pasaba a la Historia `npc.clave` (`poblador-panadera`, `aldea-martin`) y los disparadores `hablar` esperan la corta (`panadera`, `martin`…): el capítulo 2 con «Llevarla a Rosa» no se cerraba nunca, el capítulo 11 se trababa (Tito, Elvira, Anselmo, lo prestado de Martín, del herrero y del apicultor; y sin eso, `recorrer-lado`), las optativas `frasco-rosa`, `masa-crece`, `herminia-noventa` y `flechas-de-mas` no salían y tampoco las líneas de charla de historia de la gente de la aldea. Misma raíz que F2-1. | `hablar()` en `main.js`: `const claveHist = npc.claveAldea \|\| npc.clave` (como `vecindad-juego.js`, `noticias-juego.js`, `concursos-juego.js`) para `alHablarCon` y `lineaDeHistoria`. Ninguna clave genérica de `claveAldea` (visitante, familia, amor, hijo, juez) es clave de un disparador. `valle.hablo(npc.clave)` no se tocó: sólo anota a los del valle (`VECINOS_HISTORIA`), que tienen la misma clave. |
+| **G1-2** (media) | El panel manda a esperar sentado (R) a toda escena con ventana de hora, pero sólo la guardia del molino frenaba el reloj (×8) y podía empezar con vos sentado: en las demás el reloj sentado iba ×40 (la ventana de `noche-espera` duraba 3,9 s reales) y la escena no arrancaba porque estabas sentado. | `historia-espera.js`: `escenasDeEspera(h, s)` (las escenas de objetivos sin cumplir del capítulo cuyos disparadores tienen todos ventana de hora) y `frenoDeEspera(h, s)` (sentado, ×8 en la última hora antes de la ventana y mientras está abierta; el resto de la espera sigue rápido). `historia-ui.js`: esas escenas empiezan con vos sentado (te levantan, como la guardia) y la aceleración es el máximo entre la de la guardia y `frenoDeEspera`. |
+| **G1-3** (media) | `reiniciarPartida` no marcaba `arranqueNuevo`: la partida vieja que se reinicia arrancaba la Historia nueva como «de antes de la 4.21.0», sin la estación propia (con «Estación: Verano», todo el año verano; sin puerta de estación ni nevada forzada) y con «Primeros pasos» al terminarla. | `h.arranqueNuevo = true` en `reiniciarPartida`. `limpiarHistoria` sigue igual (deja la historia sin empezar y `empezarHistoria` pone la bandera). |
+| **G1-4** (media) | Sin visitas, el objetivo «Piedras en la vía» (con `vecinos: true`) se tildaba solo y el momento del derrumbe no se lanzaba; pero «Guardá la puertita» necesita la escena `derrumbe-puertita`, que pide el evento: el capítulo 4 quedaba librado al azar (mediana 11 días, hasta 34). | El objetivo `derrumbe` ya no lleva `vecinos`: el evento es de Elsa (`quien: 'guarda'`) y sale igual sin visitas. Sin visitas el capítulo 4 lanza el derrumbe como con visitas. |
+
+## No arreglado
+
+- **G1-5 (el mismo `lazo` dos veces en una escena cuenta una sola).** En `trigo-abuelo` la opción «copia» da `lazo:ema:1` y la escena da otro `lazo:ema:1` sin condición; en `fermin-mulas` las opciones «callar» y «querer» dan `lazo:fermin:1` y el del paso 10 se pierde. No está claro si el guion quería +2 para la respuesta cariñosa o si el efecto común de la escena es el +1 de todos y el de la opción sobra: es una decisión de guion, no un bug de código. **Pregunta abierta** (abajo).
+
+## Cómo se probó
+
+`pruebas/verificar-4-25-2-historia.mjs` (en `verify:pasos`, después de la de NPC): **49 comprobaciones y 8 mutaciones atrapadas** (copias `-mut<n>.js` en `src/`, borradas al terminar; al mutar `historia.js` se copian también los módulos de la Historia que la importan, apuntando a la copia). Usa `historia.js`, `historia-disparadores.js`, `historia-espera.js`, `historia-reinicio.js` y `historia-ajustes.js` de verdad: G1-1 evalúa la expresión `claveHist` del `main.js` de verdad (`ayuda-codigo.mjs`) sobre figuras de la aldea y le pasa el resultado a `escenaPendiente` (bolsa-rosa, elvira-cuerda, anselmo-puntas, tito-arco, lo prestado de Martín); G1-2 mide las ventanas de `nevada`, `cuaderno`, `golpea` y `deshielo` (más de 15 s reales sentado, y lejos de las ventanas sigue rápido); G1-3 y G1-4 como los arneses del revisor.
+
+Pruebas viejas ajustadas: `verificar-4-15-0-historia.mjs` fijaba la línea `valle?.alHablarCon?.(npc.clave)`: ahora pide `alHablarCon?.(claveHist)` y la línea `const claveHist = npc.claveAldea || npc.clave;`. `verificar-4-18-0-optativas-a.mjs` pedía `lineaDeHistoria?.(npc.clave)`: acepta `claveHist` sólo si está esa misma línea.
+
+## Preguntas abiertas
+
+- **G1-5:** ¿la respuesta cariñosa de `trigo-abuelo` («copia») y de `fermin-mulas` («callar», «querer») tenía que sumar +2 de lazo? Si sí, alcanza con que la opción dé `lazo:<q>:2`.
+- **G1-2:** el freno a ×8 vale una hora de juego antes de la ventana y mientras está abierta. ¿Se prefiere frenar desde que te sentás (como la guardia), aunque la espera sea de varias horas?

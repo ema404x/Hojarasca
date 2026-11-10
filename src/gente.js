@@ -878,11 +878,32 @@ function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
   // 4.23.0: lejos, el choque y la altura del pie se resuelven cada tres o seis cuadros (`g.__sinChoque`, ver `actualizar`): era casi todo el costo de la gente en la calle
   const conChoque = !g.__sinChoque;
   if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; if (!destino.sinChoque && conChoque) col.resolver(g.pos, 0.3); }
+  else g.vel = 0;   // 4.25.2: con el agua adelante no da el paso: tampoco mueve las piernas (quedaba «caminando» en el lugar)
   // 3.7.0 (integración): en una escalera (la de la torreta del observatorio) el punto trae su altura: se sube por
   // la rampa de los escalones (entre un escalón y el piso de arriba hay una rendija y se caía al piso de abajo)
   if (Number.isFinite(destino.y)) g.pos.y += (destino.y - g.pos.y) * Math.min(1, paso / d);
   else if (conChoque) g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
   return false;
+}
+
+export const caminarHaciaParaPruebas = (...a) => caminarHacia(...a);   // (4.25.2: verificar-4-25-2-npc.mjs; las pruebas viejas leen `function caminarHacia(` al comienzo de la línea)
+// 4.25.2: el de ruta (Ramón, Josefina, Fermín, Nicanor, Tobías…) que no se acerca a su próxima parada: después de la noche de la nevada o de una escena que lo
+// dejó lejos vuelve en línea recta y se trababa para siempre contra el lago (Fermín, de la puerta del refugio al galpón) o contra una pared (Josefina, a 4 m del mirador).
+// Como el trabado de la aldea (aldea-gente.js): si en TRABA_RUTA_S segundos no ganó TRABA_RUTA_M metros, llega de una. Con vos al lado no cuenta (te está mirando).
+export const TRABA_RUTA_S = 12, TRABA_RUTA_M = 0.5, TRABA_RUTA_AL_LADO = 7.5;
+export function trabadoEnRuta(g, etapa, dJugador, dt) {
+  if (!etapa || !Number.isFinite(etapa.x) || !Number.isFinite(etapa.z)) return false;
+  const falta = Math.hypot(etapa.x - g.pos.x, etapa.z - g.pos.z);
+  let t = g.__trabaRuta;
+  if (!t || t.etapa !== etapa) t = g.__trabaRuta = { etapa, ref: falta, t: 0 };
+  if (falta < t.ref - TRABA_RUTA_M || dJugador < TRABA_RUTA_AL_LADO) { t.ref = Math.min(t.ref, falta); t.t = 0; return false; }
+  t.t += dt;
+  return t.t > TRABA_RUTA_S;
+}
+export function ubicarEnEtapa(g, etapa, T, col) {
+  g.pos.x = etapa.x; g.pos.z = etapa.z;
+  g.pos.y = Number.isFinite(etapa.y) ? etapa.y : alturaDePie(T, col, etapa.x, etapa.z, g.pos.y);
+  g.vel = 0; g.__trabaRuta = null;
 }
 
 // Sobre qué se para: si hay un entablado o un muelle debajo, ahí; si no, el suelo
@@ -1179,7 +1200,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           if (g.espera <= 0) { g.etapa = (g.etapa + 1) % g.ruta.length; etapa = g.ruta[g.etapa]; }
         } else if (caminarHacia(g, dt, etapa, g.velocidad || 0.8, T, col)) {
           g.espera = etapa.quieto || 8;
-        }
+          g.__trabaRuta = null;
+        } else if (trabadoEnRuta(g, etapa, d, dt)) ubicarEnEtapa(g, etapa, T, col);
       } else {
         g.vel = 0;
         // (3.6: sentado o en lo suyo, con vos cerca no se da vuelta: sólo si le hablás)

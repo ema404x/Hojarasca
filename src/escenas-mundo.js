@@ -105,6 +105,11 @@ export function crearEscenasMundo(ctx) {
     if (!lista || typeof clave !== 'string') return null;
     if (clave === 'pareja') clave = ctx.parejaClave?.() || clave;   // 4.17.0: «tu pareja» es la persona real con la que estás (o saliendo)
     for (const n of lista) if (n.clave === clave) return n;
+    // 4.25.2: la gente de la aldea está en la lista como `aldea-<k>` o `poblador-<k>` (aldea-gente.js, `defFigura`) y las escenas la piden por `k` (jefe, abuela,
+    // carpintero…): no se la encontraba nunca (Ernesto, Nélida, Nahuel y Lucía no salían; Tito, Sofía, Herminia y Rosa salían duplicados). Se busca por esas dos
+    // formas y con la misma `claveAldea`: así las claves genéricas de otras figuras (visitante, familia, amor, hijo, juez) nunca coinciden con la de una escena.
+    const deAldea = `aldea-${clave}`, dePoblador = `poblador-${clave}`;
+    for (const n of lista) if ((n.clave === deAldea || n.clave === dePoblador) && n.claveAldea === clave) return n;
     return null;
   };
   // 4.25.1: la entrada de captura de una clave (si la clave es otro nombre de alguien ya capturado —«pareja» y la persona de verdad—, la de él)

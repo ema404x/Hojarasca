@@ -1250,7 +1250,7 @@ export function crearAldeaGente(ctx) {
       st.destino = d || null;
       const n = st.npc;
       // (alguien que ya no está en esta partida, si la partida cambió sin recargar: no se ve)
-      if (n && !d && !n.deVisita) { n.dormido = true; n.__fueraPorTurno = !!ctx.deTurnoNegocio?.(k); n.__esperaTurno = 0; continue; }   // (4.11.2 (D3): y si es porque está de turno en tu local, se anota)
+      if (n && !d && !n.deVisita && !n.enEscena) { n.dormido = true; n.__fueraPorTurno = !!ctx.deTurnoNegocio?.(k); n.__esperaTurno = 0; continue; }   // (4.11.2 (D3): y si es porque está de turno en tu local, se anota)   (4.25.2: no en medio de una escena de la Historia: se esfumaba delante de la cámara; al soltarla, sí)
       if (!n || !d) continue;
       if (n.__primera === true) n.__primera = 1; else if (n.__primera === 1) n.__primera = false;   // (3.7.1 (mundo): recién armada, sólo esta vuelta)
       n.alAmor = !!d.amor;   // 3.7.1 (mundo): yendo a lo del amor (la cita, el casamiento) no se frena al pasar al lado tuyo
@@ -1422,6 +1422,22 @@ export function crearAldeaGente(ctx) {
     n.visitaDia = vis.dia;
     return n;
   }
+  // 4.25.2: el punto a `r` metros detrás tuyo; si es agua, el primero en tierra girando alrededor tuyo (a `r` y a 1,5 m); null si todo es agua
+  function atrasEnTierra(js, r) {
+    const yaw = js.yaw || 0;
+    const agua = typeof ctx.agua === 'function' ? ctx.agua : null;
+    for (const rr of [r, 1.5]) {
+      for (let i = 0; i <= 6; i++) {
+        for (const sg of i === 0 || i === 6 ? [1] : [1, -1]) {
+          const a = yaw + sg * i * (Math.PI / 6);
+          const x = js.pos.x + Math.sin(a) * rr, z = js.pos.z + Math.cos(a) * rr;
+          if (!agua || !agua(x, z)) return { x, z };
+        }
+      }
+      if (!agua) break;
+    }
+    return null;
+  }
   function ocultarVisitantes(menos = null) { for (const [id, n] of visitantes) if (id !== menos) { n.dormido = true; n.enCita = false; n.camino = []; } }
   function revisarVisitante(js) {
     const v = vida(), d = dia(), h = horas();
@@ -1447,9 +1463,12 @@ export function crearAldeaGente(ctx) {
       n.dormido = false; n.ruta = null; n.enCita = true;
       // 3.8.6: en el kayak, el velero o el tren no te sigue (caminaba por el fondo del lago y saltaba al costado de la vía):
       // te espera donde quedó
-      if (js.enKayak || js.enVela || js.enTren) { n.camino = []; return; }
+      // 4.25.2: nadando, tampoco (te seguía hasta la orilla y se metía al agua detrás tuyo)
+      if (js.enKayak || js.enVela || js.enTren || js.nadando) { n.camino = []; return; }
       // te sigue (y si te le adelantaste mucho, te alcanza: «¡Esperame!»)
-      const atras = { x: js.pos.x + Math.sin(js.yaw || 0) * 2.6, z: js.pos.z + Math.cos(js.yaw || 0) * 2.6 };
+      // 4.25.2: a un punto en tierra (detrás tuyo o, si ahí es agua, alrededor tuyo): aparecía en el fondo del lago y gente.js no lo sacaba más
+      const atras = atrasEnTierra(js, 2.6);
+      if (!atras) { n.camino = []; return; }
       if (dj > 45) { n.pos.set(atras.x, ctx.alturaDePie(atras.x, atras.z, n.pos.y), atras.z); }
       n.camino = dj > 3 ? [{ x: atras.x, z: atras.z, cerca: 1.4 }] : [];
       n.velocidad = Math.min(4.5, Math.max(1.1, dj * 0.55));

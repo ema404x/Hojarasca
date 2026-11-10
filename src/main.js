@@ -970,7 +970,7 @@ async function construir() {
     escenasMundo = crearEscenasMundo({
       doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
       puntos: () => puntosCacheadosDeHistoria(),   // 4.17 C: los lugares de la historia sirven de ancla ({ lugar: 'raiz-ramon' })
-      armarYa: (k) => genteCampoMundo?.armarYa?.(k) || invitadoDeHistoria(k),   // 4.17 C: Fermín, Belisario y Tobías se arman al pedirlos una escena, aunque estés lejos de su lugar
+      armarYa: (k) => genteCampoMundo?.armarYa?.(k) || figuraDeAldeaParaHistoria(k) || invitadoDeHistoria(k),   // 4.17 C: Fermín, Belisario y Tobías se arman al pedirlos una escena, aunque estés lejos de su lugar   (4.25.2: y el que vive en la aldea es el de la aldea, no una copia)
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => puedeEmpezarEscena(),   // (4.17.1: la regla, en una función: historia-ui.js la pregunta antes de mover al jugador)
       parejaClave: () => { const p = progreso.amor?.personas || {}; for (const e of ['casados', 'comprometidos', 'novios', 'saliendo']) { const k = Object.keys(p).find((x) => p[x]?.etapa === e); if (k) return k; } return null; },   // 4.17.0
@@ -2508,10 +2508,10 @@ function aliadosDeNoche(al, dis) {
       if (!va) continue;
       const n = genteCampoMundo?.npcDe(k) || (gente?.gente || []).find((g) => g.clave === k) || null;
       if (!n?.pos) continue;
-      aliadosTomados.push({ n, g: { camino: n.camino, velocidad: n.velocidad, conVos: n.conVos, enCita: n.enCita, sinFrenar: n.sinFrenar, dormido: n.dormido, x: n.pos.x, z: n.pos.z } });
-      if (k === 'fermin') { const q = ferminEnElTecho(obras?.obras ? obrasTerminadas('galponcito')[0]?.datos : null, (x, z) => T.altura(x, z), dis); if (q) { n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = []; n.pos.set(q.x, q.y, q.z); n.rumboObjetivo = q.rumbo; if (n.g) n.g.visible = true; continue; } }
+      aliadosTomados.push({ n, g: { pose: n.pose, camino: n.camino, velocidad: n.velocidad, conVos: n.conVos, enCita: n.enCita, sinFrenar: n.sinFrenar, dormido: n.dormido, x: n.pos.x, z: n.pos.z } });
+      if (k === 'fermin') { const q = ferminEnElTecho(obras?.obras ? obrasTerminadas('galponcito')[0]?.datos : null, (x, z) => T.altura(x, z), dis); if (q) { n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = []; n.pose = null; n.pos.set(q.x, q.y, q.z); n.rumboObjetivo = q.rumbo; if (n.g) n.g.visible = true; continue; } }
       const x = dis.centro.x + dis.ux * atras + dis.px * lado, z = dis.centro.z + dis.uz * atras + dis.pz * lado;
-      n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = [];
+      n.conVos = true; n.enCita = true; n.sinFrenar = true; n.dormido = false; n.camino = []; n.pose = null;   // (4.25.2: sin la pose de su parada: gente-campo-mundo.js ya no se la cambia a los que tienen `conVos`)
       n.pos.set(x, alturaDePie(T, col, x, z, T.altura(x, z)), z); n.rumboObjetivo = Math.atan2(dis.ux, dis.uz); if (n.g) n.g.visible = true;
     }
   } catch (e) { fallaSistema('historia-aliados', e); }
@@ -2520,7 +2520,7 @@ function aliadosDeNoche(al, dis) {
 function soltarAliadosDeNoche() {
   while (aliadosTomados.length) {
     const { n, g } = aliadosTomados.pop();
-    try { n.conVos = !!g.conVos; n.enCita = !!g.enCita; n.sinFrenar = !!g.sinFrenar; n.dormido = !!g.dormido; n.camino = g.camino === undefined ? (Array.isArray(n.ruta) ? undefined : []) : g.camino; if (Number.isFinite(g.velocidad)) n.velocidad = g.velocidad; } catch { /* ya */ }
+    try { n.conVos = !!g.conVos; n.enCita = !!g.enCita; n.sinFrenar = !!g.sinFrenar; n.dormido = !!g.dormido; n.camino = g.camino === undefined ? (Array.isArray(n.ruta) ? undefined : []) : g.camino; if (Number.isFinite(g.velocidad)) n.velocidad = g.velocidad; n.pose = g.pose ?? null; } catch { /* ya */ }
   }
 }
 // 4.17.0: la majada de Ramón que se arrea (capítulo 9; ver historia-arreo-mundo.js)
@@ -2540,6 +2540,7 @@ function acompananteDeHistoria() {
     altura: (x, z) => alturaDePie(T, col, x, z, T.altura(x, z)), tomada: () => !!escenasMundo?.activa(),
     factor: (k) => (k === 'ramon' && ramonConvaleciente() ? 0.55 : 1),   // 4.17.0
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.enSulky || js.enCable); },
+    agua: (x, z) => !!T.agua(x, z), nadando: () => !!jugador.estado.nadando,   // 4.25.2: aparece y camina sobre tierra; nadando, te espera en la orilla
   });
   return acompananteMundo;
 }
@@ -2653,6 +2654,12 @@ function invitadoDeHistoria(clave) {
     invitadosHist.set(clave, n);
     return n;
   } catch (e) { fallaSistema('historia-invitado', e); return null; }
+}
+// 4.25.2: quien ya vive en la aldea (Tito con su carpintería, Herminia, Rosa, Ernesto, los chicos) es la figura de la aldea, aunque estés lejos y todavía no esté armada
+// (`aldeaGente.figura` la arma en su lugar de esa hora; la escena la pone después donde quiere y al soltarla vuelve a lo suyo). Antes se armaba siempre un invitado:
+// otro Tito, con otra ropa, a 3 m delante tuyo, mientras el de verdad seguía en la carpintería.
+function figuraDeAldeaParaHistoria(clave) {
+  try { return typeof clave === 'string' && clave && aldeaGente?.figura ? aldeaGente.figura(clave) || null : null; } catch (e) { fallaSistema('historia-invitado', e); return null; }
 }
 // 4.17 C: los duendes que puso una escena (las siluetas de la guardia, los pillos de las bellotas) se van al terminar: antes se quedaban «mirando» para siempre
 function despedirDuendesDeEscena() {
@@ -6147,6 +6154,7 @@ function traerVisita(clave, puesta, llegando) {
   if (!npc || npc.enBase || npc.aBordo || npc.deVisita) return false;
   if (empleadosNegocioJuego?.deTurno(clave)) return false;   // 4.10.1: de turno detrás de tu mostrador no viene a tu mesa (quedaba en dos lugares)
   if (charla.npc === npc) return false;   // 3.6.1: charlando con vos en la aldea, no desaparece a mitad de la frase
+  if (llegando && (npc.conVos || npc.enCita)) return false;   // 4.25.2: ni el que te acompaña (Ramón desde el capítulo 8), va con vos o está en una escena: la nota decía «te espera en tu mesa» y seguía detrás tuyo (la visita de una partida recargada, sí)
   visitante = { npc, antes: { ruta: npc.ruta, etapa: npc.etapa, espera: npc.espera, x: npc.pos.x, z: npc.pos.z, velocidad: npc.velocidad, saludo: npc.saludo, despedida: npc.despedida, soloCerca: npc.soloCerca, camino: npc.camino } };
   npc.soloCerca = 0; npc.pose = null; npc.dormido = false; npc.camino = null;   // 3.6 (vida)
   const lugar = lugarEnLaMesa(puesta);
@@ -6306,7 +6314,7 @@ function armarOficiosYAldea(esDesafio) {
     deTurnoNegocio: (k) => !!empleadosNegocioJuego?.deTurno(k), salidaDeTurno: (k) => empleadosNegocioJuego?.salidaDeTurno(k) || null,   // 4.11.2 (D3): el que termina el turno sale caminando de tu local
     temporada: () => temporadaDelDia(progreso.dia),   // 3.8.8: la demanda del pueblo. 4.11.2 (S2): por el calendario (negocios-fx.js), no por el cielo: coherente con los precios de los puestos y con «Estación fija»
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
-    alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
+    alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), agua: (x, z) => !!T.agua(x, z),   // (4.25.2: el visitante que guiás no aparece en el agua)
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
     ...CARGA_CTX,   // 4.7 carga
@@ -6547,7 +6555,7 @@ function armarOficiosYAldea(esDesafio) {
     // 3.6.1: la figura de un vecino (para retomar una invitación al recargar)
     npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
     // 3.6.1: el compadre que puede venir a tu mesa (no en el tren, ni de visita, ni charlando con vos)
-    puedeVenir: (k) => { const n = gente?.gente?.find((g) => (g.claveAldea || g.clave) === k) || aldeaGente?.figura?.(k); return !!n && !n.enBase && !n.aBordo && !n.deVisita && charla.npc !== n && !empleadosNegocioJuego?.deTurno(k); },   // (4.10.1: ni el que está de turno en tu local)
+    puedeVenir: (k) => { const n = gente?.gente?.find((g) => (g.claveAldea || g.clave) === k) || aldeaGente?.figura?.(k); return !!n && !n.enBase && !n.aBordo && !n.deVisita && !n.conVos && !n.enCita && charla.npc !== n && !empleadosNegocioJuego?.deTurno(k); },   // (4.10.1: ni el que está de turno en tu local)   (4.25.2: ni el que te acompaña o va con vos)
   });
   // 3.7.4: la vida social: las reglas (vecindad-social.js) con lo que se ve y se oye (social-juego.js)
   socialJuego = crearSocialJuego({
@@ -9156,10 +9164,13 @@ const charla = { npc: null, historia: null, parte: 0, fin: false };
 function hablar(npc) {
   if (!npc) return;
   // 4.15.0: un tema de historia arriba de todo: si el vecino tiene una escena guionada pendiente, arranca la escena
-  if (!desafio && valle?.alHablarCon?.(npc.clave)) return;
+  // 4.25.2: con la clave corta de la Historia (`panadera`, `carpintero`, `martin`…): la figura de la aldea es `poblador-panadera` / `aldea-martin` y lleva la corta en
+  // `claveAldea` (como en vecindad-juego.js, noticias-juego.js, concursos-juego.js). Con la larga, la E no disparaba ninguna escena: «Llevarla a Rosa» (capítulo 2) y el capítulo 11 se trababan
+  const claveHist = npc.claveAldea || npc.clave;
+  if (!desafio && valle?.alHablarCon?.(claveHist)) return;
   // 4.18.0: la charla de historia: una línea arriba de todo, una sola vez (la de una optativa hecha o la del capítulo en curso; ver
   // historia-optativas.js). La E siguiente abre la charla de siempre.
-  const lineaHist = !desafio ? valle?.lineaDeHistoria?.(npc.clave) : null;
+  const lineaHist = !desafio ? valle?.lineaDeHistoria?.(claveHist) : null;
   if (lineaHist) {
     Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: 'historia-linea', partes: [lineaHist] }, parte: 0, vec: null, menu: null });
     $('charla').classList.remove('oculto');

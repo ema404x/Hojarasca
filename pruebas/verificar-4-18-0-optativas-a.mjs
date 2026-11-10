@@ -401,7 +401,7 @@ const est = (h, p, id, extra) => O.estadoOptativa(O.OPTATIVA[id], E(p, extra), h
   ok(/ofrecerOveja\(h, s\)/.test(ui) && /eventos\.forzar\('oveja'\)/.test(ui), 'la historia ofrece la oveja de Ramón en el capítulo 2');
   ok(/flechas: NOCHE\.flechas \+/.test(ui), 'la noche recibe las flechas de más');
   ok(/escenaCostumbre\(h2?, 'costumbre-dejar'\)/.test(ui) && /escenaCostumbre\(h, 'costumbre-regalito'\)/.test(ui), 'las escenas de la costumbre del trato');
-  ok(/valle\?\.lineaDeHistoria\?\.\(npc\.clave\)/.test(main), 'main.js muestra la línea de historia al hablar');
+  ok(/valle\?\.lineaDeHistoria\?\.\((?:npc\.clave|claveHist)\)/.test(main) && (!/lineaDeHistoria\?\.\(claveHist\)/.test(main) || /const claveHist = npc\.claveAldea \|\| npc\.clave;/.test(main)), 'main.js muestra la línea de historia al hablar');   // (4.25.2: con la clave corta de la Historia)
   ok(/ESCENAS_OPTATIVAS/.test(main) && /EFECTOS_OPTATIVAS/.test(main), 'main.js registra las escenas y efectos de las optativas');
   ok(/encargosLista: \(\) => TODOS_LOS_ENCARGOS/.test(main), 'main.js pasa quién pidió cada encargo');
   ok(/cumple: cumpleDeHoyHistoria\(\)/.test(main) && /ponr\('cumple', c\.punto\)/.test(main) && /obraPunto\('gallinero', 'gallinero'\)/.test(main), 'main.js arma el cumpleaños y el gallinero');

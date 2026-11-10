@@ -7,7 +7,7 @@
 // De dónde sale: el objetivo se cumple con una escena (la función `hecho` de `escena(id)` lleva anotado el id, o el objetivo trae `escena`) y la escena
 // tiene disparadores con ventana de hora (`DISPARADORES[...].hora`). Si algún disparador de esa escena no tiene ventana, se puede cumplir a
 // cualquier hora y no hay nada que esperar. Si falta otra cosa (una escena previa, un capítulo), tampoco: no es sólo la hora.
-import { capituloActual, horaEntre } from './historia.js';
+import { capituloActual, horaEntre, ACELERACION_ESPERA } from './historia.js';
 import { DISPARADORES } from './historia-disparadores.js';
 
 // La escena que cumple un objetivo (o null si se cumple de otra forma)
@@ -87,4 +87,37 @@ export function esperasDelCapitulo(h, s) {
     if (e) r[o.id] = e.texto;
   }
   return r;
+}
+
+// 4.25.2: las escenas que el panel manda a esperar sentado: las que cumplen un objetivo sin cumplir del capítulo en curso y sólo valen en una ventana de hora
+// (todos sus disparadores de este capítulo tienen `hora`). Antes sólo la guardia del molino podía empezar con vos sentado y sólo ella frenaba el reloj:
+// sentado a esperar la noche de la nevada, el reloj iba ×40, la ventana duraba 4 s reales y la escena no arrancaba porque estabas sentado.
+export function escenasDeEspera(h, s) {
+  const r = new Set();
+  if (!h?.activa || h.fase !== 'jugando' || !s) return r;
+  const c = capituloActual(h);
+  for (const o of c.objetivos) {
+    if (h.hechos?.[`${c.id}:${o.id}`] !== undefined) continue;
+    const id = escenaDeObjetivo(o);
+    if (!id || s.escenas?.has(id)) continue;
+    const ds = disparadoresDe(id, c.id);
+    if (ds.length && ds.every((d) => Array.isArray(d.hora))) r.add(id);
+  }
+  return r;
+}
+// 4.25.2: sentado, el reloj va a ×ACELERACION_ESPERA (no ×40) en la última hora antes de que se abra la ventana de una de esas escenas y mientras está abierta;
+// el resto de la espera, rápido como siempre. Devuelve la aceleración tope (1 = sin freno), como `aceleracionDeEspera`.
+export function frenoDeEspera(h, s) {
+  if (!s?.sentado) return 1;
+  const ids = escenasDeEspera(h, s);
+  if (!ids.size) return 1;
+  const c = capituloActual(h);
+  for (const o of c.objetivos) {
+    const id = escenaDeObjetivo(o);
+    if (!id || !ids.has(id)) continue;
+    if (disparadoresDe(id, c.id).some((d) => horaEntre(s.horas, d.hora[0], d.hora[1]))) return ACELERACION_ESPERA;
+    const e = esperaDeObjetivo(h, s, o);
+    if (e && e.horas <= 1) return ACELERACION_ESPERA;
+  }
+  return 1;
 }

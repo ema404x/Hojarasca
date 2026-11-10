@@ -408,7 +408,7 @@ export const CAPITULOS = [
       { id: 'aldea', tecla: 'E', texto: 'Viajá con Graciela hasta la Aldea de los Duendes (ella viaja con vos)', hecho: acompanantEn('graciela', 'aldea', 45) },
       { id: 'cabina', tecla: 'W', texto: 'Subí a la cabina y manejá un tramo: W regulador, S freno', hecho: (s) => s.conduciendo },
       { id: 'fletes', tecla: 'C', texto: 'Entregá dos fletes manejando, antes del fin del verano', meta: 2, cuenta: (s, b) => desde(s, b, 'entregas') },
-      { id: 'derrumbe', tecla: '·', delMomento: true, texto: 'Piedras en la vía: pasá por el derrumbe del ramal', vecinos: true, hecho: (s) => s.eventos.has('derrumbe') },
+      { id: 'derrumbe', tecla: '·', delMomento: true, texto: 'Piedras en la vía: pasá por el derrumbe del ramal', hecho: (s) => s.eventos.has('derrumbe') },   // (4.25.2: sin `vecinos`: el derrumbe es de Elsa y sale igual sin visitas; con la marca, sin visitas no se lanzaba y la puertita quedaba librada al azar)
       { id: 'puertita', tecla: 'E', texto: 'Guardá la puertita en tu repisa', hecho: objeto('puertita') },
     ],
     momento: { evento: 'derrumbe', cuando: 'pronto' },

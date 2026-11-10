@@ -84,6 +84,7 @@ export function reiniciarPartida(vieja, nuevo, nombre = '') {
   if (typeof v.ranura === 'number') p.ranura = v.ranura;
   const h = historiaNueva();
   h.activa = true; h.empezada = 1; h.avisoReinicio = true; h.copiaPrevia = textoNombre(nombre);
+  h.arranqueNuevo = true;   // 4.25.2: es una historia empezada hoy: con la estación propia de la Historia (historia-ajustes.js), como la de empezarHistoria
   p.historia = h;
   return p;
 }
