@@ -272,7 +272,7 @@ const main = leer('src/main.js');
   { const linea = main.split(String.fromCharCode(10)).find((x) => x.startsWith('function versionNuevaDe('));
     const f = new Function('sanearVersionJuego', 'versionMasNueva', 'versionDelJuego', linea + '; return versionNuevaDe;')(G.sanearVersionJuego, G.versionMasNueva, () => '4.12.1');
     eq([f({ progreso: { versionJuego: '9.0.0' } }), f({ progreso: { versionJuego: '4.12.1' } }), f({ progreso: { versionJuego: '4.9.0' } }), f({ progreso: {} }), f(null), f({ progreso: { versionJuego: 'x' } })], ['9.0.0', '', '', '', '', ''], 'main.js: sólo una versión más nueva activa el aviso'); }
-  ok(enUnaLinea(main, ['avisoImportar(r.paquete, infoPartida(modoJuego, ranura), versionNuevaDe(r.paquete))']) && enUnaLinea(main, ['textoOfertaSync(local, r.paquete, versionNuevaDe(r.paquete))', 'textoDosCambiaron(local, r.paquete, versionNuevaDe(r.paquete))']), 'main.js pasa la versión nueva a los tres avisos');
+  ok(enUnaLinea(main, ['avisoImportar(r.paquete, infoPartida(modoJuego, ranura), versionNuevaDe(r.paquete), ']) && enUnaLinea(main, ['textoOfertaSync(local, r.paquete, versionNuevaDe(r.paquete))', 'textoDosCambiaron(local, r.paquete, versionNuevaDe(r.paquete))']), 'main.js pasa la versión nueva a los tres avisos');
   ok(enUnaLinea(main, ['fijarVersionDelJuego(versionDelJuego())']), 'main.js le dice a guardado.js la versión de este juego');
 }
 

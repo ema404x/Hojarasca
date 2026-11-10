@@ -123,6 +123,9 @@ export function avisoSyncHistoria(progreso, local = null) {
   const copia = textoNombre(h.copiaPrevia);
   const fresca = h.avisoReinicio === true || (!!local?.hay && (Number(local.dia) || 0) > (Number(progreso.dia) || 0));
   if (!historiaVieja(progreso) && copia && fresca) return `\n\nOJO: esa partida es la que empezó de cero cuando cambió la historia del valle. Tu mundo de antes quedó copiado aparte en la computadora donde pasó (archivo ${copia}). Si la de esta computadora tiene tu mundo de antes y seguís con la de la carpeta, se reemplaza.`;
-  if (debeReiniciar(progreso, 'relax')) return '\n\nOJO: esa partida trae la historia anterior a medias. Al abrirla con esta versión empieza de cero (queda una copia aparte para recuperarla).';
+  if (debeReiniciar(progreso, 'relax')) return AVISO_HISTORIA_A_MEDIAS;
   return '';
 }
+const AVISO_HISTORIA_A_MEDIAS = '\n\nOJO: esa partida trae la historia anterior a medias. Al abrirla con esta versión empieza de cero (queda una copia aparte para recuperarla).';
+// 4.25.2 (B4): «Importar acá» también lo avisa (antes sólo la carpeta sincronizada): una partida con la historia vieja a medias se reinicia al abrirla
+export const avisoImportarHistoria = (progreso, modo = 'relax') => (progreso && typeof progreso === 'object' && debeReiniciar(progreso, modo) ? AVISO_HISTORIA_A_MEDIAS : '');

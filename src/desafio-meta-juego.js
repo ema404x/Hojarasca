@@ -120,7 +120,8 @@ export function crearMetaJuego(ctx) {
     const mult = efectosDe(meta).mult;
     const puntos = puntosDe({ noches: d.noches, abatidos: d.abatidos, victoria, mult });
     let puesto = 0;
-    if ((d.noches || 0) > 0) {
+    // 4.25.2: una partida con la consola de códigos usada o jugada con alguna perilla más fácil no anota sus puntos en los récords
+    if ((d.noches || 0) > 0 && !d.trucos && !d.facilitada) {
       const reg = registrarPuntos(m, modo, { puntos, noches: d.noches, abatidos: d.abatidos, victoria, mult, fecha: new Date().toISOString().slice(0, 10), codigo: d.semilla });
       m = reg.meta; puesto = reg.puesto;
     }

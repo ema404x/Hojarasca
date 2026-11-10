@@ -1334,7 +1334,7 @@ function casco(K, o) {
   }
   // lo que queda bajo techo (para que no nieve adentro) y la puerta para puertas.js
   const zG = o.galeria ? D / 2 + (o.galeria.fondo ?? 1.7) : D / 2;
-  K.techo = { x0: -W / 2, x1: W / 2, z0: -D / 2, z1: zG, radio: Math.min(W, D) / 2 };
+  K.techo = { x0: -W / 2, x1: W / 2, z0: -D / 2, z1: zG, radio: Math.min(W, D) / 2, alero: H };   // 4.25.2 (G3-3): `alero`, la altura donde arranca el techo (el «adentro» de la cámara llega hasta ahí)
   // 3.6.2 (visual): para que no llueva abajo (ver `cubierta` en techo-lluvia.js), en local: el cuerpo con
   // sus aleros hasta la altura del alero (más arriba es el entretecho) y la galería con su caída
   if (e >= 3) {

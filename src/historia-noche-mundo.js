@@ -444,9 +444,12 @@ export function crearNocheMundo(ctx) {
   }
   function alTeclear(e) {
     if (!activa || ctx.modo() !== 'jugando' || pausada) return;   // 4.17.1: en una escena entre olas, el 1 y el 2 eligen la respuesta (no cambian de arma)
-    if (e.code === 'Digit1' || e.code === 'Numpad1') { e.stopImmediatePropagation(); elegirArma('arco'); }
-    else if (e.code === 'Digit2' || e.code === 'Numpad2') { e.stopImmediatePropagation(); elegirArma('honda'); }
-    else if (e.code === 'KeyE') e.stopImmediatePropagation();   // de noche no se duerme ni se toca nada: se defiende
+    // 4.25.2 (G3-2): la tecla traducida como la ve el resto del juego (`ctx.traducirTecla`, el codigoCanonico de main.js): con «Juntar, anotar
+    // y hablar» en otra tecla, esa es la que se corta (antes se cortaba la E física y la otra entraba al juego: sentarse, hablar, dormir)
+    const c = typeof ctx.traducirTecla === 'function' ? ctx.traducirTecla(e.code) : e.code;
+    if (c === 'Digit1' || c === 'Numpad1') { e.stopImmediatePropagation(); elegirArma('arco'); }
+    else if (c === 'Digit2' || c === 'Numpad2') { e.stopImmediatePropagation(); elegirArma('honda'); }
+    else if (c === 'KeyE') e.stopImmediatePropagation();   // de noche no se duerme ni se toca nada: se defiende
   }
   function alRueda(e) { if (activa && ctx.modo() === 'jugando' && !pausada && sim && !sim.fin) { e.stopImmediatePropagation(); elegirArma(mano.arma === 'arco' ? 'honda' : 'arco'); } }
   window.addEventListener('mousedown', alApretar, true);

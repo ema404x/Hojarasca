@@ -1305,6 +1305,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         if (avisada !== noche && !d.especial) decidirNoche(noche);
         d.oleadaNoche = noche;
         d.oleadaTerminada = false;
+        marcarFacilitada();   // 4.25.2 (M2)
         reiniciarNoche();
         defensas.alEmpezarNoche();
         fortin.alEmpezarNoche();
@@ -1416,14 +1417,15 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 3.0: aprenden de cómo peleaste, y los puestos crecen (o aparece uno nuevo)
     evolucion.alAmanecer();
     puestos.alAmanecer();
-    const rs = recordDeSemilla();
+    marcarFacilitada();   // 4.25.2 (M2): si esta noche corrió con una perilla más fácil, la partida queda marcada
+    const rs = sinRecords() ? null : recordDeSemilla();   // 4.25.2 (M1): ni el récord de la semilla con perillas más fáciles o con códigos
     if (rs?.mejoro) setTimeout(() => ctx.nota(`Tu mejor noche con ${d.semilla}`, rs.noches === 1 ? '1 noche resistida con este código' : `${rs.noches} noches resistidas con este código`), 6000);
     if (nocheConRestos(d.oleadas)) eventos.soltarRestos();
     aliados.revisarLlegadas(contarDefensas());
     const ganados = evaluarNoche({
       sobrevivida: true, danoRecibido: nocheActual.dano, abatidos: nocheActual.abatidos, abatidosLanza: nocheActual.abatidosLanza,
       abatidosOtros: nocheActual.abatidosOtros, invasores: nocheActual.invasores, obrasPerdidas: nocheActual.perdidas,
-      especial, noche: d.oleadas, dificultad: perillasFacilitanPartida() ? 'facilitada' : (ctx.dificultad?.() || 'normal'),   // 4.22.0: con una perilla más fácil no vale el logro de Implacable
+      especial, noche: d.oleadas, dificultad: D().facilitada || perillasFacilitanPartida() ? 'facilitada' : (ctx.dificultad?.() || 'normal'),   // 4.22.0: con una perilla más fácil no vale el logro de Implacable (4.25.2: tampoco si alguna noche anterior lo fue)
     }, totalLogros());
     anunciarLogros(ganados);
     registrarRecords();
@@ -1431,6 +1433,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
 
   // ---------------- logros y récords
+  // 4.25.2 (M2): las perillas se pueden cambiar en cualquier momento; si una noche corrió con alguna más fácil (aunque al alba ya estén
+  // en cero), la partida queda marcada y no anota récords ni el logro de Implacable. (M3): con la consola de códigos, ídem y sin logros.
+  function marcarFacilitada() { const d = D(); if (!d.facilitada && !d.sinFin && perillasFacilitanPartida()) d.facilitada = true; }
+  const sinRecords = () => { const d = D(); return !!d.trucos || !!d.facilitada || perillasFacilitanPartida(); };
   const logros = crearLogros();
   const contarDefensas = () => obras.obras.filter((o) => o.datos.etapas > 0 && o.plano.categoria === 'defensa' && !o.plano.defensa?.oculta).length;   // 4.9 defensas: el pasadizo no cuenta
   function totalLogros() {
@@ -1442,6 +1448,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     };
   }
   function anunciarLogros(ids) {
+    if (D().trucos) return;   // 4.25.2 (M3): con la consola de códigos usada en esta partida no se dan logros
     let retraso = 1800;
     for (const id of ids) {
       if (!logros.desbloquear(id)) continue;
@@ -1459,7 +1466,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function registrarRecords(victoria = false) {
     const d = D();
     if (d.sinFin) return;   // 3.0: la corrida sin fin tiene sus propios récords (main.js, desafio-supervivencia.js)
-    if (perillasFacilitanPartida()) return;   // 4.22.0: con alguna perilla más fácil que la dificultad elegida no se anota el récord
+    if (sinRecords()) return;   // 4.22.0: con alguna perilla más fácil que la dificultad elegida no se anota el récord (4.25.2: ni con códigos, ni si alguna noche lo fue)
     logros.registrarRecord({ dificultad: ctx.dificultad?.() || 'normal', noches: d.noches, racha: d.mejorRacha, abatidos: d.abatidos, victoria });
     if (!victoria) recordDeSemilla();   // 2.3: el récord de este código (el amanecer lo avisa)
   }
@@ -3815,6 +3822,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     rayo.material.opacity = Math.max(0, rayo.material.opacity - dt * 7);
     // salud: se recupera sola despacio si pasa un rato sin golpes
     const d = D();
+    if (!d.oleadaTerminada) marcarFacilitada();   // 4.25.2 (M2): bajar una perilla a mitad de noche también marca la partida
     sinDano += dt;
     // 4.10 guardian: el bono de correr se le lleva al jugador cada medio segundo (jugador.js lo lee de su estado)
     relojBonos -= dt;

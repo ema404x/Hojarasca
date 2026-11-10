@@ -16,6 +16,8 @@ import { BIENES } from './comercio.js';
 import { precioDeConsigna } from './propiedad.js';
 import { tengoBien, quitarBien } from './cantina.js';
 import { cobrar, formatoPesos } from './economia.js';
+// 4.25.2 (M4): lo comprado en el tren (para que tus negocios no lo revendan con ganancia)
+import { marcarAlDejar, precioDelLote, sanearMarcasReventa } from './reventa.js';
 
 const entero = (v, max = 1e7) => Math.max(0, Math.min(max, Math.floor(Number(v)) || 0));
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -206,7 +208,8 @@ export function sanearTienda(v, hoy = 1e6) {
   const stock = {};
   if (objeto(x.stock)) for (const k of TIENDA.mercaderia) { const n = entero(x.stock[k], TIENDA.stockMax); if (n > 0 && Object.keys(stock).length < TIENDA.tipos) stock[k] = n; }
   const dia = Math.max(1, entero(hoy, 1e6)), d = entero(x.dia, 1e6);
-  return { stock, caja: entero(x.caja, TIENDA.cajaMax), dia: d >= 1 ? Math.min(dia, d) : dia };
+  const reventa = sanearMarcasReventa(x.reventa, stock);   // 4.25.2 (M4): los lotes que salieron de lo comprado en el tren (sólo si hay)
+  return { stock, caja: entero(x.caja, TIENDA.cajaMax), dia: d >= 1 ? Math.min(dia, d) : dia, ...(Object.keys(reventa).length ? { reventa } : {}) };
 }
 export const lotesEnTienda = (t) => Object.values(t?.stock || {}).reduce((s, n) => s + n, 0);
 // Lo que vendió la tienda desde la última vez (hasta seis lotes por día, lo más caro primero, hasta un año del juego): vuelve cuántos lotes
@@ -219,11 +222,12 @@ export function venderDias(t, hoy) {
     const hay = Object.keys(t.stock).filter((b) => t.stock[b] > 0).sort((a, b) => BIENES[b].valor - BIENES[a].valor || (a < b ? -1 : 1));
     if (!hay.length) break;
     const b = hay[0];
-    t.caja = Math.min(TIENDA.cajaMax, t.caja + precioEnTienda(b));
+    t.caja = Math.min(TIENDA.cajaMax, t.caja + precioDelLote(t.reventa, b, precioEnTienda(b)));   // 4.25.2 (M4): lo comprado en el tren, como mucho lo que costó
     t.stock[b]--;
     if (t.stock[b] <= 0) delete t.stock[b];
     vendidos++;
   }
+  if (t.reventa && !Object.keys(t.reventa).length) delete t.reventa;
   t.dia = dia;
   return vendidos;
 }
@@ -236,9 +240,12 @@ export function dejarEnTienda(p, t) {
     const ya = t.stock[k] || 0;
     if (!ya && Object.keys(t.stock).length >= TIENDA.tipos) continue;
     const lotes = Math.min(Math.floor(Math.max(0, tengoBien(p, k) - (TIENDA.reserva[k] || 0)) / b.lote), TIENDA.stockMax - ya);   // 4.23.0: menos lo que se guarda para cocinar
+    const tengo = tengoBien(p, k);
     if (lotes < 1 || !quitarBien(p, k, lotes * b.lote)) continue;
     t.stock[k] = ya + lotes;
-    dejado.push({ k, lotes });
+    const comprados = marcarAlDejar(p, (t.reventa ||= {}), k, lotes, b.lote, tengo);   // 4.25.2 (M4)
+    if (!Object.keys(t.reventa).length) delete t.reventa;
+    dejado.push({ k, lotes, ...(comprados ? { comprados } : {}) });
   }
   return dejado;
 }

@@ -117,9 +117,10 @@ for (const c of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyH', 'KeyY', 'KeyO',
   assert.ok(Object.values(TECLAS_POR_DEFECTO).includes(c), `el mapa por defecto no usa ${c}`);
 }
 const base = mapaPorDefecto();
-const ok = cambiarTecla(base, 'linterna', 'KeyN');
+const ok = cambiarTecla(base, 'linterna', 'Semicolon');   // 4.25.2: era la N, que es una tecla fija del juego (el encastre)
 assert.equal(ok.ok, true);
-assert.equal(ok.mapa.linterna, 'KeyN');
+assert.equal(ok.mapa.linterna, 'Semicolon');
+assert.equal(cambiarTecla(base, 'linterna', 'KeyN').ok, false, '4.25.2: una tecla fija del juego no se toma');
 assert.equal(base.linterna, 'KeyL', 'no toca el mapa que le pasaron');
 assert.deepEqual(teclasCambiadas(ok.mapa), ['linterna']);
 // duplicada: se rechaza y dice de quién es
@@ -141,12 +142,13 @@ assert.equal(textoTecla('ShiftLeft'), 'Shift');
 assert.equal(textoTecla('F1'), 'F1');
 
 // saneo de un mapa hecho puré
-const roto = sanearMapaTeclas({ adelante: 'KeyI', mochila: 'KeyI', atras: 42, izquierda: 'banana', taller: 'KeyT', pausa: 'KeyW', pescar: 'KeyQ' });
+const roto = sanearMapaTeclas({ adelante: 'KeyI', mochila: 'KeyI', atras: 42, izquierda: 'banana', taller: 'Comma', linterna: 'KeyT', pausa: 'KeyW', pescar: 'KeyQ' });   // 4.25.2: el cambio válido era la T, que es la de la carpa
 assert.equal(roto.adelante, 'KeyI', 'la primera que agarró la tecla se la queda');
 assert.notEqual(roto.mochila, 'KeyI', 'no quedan dos acciones con la misma tecla');
 assert.equal(roto.atras, 'KeyS', 'la basura vuelve a lo de fábrica');
 assert.equal(roto.izquierda, 'KeyA');
-assert.equal(roto.taller, 'KeyT', 'un cambio válido se respeta');
+assert.equal(roto.taller, 'Comma', 'un cambio válido se respeta');
+assert.equal(roto.linterna, 'KeyL', '4.25.2: una tecla fija del juego vuelve a la de fábrica');
 assert.equal(roto.pausa, 'Escape', 'la pausa no se muda');
 assert.equal('pescar' in roto, false, 'las acciones que no existen se tiran');
 assert.deepEqual(Object.keys(roto).sort(), ACCIONES_TECLA.slice().sort(), 'el mapa sale completo');

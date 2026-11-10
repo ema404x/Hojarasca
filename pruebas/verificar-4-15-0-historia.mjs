@@ -679,7 +679,7 @@ async function chequear(arch = '', sufijo = '') {
     const main = leer('src/main.js');
     for (const frag of [
       "import { ESCENAS_ACTO1, EFECTOS_ACTO1 } from './historia-escenas-acto1.js';",
-      "import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia } from './historia-reinicio.js';",
+      "import { debeReiniciar, historiaVieja, reiniciarPartida, limpiarHistoria, nombreCopia, textoCopia, avisoImportarHistoria } from './historia-reinicio.js';",   // (4.25.2: y el aviso de «Importar acá»)
       'if (progreso && !esDesafio && historiaVieja(progreso)) {',
       'if (debeReiniciar(progreso, \'relax\')) {',
       'registrarEfectosHistoria(escenasMundo,',
