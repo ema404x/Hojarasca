@@ -159,9 +159,10 @@ const estTren = (o = {}) => ({ s: 0, vel: 7, objetivo: 7, parado: 0, proxima: nu
 {
   const CAP = ['llave', 'bolsa', 'mesa', 'ramal'].map((id) => ({ id }));
   const mundo = (o = {}) => {
-    const estacion = { nombre: 'Estación del Valle', anden: { x: 100, z: 50 }, espera: { x: 100, z: 50, y: 20 } };
+    // (4.26.1: la campanita del poste de cada parada; la de la Aldea es la de la estación, ver `mecanicasAldea`)
+    const estacion = { nombre: 'Estación del Valle', anden: { x: 100, z: 50 }, espera: { x: 100, z: 50, y: 20 }, campana: { x: 102, y: 22.4, z: 49.5 } };
     const aldea = { nombre: 'Aldea de los Duendes', anden: { x: -300, z: 80 }, espera: { x: -300, z: 80, y: 12 }, aldea: true };
-    const otra = { nombre: 'Parada Alta', anden: { x: 400, z: -200 }, espera: { x: 400, z: -200, y: 30 } };
+    const otra = { nombre: 'Parada Alta', anden: { x: 400, z: -200 }, espera: { x: 400, z: -200, y: 30 }, campana: { x: 402, y: 32.4, z: -200.5 } };
     const paradas = [estacion, aldea, otra];
     const llamado = { espera: 300, aca: false, subido: false, conduce: false, varado: false, nieve: false, enOtra: null, sale: 0, entrando: false, ...(o.llamado || {}) };
     const R = { notas: [], sonidos: [], traidos: [], fundidos: 0, fallas: [] };
@@ -176,6 +177,7 @@ const estTren = (o = {}) => ({ s: 0, vel: 7, objetivo: 7, parado: 0, proxima: nu
       },
       progreso: { historia: o.historia ?? { activa: false, capitulo: 0, escenas: { vistas: {} } }, entradas: o.entradas || {} },
       esDesafio: !!o.desafio, desafio: o.desafio ? { hayAtaque: () => !!o.ataque } : null,
+      mirandoLaCampana: C.mirandoLaCampana, mecanicasAldea: { dondeCampana: () => ({ x: -302, y: 14.4, z: 78.5 }), tocarCampana: () => { R.sonidos.push({ x: -302, y: 14.4, z: 78.5, aldea: true }); return { x: -302, y: 14.4, z: 78.5 }; } },   // (4.26.1)
       CAPITULOS: CAP, CAMPANA_ANDEN: C.CAMPANA_ANDEN, decidirCampana: C.decidirCampana, ofreceCampana: C.ofreceCampana, textoCampana: C.textoCampana, campanaDeElsa: C.campanaDeElsa,
       sonido: { campana: (p) => R.sonidos.push(p) },
       nota: (t, s) => R.notas.push([t, s]),
@@ -189,7 +191,9 @@ const estTren = (o = {}) => ({ s: 0, vel: 7, objetivo: 7, parado: 0, proxima: nu
   };
   // dónde se ofrece
   { const { env, R } = mundo(); const d = env.campanaAndenCerca(); ok(d && d.ok && d.parada.nombre === 'Estación del Valle', 'Relax, a 2 m del andén con el tren lejos: viene'); ok(R.frenando === 60, 'con los 60 m de frenada'); }
-  { const { env } = mundo({ dx: 7.5, dz: 2 }); ok(!!env.campanaAndenCerca(), 'a 7,8 m, todavía'); }
+  { const { env } = mundo({ dx: 2, dz: 2.4 }); ok(!!env.campanaAndenCerca(), '(4.26.1) mirándola a 2,9 m, todavía'); }
+  { const { env } = mundo({ dx: 2, dz: 3 }); ok(env.campanaAndenCerca() === null, '(4.26.1) a 3,5 m de la campana, aunque la mires, ya no'); }
+  { const { env } = mundo({ js: { yaw: Math.PI } }); ok(env.campanaAndenCerca() === null, '(4.26.1) de espaldas a la campana, no'); }
   { const { env } = mundo({ dx: 9, dz: 3 }); ok(env.campanaAndenCerca() === null, 'a 9,5 m ya no (aunque la parada esté cerca: el cartel sí dice la espera)'); }
   { const { env } = mundo({ js: { enTren: true } }); ok(env.campanaAndenCerca() === null, 'arriba del tren, no'); }
   { const { env } = mundo({ js: { sentado: true } }); ok(env.campanaAndenCerca() === null, 'sentado, no'); }
@@ -198,7 +202,7 @@ const estTren = (o = {}) => ({ s: 0, vel: 7, objetivo: 7, parado: 0, proxima: nu
   // tocarla
   { const { env, R } = mundo(); env.tocarCampanaAnden();
     ok(R.fundidos === 1 && R.traidos.length === 1 && R.traidos[0][0] === 'Estación del Valle' && R.traidos[0][1] === 135, 'viene: fundido y el tren a 135 m');
-    ok(R.sonidos.length === 1 && Math.abs(R.sonidos[0].y - 21.8) < 1e-9, 'suena la campana, en el andén');
+    ok(R.sonidos.length === 1 && R.sonidos[0].x === 102 && Math.abs(R.sonidos[0].y - 22.4) < 1e-9, '(4.26.1) suena la campana, desde la campanita del poste');
     ok(R.notas.length === 1 && R.notas[0][0] === 'Tocaste la campana del andén', 'y lo dice'); }
   { const { env, R } = mundo({ llamado: { espera: 30 } }); env.tocarCampanaAnden();
     ok(R.fundidos === 0 && R.traidos.length === 0 && R.sonidos.length === 1 && R.notas[0][0] === 'La trochita ya viene', 'a 30 s: suena, sin fundido, avisa'); }
@@ -234,7 +238,7 @@ const estTren = (o = {}) => ({ s: 0, vel: 7, objetivo: 7, parado: 0, proxima: nu
 const MUT = [
   ['campana-anden.js', '  umbral: 45,', '  umbral: 5,', 'con el tren a 30 s igual hay fundido'],
   ['campana-anden.js', '  metros: 135,', '  metros: 30,', 'la locomotora aparece a la vista'],
-  ['campana-anden.js', '  radio: 8,', '  radio: 14,', 'la campana se toca desde toda la parada'],
+  ['campana-anden.js', '  alcance: 3,', '  alcance: 8,', 'la campana se toca desde toda la parada'],   // (4.26.1: el alcance es de la campana, a 3 m; el radio de 8 m del andén es sólo el primer filtro)
   ['campana-anden.js', "  if (o.elsa) return r('elsa', false, false);\n", '', 'la campana saltea la escena de Elsa'],
   ['campana-anden.js', "  if (f.enOtra) return r('otra');\n", '', 'la campana saca al tren de otra parada'],
   ['campana-anden.js', "  if (f.nieve) return r('nieve');\n", '', 'la campana saltea la cuadrilla de la nieve'],
@@ -249,7 +253,7 @@ const MUT = [
   ['trochita.js', "varado: !!est.varado, nieve: est.esperaNieve > 0,", "varado: !!est.varado, nieve: false,", 'la nieve no cuenta'],
   ['trochita.js', "sale: paradoEnOtra ? Math.ceil(est.parado) : 0,", "sale: 0,", 'no se dice cuándo sale'],
   ['trochita.js', "    est.vel = 0; est.s = poste(est.proxima) % total; est.parado = 45 + r() * 25;", "    est.vel = 0; est.s = poste(est.proxima) % total; est.parado = 15 + r() * 25;", 'cambia el horario de las paradas'],
-  ['main.js', "  if (!p || Math.hypot(p.anden.x - js.pos.x, p.anden.z - js.pos.z) > CAMPANA_ANDEN.radio) return null;", "  if (!p) return null;", 'la campana se toca desde toda la parada (main.js)'],
+  ['main.js', "  if (!mirandoLaCampana(js, campana)) return null;\n", '', 'la campana se toca desde toda la parada (main.js)'],   // (4.26.1: lo que limita es mirar la campana a 3 m; los 8 m del andén son sólo el primer filtro)
   ['main.js', "  if (!tren?.estadoDelLlamado || !js || js.enTren || js.sentado) return null;", "  if (!tren?.estadoDelLlamado || !js || js.enTren) return null;", 'se toca sentado'],
   ['main.js', "esEstacion: p === tren.estacion,", "esEstacion: false,", 'main.js no ve que es la estación de Elsa'],
   ['main.js', "const elsa = campanaDeElsa({ historia: !esDesafio && !!h?.activa,", "const elsa = campanaDeElsa({ historia: false,", 'main.js no le avisa a la campana de la Historia'],
@@ -257,10 +261,10 @@ const MUT = [
   ['main.js', "  if (d.ok) fundirCorto(() => { try { if (!jugador.estado.enTren) tren.traerAlAnden(p, CAMPANA_ANDEN.metros); }", "  if (d.ok) { try { if (!jugador.estado.enTren) tren.traerAlAnden(p, CAMPANA_ANDEN.metros); }", 'el tren aparece sin fundido'],
   ['main.js', "  if (d.ok) fundirCorto(() => { try { if (!jugador.estado.enTren) tren.traerAlAnden(", "  if (d.ok) fundirCorto(() => { try { if (true) tren.traerAlAnden(", 'el tren se mueve con el jugador ya arriba'],
   ['main.js', "  if (d.ok) fundirCorto(", "  if (d.ok || d.motivo === 'cerca') fundirCorto(", 'hay fundido con el tren que ya viene'],
-  ['main.js', "  if (d.suena) sonido.campana?.(", "  if (true) sonido.campana?.(", 'la soga atada suena igual'],
+  ['main.js', "  if (d.suena && !(p.aldea && mecanicasAldea?.tocarCampana?.())) sonido.campana?.(", "  if (!(p.aldea && mecanicasAldea?.tocarCampana?.())) sonido.campana?.(", 'la soga atada suena igual'],   // (4.26.1: la línea del sonido cambió)
   ['main.js', "  const d = decidirCampana(tren.estadoDelLlamado(p, CAMPANA_ANDEN.frenando),", "  const d = decidirCampana(tren.estadoDelLlamado(p, 0),", 'no se mira si entra a otra parada'],
-  ['interacciones.js', "  { id: 'campana-anden', cuando: (c) => aPie(c) && !c.js.sentado && c.campanaAnden(),", "  { id: 'campana-anden', cuando: (c) => aPie(c) && c.campanaAnden(),", 'la tabla ofrece la campana sentado'],
-  ['interacciones.js', "  { id: 'campana-anden', cuando: (c) => aPie(c) && !c.js.sentado && c.campanaAnden(),", "  { id: 'campana-anden', cuando: (c) => libre(c.js) && !c.js.sentado && c.campanaAnden(),", 'la campana le gana a lo que mirás'],
+  ['interacciones.js', "const campanaALaVista = (c) => aPie(c) && !c.js.sentado && c.campanaAnden?.();", "const campanaALaVista = (c) => aPie(c) && c.campanaAnden?.();", 'la tabla ofrece la campana sentado'],   // (4.26.1: la condición es campanaALaVista)
+  ['interacciones.js', "const campanaALaVista = (c) => aPie(c) && !c.js.sentado && c.campanaAnden?.();", "const campanaALaVista = (c) => libre(c.js) && !c.js.sentado && c.campanaAnden?.();", 'la campana le gana a lo que mirás'],
 ];
 let atrapadas = 0;
 if (!HIJO) {

@@ -22,7 +22,21 @@ export const CAMPANA_ANDEN = Object.freeze({
   umbral: 45,    // segundos: con menos, el tren «ya viene» (el mismo número que usa la escena de Elsa)
   metros: 135,   // dónde aparece la locomotora, antes del poste (fuera de la vista desde el andén)
   frenando: 60,  // metros: el tren que entra a otro andén ya está frenando ahí (ver trochita.js `actualizar`)
+  alcance: 3,    // 4.26.1: metros (en el piso) del jugador a la campana para que la E la ofrezca
+  frente: 0.8,   // 4.26.1: y mirándola: el coseno del ángulo entre adónde mira y la campana (unos 37° a cada lado)
 });
+
+// 4.26.1: la E ofrece la campana sólo mirándola de cerca (antes, en cualquier lugar a 8 m del centro del andén). `js`: el estado del jugador
+// ({ pos, yaw }: mira hacia (−sen yaw, −cos yaw), como rastreo.js `mirandoAlPerro`); `campana`: { x, z } de la campana (la del poste de la
+// parada, trochita.js, o la de la estación de la Aldea, aldea-mecanicas-mundo.js). Sin campana a la vista no hay aviso.
+export function mirandoLaCampana(js, campana) {
+  if (!js?.pos || !campana || !Number.isFinite(campana.x) || !Number.isFinite(campana.z)) return false;
+  const dx = campana.x - js.pos.x, dz = campana.z - js.pos.z, d = Math.hypot(dx, dz);
+  if (d > CAMPANA_ANDEN.alcance) return false;
+  if (d < 0.25) return true;   // (abajo de la campana, cualquier rumbo la tiene encima)
+  const yaw = Number(js.yaw) || 0;
+  return (-Math.sin(yaw) * dx - Math.cos(yaw) * dz) / d >= CAMPANA_ANDEN.frente;
+}
 
 // Las escenas de Elsa que se quedan con la campana (ver historia-disparadores.js)
 export const ESCENA_ELSA_IDA = 'elsa-anden';

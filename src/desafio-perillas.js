@@ -56,6 +56,31 @@ export function textoPerillas(p) {
   return `Sobre la dificultad elegida: ${lista}.${perillasFacilitan(s) ? ' Más fácil que la dificultad: no se anotan récords ni el logro de Implacable.' : ''}`;
 }
 
+// ---------------------------------------------------------------- 4.26.1: el nombre del nivel (pendiente de la 4.22.0)
+// Con las perillas, la dificultad elegida ya no dice cuánto cuesta la noche: Normal con todo en +2 es casi una Implacable y con todo en −2 casi una
+// Tranquila. El nivel junta las tres cosas (cuántos vienen × cuánto aguantan × cuánto pegan: lo que hay que tumbar y lo que duele) y lo dice en cinco
+// escalones con nombre, de «Tranquila» (1 de 5) a «Implacable» (5 de 5), y si queda más allá de una punta. Es sólo el nombre: no cambia ninguna regla
+// (los récords y el logro de Implacable siguen mirando la dificultad elegida y si alguna perilla facilita).
+export const NIVELES_DIFICULTAD = ['Tranquila', 'Suave', 'Normal', 'Dura', 'Implacable'];
+// el logaritmo de cantidad × vida × daño a mitad de camino entre los escalones: Tranquila (−1,33), Suave (−0,67), Normal (0), Dura (0,43), Implacable (0,86)
+export const CORTES_NIVEL = [-1.0, -0.33, 0.215, 0.645];
+export const MAS_ALLA_NIVEL = 0.3;   // (todo +1 o todo −1 mueve unos 0,46-0,55: pasarse de una punta en más de esto es «más dura que Implacable» o «más suave que Tranquila»)
+// `base`: la dificultad elegida ({ cantidad, vida, dano }, la de desafio-reglas.js); `perillas`: los tres pasos. Devuelve { n (1 a 5), nombre, mas (−1, 0, 1) }.
+export function nivelDeDificultad(base, perillas) {
+  const m = multiplicadoresPerillas(perillas), b = base && typeof base === 'object' ? base : {};
+  const f = (k) => { const v = Number(b[k]); return Number.isFinite(v) && v > 0 ? v : 1; };
+  const L = Math.log(f('cantidad') * m.cantidad) + Math.log(f('vida') * m.vida) + Math.log(f('dano') * m.dano);
+  const i = CORTES_NIVEL.filter((c) => L >= c).length;
+  const puntas = [-1.33, 0.86];
+  const mas = L > puntas[1] + MAS_ALLA_NIVEL ? 1 : L < puntas[0] - MAS_ALLA_NIVEL ? -1 : 0;
+  return { n: i + 1, nombre: NIVELES_DIFICULTAD[i], mas };
+}
+export function textoNivel(base, perillas) {
+  const v = nivelDeDificultad(base, perillas);
+  const nombre = v.mas > 0 ? 'más dura que Implacable' : v.mas < 0 ? 'más suave que Tranquila' : v.nombre;
+  return `Nivel de la noche: ${nombre} (${v.n} de ${NIVELES_DIFICULTAD.length}).`;
+}
+
 // ---------------------------------------------------------------- lo que cuesta caer
 // Caer no te saca de la partida: perdés las semillas doradas y parte de la madera y la piedra, y la noche cuenta como pasada. Hasta la 4.21.0
 // era plano (30 % de los materiales sin importar la noche): pasada la mitad de la campaña las semillas sobran y lo único que dolía era el

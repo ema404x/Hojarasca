@@ -50,7 +50,7 @@ import { crearPerro } from './perro.js';
 import { fijarCalidadPiel } from './animales-piel.js';
 import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
-import { CAMPANA_ANDEN, decidirCampana, ofreceCampana, textoCampana, campanaDeElsa } from './campana-anden.js';
+import { CAMPANA_ANDEN, decidirCampana, ofreceCampana, textoCampana, campanaDeElsa, mirandoLaCampana } from './campana-anden.js';
 // 4.6 puestos: los puestos de ruta (reglas, lo que se ve y la E)
 import { crearPuestosRutaMundo, apeaderoDelRielSur } from './puestos-ruta-mundo.js';
 import { crearPuestosRutaJuego } from './puestos-ruta-juego.js';
@@ -303,11 +303,11 @@ import { DEF_GRACIELA } from './historia-graciela.js';
 import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
-import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
+import { vidaMaxObra, SALUD_MAX, DIFICULTADES } from './desafio-reglas.js';
 // 4.10 partidas: lo de entre partidas (semillas del Coihue, ventajas, reglas, modos y finales; ver desafio-meta.js)
 import { fijarPartidaMeta, fijarPerillas, efectosPartida } from './desafio-reglas.js';
 // 4.22.0: las tres perillas de la dificultad del Desafío y lo que cuesta caer
-import { perillasDeAjustes, textoPerillas, castigoDeCaer, aplicarCastigo, textoCaida } from './desafio-perillas.js';
+import { perillasDeAjustes, textoPerillas, castigoDeCaer, aplicarCastigo, textoCaida, textoNivel } from './desafio-perillas.js';
 import { crearMetaJuego } from './desafio-meta-juego.js';
 import { sumarBono, quitarBonosDeOrigen, saludMaximaConBonos } from './desafio-bonos.js';
 import { crearPantallaNuevaPartida, dibujarHojaPartidas } from './desafio-meta-pantalla.js';
@@ -2918,6 +2918,7 @@ function sincronizarAjustes() {
   // 4.22.0: las perillas, sólo en la campaña del Desafío (la corrida sin fin tiene sus récords por dificultad)
   document.querySelectorAll('[data-perillas]').forEach((el) => el.classList.toggle('oculto', ajustes.desafioTipo === 'sinfin' || (el.dataset.perillas === 'ajustes' && !esDesafio)));
   document.querySelectorAll('[data-perillas-texto]').forEach((el) => { el.textContent = textoPerillas(perillasDeAjustes(ajustes)); });
+  document.querySelectorAll('[data-nivel-noche]').forEach((el) => { el.textContent = textoNivel(DIFICULTADES[ajustes.dificultad] || DIFICULTADES.normal, perillasDeAjustes(ajustes)); });   // 4.26.1: el nombre del nivel con las perillas (desafio-perillas.js)
   if ($('desafio-tipo-texto')) $('desafio-tipo-texto').textContent = ajustes.desafioTipo === 'sinfin'   // 3.0
     ? 'Una sola vida y ninguna noche final: cada noche vienen más duros. Caer termina la corrida y queda el récord. Tu campaña no se toca.'
     : 'Veinte noches hasta el Coihue Viejo, y después la cueva.';
@@ -7079,6 +7080,9 @@ function campanaAndenCerca() {
   if (!tren?.estadoDelLlamado || !js || js.enTren || js.sentado) return null;
   const p = tren.paradaCerca(js);
   if (!p || Math.hypot(p.anden.x - js.pos.x, p.anden.z - js.pos.z) > CAMPANA_ANDEN.radio) return null;
+  // 4.26.1: sólo mirando la campana, a 3 m o menos (la de la estación de la Aldea o la chica del poste de las demás paradas)
+  const campana = p.aldea ? mecanicasAldea?.dondeCampana?.() : p.campana;
+  if (!mirandoLaCampana(js, campana)) return null;
   const h = progreso.historia;
   const elsa = campanaDeElsa({ historia: !esDesafio && !!h?.activa, capitulo: CAPITULOS[Math.min(CAPITULOS.length - 1, Math.max(0, h?.capitulo || 0))]?.id, vistas: h?.escenas?.vistas, viaje: !!progreso.entradas?.viaje, esEstacion: p === tren.estacion, esAldea: !!p.aldea && !esDesafio });
   const d = decidirCampana(tren.estadoDelLlamado(p, CAMPANA_ANDEN.frenando), { ataque: !!desafio?.hayAtaque?.(), elsa });
@@ -7088,7 +7092,9 @@ function tocarCampanaAnden() {
   const d = campanaAndenCerca();   // (fresco: el aviso es de hace un rato)
   if (!d) return;
   const p = d.parada, t = textoCampana(d, p.nombre);
-  if (d.suena) sonido.campana?.({ x: p.anden.x, y: (p.espera?.y ?? jugador.estado.pos.y) + 1.8, z: p.anden.z });
+  // 4.26.1: en la Aldea, la campana de la estación se mueve y suena como cuando llega el tren (aldea-mecanicas-mundo.js `tocarCampana`); en las demás
+  // paradas suena la de siempre desde la chica del poste (trochita.js)
+  if (d.suena && !(p.aldea && mecanicasAldea?.tocarCampana?.())) sonido.campana?.(p.campana ? { x: p.campana.x, y: p.campana.y, z: p.campana.z } : { x: p.anden.x, y: (p.espera?.y ?? jugador.estado.pos.y) + 1.8, z: p.anden.z });
   if (d.ok) fundirCorto(() => { try { if (!jugador.estado.enTren) tren.traerAlAnden(p, CAMPANA_ANDEN.metros); } catch (e) { fallaSistema('campana-anden', e); } });
   if (t) nota(t.titulo, t.sub);
 }
@@ -9382,6 +9388,7 @@ function mostrarCharla() {
   else if (charla.vec && !charla.vec.chau) { abrirMenuCharla(!!(charla.historia || charla.encargo)); return; }
   else { texto = npc.despedida; charla.fin = true; }
   $('charla-texto').textContent = texto;
+  { const pie = (charla.historia && charla.parte >= 0 && charla.historia.pies?.[charla.parte]) || ''; const el = $('charla-pie'); if (el) { el.textContent = pie; el.classList.toggle('oculto', !pie); } }   // 4.26.1: la línea gris debajo del pedido (pedidos.js REGLA_PEDIDOS)
   if (!charla.historia?.social) hablaConVoz(npc, texto);   // 3.7.4: el balbuceo con su voz y la burbuja con el ícono del tema
   $('charla-seguir').textContent = charla.fin ? 'E o Escape para despedirte' : 'E para seguir escuchando';
   // 3.1: el trato con un poblador se acepta con E en el último renglón
@@ -9536,6 +9543,7 @@ function dibujarMenuCharla() {
   const m = charla.menu;
   if (!m.anillo) prepararRueda();
   $('charla-texto').textContent = m.texto;
+  $('charla-pie')?.classList.add('oculto');   // 4.26.1 (la línea gris del pedido es de su parte)
   const ul = $('charla-opciones');
   ul.innerHTML = '';
   const n = m.anillo.length;

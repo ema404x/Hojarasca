@@ -231,6 +231,23 @@ export function crearMecanicasAldea(ctx) {
     s.ladrido({ x: centro.x + Math.cos(a) * r * 0.6 + (cam.x - centro.x) * 0.2, y: (lugar.plaza?.y ?? 22) + 0.5, z: centro.z + Math.sin(a) * r * 0.6 + (cam.z - centro.z) * 0.2 });
     info.ladridos++;
   }
+  // 4.26.1: la campana del andén tocada a mano (la E del andén, main.js `tocarCampanaAnden`): se mueve y suena igual que cuando llega el tren (antes
+  // sólo con el tren; la E sonaba la campana de la locomotora desde el medio del andén). `dondeCampana`: dónde cuelga (para el aviso de la E, que sale
+  // sólo mirándola de cerca), o null si la estación de la aldea todavía no tiene su campana armada.
+  const vCampana = new THREE.Vector3();
+  function dondeCampana() {
+    if (!listo) revisar();   // (el bucle la vuelve a buscar cada tanto: acá no se revisa en cada cuadro)
+    if (!lugar.campana || !anim.campana) return null;
+    anim.campana.objeto.getWorldPosition(vCampana);
+    return { x: vCampana.x, y: vCampana.y, z: vCampana.z };
+  }
+  function tocarCampana() {
+    const p = dondeCampana();
+    if (!p) return null;
+    estado.campana = 3.2;
+    campanaAnden(p);
+    return p;
+  }
   // la campana del andén: más chica y más aguda que la de la locomotora, cuatro golpes
   function campanaAnden(p) {
     const s = S(); if (!s) return;
@@ -558,7 +575,7 @@ export function crearMecanicasAldea(ctx) {
     };
   }
   return {
-    actualizar, accion, juntoAEstufa, alTerminarCharla, sinApuro, medir, revisar: () => { acumRevisar = 0; revisar(); },
+    actualizar, accion, juntoAEstufa, alTerminarCharla, sinApuro, medir, revisar: () => { acumRevisar = 0; revisar(); }, dondeCampana, tocarCampana,   // (4.26.1)
     reiniciarMedidas: () => { info.ms = 0; info.msMax = 0; },
     candidatos: () => cands.map((c) => ({ tipo: c.tipo, x: c.x, y: c.y, z: c.z, edificio: c.edificio, mira: c.mira })),
     lugares: () => ({ ...lugar, camilla, lectura: lectura.map((s) => ({ ...s })) }), animables: () => anim, nubes: () => nubes.map((q) => q.p),

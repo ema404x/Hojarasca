@@ -204,8 +204,40 @@ function construirPasosANivel(T, escena, mat, paradas) {
   return cruces;
 }
 
+// ---------------------------------------------------------------- 4.26.1: la campana del andén
+// La que se toca con E (campana-anden.js): chica, de bronce, colgada de una ménsula de un poste del andén, con la soga del badajo que baja y se ata
+// a un clavo del poste. Va en la malla de la parada (0 llamadas de dibujo, unos 200 triángulos). En la Aldea no: ahí está la de la estación del pueblo
+// (aldea-arquitectura.js), que es la que se mueve al tocarla (aldea-mecanicas-mundo.js).
+const PERFIL_CAMPANA = [[0.01, 0], [0.13, 0.01], [0.12, 0.05], [0.09, 0.12], [0.07, 0.2], [0.03, 0.23], [0, 0.235]];   // (el de la campana de la Aldea)
+export const CAMPANA_POSTE = { escala: 1.15, sale: 0.42, alto: 2.62 };
+// un palo de `a` a `b` (coordenadas de la parada), abierto en las puntas
+function palito(c, a, b, radio, color, lados = 4, tipo = 0) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), largo = d.length();
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+  c.agregar(new THREE.CylinderGeometry(radio, radio, largo, lados, 1, true), { color, tipo, variar: 0.08, matriz: new THREE.Matrix4().compose(A.add(B).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1)) });
+}
+// `poste`: [x, z] del eje del poste; `dir`: [dx, dz] hacia dónde sale la ménsula; `alto`: su altura sobre el piso de la parada. Devuelve [x, y, z] de la
+// boca de la campana (coordenadas de la parada).
+function campanaDePoste(c, poste, dir, radioPoste, alto = CAMPANA_POSTE.alto) {
+  const [px, pz] = poste, [dx, dz] = dir, s = CAMPANA_POSTE.escala, sale = CAMPANA_POSTE.sale;
+  const en = (d, y) => [px + dx * d, y, pz + dz * d];
+  // la ménsula: el brazo y su pie de amigo
+  palito(c, en(radioPoste * 0.5, alto), en(sale + 0.08, alto), 0.035, MADERA_OSCURA);
+  palito(c, en(radioPoste * 0.7, alto - 0.36), en(sale * 0.7, alto - 0.02), 0.024, MADERA_OSCURA);
+  // la campana, boca abajo, y el gancho que la cuelga
+  const altoCampana = PERFIL_CAMPANA[PERFIL_CAMPANA.length - 1][1] * s, yBoca = alto - 0.07 - altoCampana;
+  const torno = new THREE.LatheGeometry(PERFIL_CAMPANA.map(([r, y]) => new THREE.Vector2(r * s, y * s)), 10);
+  c.agregar(torno, { tipo: 4, variar: 0.05, suave: true, degradado: ['#5e4c2c', '#a8874a'], matriz: matriz(en(sale, yBoca)) });
+  torno.dispose();
+  palito(c, en(sale, yBoca + altoCampana - 0.01), en(sale, alto - 0.02), 0.012, '#3a3430', 4, 4);
+  // la soga del badajo: baja hasta la cintura y se ata a un clavo del poste
+  palito(c, en(sale, yBoca + 0.03), en(sale, 1.32), 0.008, '#c9b88a');
+  palito(c, en(sale, 1.32), en(radioPoste + 0.01, 1.22), 0.008, '#c9b88a');
+  return en(sale, yBoca);
+}
+
 // ---------------------------------------------------------------- la estación
-function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion, nombre, chica) {
+function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion, nombre, chica, conCampana = true) {
   const riel = T.riel;
   const p = riel[indiceEstacion];
   const a = riel[indiceEstacion - 4], b = riel[indiceEstacion + 4];
@@ -279,6 +311,8 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
     c.agregar(new THREE.CylinderGeometry(0.11, 0.12, 2.5, 8), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([px, 1.85, bordeAnden + 0.6]) });
     for (const l of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.5, 0.1, 0.1), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([px + l * 0.22, 2.92, bordeAnden + 0.6], [0, 0, l * 0.7]) });
   }
+  // 4.26.1: la campana del andén, en el primer poste (del lado del puesto de cargas), saliendo hacia el andén
+  const bocaCampana = conCampana ? campanaDePoste(c, [chica ? -1.6 : -3.4, bordeAnden + 0.6], [0, 1], 0.115) : null;
   // banco del andén
   c.agregar(new THREE.BoxGeometry(2.2, 0.1, 0.48), { color: TABLA, tipo: 4, matriz: matriz([chica ? 1.4 : 3.2, 1.03, centroAnden + 0.6]) });
   c.agregar(new THREE.BoxGeometry(2.2, 0.55, 0.1), { color: TABLA, tipo: 4, matriz: matriz([chica ? 1.4 : 3.2, 1.3, centroAnden + 0.85]) });
@@ -414,6 +448,7 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
   return {
     x: p.x, z: p.z, y, ang: rot, nombre, chica, vidrio, luz,
     s: p.s, anden, indice: indiceEstacion,
+    campana: bocaCampana ? { ...w(bocaCampana[0], bocaCampana[2]), y: y + bocaCampana[1] + 0.12 } : null,   // 4.26.1: de dónde sale el sonido (main.js)
     espera: { x: anden.x, z: anden.z, y: y + 0.6 },
     cargas: { ...w(puestoX, puestoZ), y: y + 0.6 },   // 2.9: donde se para uno para comerciar
     // 3.6.2 (visual): abajo del techo del galpón y del alero del andén no llueve (ver techo-lluvia.js)
@@ -456,6 +491,10 @@ function construirApeadero(T, escena, col, mat, cartel, a, paradas) {
       if (tope - suelo < 0.1) break;
     }
   }
+  // 4.26.1: la campana del andén, en un poste propio al fondo de la punta de atrás (sin galpón no hay postes de alero)
+  const posteX = -largo / 2 + 0.6, posteZ = borde + ancho - 0.3;
+  c.agregar(new THREE.CylinderGeometry(0.07, 0.085, 2.2, 6), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([posteX, 0.6 + 1.1, posteZ]) });
+  const bocaCampana = campanaDePoste(c, [posteX, posteZ], [1, 0], 0.075, 2.5);
   const m = new THREE.Mesh(c.geometria(), mat);
   m.position.set(p.x, y, p.z); m.rotation.y = rot;
   m.castShadow = true; m.receiveShadow = true;
@@ -468,6 +507,7 @@ function construirApeadero(T, escena, col, mat, cartel, a, paradas) {
     x: p.x, z: p.z, y, ang: rot, nombre: a.nombre, chica: true, apeadero: true,
     vidrio: { color: new THREE.Color() }, luz: { intensity: 0 },   // (sin ventanas ni luz: main.js las recorre igual en todas las paradas)
     s: p.s, anden, indice: i, espera: { x: anden.x, z: anden.z, y: y + 0.6 },
+    campana: { ...w(bocaCampana[0], bocaCampana[2]), y: y + bocaCampana[1] + 0.12 },   // 4.26.1
     cargas: a.cargas || null, atiende: typeof a.atiende === 'function' ? a.atiende : null, cubiertas: [],
   };
 }
@@ -690,7 +730,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     const deLaAldea = !!opciones.aldea && sitio.i === opciones.aldea.indice;
     const antes = nombresAntes[k];
     if (deLaAldea) nombre = opciones.aldea.nombre;
-    const parada = construirParada(T, escena, col, mat, opciones.cartel, opciones.sentaderos, sitio.i, nombre, sitio !== principal);
+    const parada = construirParada(T, escena, col, mat, opciones.cartel, opciones.sentaderos, sitio.i, nombre, sitio !== principal, !deLaAldea);   // (4.26.1: la Aldea ya tiene su campana)
     if (deLaAldea) parada.aldea = true;
     if (antes !== nombre) parada.nombreAntes = antes;
     paradas.push(parada);

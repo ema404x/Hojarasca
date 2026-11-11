@@ -28,6 +28,8 @@ const aPie = (c) => libre(c.js) && !c.js.montado && !c.objetivo;
 // 4.24.0: lo que mirás es un lugar para sentarte (un banco, un escalón) y no la cama: un objeto de historia a tu alcance le gana (la leña y las botas del umbral quedaban al lado del banco de la puerta y la E te sentaba)
 const soloSentarse = (c) => c.objetivo?.tipo === 'sentarse' && !c.objetivo.s?.cama;
 const sentarseOnada = (c) => !c.objetivo || c.objetivo.tipo === 'sentarse';
+// 4.26.1: la campana del andén, mirándola de cerca (a pie, sin mirar nada y no sentado): ver campana-anden.js `mirandoLaCampana`
+const campanaALaVista = (c) => aPie(c) && !c.js.sentado && c.campanaAnden?.();
 // Las acciones de los módulos (`modulo.accion(js)` → { texto, hacer }): la E las pide frescas; el aviso, de lo buscado
 const delModulo = (nombre, cond) => ({
   cuando: (c, enE) => cond(c) && c.accion(nombre, enE),
@@ -101,7 +103,8 @@ export const INTERACCIONES = [
   // (4.6.1: a pie, como el mostrador: arriba del tren parado junto al puesto, la E abría la feria y el aviso hablaba del tren)
   { id: 'feria', cuando: (c) => aMano(c) && c.feriaCerca(), aviso: () => 'Ver la feria', hacer: (c) => c.abrirFeria() },
   // 2.9: el puesto de cargas de la parada
-  { id: 'cargas', cuando: (c) => aMano(c) && c.puestoDeCargasCerca(), aviso: () => 'Comerciar en el puesto de cargas', hacer: (c, p) => c.abrirCargas(p) },
+  // (4.26.1: mirando de cerca la campana del andén, que cuelga junto al puesto, gana la campana: ver 'campana-anden')
+  { id: 'cargas', cuando: (c) => aMano(c) && c.puestoDeCargasCerca() && !campanaALaVista(c), aviso: () => 'Comerciar en el puesto de cargas', hacer: (c, p) => c.abrirCargas(p) },
   // 4.6 puestos: un puesto de ruta: reparar, dormir, comerciar y el depósito
   { id: 'puestos', ...delModulo('puestos', aPie) },
   // cantero, gallinero y telar van antes que las puertas (con un cantero al lado de una puerta, E siembra)
@@ -154,7 +157,7 @@ export const INTERACCIONES = [
   // 2.6.1: la casa de té de la estación, antes del kayak, la carpa y el fuego (3.9.2: en la aldea atiende Ceinwen en tu mesa)
   { id: 'casa-te', cuando: (c) => !c.js.enKayak && sentarseOnada(c) && !c.teEnLaAldea() && c.enLaCasaDeTe(), aviso: () => 'Pedir algo en la casa de té', hacer: (c) => c.servir() },
   // 4.26.0: en el andén, con el tren lejos, la campana del jefe de estación (ver campana-anden.js): a pie, sin mirar nada, no sentado
-  { id: 'campana-anden', cuando: (c) => aPie(c) && !c.js.sentado && c.campanaAnden(), aviso: () => 'Tocar la campana del andén', hacer: (c) => c.tocarCampanaAnden() },
+  { id: 'campana-anden', cuando: campanaALaVista, aviso: () => 'Tocar la campana del andén', hacer: (c) => c.tocarCampanaAnden() },
   // 2.9: del velero se baja antes que del kayak (arriba del velero también se está `enKayak`); sin orilla, la E avisa
   { id: 'velero', cuando: (c) => c.js.enVela, aviso: (c) => (c.lugarParaBajar('vela') ? 'Bajar del velero' : null), hacer: (c) => c.bajarDelVelero() },
   { id: 'kayak', cuando: (c) => c.js.enKayak, aviso: (c) => (c.lugarParaBajar('kayak') ? 'Bajar del kayak' : null), hacer: (c) => c.bajarDelKayak() },

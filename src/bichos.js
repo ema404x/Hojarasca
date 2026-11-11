@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { rng, lerp, clamp } from './ruido.js';
 import { LAGO, LIMITE } from './config.js';
-import { lam, esfera, cono, palo, patas, alas, actualizarCiervo, posarPielMamifero, compactar, inclinacionTerrenoMamifero, marchaMamifero } from './vida.js';
+import { lam, esfera, cono, palo, patas, alas, actualizarCiervo, posarPielMamifero, compactar, inclinacionTerrenoMamifero, marchaMamifero, MAT_FAUNA } from './vida.js';
 import { bola, torno, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, etiquetar, color as matDe } from './formas.js';
 // 4.12.2: la piel por huesos de los animales (cerca, Media y Alta)
 import { armarPielCiervo, observar } from './animales-piel.js';
@@ -421,17 +421,46 @@ function mallaLagartija() {
   return { g, cabeza };
 }
 
+// 4.26.1: la mariposa es la dama pintada (Vanessa carye: naranja, la punta de las alas de adelante negra con manchitas blancas y el borde de las de
+// atrás oscuro). Hasta la 4.26.0 eran dos trapecios naranjas lisos de 9 cm: de cerca y con las alas para abajo se leían como un techito naranja tirado
+// en el pasto (el «objeto naranja a dos aguas» junto al cartel de la plaza en Baja, 4.24.1). Ahora cada ala tiene su forma (la de adelante en punta, la
+// de atrás redonda), mide 5 cm y va pintada por vértice, con las dos caras en la malla y el material de toda la fauna (MAT_FAUNA: el mismo programa de
+// siempre, sin DoubleSide): las mismas tres mallas por mariposa.
+const ALA_MARIPOSA = [
+  // [x (hacia afuera), z (hacia adelante), color del borde]: la de adelante (de la raíz a la punta y de vuelta) y la de atrás
+  [0.004, 0.012, '#5a3a22'], [0.018, 0.026, '#c8641e'], [0.036, 0.038, '#1c1713'], [0.05, 0.036, '#ece6d8'], [0.054, 0.024, '#1c1713'],
+  [0.044, 0.012, '#c8641e'], [0.036, 0.002, '#b8561a'], [0.042, -0.012, '#3a2a1e'], [0.034, -0.028, '#3a2a1e'], [0.018, -0.034, '#4a3424'], [0.005, -0.022, '#5a3a22'],
+];
+const RAIZ_MARIPOSA = '#4a3424', MEDIO_MARIPOSA = '#c8641e';
+function alaMariposa(l) {
+  const pos = [], col = [], idx = [], c = new THREE.Color();
+  const n = ALA_MARIPOSA.length;
+  for (const cara of [1, -1]) {
+    const base = pos.length / 3;
+    const v = (x, z, color) => { pos.push(l * x, 0.0004 * cara, z); c.set(color); col.push(c.r, c.g, c.b); };
+    v(0, 0, RAIZ_MARIPOSA);
+    for (const [x, z] of ALA_MARIPOSA) v(x * 0.55, z * 0.55, MEDIO_MARIPOSA);   // el anillo del medio (naranja)
+    for (const [x, z, color] of ALA_MARIPOSA) v(x, z, color);                  // el borde
+    const tri = (a, b, d) => { if (l * cara > 0) idx.push(base + a, base + b, base + d); else idx.push(base + a, base + d, base + b); };   // (cada cara hacia su lado: sin DoubleSide)
+    for (let i = 0; i < n - 1; i++) {
+      tri(0, 1 + i, 2 + i);
+      tri(1 + i, 1 + n + i, 2 + n + i); tri(1 + i, 2 + n + i, 2 + i);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, MAT_FAUNA);
+}
 function mallaMariposa() {
   const g = new THREE.Group();
-  g.add(esfera(lam('#3a3228'), [0.008, 0.008, 0.035], [0, 0, 0]));
+  g.add(esfera(lam('#2a2420'), [0.005, 0.005, 0.022], [0, 0, 0]));
   const a = [];
   for (const l of [-1, 1]) {
     const piv = new THREE.Group();
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.03, l * 0.09, 0, 0.05, l * 0.08, 0, -0.03, 0, 0, -0.03], 3));
-    geo.setIndex(l > 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2]);
-    geo.computeVertexNormals();
-    piv.add(new THREE.Mesh(geo, lam('#d9752a', { side: THREE.DoubleSide })));
+    piv.add(alaMariposa(l));
     g.add(piv); a.push(piv);
   }
   return { g, alas: a };
@@ -962,7 +991,9 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
       mp.g.position.y += Math.sin(mp.fase) * 0.09;
       mp.g.rotation.y += dt * 1.2;
       const aleteo = 0.3 + Math.abs(Math.sin(mp.fase)) * 1.1;
-      mp.alas[0].rotation.z = aleteo; mp.alas[1].rotation.z = -aleteo;
+      // 4.26.1: las alas aletean hacia arriba (en V, como las de verdad); antes bajaban siempre (de 17° a 80° para abajo) y, quieta en el aire, la mariposa
+      // era un techito a dos aguas
+      mp.alas[0].rotation.z = -aleteo; mp.alas[1].rotation.z = aleteo;
       ver('mariposa', mp.g.position, 'mariposa', 5, 16);
     }
 
