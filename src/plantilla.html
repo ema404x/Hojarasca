@@ -504,6 +504,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .charla .quien { margin: 0 0 6px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 27px; line-height: 1; color: #5a4524; }
 .charla .dicho { margin: 0; font-size: 20px; line-height: 1.55; }
 .charla .seguir { margin: 14px 0 0; font-size: 14px; color: #7a6742; }
+.charla .pie { margin: 8px 0 0; font-size: 14px; line-height: 1.35; color: #8a8478; }   /* 4.26.1: la línea gris debajo del pedido del vecino */
 /* 3.6 (vida): el menú de la charla con los vecinos (números, ruedita o LB/RB, y E) */
 .charla-opciones { list-style: none; margin: 10px 0 0; padding: 0; }
 /* 3.6.2: el #hud no recibe el mouse; las listas que se eligen con un clic, sí (la barra, el almacén, la feria, las
@@ -807,6 +808,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <span data-perillas>Cuánto pegan</span>
         <div class="segmentos" data-ajuste="perillaDano" data-perillas><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
         <p class="modo-texto" data-perillas data-perillas-texto></p>
+        <p class="modo-texto" data-perillas data-nivel-noche></p>
         <span>Código de partida</span>
         <div class="fila-codigo">
           <input id="codigo-partida" maxlength="18" placeholder="Sin código: noches al azar" autocomplete="off" spellcheck="false" aria-label="Código de partida">
@@ -938,6 +940,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div class="charla oculto" id="charla">
     <p class="quien" id="charla-quien"></p>
     <p class="dicho" id="charla-texto"></p>
+    <p class="pie oculto" id="charla-pie"></p>
     <p class="seguir" id="charla-seguir"></p>
   </div>
   <!-- 3.7.4: la rueda de interacciones, alrededor de la cabeza del vecino: arriba, cómo se llevan (la amistad y el
@@ -1032,6 +1035,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <div class="segmentos" data-ajuste="perillaDano"><button data-valor="-2">−2</button><button data-valor="-1">−1</button><button data-valor="0">0</button><button data-valor="1">+1</button><button data-valor="2">+2</button></div>
       </div>
       <div class="fila-ajuste" data-perillas="ajustes"><small data-perillas-texto></small></div>
+      <div class="fila-ajuste" data-perillas="ajustes"><small data-nivel-noche></small></div>
       <div class="fila-ajuste"><span>Clima</span>
         <div class="segmentos" data-ajuste="clima"><button data-valor="variable">Cambiante</button><button data-valor="despejado">Siempre despejado</button><button data-valor="lluvioso">Lluvioso</button></div>
       </div>

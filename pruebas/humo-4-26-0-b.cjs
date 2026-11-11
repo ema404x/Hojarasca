@@ -46,7 +46,8 @@ const PAGINA = String.raw`(() => {
     if (o.parado) { e.s = t.poste(o.parada) % t.largo; e.parado = o.parado; e.vel = 0; e.proxima = o.parada; }
     else { e.s = (t.poste(o.parada) + o.metros) % t.largo; e.parado = 0; e.vel = 7; const i = t.paradas.indexOf(o.parada); e.proxima = t.paradas[(i + 1) % t.paradas.length]; }
     return 1; };
-  N.alAnden = (p, dx = 2, dz = 1) => { H.jugador.ubicar(p.anden.x + dx, p.anden.z + dz, 0); H.jugador.estado.sentado = false; return 1; };
+  // (4.26.1: la E ofrece la campana sólo mirándola a 3 m o menos: sin desplazamiento a mano, parado a 2 m de la campanita del poste, mirándola)
+  N.alAnden = (p, dx, dz) => { const b = p.campana; if (dx === undefined && b) { const l = Math.hypot(p.anden.x - b.x, p.anden.z - b.z) || 1, x = b.x + (p.anden.x - b.x) / l * 2, z = b.z + (p.anden.z - b.z) / l * 2; H.jugador.ubicar(x, z, Math.atan2(-(b.x - x), -(b.z - z))); } else H.jugador.ubicar(p.anden.x + (dx ?? 2), p.anden.z + (dz ?? 1), 0); H.jugador.estado.sentado = false; return 1; };
   return 1;
 })()`;
 

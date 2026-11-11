@@ -1348,6 +1348,20 @@ function mantaHojarasca(semilla) {
   }
   return c.geometria({ soldar: true });
 }
+// 4.26.1: la hojarasca con nieve. Las hojas de la manta son de madera (aTipo 0) y el material les junta nieve en la cara de arriba (como a las tablas y los
+// techos): sobre la nieve azulada del piso quedaban como tiestos blancos chatos (4.24.1). Con el invierno la hojarasca se va tapando, de a una manta (por el
+// azar de su lugar), mientras la nieve pasa de `desde` a `hasta` (las flores se cierran desde 0,2); con nieve plena no se dibuja (dos llamadas de dibujo
+// menos). Es por instancia, con los mismos datos de siempre (la matriz de cada manta, que es lo que junta el bloque del sotobosque): el piso del bosque no
+// cambia el resto del año, el material es el mismo y no se suma ningún programa de shader.
+export const HOJARASCA_NIEVE = { desde: 0.15, hasta: 0.5, pasos: 8 };
+// Qué parte de las mantas queda tapada con esta nieve (`uInvierno`): 0 sin nieve, 1 con nieve plena; en `pasos` escalones (el bloque se rehace pocas veces en el pase de estación)
+export function hojarascaTapada(invierno) {
+  const { desde, hasta, pasos } = HOJARASCA_NIEVE;
+  const t = Math.min(1, Math.max(0, ((Number(invierno) || 0) - desde) / (hasta - desde)));
+  return Math.floor(t * pasos + 1e-9) / pasos;
+}
+// ¿La manta de este lugar ya quedó bajo la nieve? (`tapada`: lo que da hojarascaTapada)
+export const mantaTapada = (x, z, tapada) => tapada >= 1 || (tapada > 0 && h3(x * 0.071, 0.5, z * 0.067) < tapada);
 
 // 4.24.0: un parche de suelo del prado: hojas chatas (de trébol, de paja, de tierra) apoyadas sobre el piso, con el color por vértice.
 // Es el «suelo con variedad de color» que el verde liso del terreno no tiene entre las matas de pasto: geometría y color, sin shaders
@@ -2320,7 +2334,7 @@ export function generarVegetacion(T, calidad, escena) {
     im.matrixWorldAutoUpdate = false;
     im.name = 'soto-' + nombre;
     sotoGrupo.add(im);
-    bloques.push({ nombre, im, grupo: t.grupo });
+    bloques.push({ nombre, im, grupo: t.grupo, nieve: /^hojarasca\d$/.test(nombre) });   // (4.26.1: la hojarasca se tapa con la nieve, ver HOJARASCA_NIEVE)
   }
   escena.add(sotoGrupo);
   // 3.5: CERCA_SOTO pasó de 14 a 24 m: lo cercano no depende del cono (una mata ancha con el pie
@@ -2331,12 +2345,14 @@ export function generarVegetacion(T, calidad, escena) {
   const MOVIDA_SOTO = 4, GIRO_SOTO = 18 * Math.PI / 180, MARGEN_SOTO = 25 * Math.PI / 180, CERCA_SOTO = 24;
   const MARGEN_ALCANCE = MOVIDA_SOTO + 3;
   let sotoSucio = true, sotoX = Infinity, sotoZ = Infinity, sotoRumbo = 0, sotoCono = -2, sotoClave = '', sotoMedio = 0;
+  let sotoTapada = 0;   // 4.26.1: cuánta hojarasca quedó bajo la nieve en el último rehecho (ver hojarascaTapada)
   const sotoFin = { soto: 0, suelo: 0, contacto: 0 };   // el alcance con que se rehizo cada grupo
   const chunksSoto = [];
   const statsSoto = { veces: 0, ms: 0, instancias: 0, chunks: 0 };
   function compactarSoto(x, z, fx, fz, cosCono) {
     const t0 = performance.now();
     sotoSucio = false; sotoX = x; sotoZ = z;
+    sotoTapada = hojarascaTapada(U.uInvierno.value);
     const c2 = CERCA_SOTO * CERCA_SOTO;
     let total = 0, rMax = 0;
     for (const g in sotoFin) { sotoFin[g] = fundido[g].fin.value; rMax = Math.max(rMax, sotoFin[g] + MARGEN_ALCANCE); }
@@ -2350,8 +2366,9 @@ export function generarVegetacion(T, calidad, escena) {
     for (const b of bloques) {
       const im = b.im, destM = im.instanceMatrix.array, destC = im.instanceColor?.array;
       const alcance = (sotoFin[b.grupo] ?? sotoFin.soto) + MARGEN_ALCANCE, a2 = alcance * alcance;
+      const tapada = b.nieve ? sotoTapada : 0;   // (4.26.1)
       let n = 0;
-      for (const ch of chunksSoto) {
+      for (const ch of tapada >= 1 ? [] : chunksSoto) {
         const f = ch.porTipo?.[b.nombre]?.[0];
         if (!f) continue;
         const ex = Math.max(0, Math.abs(x - ch.x) - TAM_CHUNK / 2), ez = Math.max(0, Math.abs(z - ch.z) - TAM_CHUNK / 2);
@@ -2363,6 +2380,7 @@ export function generarVegetacion(T, calidad, escena) {
           const dx = M[o + 12] - x, dz = M[o + 14] - z, d2 = dx * dx + dz * dz;
           if (d2 > a2) continue;   // 3.5: más allá de su alcance (el shader ya la tiene en cero)
           if (d2 > c2 && dx * fx + dz * fz < cosCono * Math.sqrt(d2)) continue;
+          if (tapada > 0 && mantaTapada(M[o + 12], M[o + 14], tapada)) continue;   // 4.26.1: bajo la nieve
           copiarInstancia(destM, destC, n, M, C, i);
           n++;
         }
@@ -2397,6 +2415,7 @@ export function generarVegetacion(T, calidad, escena) {
     const clave = camara.fov + '|' + camara.aspect;
     let alcance = false;
     for (const g in sotoFin) { const f = fundido[g].fin.value; if (f > sotoFin[g] + 3 || f < sotoFin[g] - 15) alcance = true; }
+    if (hojarascaTapada(U.uInvierno.value) !== sotoTapada) sotoSucio = true;   // 4.26.1: la nieve tapó (o destapó) otro escalón de hojarasca
     if (sotoSucio || alcance || clave !== sotoClave || (cono > -1.5) !== (sotoCono > -1.5) || (cono > -1.5 && giro > GIRO_SOTO) || Math.hypot(x - sotoX, z - sotoZ) > MOVIDA_SOTO) {
       sotoClave = clave; sotoCono = cono; sotoRumbo = rumbo; sotoMedio = Math.max(0, medio);
       compactarSoto(x, z, fx, fz, cono);

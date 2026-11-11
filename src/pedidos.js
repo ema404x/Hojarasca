@@ -12,6 +12,9 @@ import { PUESTOS_RUTA, IDS_PUESTOS, ETAPAS_TOTAL } from './puestos-ruta.js';
 import { FRUTALES } from './granja.js';
 
 export const PEDIDOS = { dias: 3, porDia: 2, base: 1.1, porNivel: 0.04, rapido: 0.05, repPorEntrega: 1 };
+// 4.26.1: la regla de la 4.26.0 (sólo pide lo que se consigue), dicha en pantalla: una línea gris debajo del pedido del vecino en la charla
+// (`pie` de la parte del pedido; aldea.js la lleva a `pies` y main.js `mostrarCharla` la pone en #charla-pie)
+export const REGLA_PEDIDOS = 'Sólo pide lo que se consigue: lo del valle, lo de los puestos que conocés o lo que producís vos.';
 
 // Lo que necesita cada local, de más corriente a más rara (las dos últimas sólo con confianza: nivel 2)
 const NECESITA = {
@@ -169,7 +172,7 @@ export function ofertaDePedido(p, k, dia, nombre = '', seguir = '') {
       titulo: `Pedido cumplido: ${formatoPesos(q.premio)}`,
     };
   }
-  if (v.motivo === 'cupo') return { partes: [`Tengo para pagarte el pedido de ${lo}, pero hoy ya entregaste dos. Volvé mañana (${hasta}).`], aviso: true };
-  if (v.motivo === 'caja') return { partes: [`Necesito ${lo}, pero hoy no tengo con qué pagarte. Pasá en unos días (${hasta}).`], aviso: true };
-  return { partes: [`Ando necesitando ${lo} (${hasta}). Lo pago ${formatoPesos(q.premio)}${q.rapido ? ' si me lo traés hoy, con un extra por la rapidez' : ''}.`], aviso: true };
+  if (v.motivo === 'cupo') return { partes: [`Tengo para pagarte el pedido de ${lo}, pero hoy ya entregaste dos. Volvé mañana (${hasta}).`], aviso: true, pie: REGLA_PEDIDOS };
+  if (v.motivo === 'caja') return { partes: [`Necesito ${lo}, pero hoy no tengo con qué pagarte. Pasá en unos días (${hasta}).`], aviso: true, pie: REGLA_PEDIDOS };
+  return { partes: [`Ando necesitando ${lo} (${hasta}). Lo pago ${formatoPesos(q.premio)}${q.rapido ? ' si me lo traés hoy, con un extra por la rapidez' : ''}.`], aviso: true, pie: REGLA_PEDIDOS };
 }

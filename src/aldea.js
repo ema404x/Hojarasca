@@ -1570,8 +1570,10 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
   if (pedido?.efectos) return { ...pedido, partes: [...base.partes, ...pedido.partes] };
   const jornal = ofertaDeJornal(progreso, clave, d, nombre, demandaHoy(d, extra), DALE);
   const aviso = pedido?.aviso ? pedido.partes : [];
-  if (!jornal) return aviso.length ? { ...base, partes: [...base.partes, ...aviso] } : base;
-  return { ...jornal, partes: [...base.partes, ...aviso, ...jornal.partes] };
+  // 4.26.1: debajo del pedido, la línea gris de la regla (`pies`: { número de parte: texto }, ver pedidos.js REGLA_PEDIDOS)
+  const pies = aviso.length && pedido.pie ? { [base.partes.length + aviso.length - 1]: pedido.pie } : null;
+  if (!jornal) return aviso.length ? { ...base, partes: [...base.partes, ...aviso], ...(pies ? { pies } : {}) } : base;
+  return { ...jornal, partes: [...base.partes, ...aviso, ...jornal.partes], ...(pies ? { pies } : {}) };
 }
 export function servicioBase(clave, progreso, dia, extra = {}) {
   const aldea = progreso?.aldea || aldeaNueva();

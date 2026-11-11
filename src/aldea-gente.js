@@ -1046,6 +1046,7 @@ export function crearAldeaGente(ctx) {
     return {
       id: `aldea-${k}`,
       partes: s.partes.length ? s.partes : [def.resumen],
+      pies: s.partes.length ? s.pies || null : null,   // 4.26.1: la línea gris debajo del pedido (main.js mostrarCharla)
       seguir: s.seguir,
       alTerminar: s.efectos ? () => usarServicio(k, s) : null,
       tipo: 'servicio', ofrece: !!s.efectos,

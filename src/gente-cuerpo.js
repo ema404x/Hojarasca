@@ -1107,6 +1107,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     : [[0.05, -0.76], [0.055, -0.74], [0.059, -0.66], [0.063, -0.62], [0.059, -0.615]]).map(([r, y]) => [r, y + RODILLA]);
   const barroPie = R.barroBotas ? (c) => tinta(c, '#5a4632', 0.55) : null;
   const colPollera = R.colPollera || mezcla(ropa, '#2a2420', 0.35);
+  const parcheRodilla = R.arremangado && !R.pollera && !R.tajo ? '#5a4632' : null;   // (4.26.1: la tierra de las rodillas, la misma del barro de las botas)
   const patas = [];
   for (const l of [-1, 1]) {
     const piv = new THREE.Group(); piv.position.set(l * lx, 0.82, 0); piv.scale.set(anchoP, 1, anchoP);
@@ -1114,14 +1115,17 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     const muslo = torno(R.pollera ? colPollera : pantalon, perfilMuslo, null, null, [1, 1, 0.92], 12);
     // 4.0: la raya del pantalón adelante (un poco más clara) y la costura del costado (más oscura), en el muslo y en la canilla
     const costuras = (c, p) => { if (R.pollera) return; const a = Math.atan2(p.x, p.z); c.multiplyScalar(1 + 0.06 * Math.exp(-((a / 0.14) ** 2)) - 0.1 * Math.exp(-(((Math.abs(a) - Math.PI / 2) / 0.09) ** 2))); };
+    // 4.26.1: una capa de color más en el pantalón, por vértice (0 triángulos): las rodillas gastadas y con tierra de los que trabajan (arremangados: de
+    // frente, sobre la rodilla; con 12 columnas por pierna sale una mancha suave, no un parche cosido)
+    const rodillera = (c, p, yRodilla) => { if (!parcheRodilla) return; const t = sv(0.62, 0.36, Math.abs(Math.atan2(p.x, p.z))) * sv(0.1, 0.055, Math.abs(p.y - yRodilla)); if (t > 0.01) tinta(c, parcheRodilla, 0.5 * t); };
     pintarPieza(muslo, (c, p, n) => {
-      surcos(c, Math.sin(p.y * 70 + p.x * 40) * sv(-0.32, -0.42, p.y), 0.14); c.multiplyScalar(1 - 0.12 * sv(-0.02, 0.05, p.y)); costuras(c, p);
+      surcos(c, Math.sin(p.y * 70 + p.x * 40) * sv(-0.32, -0.42, p.y), 0.14); c.multiplyScalar(1 - 0.12 * sv(-0.02, 0.05, p.y)); costuras(c, p); rodillera(c, p, -0.41);
       if (R.tajo) { tinta(c, pantalon, sv(-0.02, -0.07, p.y)); tinta(c, '#9a2432', 0.9 * sv(-0.17, -0.158, p.y) * sv(-0.12, -0.132, p.y)); }   // 3.9: con tajo, la media (y la liga) desde el muslo
     });
     piv.add(muslo);
     const rodilla = new THREE.Group(); rodilla.position.set(0, -RODILLA, 0);
     const canilla = torno(pantalon, perfilCanilla, null, null, [1, 1, 0.92], 12);
-    pintarPieza(canilla, (c, p) => { surcos(c, Math.sin(p.y * 90 - p.x * 30) * sv(-0.2, -0.3, p.y), 0.16); costuras(c, p); });
+    pintarPieza(canilla, (c, p) => { surcos(c, Math.sin(p.y * 90 - p.x * 30) * sv(-0.2, -0.3, p.y), 0.16); costuras(c, p); rodillera(c, p, -0.04); });
     rodilla.add(canilla);
     const tobillo = new THREE.Group(); tobillo.position.set(0, TOBILLO, 0.0);
     const yTop = (altas ? -0.435 : -0.615) + RODILLA;
@@ -1225,6 +1229,9 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     // (4.1: abajo, el chaleco de las mujeres un poco más ancho: a la altura de la cintura tenía casi el mismo radio que la blusa y las dos telas se pisaban en triángulos)
     const abreCh = R.chamal ? 0 : R.jumper ? 0.25 : 0.4, ladosCh = R.jumper ? 40 : adulta ? 28 : 16;
     const vivoJ = R.jumper ? mezcla(abrigo, ropa, 0.55) : null;   // (3.9.2: el jumper lleva un vivo claro cosido a lo largo de la abertura del frente)
+    // 4.26.1: una capa de color más, por vértice (0 triángulos): en los chalecos de paño, la espalda de forro (la tela lisa y más oscura de la espalda de un
+    // chaleco de vestir; el lienzo, el cuero y el punto son parejos)
+    const forroCh = !R.chamal && !R.jumper && (!R.telaChaleco || R.telaChaleco === 'lana') ? colorDe(mezcla(abrigo, '#1e1b19', 0.5)) : null, colChaleco = colorDe(abrigo);
     torso.add(rol(bordeTorno(conTela(pintarPieza(capa(abrigo, perfilChaleco.map(([r, y]) => [r * (mujer ? (y < 0.15 ? 0.995 : 0.92) : 1), y]), ladosCh, abreCh, R.chamal ? Math.PI * 2 : Math.PI * 2 - abreCh * 2), (c, p) => {
       arrugasTorso(c, p);
       if (vivoJ && p.y > -0.05 && Math.abs(Math.atan2(p.x, p.z / 0.7)) < abreCh + 0.04) c.set(vivoJ);
@@ -1235,6 +1242,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
         else if (p.y > -0.05 && d < abreCh + 0.1) c.multiplyScalar(0.92);
         if (p.y < -0.045) c.multiplyScalar(0.84);
       }
+      if (forroCh && p.z < -0.004) c.setRGB(c.r * forroCh.r / Math.max(0.003, colChaleco.r), c.g * forroCh.g / Math.max(0.003, colChaleco.g), c.b * forroCh.b / Math.max(0.003, colChaleco.b));   // (4.26.1: la espalda de forro)
     }), TELA[R.telaChaleco || 'lana']), perfilChaleco.length, ladosCh, !R.chamal, true), 'chaleco', perfilChaleco.length, ladosCh));
     // 4.0: los dos bolsillos con tapa del chaleco de los varones (una tapa chata sobre la tela, a la altura de la cintura)
     if (!mujer && !R.chamal && !R.delantal) for (const l of [-1, 1]) {
@@ -1248,9 +1256,18 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     if (!R.delantal) for (const y of [0.1, 0.2, 0.3]) for (const m of boton(R.botones || '#3a2c20', 0.011, [0.064, y, 0.118 * zPecho(0.064, y) + 0.005], [0.4, 0.8])) torso.add(m);
   } else {
     const perfilCampera = [...faldon, ...cuerpoAlto], lados = R.campera === 'larga' ? (adulta ? 34 : 26) : curvas ? 36 : adulta ? 30 : 18;   // (4.1: con curvas, más columnas para que los dos lóbulos del pecho no salgan en facetas)
-    capaHombro = pintarPieza(capa(abrigo, perfilCampera, lados, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.7, R.campera === 'larga' ? 0.03 : 0), (c, p) => {
+    // 4.26.1: más capas de color, por vértice (0 triángulos): abierta, la vista de la abertura (la primera y la última columna, en sombra); cruzada (los
+    // botones del uniforme en dos hileras), la orilla del cruce (la columna del canto, de la izquierda sobre la derecha en los varones y al revés en las
+    // mujeres); cerrada con los botones al medio, la tapeta
+    const tapeta = !R.botones && !R.abierta && !R.delantal && !conPoncho && !R.pechera;
+    const colCruce = R.botones && !R.abierta ? Math.round((mujer ? 0.6 : Math.PI * 2 - 0.6) / (Math.PI * 2 / lados)) : -1;
+    capaHombro = pintarPieza(capa(abrigo, perfilCampera, lados, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.7, R.campera === 'larga' ? 0.03 : 0), (c, p, n, i) => {
       arrugasTorso(c, p);
       if (R.campera === 'larga') surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.0, -0.2, p.y), 0.16);
+      const col = Math.floor(i / perfilCampera.length);
+      if (R.abierta && (col === 0 || col === lados) && p.y < 0.5) c.multiplyScalar(0.62);
+      else if (col === colCruce && p.y < 0.5) c.multiplyScalar(0.55);
+      else if (tapeta && (col === 0 || col === lados) && p.y > 0.0 && p.y < 0.5) c.multiplyScalar(0.72);
     });
     if (R.telaCampera) conTela(capaHombro, TELA[R.telaCampera]);
     torso.add(rol(capaHombro, 'campera', perfilCampera.length, lados));
@@ -1461,7 +1478,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       for (const l of [-1, 1]) hoja.add(fino(bola(R.delantalHoja, [0.013, 0.03, 0.0025], [l * 0.024, 0.032, 0], [0, 0, -l * 0.75], [8, 6])));   // (los dos gajos de los costados, apuntando arriba y afuera)
       torso.add(hoja);
     }
-    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(R.delantal, perfil.map(([r, y]) => [r * (mujer ? 1 : 1.03), y]), ladosD, -arcoD / 2, arcoD, R.pollera ? 0.79 : 0.72), (c, p) => {
+    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(R.delantal, perfil.map(([r, y]) => [r * (mujer ? 1 : 1.03), y]), ladosD, -arcoD / 2, arcoD, R.pollera ? 0.79 : 0.72), (c, p, n, i) => {
       surcos(c, Math.sin(p.x * 70 + 0.5) * sv(0.05, -0.3, p.y), 0.14);
       if (p.y < perfil[0][1] + 0.03) c.multiplyScalar(0.88);   // el dobladillo
       // 3.9.2: `R.delantalRayas`: dos rayas de color sobre el dobladillo (la anfitriona de la casa de té)
@@ -1469,6 +1486,9 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       // (3.9.2: sin pechera, el dobladillo cosido de los dos lados: la última columna de vértices apenas en sombra)
       if (R.delantalSinPechera && Math.abs(Math.atan2(p.x, p.z / 0.79)) > arcoD / 2 - 0.08) c.multiplyScalar(0.9);
       if (!R.delantalSinPechera) {
+        // 4.26.1: el vivo (la cinta cosida al canto de los dos costados, en sombra; el de arriba de la pechera no: entre fila y fila hay 12 cm y salía un degradé)
+        const col = Math.floor(i / perfil.length);
+        if (col === 0 || col === ladosD) c.multiplyScalar(0.55);
         if (p.y > -0.2 && p.y < -0.08 && Math.abs(p.x - 0.06) < 0.05) c.multiplyScalar(0.92);    // el bolsillo
         if (Math.abs(p.y + 0.08) < 0.004 && Math.abs(p.x - 0.06) < 0.05) c.multiplyScalar(0.75);
       }
