@@ -153,10 +153,11 @@ const ferminPaces = {
     aparece('fermin', FRENTE(5, 2)),
     plano('medio', 'fermin', { desde: 'jugador', dist: 3.4, mezcla: 0.9, dur: 3 }),
     narra('Fermín está arreglando una alambrada con un alicate, de espaldas. Hace como que no te oyó llegar. Sabés que te oyó: tiene las orejas coloradas.'),
+    // 4.25.3 (E2-9): sólo se ofrece lo que llevás (antes se podía regalar lo que no tenías y no se cobraba nada)
     eleccion('paces-resp', '¿Qué le llevás?', [
-      opcion('harina', 'Una bolsa de harina del molino.', { sabor: true }),
-      opcion('yerba', 'Yerba, de la buena.', { sabor: true }),
-      opcion('pan', 'Pan casero, todavía tibio.', { sabor: true }),
+      opcion('harina', 'Una bolsa de harina del molino.', { sabor: true, si: { cond: 'tiene', args: { que: 'harina', n: 1 } } }),
+      opcion('yerba', 'Yerba, de la buena.', { sabor: true, si: { cond: 'tiene', args: { que: 'yerba', n: 1 } } }),
+      opcion('pan', 'Pan casero, todavía tibio.', { sabor: true, si: { cond: 'tiene', args: { que: 'pan', n: 1 } } }),
     ]),
     con(efecto('quitar:harina:1'), siEleg('paces-resp', 'harina')),
     con(efecto('quitar:yerba:1'), siEleg('paces-resp', 'yerba')),

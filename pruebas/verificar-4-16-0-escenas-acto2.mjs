@@ -552,7 +552,7 @@ const noCorrio = (id, o, ...nombres) => { const q = quienes(correrEscena(ESCENAS
   ok(mt.lineas.some((l) => /tocón/.test(l)) && !mr.lineas.some((l) => /tocón/.test(l)) && mt.lineas.some((l) => /Una aparte/.test(l)), 'molienda-partir: con el tocón la escena cambia el tono');
   // la minga, Fermín y el galpón
   ok(corrio('minga-aldea', { script: [1] }, 'lazo:ercilia:1') && noCorrio('minga-aldea', { script: [0] }, 'lazo:ercilia:1'), 'minga: repartir comida sube a Ercilia');
-  ok(corrio('fermin-mulas', {}, 'lazo:fermin:1', 'mundo:fermin-oferta-sabida'), 'fermin-mulas: Fermín +1 y la oferta queda sabida');
+  ok(corrio('fermin-mulas', { script: [2] }, 'lazo:fermin:1', 'mundo:fermin-oferta-sabida') && corrio('fermin-mulas', {}, 'lazo:fermin:2', 'mundo:fermin-oferta-sabida') && noCorrio('fermin-mulas', {}, 'lazo:fermin:1'), 'fermin-mulas: Fermín +1 (4.25.3: +2 con la respuesta cariñosa) y la oferta queda sabida');
   for (const i of [0, 1]) ok(corrio('galpon-ronda', { script: [i] }, 'objeto:cuaderno-eusebio'), `galpon-ronda: el cuaderno llega a la mochila (opción ${i})`);
   // capítulo 8
   ok(corrio('libreta-fiado', { script: [0] }, 'lazo:ercilia:1', 'raro:libreta-raiz') && noCorrio('libreta-fiado', { script: [1] }, 'lazo:ercilia:1'), 'libreta-fiado: agradecer el aviso sube a Ercilia');

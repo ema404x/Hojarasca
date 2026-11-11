@@ -71,10 +71,11 @@ export function anotarPicadoEn(lista, x, z) {
 }
 
 // Devuelve qué árboles cambiaron de etapa y cuáles ya volvieron a ser adultos.
-export function avanzarRebrote(talados, dia) {
+// 4.25.3: `quieto(i)` (optativo): ese tocón no rebrota (el coihue grande que la historia dejó talado)
+export function avanzarRebrote(talados, dia, quieto = null) {
   const cambios = [], adultos = [], quedan = [];
   for (const t of talados) {
-    const esc = escalaRebrote(dia - t.dia);
+    const esc = typeof quieto === 'function' && quieto(t.i) === true ? 0 : escalaRebrote(dia - t.dia);
     if (esc !== t.esc) { t.esc = esc; cambios.push({ i: t.i, esc }); }
     if (esc >= 1) adultos.push(t.i); else quedan.push(t);
   }

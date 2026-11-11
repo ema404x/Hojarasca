@@ -190,7 +190,7 @@ import { crearNegociosVecinosJuego } from './negocios-vecinos-juego.js';
 import { crearNegocioJuego } from './negocio-propio-juego.js';
 // 4.4: los empleados del negocio propio
 import { crearEmpleadosNegocioJuego } from './empleados-negocio-juego.js';
-import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar, montoReintegroAlDesmontar } from './obra-pesos.js';
+import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar, montoReintegroAlDesmontar, anotarPago } from './obra-pesos.js';
 // 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
 import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
 import { TALLERES, TEMPLE, sanearTaller, sanearHerreria, sanearTienda, usarTaller, avisoTaller, mensajeTaller, textoUnidades, avisoHerreria, usarHerreria, extraMadera, textoCarpinteria, venderDias, dejarEnTienda, retirarCajaTienda, avisoTienda, lotesEnTienda, aTexto } from './oficios-propios.js';
@@ -284,6 +284,7 @@ import { ESCENAS_LAZOS, EFECTOS_LAZOS } from './historia-escenas-lazos.js';
 import { crearArreoMundo } from './historia-arreo-mundo.js';
 import { crearAcompanante } from './historia-acompanante.js';
 import { crearObjetosHistoria, molinoViejo, distanciasA, aMundoRefugio } from './historia-objetos.js';
+import { puedeTalarCoihue, motivoNoTalarCoihue, coihueQuedaTocon } from './historia-disparadores-acto2.js';
 import { ferminEnElTecho } from './historia-props-acto3.js';
 // 4.17 C: dónde se pone al jugador antes de una escena (historia-colocacion.js)
 import { resolverColocacion } from './historia-colocacion.js';
@@ -1061,7 +1062,7 @@ async function construir() {
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
   refrescarHuerta();
-  gallinasMundo = crearGallinas(T, escena);
+  gallinasMundo = crearGallinas(T, escena, { resolver: (p, r, h) => col.resolver(p, r, h), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y) });   // 4.25.3 (F2-7): chocan y pisan los pisos, como la gente
   refrescarGallineros();
   // 2.4: las ventanas de tu casa, el corral propio y el kayak amarrado en tu embarcadero
   ventanasMundo = crearVentanas(escena);
@@ -2403,6 +2404,17 @@ const distanciasHist = {};
 function distanciasHistoria() {
   if (!jugador || esDesafio) return distanciasHist;
   return distanciasA(jugador.estado.pos, puntosDeHistoria(), distanciasHist);
+}
+// 4.25.3 (E2-7): el índice del coihue grande de la historia entre los árboles (−1 si no hay); el mismo árbol que marca objetosHistoriaMundo
+let indiceCoihueHist;
+function indiceCoihueDeHistoria() {
+  if (esDesafio || !veg?.arboles) return -1;
+  if (indiceCoihueHist === undefined) {
+    const agua = (x, z) => { const k = T.indice(x, z); return T.distRio[k] - T.anchoRio[k] <= 1.5 && T.altura(x, z) > -1; };
+    const m = molinoViejoHist || molinoViejo(T.lugares.refugio, agua, veg.arboles);
+    indiceCoihueHist = m?.arbol ? veg.arboles.indexOf(m.arbol) : -1;
+  }
+  return indiceCoihueHist;
 }
 // los objetos del mundo: se arman la primera vez que se piden (con el mundo ya construido)
 function objetosHistoriaMundo() {
@@ -4209,7 +4221,7 @@ document.addEventListener('keydown', (e) => {
         if (!r.ok) { if (!pedirDesmontarPieza(js)) nota('Nada que cancelar', r.motivo); }
         else {
           // 4.0.3 (II-1): si ya habías pagado el terreno y la mano de obra de una casa, vuelven a la billetera (antes de guardar)
-          const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);
+          const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0, undefined, r.datos?.pagado);   // (4.25.3: lo que de verdad pagaste)
           progreso.obras = obras.obras.map((o) => o.datos);
           guardar();
           sonido.juntar();
@@ -5367,6 +5379,7 @@ function textoHacha(o) {
   if (o.tipo === 'piedra') return o.sinPico ? 'Para picar piedra hace falta el pico' : o.golpes ? `Picar piedra (${o.golpes}/${golpesParaPicarAhora(o.mata)})` : 'Picar piedra';
   if (!o.talar) return 'Hacer troncos';
   if (o.protegido) return 'El pehuén no se tala';
+  if (o.grande && !puedeTalarCoihue(progreso.historia)) return motivoNoTalarCoihue(progreso.historia)[0];   // 4.25.3 (E2-7)
   if (o.grande) return o.golpes ? `Talar el coihue grande (${o.golpes}/${GOLPES_COIHUE})` : 'Talar el coihue grande';
   talaGrande = false;
   return o.golpes ? `Talar el árbol (${o.golpes}/${golpesParaTalarAhora()})` : 'Talar el árbol';
@@ -5389,6 +5402,8 @@ function usarHacha() {
   }
   if (o.talar) {
     if (o.protegido) { nota('El pehuén no se tala', 'Es un árbol sagrado y centenario: buscá un coihue o una lenga'); return; }
+    // 4.25.3 (E2-7): el coihue grande de la historia sólo se tala cuando la historia lo puso en juego (ver puedeTalarCoihue)
+    if (o.grande && !puedeTalarCoihue(progreso.historia)) { const m = motivoNoTalarCoihue(progreso.historia); nota(m[0], m[1]); return; }
     // 4.7 carga: con la mochila llena el árbol no se toca (ni un hachazo): no se tala a medias
     const troncosTala = troncosAlTalar(TRONCOS_TALA, nivelDe('hachero'));   // 3.1
     if (!cabeJuntar('tronco', troncosTala)) return;
@@ -6130,7 +6145,7 @@ function refrescarGallineros() {
   // uno recién terminado empieza a poner hoy
   for (const k of vivos) if (!g[k]) g[k] = gallineroNuevo(progreso.dia);
   gallinerosVistos = hechos.length;
-  gallinasMundo.sincronizar(hechos.map((o) => ({ x: o.datos.x, z: o.datos.z })));
+  gallinasMundo.sincronizar(hechos.map((o) => ({ x: o.datos.x, z: o.datos.z, y: o.datos.y })));
 }
 function gallineroCerca() {
   const o = funcionAlAlcance('gallinero', 2.8);
@@ -7510,7 +7525,12 @@ function revisarRebrote(forzar = false) {
   if (!forzar && (progreso.dia === diaRebrote || !lista.length)) return;
   diaRebrote = progreso.dia;
   if (forzar) for (const t of lista) t.esc = -1;
-  const { cambios, adultos, quedan } = avanzarRebrote(lista, progreso.dia);
+  // 4.25.3 (E2-7): el coihue grande que la historia dejó talado (D2 = b) no rebrota; y en una partida donde ya había rebrotado (se anotaba
+  // como cualquier árbol y a los 9 días estaba entero), al cargar vuelve a ser el tocón del que hablan las escenas
+  let iCoihue = -1;
+  try { if (coihueQuedaTocon(progreso.historia)) iCoihue = indiceCoihueDeHistoria(); } catch { iCoihue = -1; }   // (si falla, el bosque sigue como siempre)
+  if (forzar && iCoihue >= 0 && !lista.some((t) => t.i === iCoihue)) lista.push({ i: iCoihue, dia: progreso.dia, esc: -1, apurado: true });
+  const { cambios, adultos, quedan } = avanzarRebrote(lista, progreso.dia, iCoihue >= 0 ? (i) => i === iCoihue : null);
   for (const c of cambios) { const a = veg.arboles[c.i]; if (a) veg.crecer(a, c.esc); }
   if (adultos.length) {
     progreso.talados = quedan;
@@ -7855,7 +7875,7 @@ function desalojarObras(lista) {
     } else {
       // 4.4.2 (C3): y lo que pagaste de mano de obra (las etapas hechas y pagadas) y las ampliaciones del depósito, enteros: era lo único que no volvía
       for (const d of ds) {
-        desalojo.pesos = (desalojo.pesos || 0) + devolverEtapasPagadas(progreso, d.plano, Math.min(Number(d.pagadas) || 0, Number(d.etapas) || 0));
+        desalojo.pesos = (desalojo.pesos || 0) + devolverEtapasPagadas(progreso, d.plano, Math.min(Number(d.pagadas) || 0, Number(d.etapas) || 0), undefined, d.pagado);
         const t = almacenJuego.devolucionTotal(d); desalojo.pesos += t.pesos; sumarMateriales(desalojo.materiales, t.materiales);
       }
       for (const d of ds) { sumarMateriales(desalojo.materiales, materialesDeObra(d, PLANO[d.plano])); devolverContenido(d); if (PLANO[d.plano].funciones?.includes('acopio')) desalojo.acopio = true; }   // 3.8.4
@@ -7923,7 +7943,8 @@ function pagoDeEtapa(plano, datos, i) {
 }
 function cobrarEtapa(plano, datos, i, pago) {
   if (!pago?.precio) return;
-  pagarEtapa(progreso, plano.id, i);
+  const hecho = pagarEtapa(progreso, plano.id, i);
+  anotarPago(datos, i, hecho?.ok ? hecho.precio : 0);   // 4.25.3 (B3): cuánto, para devolver eso y no el precio de otro día
   datos.pagadas = i + 1;   // hasta dónde pagaste: rehacer la etapa o retirar la marca no cobra (ni devuelve) de más
 }
 // «Faltan 2 tablas y $1.200»: los materiales y los pesos que faltan, en una sola frase; si sólo faltan pesos, cuánto cuesta y cuánto falta
@@ -8010,7 +8031,7 @@ function accionObra() {
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
     jugador.desencajar();   // 4.0.1: el piso nuevo en una ladera no te deja encajonado adentro
-    if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); obra.datos.pagadas = etapaCasa + 1; }
+    if (pago.precio) { const hecho = pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); anotarPago(obra.datos, etapaCasa, hecho?.ok ? hecho.precio : 0); obra.datos.pagadas = etapaCasa + 1; }
     if (r.terminada && !desafio) registrarCasa(progreso, obra.plano.id);
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
@@ -10046,7 +10067,7 @@ function pedirDesmontarPieza(js) {
   desmontePendiente = { obra: o, hora: t };
   const mats = obras.recuperaDeObra(o);
   const txtMats = Object.entries(mats).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
-  const pesos = hayEconomia(progreso) ? montoReintegroAlDesmontar(o.plano.id, o.datos?.etapas || 0, o.datos?.pagadas || 0) + almacenJuego.reintegroPrevio(o.datos) : 0;
+  const pesos = hayEconomia(progreso) ? montoReintegroAlDesmontar(o.plano.id, o.datos?.etapas || 0, o.datos?.pagadas || 0, o.datos?.pagado) + almacenJuego.reintegroPrevio(o.datos) : 0;
   const guardado = almacenJuego.contenido(o.datos);
   const recupera = [txtMats, pesos > 0 ? formatoPesos(pesos) : ''].filter(Boolean).join(' y ');
   nota(`Desmontar ${o.plano.nombre.toLowerCase()}`, `${recupera ? `Recuperás ${recupera} (la mitad de lo que costó)` : 'No recuperás nada'}${guardado ? ' · lo guardado vuelve a tus cosas' : ''}. Supr otra vez para confirmar`, true);
@@ -10058,7 +10079,7 @@ function desmontarPiezaCerca(js) {
   for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
   const delDeposito = almacenJuego.contenido(r.datos);   // 4.2: lo que guardaba el depósito (antes de devolverlo)
   devolverContenido(r.datos);   // 3.5.1
-  const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);   // 4.2: la mitad de los pesos que pagaste (antes de guardar)
+  const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0, undefined, r.datos?.pagado);   // 4.2: la mitad de los pesos que pagaste (antes de guardar)
   const delAcopio = (r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null) || delDeposito || null;   // 3.8.4: el último acopio (4.2: o lo que tenía guardado el depósito)
   progreso.obras = obras.obras.map((o) => o.datos);
   guardar(); sonido.juntar();

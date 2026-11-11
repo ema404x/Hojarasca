@@ -616,6 +616,20 @@ export function crearDirector(opc = {}) {
     catch (e) { s.errores.push(`efecto ${nombre}: ${e?.message || e}`); alError(`efecto ${nombre}: ${e?.message || e}`); }
   }
 
+  // 4.25.3 (E2-9): una opción puede llevar `si` (la misma condición de los pasos): si no se cumple, no se ofrece (regalar lo que no
+  // tenés). Si ninguna la cumple se ofrecen todas, como antes: una elección nunca queda vacía.
+  function opcionesDe(p) {
+    if (!p.opciones.some((o) => o && o.si)) return p.opciones;
+    const lista = p.opciones.filter((o) => cumple(o.si));
+    return lista.length ? lista : p.opciones;
+  }
+  // la elección con sólo lo que se ofrece y el índice de la opción por defecto dentro de eso
+  function eleccionOfrecida(p) {
+    const ops = opcionesDe(p);
+    const def = p.opciones[acotar(Math.floor(num(p.porDefecto, 0)), 0, p.opciones.length - 1)];
+    return { p: ops === p.opciones ? p : { ...p, opciones: ops }, i: Math.max(0, ops.indexOf(def)) };
+  }
+
   // Un paso aplicado «de golpe» (al saltar, o dentro de un fundido). Devuelve una etiqueta si el paso salta a otra parte.
   function instantaneo(p) {
     if (!p || !cumple(p.si)) return null;
@@ -626,8 +640,8 @@ export function crearDirector(opc = {}) {
       case 'efecto': correrEfecto(p.nombre, p.args); break;
       case 'eleccion': {
         if (s.elecciones[p.id] !== undefined) break;
-        const i = acotar(Math.floor(num(p.porDefecto, 0)), 0, p.opciones.length - 1);
-        return aplicarOpcion(p, p.opciones[i]);
+        const of = eleccionOfrecida(p);   // (4.25.3: la de por defecto, entre las que se ofrecen)
+        return aplicarOpcion(p, of.p.opciones[of.i]);
       }
       case 'fundido': if (p.a !== 'cruzado') break; for (const q of p.alMedio || []) instantaneo(q); break;
       case 'salto': return p.a;
@@ -719,7 +733,7 @@ export function crearDirector(opc = {}) {
       case 'hora': iniciarHora(p); if (p.sinEsperar !== true && s.horaMov) s.actual = { tipo: 'hora-espera' }; break;
       case 'clima': iniciarClima(p); if (p.esperar === true) s.actual = { tipo: 'espera', t: 0, dur: num(p.dur, 4) }; break;
       case 'eleccion':
-        s.eleccion = { p, i: acotar(Math.floor(num(p.porDefecto, 0)), 0, p.opciones.length - 1), desde: reloj };   // (4.17.1: `desde`, para el margen)
+        s.eleccion = { ...eleccionOfrecida(p), desde: reloj };   // (4.17.1: `desde`, para el margen) (4.25.3: sólo las opciones que se pueden elegir)
         s.actual = { tipo: 'eleccion' };
         break;
       case 'efecto': correrEfecto(p.nombre, p.args); break;

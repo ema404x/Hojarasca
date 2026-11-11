@@ -8,7 +8,7 @@
 //   · ampliar: mantener E (0,7 s) dice qué sube y cuánto cuesta; mantener E otra vez (entre 0,6 y 12 segundos después) lo paga y lo hace.
 //   · sacar: Supr junto al depósito saca todo lo guardado, lleves lo que lleves (E, con algo a mano, guarda).
 import { faltan, textoFaltan } from './construccion.js';
-import { puedePagarEtapa, pagarEtapa, reintegroAlDesmontar, montoReintegroAlDesmontar, devolverEtapasPagadas, listaDeFaltantes, avisoSinPlata } from './obra-pesos.js';
+import { puedePagarEtapa, pagarEtapa, reintegroAlDesmontar, montoReintegroAlDesmontar, devolverEtapasPagadas, listaDeFaltantes, avisoSinPlata, anotarPago } from './obra-pesos.js';
 import { hayEconomia } from './economia.js';
 import { ALMACENES, IDS_ALMACEN, esAlmacen, esDeMateriales, sanearAlmacen, guardadoDe, totalGuardado, libreDe, guardar as guardarEn, sacar as sacarDe, resumen, pasoDeLlenura, pasoDe, proximaAmpliacion, ampliar as ampliarNivel, textoAmpliacion, idPrecioAmpliacion, topeDe, contenidoEnPalabras, nombreDe, cuantosDe } from './almacen.js';
 
@@ -197,7 +197,8 @@ export function crearAlmacenJuego(d) {
     pendiente = null;
     const antes = firma(o);
     d.conMateriales((m) => { for (const [k, n] of Object.entries(sig.pide)) m[k] = Math.max(0, (m[k] || 0) - n); });
-    pagarEtapa(p, idp, sig.indice, 'Los carpinteros de la aldea');
+    const hecho = pagarEtapa(p, idp, sig.indice, 'Los carpinteros de la aldea');
+    anotarPago(o.datos, sig.indice, hecho?.ok ? hecho.precio : 0, 'pagadoAmp');   // 4.25.3 (B3): lo pagado por cada ampliación queda en la obra
     ampliarNivel(id, a);
     refrescarSiCambio(o, antes);
     d.sonido()?.juntar?.();
@@ -230,7 +231,7 @@ export function crearAlmacenJuego(d) {
   function reintegro(datos) {
     if (!datos || !esAlmacen(datos.plano) || !hayEconomia(d.progreso())) return 0;
     const a = sanearAlmacen(datos.almacen, datos.plano);
-    return a.n > 0 ? reintegroAlDesmontar(d.progreso(), idPrecioAmpliacion(datos.plano), a.n, a.n, 'Los carpinteros de la aldea') : 0;
+    return a.n > 0 ? reintegroAlDesmontar(d.progreso(), idPrecioAmpliacion(datos.plano), a.n, a.n, 'Los carpinteros de la aldea', datos.pagadoAmp) : 0;
   }
 
   // 4.4.2 (C3): el desalojo al cargar (no hay lugar para la obra) devuelve las ampliaciones enteras, no a la mitad: { pesos, materiales }
@@ -238,13 +239,13 @@ export function crearAlmacenJuego(d) {
     if (!datos || !esAlmacen(datos.plano)) return { pesos: 0, materiales: {} };
     const n = sanearAlmacen(datos.almacen, datos.plano).n, materiales = {};
     for (let i = 0; i < n; i++) for (const [k, c] of Object.entries(ALMACENES[datos.plano].ampliaciones[i]?.pide || {})) if (c > 0) materiales[k] = (materiales[k] || 0) + c;
-    return { pesos: n > 0 ? devolverEtapasPagadas(d.progreso(), idPrecioAmpliacion(datos.plano), n) : 0, materiales };
+    return { pesos: n > 0 ? devolverEtapasPagadas(d.progreso(), idPrecioAmpliacion(datos.plano), n, undefined, datos.pagadoAmp) : 0, materiales };
   }
   // 4.4.2: lo mismo que reintegro(), sin cobrar (para avisar cuánto vuelve antes de desmontar)
   function reintegroPrevio(datos) {
     if (!datos || !esAlmacen(datos.plano) || !hayEconomia(d.progreso())) return 0;
     const a = sanearAlmacen(datos.almacen, datos.plano);
-    return a.n > 0 ? montoReintegroAlDesmontar(idPrecioAmpliacion(datos.plano), a.n, a.n) : 0;
+    return a.n > 0 ? montoReintegroAlDesmontar(idPrecioAmpliacion(datos.plano), a.n, a.n, datos.pagadoAmp) : 0;
   }
 
   // Los materiales de las ampliaciones que hiciste, a la mitad (como los de cada etapa de una obra: lo que costó 1 no vuelve)

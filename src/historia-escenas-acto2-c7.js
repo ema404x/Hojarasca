@@ -189,8 +189,8 @@ const ferminMulas = {
       'Hasta el invierno tengo para contestar. No le digas a Ramón. Ramón ya tiene bastante con ser Ramón.',
     ]),
     eleccion('mulas-fermin', '¿Qué le decís a Fermín?', [
-      opcion('callar', 'No le voy a decir nada a Ramón.', { efecto: 'lazo:fermin:1' }),
-      opcion('querer', '¿Vos qué querés hacer?', { efecto: 'lazo:fermin:1' }),
+      opcion('callar', 'No le voy a decir nada a Ramón.', { efecto: 'lazo:fermin:2' }),   // 4.25.3 (G1-5): las dos respuestas cariñosas valen +2
+      opcion('querer', '¿Vos qué querés hacer?', { efecto: 'lazo:fermin:2' }),
       opcion('hablar', 'Deberías hablar con él.', { sabor: true }),
     ]),
     dlg('fermin', [linea('Gracias. A veces uno necesita decirlo en voz alta a alguien que no lo mire con pena.', { gesto: gs('asentir', 1.8) })], { si: siEleg('mulas-fermin', 'callar') }),
@@ -200,7 +200,7 @@ const ferminMulas = {
     ], { si: siEleg('mulas-fermin', 'querer') }),
     dlg('fermin', ['Tenés razón. Pero hay frases que cuestan más que cruzar el paso. Dejame un poco de tiempo.'], { si: siEleg('mulas-fermin', 'hablar') }),
     efecto('mundo:fermin-oferta-sabida'),
-    efecto('lazo:fermin:1'),
+    con(efecto('lazo:fermin:1'), siEleg('mulas-fermin', 'hablar')),   // 4.25.3 (G1-5): el +1 de la escena, para la otra respuesta (antes lo pisaba el de la opción)
   ],
 };
 

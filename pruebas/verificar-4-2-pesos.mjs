@@ -205,7 +205,7 @@ ok(PRECIOS_LUJO['fuente-piedra'] > PRECIOS_LUJO['reloj-pie'] && PRECIOS_LUJO['re
 {
   const m = leer('src/main.js');
   const tiene = (t, msg) => ok(m.includes(t), msg);
-  tiene("import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar, montoReintegroAlDesmontar } from './obra-pesos.js';", 'main.js trae lo de obra-pesos.js');
+  tiene("import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar, montoReintegroAlDesmontar, anotarPago } from './obra-pesos.js';", 'main.js trae lo de obra-pesos.js');   // (4.25.3: y anotarPago)
   tiene('function pagoDeEtapa(plano, datos, i) {\n  if (desafio || i < (datos?.pagadas || 0)) return { ok: true, precio: 0 };', 'el Desafío y lo ya pagado no cobran');
   tiene('pagoNueva = pagoDeEtapa(obras.plano, null, 0);', 'la pieza nueva mira los pesos antes de fundarse');
   tiene('if (faltaPieza.length || !pagoNueva.ok) { notaSinPlata(obras.plano, 0, pagoNueva, faltaPieza); return; }', 'y no se funda sin plata');
@@ -214,9 +214,9 @@ ok(PRECIOS_LUJO['fuente-piedra'] > PRECIOS_LUJO['reloj-pie'] && PRECIOS_LUJO['re
   tiene('cobrarEtapa(obra.plano, obra.datos, etapaPieza, pagoPieza);', 'cobra su etapa');
   ok(m.indexOf('if (!pagoPieza.ok)') < m.indexOf('cobrarEtapa(obra.plano, obra.datos, etapaPieza, pagoPieza)'), 'primero se mira, después se cobra');
   tiene('const a = avisoSinPlata(obra.plano.id, pago, obra.plano.etapas.length); nota(a.titulo, a.detalle);', 'la obra grande avisa con el texto del registro');
-  tiene('if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, \'Los albañiles de la aldea\'); obra.datos.pagadas = etapaCasa + 1; }', 'la cuenta de las casas, intacta');
-  tiene('const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);', 'retirar la marca devuelve');
-  tiene('const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);', 'desmontar reintegra');
+  tiene('if (pago.precio) { const hecho = pagarEtapa(progreso, obra.plano.id, etapaCasa, \'Los albañiles de la aldea\'); anotarPago(obra.datos, etapaCasa, hecho?.ok ? hecho.precio : 0); obra.datos.pagadas = etapaCasa + 1; }', 'la cuenta de las casas, intacta');   // (4.25.3: además anota cuánto)
+  tiene('const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0, undefined, r.datos?.pagado);', 'retirar la marca devuelve');   // (4.25.3: lo anotado en la obra)
+  tiene('const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0, undefined, r.datos?.pagado);', 'desmontar reintegra');   // (4.25.3)
   ok(m.indexOf('const reint = reintegroAlDesmontar') > 0 && m.indexOf('const reint = reintegroAlDesmontar') < m.indexOf('if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`'), 'el reintegro se cobra antes de avisar (y el aviso de la pieza desmontada queda como estaba)');
   tiene('const pesosPl = hayEconomia(progreso) ? precioTotal(pl.id) : 0;', 'la lista muestra el precio');
   tiene('const faltaPl = pesosPl > 0 && precioDeEtapa(pl.id, 0) > pesosDe(progreso);', 'y «no alcanza» mira la primera etapa (se paga de a una)');

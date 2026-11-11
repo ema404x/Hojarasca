@@ -84,12 +84,92 @@ export function pagarEtapa(p, id, i, con) {
   const res = pagar(p, v.precio, r.motivoPago, con || r.pagaA);
   return res.ok ? v : { ok: false, precio: v.precio, falta: v.precio - pesosDe(p) };
 }
+// 4.25.3 (B3): lo que de verdad se pagó por cada etapa queda anotado en la obra (`datos.pagado`, un arreglo con los pesos de cada etapa;
+// las ampliaciones de un depósito, en `datos.pagadoAmp`) y los reintegros salen de ahí. Antes sólo se guardaba HASTA QUÉ etapa se pagó
+// (`datos.pagadas`) y se devolvía el precio de hoy: cuando la 4.23.0 bajó ocho precios, lo construido antes devolvía de menos.
+// Sin la anotación (una obra de antes de la 4.25.3) vale el precio de hoy, como siempre.
+export const PAGADO_ETAPAS_MAX = 8;
+export function sanearPagado(v) {
+  if (!Array.isArray(v)) return null;
+  const lista = v.slice(0, PAGADO_ETAPAS_MAX).map((n) => (typeof n === 'number' && Number.isFinite(n) && n >= 0 ? entero(n) : null));
+  return lista.some((n) => n !== null) ? lista : null;
+}
+// Lo pagado por la etapa `i`: lo anotado si está; si no, el precio de hoy
+export function pagadoDeEtapa(id, i, pagado = null) {
+  const n = Array.isArray(pagado) ? pagado[i] : null;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? entero(n) : precioDeEtapa(id, i);
+}
+// Anotar en `datos[campo]` que la etapa `i` se pagó `monto` (lo que devolvió `pagarEtapa`; cero si el pago no salió: no se devuelve
+// lo que no se pagó)
+export function anotarPago(datos, i, monto, campo = 'pagado') {
+  if (!datos || typeof datos !== 'object' || !Number.isInteger(i) || i < 0 || i >= PAGADO_ETAPAS_MAX) return false;
+  const m = entero(monto);
+  const lista = Array.isArray(datos[campo]) ? datos[campo].slice(0, PAGADO_ETAPAS_MAX) : [];
+  while (lista.length <= i) lista.push(null);
+  lista[i] = m;
+  datos[campo] = lista;
+  return true;
+}
+// Los ocho precios que bajó la 4.23.0, como eran (`git show v4.22.0:src/planos-oficios.js` y `planos-lujo.js`). Todas son piezas de una
+// sola etapa. `nombre` es el del libro de la billetera («Mano de obra: herrería propia»).
+export const PRECIOS_ANTES_4_23 = {
+  'reloj-pie': { precios: [9000], nombre: 'reloj de pie' },
+  'arana-velas': { precios: [6500], nombre: 'araña de velas' },
+  'herreria-propia': { precios: [32000], nombre: 'herrería propia' },
+  cerveceria: { precios: [42000], nombre: 'cervecería artesanal' },
+  'telar-grande': { precios: [36000], nombre: 'telar grande' },
+  queseria: { precios: [24000], nombre: 'quesería' },
+  'tienda-campo': { precios: [30000], nombre: 'tienda de campo' },
+  canteria: { precios: [18000], nombre: 'cantería' },
+};
+// ¿La partida se guardó por última vez con una versión anterior a la 4.23.0? (sin versión: de antes de la 4.10.1)
+export function anteriorALaBaja(versionJuego) {
+  const partes = typeof versionJuego === 'string' ? versionJuego.trim().split('.') : [];
+  if (partes.length !== 3 || partes.some((x) => !x || x.length > 3 || [...x].some((c) => c < '0' || c > '9'))) return true;
+  const a = Number(partes[0]), b = Number(partes[1]);
+  return a < 4 || (a === 4 && b < 23);
+}
+// Al cargar: a las obras pagadas de antes que no traen lo pagado se les anota el precio viejo, sólo cuando se sabe que se pagó así:
+//   · la partida se guardó por última vez con una versión anterior a la 4.23.0 (`versionJuego`): todo lo pagado es de antes;
+//   · o, en una partida ya guardada con la 4.23.0 a la 4.25.2, el libro de la billetera todavía tiene el pago con el monto viejo
+//     («Mano de obra: herrería propia», −$32.000). Se descuentan los reintegros y devoluciones de ese plano que estén en el libro
+//     (esa obra ya no está), así que nunca se anotan más pagos viejos que los que se ven.
+// Lo demás queda sin anotar y devuelve el precio de hoy: nunca más de lo pagado. Devuelve cuántas obras anotó.
+export function migrarPagadoDeObras(obras, versionJuego, libro = null) {
+  if (!Array.isArray(obras)) return 0;
+  const vieja = anteriorALaBaja(versionJuego);
+  let anotadas = 0;
+  const cupo = new Map();
+  const cupoDe = (id) => {
+    if (cupo.has(id)) return cupo.get(id);
+    const v = PRECIOS_ANTES_4_23[id];
+    let n = 0;
+    for (const mov of Array.isArray(libro) ? libro : []) {
+      if (!mov || typeof mov.motivo !== 'string') continue;
+      if (mov.motivo === `Mano de obra: ${v.nombre}` && mov.monto === -v.precios[0]) n++;
+      else if (mov.motivo === `Reintegro por desmontar: ${v.nombre}` || mov.motivo === `Devolución de la mano de obra: ${v.nombre}`) n--;
+    }
+    cupo.set(id, Math.max(0, n));
+    return cupo.get(id);
+  };
+  for (const d of obras) {
+    if (!d || typeof d !== 'object' || typeof d.plano !== 'string' || !Object.hasOwn(PRECIOS_ANTES_4_23, d.plano)) continue;
+    const pagadas = Math.floor(Number(d.pagadas)) || 0;
+    if (pagadas < 1 || Array.isArray(d.pagado)) continue;
+    if (!vieja) { const n = cupoDe(d.plano); if (n < 1) continue; cupo.set(d.plano, n - 1); }
+    d.pagado = PRECIOS_ANTES_4_23[d.plano].precios.slice(0, pagadas);
+    anotadas++;
+  }
+  return anotadas;
+}
+
 // Al retirar una marca (Supr) que ya tenía etapas pagadas, lo pagado vuelve entero a la billetera. `pagadas` es hasta qué etapa se pagó.
-export function devolverEtapasPagadas(p, id, pagadas, con = 'Los albañiles de la aldea') {
+// (4.25.3: `pagado`, lo anotado en la obra; ver arriba)
+export function devolverEtapasPagadas(p, id, pagadas, con = 'Los albañiles de la aldea', pagado = null) {
   const r = typeof id === 'string' ? REGISTRO.get(id) : null;
   if (!hayEconomia(p) || !r) return 0;
   let monto = 0;
-  for (let i = 0; i < Math.max(0, Math.min(r.precios.length, pagadas | 0)); i++) monto += r.precios[i];
+  for (let i = 0; i < Math.max(0, Math.min(r.precios.length, pagadas | 0)); i++) monto += pagadoDeEtapa(id, i, pagado);
   if (monto <= 0) return 0;
   const res = cobrar(p, monto, r.motivoDevolucion, con);
   return res.ok ? res.monto : 0;
@@ -97,17 +177,17 @@ export function devolverEtapasPagadas(p, id, pagadas, con = 'Los albañiles de l
 // Al desmontar una pieza terminada vuelve la parte `reintegro` (la mitad, como con los materiales) de lo que de verdad pagaste: sólo
 // cuentan las etapas hechas Y pagadas (una pieza de una partida anterior al precio no devuelve plata que nunca se pagó).
 // 4.4.2: cuánto sería, sin cobrar nada (para avisar el reintegro antes de confirmar el desmontaje)
-export function montoReintegroAlDesmontar(id, etapasHechas, pagadas) {
+export function montoReintegroAlDesmontar(id, etapasHechas, pagadas, pagado = null) {
   const r = typeof id === 'string' ? REGISTRO.get(id) : null;
   if (!r || !(r.reintegro > 0)) return 0;
   let monto = 0;
-  for (let i = 0; i < Math.max(0, Math.min(r.precios.length, etapasHechas | 0, pagadas | 0)); i++) monto += r.precios[i];
+  for (let i = 0; i < Math.max(0, Math.min(r.precios.length, etapasHechas | 0, pagadas | 0)); i++) monto += pagadoDeEtapa(id, i, pagado);   // (4.25.3: lo anotado)
   return Math.max(0, Math.floor((monto * r.reintegro) / 10) * 10);
 }
-export function reintegroAlDesmontar(p, id, etapasHechas, pagadas, con = 'Los artesanos de la aldea') {
+export function reintegroAlDesmontar(p, id, etapasHechas, pagadas, con = 'Los artesanos de la aldea', pagado = null) {
   if (!hayEconomia(p)) return 0;
   const r = typeof id === 'string' ? REGISTRO.get(id) : null;
-  const monto = montoReintegroAlDesmontar(id, etapasHechas, pagadas);
+  const monto = montoReintegroAlDesmontar(id, etapasHechas, pagadas, pagado);
   if (!r || monto <= 0) return 0;
   const res = cobrar(p, monto, r.motivoReintegro, con);
   return res.ok ? res.monto : 0;

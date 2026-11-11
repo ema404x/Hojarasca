@@ -30,7 +30,11 @@ export function geometriaGallina() {
   return c.geometria();
 }
 
-export function crearGallinas(T, escena) {
+// 4.25.3 (F2-7): `fisica` (optativa) = { resolver(pos, radio, alto), alturaDePie(x, z, y) }, lo mismo que usa la gente. Con ella las
+// gallinas no atraviesan la casilla ni las obras de alrededor y pisan el entablado. Para que no cueste por cuadro, cada gallina se
+// revisa uno de cada `CADA` cuadros (y sólo si camina); la que huye de vos, que es la que se ve de cerca, en todos.
+const CADA = 4, RADIO_GALLINA = 0.16, ALTO_GALLINA = 0.45;
+export function crearGallinas(T, escena, fisica = null) {
   const malla = new THREE.InstancedMesh(geometriaGallina(), new THREE.MeshLambertMaterial({ vertexColors: true }), MAX_GALLINEROS * GALLINAS);
   malla.count = 0;
   malla.castShadow = true;
@@ -38,9 +42,11 @@ export function crearGallinas(T, escena) {
   malla.name = 'gallinas';
   escena.add(malla);
   const aves = [];   // { cx, cz, x, z, rumbo, t, picotea }
+  const _c = { x: 0, y: 0, z: 0 };
+  let cuadro = 0;
   const _M = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _e = new THREE.Euler();
 
-  // `gallineros`: [{ x, z }]. Se rearma la lista de aves sólo si cambió la cantidad.
+  // `gallineros`: [{ x, z, y }] (`y`, la base de la obra: 4.25.3). Se rearma la lista de aves sólo si cambió la cantidad.
   function sincronizar(gallineros) {
     const lista = gallineros.slice(0, MAX_GALLINEROS);
     if (aves.length === lista.length * GALLINAS && lista.every((g, i) => aves[i * GALLINAS].cx === g.x && aves[i * GALLINAS].cz === g.z)) return;
@@ -48,15 +54,46 @@ export function crearGallinas(T, escena) {
     lista.forEach((g, gi) => {
       for (let i = 0; i < GALLINAS; i++) {
         const a = (i / GALLINAS) * Math.PI * 2 + gi;
-        aves.push({ cx: g.x, cz: g.z, x: g.x + Math.cos(a) * 1.6, z: g.z + Math.sin(a) * 1.6, rumbo: a, t: Math.random() * 3, picotea: 0 });
+        const x = g.x + Math.cos(a) * 1.6, z = g.z + Math.sin(a) * 1.6;
+        // 4.25.3: `base` = la altura de su gallinero (para encontrar el entablado), `sobre` = el piso de obra que pisa (null: la tierra),
+        // `bx, bz` = el último lugar libre, `ox, oz` = donde nació, `trabada` = cuántas revisiones seguidas la echaron fuera del corral
+        aves.push({ cx: g.x, cz: g.z, x, z, rumbo: a, t: Math.random() * 3, picotea: 0, base: Number.isFinite(g.y) ? g.y : null, sobre: null, bx: x, bz: z, ox: x, oz: z, trabada: 0, revisada: false });
       }
     });
   }
 
+  // 4.25.3 (F2-7): el choque y el piso de una gallina. La saca de lo que esté pisando (la casilla, una pared, una cerca) y anota si
+  // está sobre un piso de obra. Si el empujón la deja fuera del corral vuelve a su último lugar libre (así el tope del corral y el
+  // choque no se pelean), y si eso pasa muchas veces seguidas (le construyeron encima) vuelve a donde nació.
+  function acomodar(a, huye) {
+    const suelo = T.altura(a.x, a.z);
+    _c.x = a.x; _c.z = a.z; _c.y = a.sobre ?? suelo;
+    fisica.resolver(_c, RADIO_GALLINA, ALTO_GALLINA);
+    if (!Number.isFinite(_c.x) || !Number.isFinite(_c.z)) { _c.x = a.x; _c.z = a.z; }
+    const ex = _c.x - a.x, ez = _c.z - a.z;
+    if (ex !== 0 || ez !== 0) {
+      if (Math.hypot(_c.x - a.cx, _c.z - a.cz) > RADIO + 1) {
+        if (++a.trabada >= 8) { a.x = a.ox; a.z = a.oz; a.trabada = 0; } else { a.x = a.bx; a.z = a.bz; }
+        if (!huye) { a.rumbo = Math.atan2(a.cx - a.x, a.cz - a.z); a.picotea = 0; }
+      } else {
+        a.x = _c.x; a.z = _c.z; a.trabada = 0;
+        // se da vuelta para el lado que la empujó la pared, con un poco de azar, y camina (no se queda picoteando contra la tabla)
+        if (!huye) { a.rumbo = Math.atan2(ex, ez) + (Math.random() - 0.5) * 1.2; a.picotea = 0; a.t = Math.max(a.t, 0.7); }
+      }
+    } else a.trabada = 0;
+    a.bx = a.x; a.bz = a.z;
+    const s2 = T.altura(a.x, a.z);
+    const y = fisica.alturaDePie(a.x, a.z, Math.max(a.base ?? s2, s2));
+    a.sobre = Number.isFinite(y) && y !== s2 ? y : null;
+    a.revisada = true;
+  }
+
   function actualizar(dt, horas, pos) {
     const deDia = afuera(horas);
-    let n = 0;
+    let n = 0, i = -1;
+    cuadro++;
     for (const a of aves) {
+      i++;
       if (!deDia || Math.hypot(a.cx - pos.x, a.cz - pos.z) > 120) continue;   // de noche adentro; lejos no se dibujan
       a.t -= dt;
       if (a.t <= 0) {
@@ -78,8 +115,10 @@ export function crearGallinas(T, escena) {
       const dc = Math.hypot(a.x - a.cx, a.z - a.cz);
       if (dc > RADIO + 1) { a.x = a.cx + ((a.x - a.cx) / dc) * (RADIO + 1); a.z = a.cz + ((a.z - a.cz) / dc) * (RADIO + 1); }
       const cabeceo = a.picotea > 0 ? Math.max(0, Math.sin(a.picotea * 18)) * 0.5 : 0;
+      // 4.25.3 (F2-7): choque y piso, de a una gallina por cuadro (ver `CADA`); la quieta no se revisa
+      if (fisica && (!a.revisada || huye || (vel > 0 && (cuadro + i) % CADA === 0))) acomodar(a, huye);
       _e.set(cabeceo, a.rumbo, 0, 'YXZ');
-      malla.setMatrixAt(n++, _M.compose(_p.set(a.x, T.altura(a.x, a.z), a.z), _q.setFromEuler(_e), _s));
+      malla.setMatrixAt(n++, _M.compose(_p.set(a.x, a.sobre ?? T.altura(a.x, a.z), a.z), _q.setFromEuler(_e), _s));
     }
     malla.count = n;
     malla.instanceMatrix.needsUpdate = true;

@@ -7,7 +7,7 @@
 // pero en vez de cerrarse ahí, ofrece la noche. Ganarla cierra el capítulo con el final que corresponde
 // (el premio y `terminada` salen de `cerrarCapitulo`, como antes). Perderla no cuesta nada: vuelve el reloj
 // a su hora, el refugio sigue como estaba y se puede intentar de nuevo todas las veces que se quiera.
-import { capituloActual } from './historia.js';
+import { capituloActual, anotarRaro } from './historia.js';
 import { modoDeNoche, empezarIntento, cerrarIntento, dejarPerdida, sanearNoche, relojNoche } from './historia-noche.js';
 
 export const CSS_NOCHE = `
@@ -136,7 +136,9 @@ export function crearNocheUi(ctx, tarjetas, util) {
     }
     const horas = cerrarIntento(h, res.gano);
     htmlHud = ''; dibujarHud(null);
-    if (res.gano) { ctx.guardar(); lanzarEscena('noche-tras-ganar', () => { amanecer(h); ctx.guardar(); }); }
+    // 4.25.3 (E3-10): el amanecer queda anotado como pendiente ANTES de guardar: si se cierra el juego durante la escena, al volver amanece
+    // (antes quedaban las 23 y pico, vos donde fue la noche, y había que esperar y caminar hasta el alba sin ningún aviso)
+    if (res.gano) { h.noche.amanecer = true; ctx.guardar(); lanzarEscena('noche-tras-ganar', () => { amanecer(h); ctx.guardar(); }); }
     else {
       if (horas !== null) ctx.progreso().horas = horas;
       ctx.guardar();
@@ -152,6 +154,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
     if (p.horas >= 12) { p.dia = (p.dia || 1) + 1; ctx.nota(`Día ${p.dia}`, 'Pasó la noche'); }
     p.horas = 6.4;
     h.noche = sanearNoche(h.noche); h.noche.horasAntes = null;
+    delete h.noche.amanecer;   // (4.25.3)
     ctx.jugadorAlGalpon?.();
   }
   function mostrarPerdida(res) {
@@ -187,6 +190,13 @@ export function crearNocheUi(ctx, tarjetas, util) {
     }
     if (hud && !hud.classList.contains('oculto')) dibujarHud(null);
     if (espera > 0 && ctx.modo() === 'jugando') espera = Math.max(0, espera - dt);
+    // 4.25.3 (E3-10): se cerró el juego en la escena de después de ganar: amanece ahora (y queda la nota del cuaderno que dejaba la escena)
+    if (h.noche && h.noche.amanecer === true && !escenaDeNoche && h.activa && ctx.modo() === 'jugando' && !ctx.escenas?.()?.activa?.()) {
+      if (h.noche.estado === 'ganada') { try { anotarRaro(h, 'noche-ganada', ctx.progreso().dia); } catch { /* la nota es lo de menos */ } amanecer(h); }
+      else delete h.noche.amanecer;
+      ctx.guardar();
+      return;
+    }
     // se cerró el juego en plena noche: el reloj vuelve a la hora de antes
     const n = h.noche;
     if (n && n.horasAntes !== null && n.horasAntes !== undefined) {

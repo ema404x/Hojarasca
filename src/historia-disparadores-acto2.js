@@ -183,6 +183,30 @@ export const OBJETOS_ACTO2 = {
     aviso: 'Levantar la puertita de la puerta', marca: 'puertita-noche', raro: 'puertita-noche', nota: ['Una puertita apoyada en tu puerta', 'Alguien la dejó al revés, con la bisagra para arriba. No hay huellas'] },
 };
 
+// 4.25.3 (E2-7): ¿se puede talar el coihue grande? Con la historia en curso, sólo cuando la historia lo puso en juego: ya decidiste talarlo
+// (D2 = b), o estás en el capítulo de la rueda con la decisión ya tomada (ahí talarlo igual es cambiar de idea, y Josefina lo toma mal).
+// Antes se podía en cualquier capítulo: talado antes del capítulo 5 dejaba D2 decidida antes de que Tito preguntara, y talado después
+// (capítulos 9 a 13, con el árbol en pie o la pirca hecha) cambiaba la deuda, las líneas de cierre y el final.
+// Sin historia (o en pausa) es un árbol más.
+export function puedeTalarCoihue(h) {
+  if (!h || h.activa !== true) return true;
+  const d = h.decisiones && typeof h.decisiones === 'object' ? h.decisiones.coihue : null;
+  if (d === 'b') return true;
+  return d != null && enCap(h, 'rueda');
+}
+// Por qué no, para la nota: [título, detalle]
+export function motivoNoTalarCoihue(h) {
+  const d = h?.decisiones && typeof h.decisiones === 'object' ? h.decisiones.coihue : null;
+  return d == null
+    ? ['El coihue grande, todavía no', 'Es el de las puertitas en la raíz. Mejor no tocarlo hasta saber qué hacer con él']
+    : ['El coihue grande queda en pie', 'Así lo decidiste. Para la madera, buscá otro coihue o una lenga'];
+}
+// 4.25.3 (E2-7): con D2 = b y el coihue talado, el tocón queda tocón (antes rebrotaba entero a los 9 días y las escenas seguían hablando del tocón)
+export function coihueQuedaTocon(h) {
+  if (!h || typeof h !== 'object') return false;
+  const d = h.decisiones && typeof h.decisiones === 'object' ? h.decisiones.coihue : null;
+  return d === 'b' && !!h.temas && typeof h.temas === 'object' && Object.hasOwn(h.temas, 'mundo:coihue-talado');
+}
 // Lo que pasa cuando se tala el coihue grande (hachazo 6): la marca, y si no lo habías decidido así, la decisión pasa a «talarlo» y Josefina lo toma mal.
 export function alTalarCoihue(h, dia = 1) {
   marcarTema(h, 'mundo', 'coihue-talado', dia);

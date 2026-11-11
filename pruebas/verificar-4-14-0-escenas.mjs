@@ -337,7 +337,7 @@ ok(true, 'la suite sobre el módulo real: ' + (reales.length ? reales.length + '
 const MUTANTES = [
   ['saltar no termina la escena', 'terminar(true);\n    return true;', 'return true;'],
   ['saltar no corre los efectos', "case 'efecto': correrEfecto(p.nombre, p.args); break;", "case 'efecto': break;"],
-  ['saltar no resuelve la elección', 'return aplicarOpcion(p, p.opciones[i]);', 'return null;'],
+  ['saltar no resuelve la elección', 'return aplicarOpcion(p, of.p.opciones[of.i]);', 'return null;'],   // (4.25.3: la de por defecto entre las ofrecidas)
   ['saltar deja caminando a quien caminaba', "if (g.tipo === 'caminar') { try { mundo.teletransportar?.(clave(q), g.destino, null); }", "if (false) { try { mundo.teletransportar?.(clave(q), g.destino, null); }"],
   ['al terminar no suelta a los personajes', 'try { mundo.soltar?.(clave(q)); }', 'try { void 0; }'],
   ['marca la escena vista al empezar (guardar a mitad la daría por hecha)', '    s = {\n      id, c, e: c.escena', '    estadoGuardado().vistas[id] = 1;\n    s = {\n      id, c, e: c.escena'],

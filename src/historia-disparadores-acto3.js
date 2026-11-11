@@ -51,7 +51,7 @@ export const DISPARADORES_ACTO3 = {
   'elvira-cuerda': { cap: 'arco', modo: 'hablar', clave: 'tejedora', cond: (s) => s.lana >= 2 },
   'anselmo-puntas': { cap: 'arco', modo: 'hablar', clave: 'herrero', cond: (s) => s.pesos >= PRECIO_PUNTAS && !s.entregados.has('herrero:puntas') },
   'blancos-paso': { cap: 'arco', modo: 'auto', lugar: en('puesto-paso', 28), cond: (s) => s.blancos.paso >= 5 },
-  'fermin-paces': { cap: 'arco', modo: 'hablar', clave: 'fermin', cond: (s) => necesitaPaces(s) && (s.harina >= 1 || s.yerba >= 1) },
+  'fermin-paces': { cap: 'arco', modo: 'hablar', clave: 'fermin', cond: (s) => necesitaPaces(s) && (s.harina >= 1 || s.yerba >= 1 || s.pan >= 1) },   // (4.25.3: el pan casero de la escena también vale)
   'fermin-honda': { cap: 'arco', modo: 'hablar', clave: 'fermin', cond: (s) => !necesitaPaces(s) || s.escenas.has('fermin-paces') },
   'blancos-esquila': { cap: 'arco', modo: 'auto', lugar: en('galpon', 28), cond: (s) => s.blancos.esquila >= 5 },
   'prestado-herrero': { cap: 'arco', modo: 'hablar', clave: 'herrero', cond: (s) => !s.prestado.herrero },

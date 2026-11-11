@@ -40,6 +40,8 @@ export function registrarEfectosHistoria(reg, ctx) {
   reg.registrarCondicion('deuda', (c) => { const h = H(); if (!h) return false; const debe = (h.duendes?.deuda || 0) > 0; return c?.args?.es === 'debe' || c?.args?.es === 'pendiente' ? debe : !debe; });
   reg.registrarCondicion('ramal-nivel', (c) => { const h = H(); if (!h) return false; const r = Number(h.ramal) || 0, e = c?.args?.es; return e === 'salvado' ? r >= 10 : e === 'prueba' ? r >= 6 && r < 10 : e === 'traslado' ? r < 6 : false; });
   reg.registrarCondicion('devolver-bolsa', () => { const h = H(); return !!h && (h.decisiones?.bolsa === 'a' || h.decisiones?.molienda === 'c'); });
+  // 4.25.3 (E2-9): ¿tenés `n` de eso? (`que`: un número del estado de la historia: harina, yerba, pan…)
+  reg.registrarCondicion('tiene', (c) => { const s = ctx.estado?.(); const a = c?.args || {}; return !!s && typeof a.que === 'string' && Object.hasOwn(s, a.que) && Number(s[a.que]) >= Math.max(1, Math.floor(Number(a.n) || 1)); });
   reg.registrarCondicion('perro', () => { const s = ctx.estado?.(); return !!s && s.perro === true; });
   reg.registrarCondicion('perdon', () => { const h = H(); return !!h && h.duendes?.perdon === true; });
   reg.registrarCondicion('prestado', (c) => { const h = H(); const q = c?.args?.quien; return !!h && typeof q === 'string' && Object.hasOwn(h.prestado || {}, q) && h.prestado[q] === true; });

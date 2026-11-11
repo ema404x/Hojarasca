@@ -68,6 +68,7 @@ import { concursosNuevo, sanearConcursos } from './concursos.js';
 // 3.7.5: las fiestas y las fechas (los recuerdos, la minga, la nevada, los juegos, tu cumpleaños; sólo en el Relax)
 import { fiestasNuevas, sanearFiestas } from './fiestas.js';
 import { economiaNueva, sanearEconomia, convertirYerba } from './economia.js';
+import { sanearPagado, migrarPagadoDeObras } from './obra-pesos.js';
 import { negociosNuevo, sanearNegocios } from './negocios.js';
 import { empleoNuevo, sanearEmpleo } from './empleo.js';
 import { negociosVecinosNuevo, sanearNegociosVecinos } from './negocios-vecinos.js';
@@ -523,6 +524,8 @@ function sanearObras(v) {
     else if (d.y !== undefined) d.y = Number(d.y);
     if (d.tinte !== undefined && typeof d.tinte !== 'string') delete d.tinte;
     if (d.pagadas !== undefined) d.pagadas = Math.max(0, Math.min(8, Math.floor(finito(d.pagadas, 0))));   // 3.8.8: las etapas de la casa ya pagadas (propiedad.js)
+    // 4.25.3 (B3): cuánto se pagó por cada etapa y por cada ampliación del depósito (obra-pesos.js); una partida de antes no lo trae
+    for (const k of ['pagado', 'pagadoAmp']) if (d[k] !== undefined) { const l = sanearPagado(d[k]); if (l) d[k] = l; else delete d[k]; }
     // 3.8.6: el nombre que le pusiste (pedirNombre): un texto; otra cosa (una partida rota) rompía el mapa
     if (d.nombre !== undefined) { if (typeof d.nombre === 'string' && d.nombre.trim()) d.nombre = d.nombre.trim().slice(0, 28); else delete d.nombre; }
     // 4.10 base: la experiencia de una defensa que se curte y los trofeos colgados del tablero (una partida vieja no los trae)
@@ -772,6 +775,9 @@ export function cargarProgreso() {
   }
   if (!limpio) return null;
   p = limpio;
+  // 4.25.3 (B3): sólo al cargar (no al guardar): a las obras pagadas antes de la baja de precios de la 4.23.0 se les anota lo que costaron
+  // entonces, cuando la versión de la partida o el libro de la billetera lo dejan saber (obra-pesos.js). En el Desafío no hay pesos.
+  if (p.economia) { try { migrarPagadoDeObras(p.obras, p.versionJuego, p.economia.libro); } catch { /* sin la anotación vale el precio de hoy */ } }
   // las miniaturas viven aparte y se vuelven a pegar al cargar
   const fotos = leerFotosDe(CLAVE_FOTOS);   // 3.8.4: (de los archivos de la partida)
   // 2.6.1: sólo las propias y que sean imagen (un `fotos.constructor` heredado se colaba)

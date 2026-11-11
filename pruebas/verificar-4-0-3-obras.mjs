@@ -71,7 +71,7 @@ for (const id of ['cabana-piedra', 'casa-galeria', 'casona']) {
 }
 {
   const m = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-  ok(m.includes('const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);'), 'main.js devuelve los pesos al retirar la marca');
+  ok(m.includes('const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0, undefined, r.datos?.pagado);'), 'main.js devuelve los pesos al retirar la marca');   // (4.25.3: lo anotado en la obra)
   ok(m.indexOf('const devuelto = devolverEtapasPagadas') < m.indexOf("nota('Marca retirada'") && /devolverEtapasPagadas[^\n]*\n\s*progreso\.obras = obras\.obras\.map\(\(o\) => o\.datos\);\n\s*guardar\(\);/.test(m), 'y antes de guardar');
 }
 console.log(`OK 4.0.3 obras · ${n} verificaciones · los pesos pagados de una casa vuelven al retirar la marca`);

@@ -271,11 +271,13 @@ const trigoAbuelo = {
     ]),
     eleccion('trigo-resp', '¿Qué le decís?', [
       opcion('rueda', 'Ahora la rueda vuelve a andar.', { sabor: true }),
-      opcion('copia', '¿Me dejás sacarle una copia?', { efecto: 'lazo:ema:1' }),
+      opcion('copia', '¿Me dejás sacarle una copia?', { efecto: 'lazo:ema:2' }),   // 4.25.3 (G1-5): la respuesta cariñosa vale +2 (ver abajo)
     ]),
     dlg('josefina', [linea('Por eso te la mostré a vos y no a otro.', { gesto: gs('asentir', 1.8) })], { si: siEleg('trigo-resp', 'rueda') }),
     dlg('josefina', ['Una copia. Sí. Con mucho cuidado, que el papel está cansado.'], { si: siEleg('trigo-resp', 'copia') }),
-    efecto('lazo:ema:1'),
+    // 4.25.3 (G1-5): el +1 de la escena es el de la otra respuesta. Antes iba sin condición y con el mismo nombre que el de «copia»: un efecto
+    // repetido en una escena cuenta una sola vez (historia-escenas-efectos.js), así que las dos respuestas valían +1
+    con(efecto('lazo:ema:1'), siEleg('trigo-resp', 'rueda')),
     efecto('raro:foto-carro-abuelo'),
   ],
 };

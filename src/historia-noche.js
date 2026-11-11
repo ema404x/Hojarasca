@@ -54,6 +54,8 @@ export function sanearNoche(v) {
   // el reloj que había antes de salir a la noche (si se cerró el juego en medio, se devuelve al volver)
   const h = aNum(v.horasAntes);
   if (v.horasAntes !== null && v.horasAntes !== undefined && Number.isFinite(h)) n.horasAntes = ((h % 24) + 24) % 24;
+  // 4.25.3 (E3-10): la noche se ganó y todavía no amaneció (si se cierra el juego en la escena del final, amanece al volver)
+  if (v.amanecer === true && n.estado === 'ganada') n.amanecer = true;
   return n;
 }
 
