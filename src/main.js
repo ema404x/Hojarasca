@@ -92,7 +92,7 @@ import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpes
 import { crearOficiosUI } from './oficios-ui.js';
 import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera, fiestaDeCumple, ORDEN_PERSONAS_ALDEA, esCumpleanos, esVecinoAldea } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
-import { apagarExteriorAhora, quedaAfuera, cosVistaDe, interiorDeCaja, cajaDeLugar, cajaDeCasa, LUGARES_CERRADOS, CASAS_CERRADAS } from './interior-visible.js';
+import { apagarExteriorAhora, quedaAfuera, cosVistaDe, interiorDeCaja, cajaDeLugar, cajaDeCasa, cajaDeModulo, LUGARES_CERRADOS, CASAS_CERRADAS } from './interior-visible.js';
 import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
@@ -11089,6 +11089,12 @@ function cajaCacheada(dueno, x, z, rot, plano, armar) {
   if (c === undefined || c.__x !== x || c.__z !== z || c.__rot !== rot || c.__plano !== plano) { c = armar() || null; if (c) { c.__x = x; c.__z = z; c.__rot = rot; c.__plano = plano; } else c = { __x: x, __z: z, __rot: rot, __plano: plano, nula: true }; cajasInterior.set(dueno, c); }
   return c.nula ? null : c;
 }
+// 4.26.1 (A): la caja de una habitación modular (el piso `base`; ver cajaDeModulo), rehecha cuando cambia alguna obra (obras.version)
+function cajaDeModuloCacheada(base) {
+  let c = cajasInterior.get(base);
+  if (c === undefined || c.__v !== obras.version) { c = cajaDeModulo(obras.habitacionModular ? obras.habitacionModular(base) : null) || { nula: true }; c.__v = obras.version; cajasInterior.set(base, c); }
+  return c.nula ? null : c;
+}
 function interiorDelValle(cam) {
   if (desafio) return null;
   for (let i = 0; i < LUGARES_CERRADOS.length; i++) {
@@ -11101,6 +11107,7 @@ function interiorDelValle(cam) {
   const cerca = obras.obrasCerca(cam, 8, obrasInterior), editando = obras.editando;
   for (let i = 0; i < cerca.length; i++) {
     const o = cerca[i], P = o.plano, d = o.datos;
+    if (P && P.id === 'piso-modular' && o !== editando && d.etapas >= P.etapas.length) { const c = cajaDeModuloCacheada(o); if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle; continue; }   // 4.26.1 (A)
     if (!P || !CASAS_CERRADAS.has(P.id) || o === editando || !(d.etapas >= P.etapas.length)) continue;
     const c = cajaCacheada(o, d.x, d.z, d.rot, P.id, () => cajaDeCasa({ id: P.id, x: d.x, z: d.z, y: Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z), rot: d.rot, ancho: P.ancho, fondo: P.fondo, alto: P.alto }));
     if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle;

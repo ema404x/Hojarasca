@@ -7,6 +7,16 @@ try { electron = require('electron'); } catch { electron = null; }
 // (3.9.0: `screen` no se puede pedir antes de que la app esté lista: destructurarlo acá tiraba un error en el proceso principal y la ventana de
 // error dejaba todo colgado. Se pide al usar, y siempre después de `ready`)
 const app = electron && typeof electron === 'object' ? electron.app : null;
+// 4.26.1 (A): HOJ_SIN_FRENO=1, SÓLO para las corridas de MEDICIÓN con la ventana visible: sin el freno de Chromium a la ventana tapada o en segundo plano
+// (en la 4.26.0 la ventana quedó a 1 cuadro por segundo —intervalo de 1016 ms— en media tanda: tapada por otra ventana o con el monitor apagado). Es de las
+// herramientas: el juego que se entrega (main.cjs) no carga este archivo y, minimizado, sigue bajando el consumo como siempre.
+if (app && process.env.HOJ_SIN_FRENO === '1') {
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+  app.on('browser-window-created', (_e, w) => { try { w.webContents.setBackgroundThrottling(false); } catch {} });
+}
 // 4.3.1: modo OCULTO (HUMO_OCULTO=1): ninguna ventana se muestra ni toma el foco (show/showInactive/focus no hacen nada y se esconde
 // apenas nace); el juego igual dibuja y corre sus bucles (backgroundThrottling apagado) y capturePage sigue andando.
 if (app && process.env.HUMO_OCULTO === '1') {

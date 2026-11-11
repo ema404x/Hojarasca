@@ -44,12 +44,22 @@ import { PIEZAS_TROFEOS } from './planos-trofeos.js';
 import { asentadoActivo, asentarGeometria, teselarGeometria, remarcarRangos, huellaDe, semillaDe, azarDe } from './asentado.js';
 // 4.22.0: el detalle de las obras del jugador (tablas con relieve, piedra en bloques, troncos redondos y patas de canto rodado), sólo en Media y Alta (ver detalle-obras.js)
 import { detalleObras, semillaObra, paredDeTablas, pilarDePiedra, troncoRedondo, basaDePiedra, listonDeCara } from './detalle-obras.js';
+import { CIERRES_TECHO, EJE_MURO_MODULAR, L_CIERRE, cierresDeTecho, almaModular } from './cierres-modulares.js';
 
 const MADERA = '#6b5238';
 const MADERA_OSCURA = '#4a3b2c';
 const TABLA = '#8a6b4a';
 const PIEDRA = '#7d766c';
 const TECHO = '#4e4038';
+
+// 4.26.1 (A): el techo del puesto de troncos (los faldones de la última etapa): la inclinación y la altura del medio del forro a `ax` metros (en planta) de
+// la cumbrera. El forro va 5 cm (al medio) debajo del eje de las tablas; las paredes suben hasta ahí (ver la etapa de las paredes).
+function techoDelPuesto(P) {
+  const W = P.ancho, H = P.alto, incl = Math.atan2(1.15, W / 2), xb = W / 4 + 0.05, yb = H + 0.78, tg = Math.tan(incl);
+  return { incl, forro: (ax) => yb + (xb - ax) * tg - 0.05 / Math.cos(incl) };
+}
+
+// 4.26.1 (A): las habitaciones modulares cerradas: ver cierres-modulares.js (las almas de las paredes y del piso, y los cierres del techo)
 
 // ---------------------------------------------------------------- los planos
 // Cada etapa arma su parte sobre el mismo constructor: al terminar una etapa
@@ -96,6 +106,9 @@ export const PLANOS = [
             const z = -D / 2 + 0.15 + i * 0.3;
             c.agregar(new THREE.BoxGeometry(W, 0.08, 0.27), { color: i % 3 ? TABLA : '#7a5f43', tipo: 4, variar: 0.12, matriz: matriz([0, 0.54, z]) });
           }
+          // 4.26.1 (A): el contrapiso. Entre tabla y tabla quedan 3 cm y abajo el puesto está abierto por los costados: mirando el piso contra la pared, por la
+          // junta se veía el pasto de afuera. Una tabla corrida pegada debajo de las tablas (de afuera, bajo el piso, no se ve). En la misma malla.
+          c.agregar(new THREE.BoxGeometry(W, 0.02, Math.round(D / 0.3) * 0.3 - 0.03), { color: '#3a2c20', tipo: 4, variar: 0.06, matriz: matriz([0, 0.49, 0]) });
           // el escalón de entrada
           c.agregar(new THREE.BoxGeometry(1.4, 0.16, 0.6), { color: '#7a5f43', tipo: 4, variar: 0.1, matriz: matriz([0, 0.28, -D / 2 - 0.35]) });
           // 3.0.1: apoyado en una piedra (antes quedaba en el aire, a 20 cm del suelo)
@@ -150,6 +163,17 @@ export const PLANOS = [
           // marco de la puerta y ventana del lateral
           c.agregar(new THREE.BoxGeometry(hueco + 0.3, 0.14, 0.16), { color: MADERA_OSCURA, tipo: 4, matriz: matriz([0, H + 0.12, -D / 2 - 0.04]) });
           for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.14, H - 0.5, 0.16), { color: MADERA_OSCURA, tipo: 4, matriz: matriz([sx * (hueco / 2 + 0.07), 1.4, -D / 2 - 0.04]) });
+          // 4.26.1 (A): el alma de las paredes (el barro entre tronco y tronco). Entre una hilada y la otra queda luz de lado a lado y, arriba de la última,
+          // una franja de 18 cm abierta hasta el techo (en los costados) o hasta el frontón (adelante y atrás): desde adentro se veía el bosque. Un panel oscuro
+          // en el medio de cada pared (entre los troncos de una hilada y los de la otra, que van corridos 6 cm), del piso al forro del techo: de afuera, en las
+          // juntas y bajo el alero, se ve oscuro como antes la sombra de adentro. Con el vano de la puerta. En la misma malla: sin llamadas de dibujo nuevas.
+          const ALMA = '#2f241a', yA = 0.48, yF = 2.6, e = 0.04, ladoA = (W - hueco) / 2;   // (desde el contrapiso: también cierra la punta de cada junta del piso)
+          const alma = (w, h, d, x, y, z) => c.agregar(new THREE.BoxGeometry(w, h, d), { color: ALMA, tipo: 4, variar: 0.05, matriz: matriz([x, y, z]) });
+          for (const sx of [-1, 1]) alma(ladoA, yF - yA, e, sx * (hueco / 2 + ladoA / 2), (yA + yF) / 2, -D / 2 + 0.03);
+          alma(hueco + 0.02, yF - 2.42, e, 0, (2.42 + yF) / 2, -D / 2);   // (sobre la puerta, metida en el dintel)
+          alma(W, yF - yA, e, 0, (yA + yF) / 2, D / 2 - 0.03);
+          const yL = techoDelPuesto(P).forro(W / 2 - 0.03);   // (los costados suben hasta el medio del forro del techo: ver la etapa del techo)
+          for (const sx of [-1, 1]) alma(e, yL - yA, D, sx * (W / 2 - 0.03), (yA + yL) / 2, 0);
         },
       },
       {
@@ -178,6 +202,13 @@ export const PLANOS = [
                 matriz: matriz([lado * (W / 4 + 0.05), H + 0.78, z], [0, 0, -lado * incl]),
               });
             }
+          }
+          // 4.26.1 (A): el forro (como el de las casas, ver forroTecho en planos-casas.js): entre las tablas del techo quedan 3 cm. Una tabla corrida por agua,
+          // 5 mm debajo de las tablas, de la cumbrera a la línea de la pared (no bajo el alero: de afuera no se ve) y de frontón a frontón.
+          const tp = techoDelPuesto(P);
+          for (const lado of [-1, 1]) {
+            const a0 = -0.03, a1 = W / 2, am = (a0 + a1) / 2;
+            c.agregar(new THREE.BoxGeometry((a1 - a0) / Math.cos(tp.incl), 0.02, D + 0.1), { color: TABLA, tipo: 4, variar: 0.08, matriz: matriz([lado * am, tp.forro(am), 0], [0, 0, -lado * tp.incl]) });
           }
           // alero sobre la puerta
           c.agregar(new THREE.BoxGeometry(W * 0.8, 0.1, 1.1), { color: TECHO, tipo: 4, matriz: matriz([0, H + 0.34, -D / 2 - 0.5], [0.16, 0, 0]) });
@@ -399,6 +430,14 @@ PLANOS.push({
           c.agregar(new THREE.BoxGeometry(W - 0.16, 0.075, 0.265), { color: i % 3 ? TABLA : '#7b6045', tipo: 4, variar: 0.1,
             matriz: matriz([0, 0.58, z]) });
         }
+        // 4.26.1 (A): el contrapiso y el borde del piso. Entre tabla y tabla quedan 2,5 cm, el piso no llegaba a las paredes (de 3 a 7 cm de luz) y abajo la casilla
+        // está abierta por los costados: mirando el piso contra la pared se veía el pasto de afuera. Una tabla corrida pegada debajo de las tablas y una tabla
+        // al ras del piso entre el último tablón y cada pared (adelante queda de umbral). En la misma malla.
+        const zP0 = -D / 2 + 0.15 - 0.1325, zP1 = -D / 2 + 0.15 + (Math.round(D / 0.29) - 1) * 0.29 + 0.1325;
+        c.agregar(new THREE.BoxGeometry(W, 0.02, D), { color: '#3a2c20', tipo: 4, variar: 0.06, matriz: matriz([0, 0.5325, 0]) });
+        c.agregar(new THREE.BoxGeometry(W, 0.075, zP0 + D / 2), { color: '#7b6045', tipo: 4, variar: 0.08, matriz: matriz([0, 0.58, (zP0 - D / 2) / 2]) });
+        c.agregar(new THREE.BoxGeometry(W, 0.075, D / 2 - zP1), { color: '#7b6045', tipo: 4, variar: 0.08, matriz: matriz([0, 0.58, (zP1 + D / 2) / 2]) });
+        for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.08, 0.075, zP1 - zP0), { color: '#7b6045', tipo: 4, variar: 0.08, matriz: matriz([sx * (W / 2 - 0.04), 0.58, (zP0 + zP1) / 2]) });
         c.agregar(new THREE.BoxGeometry(1.35, 0.16, 0.62), { color: TABLA, tipo: 4, variar: 0.1,
           matriz: matriz([0, 0.30, -D / 2 - 0.35]) });
         // 3.0.1: el peldaño apoya en una piedra (antes quedaba en el aire)
@@ -467,6 +506,27 @@ PLANOS.push({
             matriz: matriz([lado * (W / 4 + 0.03), H + 0.82, -D / 2 - 0.26 + 0.15 + i * 0.31], [0, 0, -lado * incl]) });
         }
         c.agregar(new THREE.BoxGeometry(0.16, 0.16, D + 0.6), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([0, H + 1.30, 0]) });
+        // 4.26.1 (A): la casilla cerrada por arriba. Los hastiales (el triángulo entre la pared y el techo, adelante y atrás) estaban abiertos y por el costado
+        // quedaba una rendija de 5 a 7 cm entre la pared y el alero: desde adentro se veía el bosque. (1) El forro bajo las tablas, como el de las casas (ver
+        // forroTecho en planos-casas.js), de la cumbrera a la línea de la pared (bajo el alero no: de afuera no se ve). (2) Los hastiales, metidos 3 cm adentro
+        // del plano de la pared y oscuros como el entretecho a la sombra que se veía antes por el hueco (no se pintan con la T). (3) Una tira oscura sobre cada
+        // costado, de la pared al forro. En la misma malla: sin llamadas de dibujo nuevas.
+        const yF = (ax) => H + 0.82 + (W / 4 + 0.03 - ax) * Math.tan(incl) - 0.045 / Math.cos(incl);   // el medio del forro a `ax` metros de la cumbrera
+        for (const lado of [-1, 1]) {
+          const a0 = -0.03, a1 = W / 2, am = (a0 + a1) / 2;
+          c.agregar(new THREE.BoxGeometry((a1 - a0) / Math.cos(incl), 0.02, D + 0.1), { color: TABLA, tipo: 4, variar: 0.08, matriz: matriz([lado * am, yF(am), 0], [0, 0, -lado * incl]) });
+        }
+        const HASTIAL = '#2a211a', yH = H + 0.22;   // (3 cm debajo del borde de las paredes: entra en ellas y en el dintel de la puerta)
+        for (const zh of [-D / 2 + 0.02, D / 2 - 0.02]) {
+          const A = [-W / 2, yH, zh], B = [W / 2, yH, zh], C = [W / 2, yF(W / 2), zh], E = [0, yF(0), zh], F = [-W / 2, yF(W / 2), zh];
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.Float32BufferAttribute([...A, ...B, ...C, ...A, ...C, ...E, ...A, ...E, ...F, ...B, ...A, ...C, ...C, ...A, ...E, ...E, ...A, ...F], 3));
+          c.agregar(g, { color: HASTIAL, tipo: 4, variar: 0.06, matriz: matriz([0, 0, 0]) });
+        }
+        for (const sx of [-1, 1]) {
+          const yt = yF(W / 2 - 0.02);
+          c.agregar(new THREE.BoxGeometry(0.03, yt - yH, D), { color: HASTIAL, tipo: 4, variar: 0.06, matriz: matriz([sx * (W / 2 - 0.02), (yH + yt) / 2, 0]) });
+        }
         // estufa de piedra + caño continuo
         // 4.22.0: la estufa, de bloques de piedra
         if (detalleObras()) pilarDePiedra(c, { cx: W / 2 - 0.75, cz: D / 2 - 0.70, w: 0.68, d: 0.58, y0: 0.60, y1: 1.22, sem: semillaObra(P, datos) });
@@ -831,6 +891,8 @@ const PIEZAS = [
         c.agregar(new THREE.BoxGeometry(0.275, 2.12, 0.13), { color: i % 3 ? TABLA : '#765b41', tipo: 4, variar: 0.09, matriz: matriz([x, 1.08, 0]) });
       }
       for (const x of [-1.45, 1.45]) c.agregar(new THREE.BoxGeometry(0.13, 2.28, 0.18), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([x, 1.14, 0]) });
+      // 4.26.1 (A): el alma (ver almaModular): entre tabla y tabla y entre piedra y piedra del cuerpo del hogar (5 cm en las hiladas pares) se veía afuera
+      almaModular(c, [[-1.44, 1.44, -0.01, 2.14]]);
       // el cuerpo de piedra, la boca negra y el dintel de madera
       for (let fila = 0; fila < 7; fila++) {
         for (let k = 0; k < 3; k++) {
@@ -1193,6 +1255,9 @@ const PIEZAS = [
         color: MADERA_OSCURA, tipo: 0, variar: 0.07, matriz: matriz([0, 0.12, z]) });
       for (let i = 0; i < 10; i++) c.agregar(new THREE.BoxGeometry(0.27, 0.075, 2.92), {
         color: i % 4 ? TABLA : '#765b41', tipo: 4, variar: 0.10, matriz: matriz([-1.31 + i * 0.291, 0.24, 0]) });
+      // 4.26.1 (A): el contrapiso: entre tabla y tabla quedan 2 cm y abajo el piso está abierto por los costados (por la junta, contra la pared, se veía el
+      // pasto de afuera). Una tabla corrida pegada debajo de las tablas (ver almaModular)
+      c.agregar(new THREE.BoxGeometry(2.89, 0.01, 2.92), { color: '#3a2c20', tipo: 4, variar: 0.06, matriz: matriz([0, 0.1975, 0]) });
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
         c.agregar(new THREE.CylinderGeometry(0.065, 0.085, 0.46, 6), {
           color: MADERA_OSCURA, tipo: 0, matriz: matriz([sx * 1.22, 0.02, sz * 1.22]) });
@@ -1209,6 +1274,7 @@ const PIEZAS = [
     arma(c) {
       for (let i = 0; i < 10; i++) c.agregar(new THREE.BoxGeometry(0.275, 2.12, 0.13), {
         color: i % 3 ? TABLA : '#765b41', tipo: 4, variar: 0.09, matriz: matriz([-1.305 + i * 0.29, 1.08, 0]) });
+      almaModular(c, [[-1.44, 1.44, -0.01, 2.14]]);   // 4.26.1 (A): entre tabla y tabla quedan 1,5 cm y abajo, 2 (ver almaModular)
       for (const x of [-1.45, 1.45]) c.agregar(new THREE.BoxGeometry(0.13, 2.28, 0.18), {
         color: MADERA_OSCURA, tipo: 0, matriz: matriz([x, 1.14, 0]) });
       for (const y of [0.20, 2.08]) c.agregar(new THREE.BoxGeometry(2.92, 0.12, 0.17), {
@@ -1243,6 +1309,8 @@ const PIEZAS = [
     arma(c) {
       c.agregar(new THREE.BoxGeometry(2.86, 0.76, 0.13), { color: TABLA, tipo: 4, variar: 0.10, matriz: matriz([0, 0.46, 0]) });
       c.agregar(new THREE.BoxGeometry(2.86, 0.48, 0.13), { color: '#765b41', tipo: 4, variar: 0.10, matriz: matriz([0, 1.98, 0]) });
+      // 4.26.1 (A): abajo del paño quedan 8 cm abiertos y entre los paños y los travesaños, 5 a 7 cm (ver almaModular). La ventana queda libre: cuenta como abertura
+      almaModular(c, [[-1.44, 1.44, -0.01, 0.88], [-1.44, 1.44, 1.68, 2.22], [-1.44, -0.66, 0.84, 1.72], [0.66, 1.44, 0.84, 1.72]]);   // (encimadas: sin junta entre una y otra)
       for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.68, 0.78, 0.13), {
         color: TABLA, tipo: 4, variar: 0.10, matriz: matriz([sx * 1.08, 1.28, 0]) });
       for (const x of [-1.45, -0.66, 0.66, 1.45]) c.agregar(new THREE.BoxGeometry(0.12, 2.25, 0.18), {
@@ -1261,7 +1329,7 @@ const PIEZAS = [
     pide: { tabla: 11, tronco: 2 },
     snap: { tipo: 'techo', familia: 'modular-techo', pisoFamilia: 'modular-piso', umbral: 1.35 },
     permiteSolapeCon: ['modular-muro'],
-    arma(c) {
+    arma(c, P, datos) {
       const W = 3.35, D = 3.38, subida = 0.94;
       const medio = W / 2, largo = Math.hypot(medio, subida) + 0.16;
       const incl = Math.atan2(subida, medio);
@@ -1280,6 +1348,9 @@ const PIEZAS = [
         for (const lado of [-1, 1]) c.agregar(new THREE.BoxGeometry(largo - 0.08, 0.10, 0.10), {
           color: MADERA_OSCURA, tipo: 0, matriz: matriz([lado * 0.73, 0.42, z], [0, 0, -lado * incl]) });
       }
+      // 4.26.1 (A): sobre una habitación cerrada, el forro, el alero y los hastiales (ver cierresDeTecho)
+      const tg = Math.tan(incl), bajo = (x) => 0.47 + (0.79 - Math.abs(x)) * tg - 0.0325 / Math.cos(incl);
+      cierresDeTecho(c, datos, bajo, [[-L_CIERRE, 0], [0, L_CIERRE]]);
     },
   },
   {
@@ -1446,6 +1517,8 @@ const PIEZAS = [
     arma(c) {
       c.agregar(new THREE.BoxGeometry(2.86, 0.62, 0.13), { color: TABLA, tipo: 4, variar: 0.09, matriz: matriz([0, 0.35, 0]) });
       c.agregar(new THREE.BoxGeometry(2.86, 0.40, 0.13), { color: '#765b41', tipo: 4, variar: 0.09, matriz: matriz([0, 2.04, 0]) });
+      // 4.26.1 (A): abajo y entre los paños y los travesaños quedan rendijas (ver almaModular). El ventanal queda libre: cuenta como abertura
+      almaModular(c, [[-1.44, 1.44, -0.01, 0.70], [-1.44, 1.44, 1.80, 2.24], [-1.44, -0.94, 0.66, 1.84], [0.94, 1.44, 0.66, 1.84]]);   // (encimadas)
       for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.45, 1.08, 0.13), {
         color: TABLA, tipo: 4, variar: 0.09, matriz: matriz([sx * 1.22, 1.34, 0]) });
       for (const x of [-1.45, -0.94, 0.94, 1.45]) c.agregar(new THREE.BoxGeometry(0.12, 2.25, 0.18), {
@@ -1464,7 +1537,7 @@ const PIEZAS = [
     pide: { tabla: 10, tronco: 2 },
     snap: { tipo: 'techo', familia: 'modular-techo', pisoFamilia: 'modular-piso', umbral: 1.35 },
     permiteSolapeCon: ['modular-muro'],
-    arma(c) {
+    arma(c, P, datos) {
       const D = 3.38, W = 3.38, subida = 0.76;
       const largo = Math.hypot(W, subida) + 0.10, incl = Math.atan2(subida, W);
       for (let i = 0; i < 11; i++) {
@@ -1477,6 +1550,8 @@ const PIEZAS = [
       for (const z of [-1.48, 0, 1.48]) c.agregar(new THREE.BoxGeometry(largo - 0.08, 0.10, 0.10), {
         color: MADERA_OSCURA, tipo: 0, matriz: matriz([0, 0.39, z], [0, 0, -incl]) });
       c.agregar(new THREE.BoxGeometry(0.12, 0.14, D + 0.16), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([-1.63, 0.80, 0]) });
+      // 4.26.1 (A): sobre una habitación cerrada, el forro, los aleros y los hastiales (ver cierresDeTecho)
+      cierresDeTecho(c, datos, (x) => 0.42 - x * Math.tan(incl) - 0.0325 / Math.cos(incl), [[-L_CIERRE, L_CIERRE]]);
     },
   },
   {
@@ -1489,13 +1564,15 @@ const PIEZAS = [
     pide: { tabla: 12, tronco: 3 },
     snap: { tipo: 'techo', familia: 'modular-techo', pisoFamilia: 'modular-piso', umbral: 1.35 },
     permiteSolapeCon: ['modular-muro'],
-    arma(c) {
+    arma(c, P, datos) {
       for (const z of [-1.30, 0, 1.30]) c.agregar(new THREE.BoxGeometry(3.18, 0.13, 0.14), {
         color: MADERA_OSCURA, tipo: 0, variar: 0.06, matriz: matriz([0, 0.10, z]) });
       for (let i = 0; i < 11; i++) c.agregar(new THREE.BoxGeometry(0.275, 0.075, 3.22), {
         color: i % 4 ? TECHO : '#44382f', tipo: 4, variar: 0.09, matriz: matriz([-1.38 + i * 0.276, 0.20 + (i % 2) * 0.004, 0]) });
       for (const x of [-1.62, 1.62]) c.agregar(new THREE.BoxGeometry(0.08, 0.15, 3.30), {
         color: MADERA_OSCURA, tipo: 0, matriz: matriz([x, 0.22, 0]) });
+      // 4.26.1 (A): sobre una habitación cerrada, el forro y la franja de 30 cm entre las paredes y las tablas (ver cierresDeTecho)
+      cierresDeTecho(c, datos, () => 0.1625, [[-L_CIERRE, L_CIERRE]]);
     },
   },
 
@@ -2408,6 +2485,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   // 3.8.7: sube cada vez que cambia alguna obra (se arma, se rehace, se mueve, se retira): main.js rehace con esto lo que
   // ofrece el aviso en el momento (si no, el aviso de lo desmontado seguía hasta un segundo y medio, y E ya no lo hacía)
   let version = 0;
+  let revisandoTechos = false, techosEnPausa = false;   // 4.26.1 (A): ver revisarTechos
 
   function geometriaDe(plano, etapasHechas, datos = null) {
     const c = new Constructor();
@@ -3407,6 +3485,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     obra.fisica.clear();
     obra.datos.chocado = false; obra.datos.pisable = false; obra.datos.barandado = false;
     if (obra.malla) { obra.grupo.remove(obra.malla); obra.malla.geometry.dispose(); }
+    // 4.26.1 (A): lo que cierra el techo modular (ver cierresDeTecho), según las paredes que tiene abajo ahora
+    if (obra.plano.snap?.familia === 'modular-techo') { obra.firmaCierres = firmaCierres(obra); CIERRES_TECHO.set(obra.datos, obra.firmaCierres); }
     const g = obra.datos.etapas === 0 ? geometriaMarcado(obra.plano) : geometriaDe(obra.plano, obra.datos.etapas, obra.datos);
     // 2.8: la firma del estilo con que se armó (ver `repintar`)
     obra.firmaEstilo = firmaEstiloObra(obra.plano, obra.datos);
@@ -3516,6 +3596,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     registrarInteraccionesPremium(obra);
     registrarAmbientacionPremium(obra);
     pintarPuertasObra(obra);
+    if (esModular(obra)) revisarTechos(obra.datos);   // 4.26.1 (A)
   }
 
   function obraCerca(pos, radio = 7, planoId = null) {
@@ -3559,6 +3640,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     grupo.remove(obra.grupo);
     const i = obras.indexOf(obra);
     if (i >= 0) { obras.splice(i, 1); reindexarObras(); }
+    if (i >= 0 && esModular(obra)) revisarTechos(obra.datos);   // 4.26.1 (A)
     return i >= 0;
   }
 
@@ -3745,6 +3827,58 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     return mejor ? estadoModulo(mejor) : null;
   }
 
+  // 4.26.1 (A): la habitación modular sobre `base` (un piso o entrepiso terminado), si está cerrada y todo quedó en el encastre: el techo que la cubre y,
+  // por lado (n, s, e, o, en el marco de la base), { id, u } de la pared que la cierra (`u`: cuánto quedó corrida del medio del lado) o null si ese lado
+  // da a otro módulo cubierto (una unión abierta o un marco). null si no está cerrada, si la cubre un entrepiso o si algo quedó corrido o girado (los
+  // cierres del techo y las almas se arman en el eje del borde del piso). La usan los techos (firmaCierres) y la regla de interiores (main.js).
+  const CENTRADO_MODULAR = 0.05;
+  function habitacionModular(base) {
+    const tipo = base?.plano?.snap?.tipo;
+    if ((tipo !== 'piso' && tipo !== 'entrepiso') || base.datos.etapas < base.plano.etapas.length || base === edicion?.obra) return null;
+    const e = estadoModulo(base), t = e?.cubierta?.obra;
+    if (!e?.cerrado || t?.plano?.snap?.tipo !== 'techo') return null;
+    const cota = cotaSuperiorPiso(base), rot = base.datos.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
+    if (Math.hypot(t.datos.x - base.datos.x, t.datos.z - base.datos.z) > CENTRADO_MODULAR || Math.abs((t.datos.y ?? 0) - cota - (t.plano.elevacion || 0)) > CENTRADO_MODULAR || diferenciaEje(t.datos.rot || 0, rot) > 0.02) return null;
+    const lados = {};
+    for (const lado of ['n', 's', 'e', 'o']) {
+      const p = e.lados[lado];
+      if (p?.cerrada) {
+        const dx = p.obra.datos.x - base.datos.x, dz = p.obra.datos.z - base.datos.z, lx = dx * c - dz * s, lz = dx * s + dz * c;
+        const ns = lado === 'n' || lado === 's', u = ns ? lx : lz, fuera = Math.abs(ns ? lz : lx) - EJE_MURO_MODULAR;
+        const giro = diferenciaEje(p.obra.datos.rot || 0, ns ? rot : rot + Math.PI / 2);
+        if (Math.abs(u) > CENTRADO_MODULAR || Math.abs(fuera) > CENTRADO_MODULAR || giro > 0.02 || Math.abs((p.obra.datos.y ?? 0) - cota) > CENTRADO_MODULAR) return null;
+        lados[lado] = { id: p.id, u };
+      } else if (e.conexiones.some((q) => q.lado === lado)) lados[lado] = null;
+      else return null;
+    }
+    if (!Object.values(lados).some(Boolean)) return null;   // (sin ninguna pared: el medio de una casa grande; se ve afuera por todos lados)
+    return { base, techo: t, lados, x: base.datos.x, z: base.datos.z, y: base.datos.y, cota, rot };
+  }
+  // Lo que tiene que cerrar el techo `t`: los lados con pared, en el marco del techo ('+x -z …'), o '' (nada: queda como siempre)
+  function firmaCierres(t) {
+    if (t.plano.snap?.familia !== 'modular-techo' || t.datos.etapas < t.plano.etapas.length || t === edicion?.obra) return '';
+    for (const base of obrasCerca(t.datos, 0.5, [])) {
+      const h = habitacionModular(base);
+      if (!h || h.techo !== t) continue;
+      const inv = Math.cos((t.datos.rot || 0) - h.rot) < 0, a = { n: '-z', s: '+z', o: '-x', e: '+x' }, b = { n: '+z', s: '-z', o: '+x', e: '-x' };
+      return ['n', 's', 'e', 'o'].filter((k) => h.lados[k]).map((k) => (inv ? b : a)[k]).sort().join(' ');
+    }
+    return '';
+  }
+  const esModular = (o) => /^modular-/.test(o?.plano?.snap?.familia || '');
+  // Después de un cambio en una pieza modular (se arma, se rehace, se saca o se empieza a mover), los techos de cerca (4,5 m: el del módulo y los de al
+  // lado, que dependen de que éste esté cubierto) se rehacen si cambió lo que tienen que cerrar. Sin cambios no se rehace nada.
+  function revisarTechos(cerca) {
+    if (revisandoTechos || techosEnPausa) return;
+    revisandoTechos = true;
+    try {
+      for (const t of cerca ? obrasCerca(cerca, 4.5, []) : obras.slice()) {
+        if (t.plano.snap?.familia !== 'modular-techo' || !t.malla || t === edicion?.obra || !obras.includes(t)) continue;   // (el que se está moviendo no: rehacerlo le devolvería la física)
+        if (firmaCierres(t) !== (t.firmaCierres || '')) rehacer(t);
+      }
+    } finally { revisandoTechos = false; }
+  }
+
   function dentroDelModulo(obra, estado, margen = 0.18) {
     if (!obra || obra.datos.etapas < obra.plano.etapas.length) return false;
     const base = estado.base, rot = base.datos.rot || 0;
@@ -3929,6 +4063,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     asiento?.quitar(mejor);
     ultimoEstado = null;
     version++;
+    if (esModular(mejor)) revisarTechos(mejor.datos);   // 4.26.1 (A): mientras se mueve no está (estadoModulo la deja afuera)
     return { ok: true, obra: mejor, plano: mejor.plano };
   }
 
@@ -4113,6 +4248,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   }
 
   function sincronizar(lista) {
+    techosEnPausa = true;   // 4.26.1 (A): al cargar, los cierres de los techos se revisan una vez, al final (no por cada pared)
+    try {
     for (const d of lista || []) {
       // 2.4.1: una obra rota no puede tirar el armado del bosque entero
       if (!d || typeof d !== 'object' || !Number.isFinite(d.x) || !Number.isFinite(d.z)) continue;
@@ -4124,6 +4261,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
       if (!Number.isFinite(d.rot)) d.rot = 0;
       colocar(d);
     }
+    } finally { techosEnPausa = false; }
+    revisarTechos(null);
   }
 
   function dentro(pos) {
@@ -4221,7 +4360,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   return { repintar, pintarCasa, restilizarJardin, casas: (desde = null) => agruparCasas(obras, desde),
     recuperaDeObra, elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, piezaADesmontar: (pos, radio = 4.5) => (edicion ? null : piezaCerca(pos, radio)), deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
     destruir, portonAbierto, reemplazarPlano, obrasCerca: (pos, radio, salida = []) => obrasCerca(pos, radio, salida),
-    cancelarMarcada, obraCerca, tieneFuncionCerca, rehacer, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
+    cancelarMarcada, obraCerca, tieneFuncionCerca, rehacer, sincronizar, dentro, estadoModulo, estadoModuloCerca, habitacionModular, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
     get plano() { return planoElegido; }, get rotacion() { return rotacionFantasma || 0; }, get estadoSitio() { return ultimoEstado; },
     get snapActivo() { return snapActivo; }, get editando() { return edicion?.obra || null; }, get version() { return version; } };
 }

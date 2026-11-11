@@ -85,12 +85,12 @@ export function interiorDeCaja(cam, c, salida) {
 export const LUGARES_CERRADOS = ['refugio', 'cabana', 'puesto', 'almacen'];
 // Las casas prefabricadas del jugador que son un cuarto cerrado con una sola salida: la puerta del frente (−z, en el centro). Las ventanas de
 // estas casas son cajas opacas sobre la pared entera (planos-casas.js, `ventana`), así que no cuentan. Quedan afuera a propósito: el quincho
-// (frente abierto), la galería cerrada (sin pared de atrás), las habitaciones del sistema modular (el techo modular deja los hastiales abiertos
-// y las ventanas modulares son huecos de verdad con postigos) y, por la prueba de equivalencia de imagen, la casilla (los hastiales entre la
-// pared y el techo quedan abiertos), el puesto de troncos (entre tronco y tronco se ve afuera) y el taller anexo, la buhardilla y la planta
-// alta (en las esquinas de sus paredes de tablas queda una rendija de un píxel por la que se ve afuera).
+// (frente abierto) y la galería cerrada (sin pared de atrás). Las habitaciones del sistema modular van aparte (ver cajaDeModulo).
+// 4.26.1 (A): entran la casilla (sus hastiales y el alero, cerrados con un forro y tablas oscuras metidas en la pared), el puesto de troncos (el
+// alma de barro entre tronco y tronco y el forro del techo) y el taller anexo, la buhardilla y la planta alta (el alma de las juntas de sus
+// paredes de tablas: la «rendija de un píxel» de la 4.26.0 era la junta de 8 mm entre tabla y tabla, vista de frente).
 export const CASAS_CERRADAS = new Set(['cabana-piedra', 'casa-galeria', 'casona', 'dormitorio-anexo', 'despensa-anexa',
-  'cocina-ampliada', 'bodega-piedra', 'salon-grande', 'torreon-piedra']);
+  'cocina-ampliada', 'bodega-piedra', 'salon-grande', 'torreon-piedra', 'casilla', 'taller-anexo', 'planta-alta']);
 // Hasta dónde llegan las paredes, desde el pie de la obra: en las casas de planos-casas.js Y0 + alto − 0,35 = alto + 0,25. Arriba de eso la
 // cámara ya está en el techo (o afuera).
 export const TOPE_CASAS = 0.25;
@@ -121,4 +121,32 @@ export function cajaDeCasa(o) {
   if (!o || !CASAS_CERRADAS.has(o.id) || !Number.isFinite(o.x) || !Number.isFinite(o.z) || !Number.isFinite(o.y) || !(o.ancho > 0) || !(o.fondo > 0) || !(o.alto > 0)) return null;
   const frente = puntosDeAbertura([-MEDIO_VANO_CASAS, -o.fondo / 2, MEDIO_VANO_CASAS, -o.fondo / 2]);
   return { id: 'obra-' + o.id, x: o.x, z: o.z, y: o.y, rot: o.rot || 0, ancho: o.ancho, fondo: o.fondo, alto: o.alto + TOPE_CASAS, frente };
+}
+
+// ---------------------------------------------------------------- 4.26.1 (A): las habitaciones modulares
+// Un módulo de piso de 3 × 3 cerrado (construccion.js, habitacionModular: su techo y, por lado, una pared que cierra en el eje del borde o la unión con
+// otro módulo cubierto). Las paredes y el piso tienen alma y el techo cierra la franja y los hastiales sobre las paredes (cierresDeTecho), así que lo
+// único que deja ver para afuera son las aberturas: la puerta y la ventana de cada pared (los vanos de los planos, con las jambas; la ventana cuenta
+// aunque tenga los postigos cerrados) y el lado entero que da a otro módulo (por ahí se ven el resto de la casa y sus aberturas).
+export const MEDIO_LADO_MODULAR = 1.5;
+export const EJE_PARED_MODULAR = 1.42;
+export const ALTO_MODULAR = 0.285 + 2.28;   // del pie del piso al borde de las paredes (2,28 sobre el piso, que está a 0,285)
+export const MUROS_MODULARES = new Set(['pared-modular', 'pared-puerta', 'pared-ventana', 'pared-ventana-ancha', 'pared-hogar', 'pared-piedra', 'tabique-interior', 'tabique-puerta']);
+export const ABERTURAS_MODULARES = { 'pared-puerta': 0.6, 'tabique-puerta': 0.53, 'pared-ventana': 0.72, 'pared-ventana-ancha': 1.0 };   // (medio vano)
+
+// La caja de una habitación modular: `h` = { x, z, y (el pie del piso), rot, lados: { n, s, e, o } } con cada lado { id, u } (la pared y cuánto quedó
+// corrida del medio) o null (da a otro módulo); n = −z del módulo, s = +z, o = −x, e = +x. null si falta un lado o si una pared no es de las que cierran.
+export function cajaDeModulo(h) {
+  if (!h || !h.lados || !Number.isFinite(h.x) || !Number.isFinite(h.z) || !Number.isFinite(h.y)) return null;
+  const M = MEDIO_LADO_MODULAR, frente = [];
+  const tramo = (lado, u0, u1, d) => (lado === 'n' ? [u0, -d, u1, -d] : lado === 's' ? [u0, d, u1, d] : lado === 'o' ? [-d, u0, -d, u1] : [d, u0, d, u1]);
+  for (const lado of ['n', 's', 'e', 'o']) {
+    const p = h.lados[lado];
+    if (p === undefined) return null;
+    if (p === null) { frente.push(...puntosDeAbertura(tramo(lado, -M, M, M))); continue; }
+    if (!p || !MUROS_MODULARES.has(p.id)) return null;
+    const w = ABERTURAS_MODULARES[p.id], u = Number.isFinite(p.u) ? p.u : 0;
+    if (w) frente.push(...puntosDeAbertura(tramo(lado, u - w, u + w, EJE_PARED_MODULAR)));
+  }
+  return { id: 'modulo', x: h.x, z: h.z, y: h.y, rot: h.rot || 0, ancho: 2 * M, fondo: 2 * M, alto: ALTO_MODULAR, frente };
 }

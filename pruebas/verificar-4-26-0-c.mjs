@@ -77,13 +77,14 @@ function comprobarInterior(M) {
   }
   // cajaDeCasa
   falla(M.CASAS_CERRADAS.has('cabana-piedra') && M.CASAS_CERRADAS.has('casa-galeria') && M.CASAS_CERRADAS.has('casona') && M.CASAS_CERRADAS.has('salon-grande') && M.CASAS_CERRADAS.has('torreon-piedra'), 'las casas prefabricadas cerradas están en la lista');
-  falla(!M.CASAS_CERRADAS.has('casilla') && !M.CASAS_CERRADAS.has('puesto') && !M.CASAS_CERRADAS.has('taller-anexo') && !M.CASAS_CERRADAS.has('buhardilla') && !M.CASAS_CERRADAS.has('planta-alta'), 'la casilla (hastiales abiertos), el puesto de troncos (luz entre troncos), el taller anexo, la buhardilla y la planta alta (rendijas en las esquinas) quedan afuera: lo mostró la equivalencia de imagen');
+  // (4.26.1 (A), ajustada a propósito: la casilla, el puesto de troncos, el taller anexo, la buhardilla y la planta alta entran: sus rendijas se cerraron con geometría)
+  falla(M.CASAS_CERRADAS.has('casilla') && M.CASAS_CERRADAS.has('taller-anexo') && M.CASAS_CERRADAS.has('planta-alta') && !M.CASAS_CERRADAS.has('puesto') && !M.CASAS_CERRADAS.has('buhardilla'), 'la casilla, el taller anexo y la planta alta entran (4.26.1); el puesto de troncos y la buhardilla no (la equivalencia de imagen los dejó afuera)');
   falla(!M.CASAS_CERRADAS.has('quincho') && !M.CASAS_CERRADAS.has('galeria-cerrada') && !M.CASAS_CERRADAS.has('piso-modular') && !M.CASAS_CERRADAS.has('techo-modular'), 'el quincho (frente abierto), la galería cerrada (sin pared de atrás) y lo modular quedan afuera');
   const casa = { id: 'casa-galeria', x: -50, z: 30, y: 4, rot: 2.1, ancho: 7.8, fondo: 5.6, alto: 2.6 };
   const k = M.cajaDeCasa(casa);
   falla(k && k.id === 'obra-casa-galeria' && k.ancho === 7.8 && k.fondo === 5.6 && Math.abs(k.alto - (2.6 + 0.25)) < 1e-9, 'cajaDeCasa: la caja de la casa, con las paredes hasta alto + 0,25 (Y0 + alto − 0,35)');
   falla(k && k.frente.every((q) => q[1] === -2.8) && k.frente.some((q) => q[0] === -0.6) && k.frente.some((q) => q[0] === 0.6), 'cajaDeCasa: la puerta en el centro del frente (−z), de jamba a jamba');
-  falla(M.cajaDeCasa({ ...casa, id: 'casilla' }) === null && M.cajaDeCasa({ ...casa, id: 'puesto' }) === null, 'cajaDeCasa: la casilla y el puesto de troncos, null');
+  falla(M.cajaDeCasa({ ...casa, id: 'casilla' }) !== null && M.cajaDeCasa({ ...casa, id: 'puesto' }) === null, 'cajaDeCasa: la casilla tiene caja (4.26.1) y el puesto de troncos no');
   falla(M.cajaDeCasa({ ...casa, id: 'quincho' }) === null && M.cajaDeCasa({ ...casa, id: 'pared-modular' }) === null, 'cajaDeCasa: lo que no es una casa cerrada, null');
   falla(M.cajaDeCasa({ ...casa, ancho: 0 }) === null && M.cajaDeCasa({ ...casa, y: undefined }) === null && M.cajaDeCasa(null) === null, 'cajaDeCasa: sin medidas, null');
   if (k) {
@@ -326,8 +327,8 @@ const fuenteMain = leer('src/main.js');
     ['casa-puerta-al-fondo', "puntosDeAbertura([-MEDIO_VANO_CASAS, -o.fondo / 2, MEDIO_VANO_CASAS, -o.fondo / 2])", "puntosDeAbertura([-MEDIO_VANO_CASAS, o.fondo / 2, MEDIO_VANO_CASAS, o.fondo / 2])"],
     ['casa-vano-angosto', 'export const MEDIO_VANO_CASAS = 0.6;', 'export const MEDIO_VANO_CASAS = 0.1;'],
     ['casa-tope-alto', 'export const TOPE_CASAS = 0.25;', 'export const TOPE_CASAS = 1.5;'],
-    ['casa-con-casilla', "new Set(['cabana-piedra', ", "new Set(['casilla', 'cabana-piedra', "],
-    ['casa-quincho', "'salon-grande', 'torreon-piedra']);", "'salon-grande', 'torreon-piedra', 'quincho']);"],
+    ['casa-sin-casilla', "'casilla', ", ''],
+    ['casa-quincho', "'taller-anexo', 'planta-alta']);", "'taller-anexo', 'planta-alta', 'quincho']);"],
     ['casa-sin-casona', "'casa-galeria', 'casona', ", "'casa-galeria', "],
     ['casa-cualquiera', "if (!o || !CASAS_CERRADAS.has(o.id) || ", 'if (!o || '],
     ['lugares-sin-almacen', "['refugio', 'cabana', 'puesto', 'almacen']", "['refugio', 'cabana', 'puesto']"],

@@ -3,7 +3,10 @@
 # Uso (desde la carpeta del proyecto, después de `node armar.mjs`):
 #   powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\correr-auditoria-4-23-0.ps1 -Salida C:\carpeta -Solo 05-plaza-dia,17-edificios-casas-dia [-Pagina C:\otro\index.html] [-Tomas herramientas\auditoria-visual-4-23-0.json] [-Medir 0] [-MuestraMs 6000] [-LibreMs 6000]
 # -Medir 0 saca sólo las capturas (con la herramienta de medición instalada las capturas salen negras). -Pagina compara otra versión armada (por ejemplo la 4.21.0).
-param([string]$Grupo = 'verano', [string]$Solo = '', [string]$Salida, [string]$Etiqueta = 'auditoria', [string]$Pagina = '', [string]$Tomas = '', [string]$Medir = '1', [string]$MuestraMs = '4000', [string]$LibreMs = '3000', [string]$Lluvia = '0', [string]$Clima = 'despejado', [int]$Espera = 900, [string]$Perfil = '', [string]$PerfilMs = '0', [string]$Eval = '')
+param([string]$Grupo = 'verano', [string]$Solo = '', [string]$Salida, [string]$Etiqueta = 'auditoria', [string]$Pagina = '', [string]$Tomas = '', [string]$Medir = '1', [string]$MuestraMs = '4000', [string]$LibreMs = '3000', [string]$Lluvia = '0', [string]$Clima = 'despejado', [int]$Espera = 900, [string]$Perfil = '', [string]$PerfilMs = '0', [string]$Eval = '', [switch]$SinFreno, [string]$Calidad = 'alta')
+# 4.26.1 (A): -SinFreno (sólo para medir): sin el freno de Chromium a la ventana tapada (ver herramientas\al-monitor.cjs, HOJ_SIN_FRENO). -Calidad: alta, media o baja.
+if ($SinFreno) { $env:HOJ_SIN_FRENO = '1' } else { Remove-Item Env:\HOJ_SIN_FRENO -ErrorAction SilentlyContinue }
+$env:AUD_CALIDAD = $Calidad
 $raiz = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $raiz
 $lock = Join-Path $env:TEMP 'hx\electron.lock'

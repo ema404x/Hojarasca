@@ -82,7 +82,9 @@ const tri = (P, i, suelo = null) => { const c = new Constructor(); P.etapas[i].a
 
 // ---------------------------------------------------------------- 3. la geometría
 {
-  const CASONA = 4416;
+  // (4.26.1 (A), ajustada a propósito: más el alma de las juntas de las paredes de tablas, una cara de 2 triángulos detrás de cada junta que cierra la luz
+  // de 8 mm entre tabla y tabla; la planta alta, la que más tiene, suma 86: ver muro en planos-ampliar.js)
+  const CASONA = 4416, ALMAS = 100;
   for (const id of IDS_AMP) {
     const P = PLANO[id];
     let total = 0, maxEtapa = 0;
@@ -95,7 +97,7 @@ const tri = (P, i, suelo = null) => { const c = new Constructor(); P.etapas[i].a
       const n = tri(P, i).pos.length / 9;
       total += n; maxEtapa = Math.max(maxEtapa, n);
     }
-    ok(total <= CASONA, `${id}: ${Math.round(total)} triángulos (tope: la casona, ${CASONA})`);
+    ok(total <= CASONA + ALMAS, `${id}: ${Math.round(total)} triángulos (tope: la casona, ${CASONA}, más el alma de las juntas, ${ALMAS})`);
     ok(maxEtapa <= 2400, `${id}: la etapa más pesada ${Math.round(maxEtapa)} (tope 2400; la casona llega a 2004)`);
     // todo cae dentro de la huella (con el alero y la chimenea) y sobre el piso
     const c = new Constructor(); for (let i = 0; i < 4; i++) P.etapas[i].arma(c, P, {}, null);

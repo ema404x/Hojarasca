@@ -20,6 +20,7 @@ import { matriz } from './geometria.js';
 import { sueloMin } from './calces.js';
 import { AYUDAS_CASAS } from './planos-casas.js';
 import { AYUDAS_MUEBLES } from './planos-muebles.js';
+import { L_CIERRE, cierresDeTecho, almaModular } from './cierres-modulares.js';
 
 const { casa, medidas, fisicaDe, etapaTecho, etapaPiso, caja, triangulo, ventana, mesa, alfombra, repisa, hogar, PISO_Y, Y0, PUERTA, ALTO_PUERTA, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED } = AYUDAS_CASAS;
 const { cil, hs, HIERRO, BRONCE, PAPEL, TABLA_CLARA, VIDRIO } = AYUDAS_MUEBLES;
@@ -27,6 +28,7 @@ const { cil, hs, HIERRO, BRONCE, PAPEL, TABLA_CLARA, VIDRIO } = AYUDAS_MUEBLES;
 const TABLAS_PARED = ['#786047', '#81684d', '#745c43'];
 const PIEDRAS = ['#8a8378', '#77706a', '#958e82', '#807a70'];   // (un poco más claras y cálidas que el zócalo de las casas: se tiene que ver la hilada)
 const LLAMA = '#ffcf6a';
+const ALMA_JUNTA = '#3a2c20';   // 4.26.1 (A): el alma oscura detrás de las juntas de las paredes de tablas (el mismo color del núcleo de las casas)
 const FILA = (ALTO_PUERTA - Y0) / 4;   // la altura de una hilada de piedra: cuatro llegan justo al dintel de la puerta
 const FILA_ALTA = 0.63;                // y arriba del dintel las hiladas son más altas (menos bloques)
 const T_PIEDRA = 0.3;                  // el grueso de los muros de piedra
@@ -48,12 +50,28 @@ function muro(c, eje, fijo, s0, s1, alto, o = {}) {
   };
   if (!piedra) {
     const n = Math.max(1, Math.round(largo / tabla)), w = largo / n;
+    // 4.26.1 (A): el alma de una junta: una cara sola (2 triángulos) en el medio del grueso de la pared, mirando para adentro de la casa (las paredes de
+    // tablas van en el borde, así que adentro es hacia el centro). Desde adentro tapa la junta; de afuera no se ve: la junta se ve como siempre.
+    const adentro = fijo > 0 ? -1 : 1;
+    const alma = (u0, u1, ya, yb) => {
+      const L = u1 - u0, h = yb - ya;
+      if (L < 0.01 || h < 0.03) return;
+      const um = s0 + (u0 + u1) / 2, ym = y0 + (ya + yb) / 2;
+      c.agregar(new THREE.PlaneGeometry(L, h), { color: ALMA_JUNTA, tipo: 4, variar: 0.04, matriz: eje === 'x' ? matriz([um, ym, fijo], [0, adentro > 0 ? 0 : Math.PI, 0]) : matriz([fijo, ym, um], [0, adentro > 0 ? Math.PI / 2 : -Math.PI / 2, 0]) });
+    };
+    let antes = null;
     for (let i = 0; i < n; i++) {
       const u0 = i * w, uc = u0 + w / 2, h = Math.max(alt(u0), alt(u0 + w));   // (la altura del lado más alto de la tabla: así el techo no deja rendijas)
       // lo que queda de la tabla después de los vanos (la puerta de abajo y, si hay, la del balcón)
       let tramos = [[0, h]];
       for (const hu of huecos) if (uc > hu.u0 && uc < hu.u1) tramos = tramos.flatMap(([a, b]) => [[a, Math.min(b, hu.y0 ?? 0)], [Math.max(a, hu.h), b]]).filter(([a, b]) => b - a > 0.05);
       for (const [a, b] of tramos) poner(u0, u0 + w - 0.008, a, b, t, TABLAS_PARED[i % 3]);
+      // 4.26.1 (A): el alma de la junta. Entre tabla y tabla quedan 8 mm de lado a lado de la pared: mirándola de frente, desde adentro se veía el cielo
+      // (la equivalencia de imagen de la 4.26.0 lo encontró en el taller, la buhardilla y la planta alta). Una tira oscura de 3,2 cm en el medio del grueso
+      // (ver alma, arriba): las tablas la tapan y sólo se ve en el fondo de la junta, desde adentro. Sólo donde están las dos tablas de la junta (no en el vano
+      // de una puerta). En la misma malla: sin llamadas de dibujo nuevas.
+      if (antes) for (const [a0, b0] of antes) for (const [a1, b1] of tramos) alma(u0 - 0.02, u0 + 0.012, Math.max(a0, a1), Math.min(b0, b1));
+      antes = tramos;
     }
     return;
   }
@@ -1151,6 +1169,7 @@ export const PIEZAS_AMPLIAR = [
     fisica(h) { h.segmento(-1.5, 0, 1.5, 0, 0.16, -0.02, 2.30); },
     arma(c) {
       for (let f = 0; f < 5; f++) hilada(c, f * 0.44, 0.44, f % 2 ? [0.5, 1.0, 1.0, 0.5] : [1.0, 1.0, 1.0], 0, 0.28, f * 11 + 3);
+      almaModular(c, [[-1.48, 1.48, -0.01, 2.22]]);   // 4.26.1 (A): entre piedra y piedra quedan 2 cm de lado a lado (ver cierres-modulares.js)
       caja(c, 3.0, 0.08, 0.38, [0, 2.24, 0], MADERA_OSCURA, { tipo: 0, variar: 0.06 });
     },
   },
@@ -1161,7 +1180,7 @@ export const PIEZAS_AMPLIAR = [
     pide: { tabla: 8, tronco: 2, piedra: 12 }, pesos: 2800,
     snap: { tipo: 'techo', familia: 'modular-techo', pisoFamilia: 'modular-piso', umbral: 1.35 },
     permiteSolapeCon: ['modular-muro'],
-    arma(c) {
+    arma(c, P, datos) {
       const W = 3.35, D = 3.38, subida = 0.94, medio = W / 2, largo = Math.hypot(medio, subida) + 0.16, incl = Math.atan2(subida, medio);
       const n = 8, paso = largo / n;
       for (const lado of [-1, 1]) {
@@ -1175,6 +1194,9 @@ export const PIEZAS_AMPLIAR = [
       }
       c.agregar(new THREE.BoxGeometry(0.18, 0.12, D + 0.1), { color: '#7d3f2b', tipo: 4, variar: 0.08, matriz: matriz([0, 0.99, 0]) });
       for (const z of [-1.48, 0, 1.48]) for (const lado of [-1, 1]) c.agregar(new THREE.BoxGeometry(largo - 0.08, 0.10, 0.10), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([lado * 0.73, 0.38, z], [0, 0, -lado * incl]) });
+      // 4.26.1 (A): sobre una habitación cerrada, el alero y los hastiales (la cara de abajo es una tabla entera por agua: sin forro; ver cierres-modulares.js)
+      const tg = Math.tan(incl);
+      cierresDeTecho(c, datos, (x) => 0.45 + (0.79 - Math.abs(x)) * tg - 0.03 / Math.cos(incl), [[-L_CIERRE, 0], [0, L_CIERRE]], { forro: false });
     },
   },
 ];

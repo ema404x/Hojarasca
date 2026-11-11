@@ -225,7 +225,7 @@ const armarTodo = (cfg, ids, etapas = null) => {
   ok(maxVerts <= 90000, `la obra con más vértices es ${maxId}: ${maxVerts} (tope: 90 mil; el asentado entra hasta 110 mil)`);
   // con el detalle apagado, la geometría es la de siempre: la prueba 4.12.1 fija sus números de oro; acá sólo se ve que no hay nada del detalle
   const apagado = armarTodo({}, ['puesto', 'casilla', 'cabana-piedra']);
-  ok(apagado.res.puesto.g.attributes.position.count === 4380 && apagado.res.casilla.g.attributes.position.count === 2940 && apagado.res['cabana-piedra'].g.attributes.position.count === 6372, 'apagado: el puesto, la casilla y la cabaña tienen los vértices de la 4.21.0 (4380, 2940 y 6300 + 72 del forro del techo de la 4.26.0)');   // 4.26.0 (C): ajustada a propósito (forroTecho)
+  ok(apagado.res.puesto.g.attributes.position.count === 4704 && apagado.res.casilla.g.attributes.position.count === 3300 && apagado.res['cabana-piedra'].g.attributes.position.count === 6372, 'apagado: el puesto, la casilla y la cabaña tienen los vértices de la 4.21.0 (4380 + 324 y 2940 + 360 de lo que cierra sus rendijas en la 4.26.1, y 6300 + 72 del forro del techo de la 4.26.0)');   // 4.26.0 (C) y 4.26.1 (A): ajustada a propósito (forroTecho; contrapiso, almas, forro y hastiales)
   // etapas intermedias: cada etapa con detalle se arma sin romper
   for (const id of ['puesto', 'casilla', 'cabana-piedra']) for (let e = 1; e <= C.PLANOS.find((p) => p.id === id).etapas.length; e++) {
     const r = armarTodo({ ocluir: true, contacto: true, halos: true, detalle: true }, [id], e);
