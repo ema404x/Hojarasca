@@ -1,0 +1,33 @@
+{
+  "anterior": "4.26.0",
+  "fecha": "11-11-2026",
+  "titulo": "Los detalles que faltaban",
+  "cambios": [
+    "Ramas v4261-a (interiores), v4261-b (cinemáticas) y v4261-c (andén, pedidos y detalles), juntadas. Detalle en CAMBIOS_4_26_1_A.md, _B.md y _C.md. 0 shaders, 0 llamadas de dibujo nuevas.",
+    "",
+    "- Interiores: entran a la regla de no dibujar el exterior desde adentro la casilla, el taller anexo, la planta alta y las habitaciones modulares (rendijas cerradas con geometría en la misma malla, sin cambiar lo de afuera; equivalencia de imagen en 0). El puesto de troncos y la buhardilla quedan afuera (no llegaron a 0).",
+    "- Cinemáticas: un plano libre sin posFin ya no baja la cámara al piso; quien arranca lejos o queda trabado llega fuera de cuadro, en un corte o en un parpadeo; el plano de Elsa en la punta del andén, con luz; la silueta del anochecer encuentra lugar en el 86 % de los rumbos y, si no, deja ese rumbo sin trabar nada; el tocón del coihue grande ya no cuenta en «tocones rebrotando».",
+    "- El andén: la campana de la Aldea se mueve y suena al tocarla; cada parada tiene una campanita en el poste (fundida en la malla de la parada) y el aviso de la E sale sólo mirándola a 3 m; el puesto de cargas le cede la E a la campana.",
+    "- Pedidos: debajo del pedido, «Sólo pide lo que se consigue: lo del valle, lo de los puestos que conocés o lo que producís vos.»",
+    "- Detalles: la hojarasca ya no se ve como tiestos blancos sobre la nieve; el objeto naranja de la plaza en Baja era una mariposa y quedó arreglado; color por vértice en chaleco, campera, delantal y pantalón; el nombre del nivel de dificultad del Desafío según las perillas.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-26-1-a (165), -b (78; 31 mutaciones) y -c (85; 20 mutaciones); humos reales de B y C; equivalencia de imagen de A.",
+    "",
+    "## Sin ver / pendiente",
+    "- La medición en ms de los interiores se canceló para cuidar el límite de uso (las llamadas y triángulos de la 4.26.0 siguen valiendo).",
+    "- La cabaña de tablas y piedra (en la regla desde la 4.26.0) dio 2 de 72 muestras con diferencia (hasta 0,13 %): revisar si es ruido.",
+    "- La silueta no encuentra lugar en el monte cerrado del molino (3 rumbos): no traba.",
+    "- Próxima: los puntos «adelante tuyo» del guion (galpon-encuentro, coihue-talado y otras) pueden caer dentro de una pared o una roca según dónde estés parado."
+  ],
+  "release": "LOS DETALLES QUE FALTABAN (CAMBIOS_4_26_1_A/B/C.md) — más interiores livianos, cinemáticas sin saltos a la vista ni cámara al piso, campana en cada parada, la regla de los pedidos en pantalla, hojarasca en la nieve, color en la ropa y nombre del nivel del Desafío",
+  "seguir": "Los detalles que faltaban (CAMBIOS_4_26_1_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Próximo: los puntos «adelante tuyo» del guion dentro de paredes. Para jugar: la campana, los pedidos, las cinemáticas, las casas por dentro. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.",
+  "leemeNovedades": [
+    "- Cada parada de la trochita tiene su campanita: mirala de cerca y tocala con E.",
+    "- Las cinemáticas ya no muestran a nadie apareciendo de golpe ni bajan la cámara al piso.",
+    "- Más casas livianas por dentro, color en la ropa y la hojarasca ya no se ve rara sobre la nieve."
+  ],
+  "leemeMirar": [
+    "- Si la campanita del andén se encuentra fácil.",
+    "- Si en las cinemáticas alguien todavía aparece de golpe o se mete en una pared (anotá cuál escena).",
+    "- Si al entrar y salir de una casa hay parpadeos."
+  ]
+}

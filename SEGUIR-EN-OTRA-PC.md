@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (11-11-2026, notebook): VERSIÓN 4.26.1 en `main`, etiqueta `v4.26.1`** — Los detalles que faltaban (CAMBIOS_4_26_1_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Próximo: los puntos «adelante tuyo» del guion dentro de paredes. Para jugar: la campana, los pedidos, las cinemáticas, las casas por dentro. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
+
 > **ÚLTIMO (11-11-2026, notebook): VERSIÓN 4.26.0 en `main`, etiqueta `v4.26.0`** — Pendientes chicos (CAMBIOS_4_26_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: la campana del andén, los pedidos con y sin granja, entrar y salir de las casas, las cinemáticas (decir escena y lugar), las noches 5 y 11 a 20 del Desafío. Pendientes de decisión del usuario: el segundo escalón de cristales, R12, Steam y el inglés; los shaders siguen cerrados a pedido del usuario. Los humos de la Historia tardan (-Espera 2700).
 
 > **ÚLTIMO (10-11-2026, la 4600G): VERSIÓN 4.25.3 en `main`, etiqueta `v4.25.3`** — los bugs que la 4.25.2 dejó sin arreglar (`CAMBIOS_4_25_3.md`): gallinas con choque (F2-7), reintegros sobre lo pagado (B3), lazo +2 en la respuesta cariñosa (G1-5), coihue (E2-7), paces con Fermín (E2-9), amanecer tras cerrar en `noche-tras-ganar` (E3-10). Lo que no se pudo y lo que hay que mirar en Electron está al final de ese documento. Preguntas del usuario sin contestar: tirar la cámara, el farol al tirarlo, bultos que se borran con el tiempo.

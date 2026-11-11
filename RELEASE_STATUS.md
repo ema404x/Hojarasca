@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.26.1 (sobre main = 4.26.0): LOS DETALLES QUE FALTABAN (CAMBIOS_4_26_1_A/B/C.md) — más interiores livianos, cinemáticas sin saltos a la vista ni cámara al piso, campana en cada parada, la regla de los pedidos en pantalla, hojarasca en la nieve, color en la ropa y nombre del nivel del Desafío
 - 4.26.0 (sobre main = 4.25.3): PENDIENTES CHICOS (CAMBIOS_4_26_0_A/B/C.md) — los vecinos sólo piden lo que se puede conseguir, una campana en cada andén trae la trochita sin la espera larga, y adentro del refugio, las cabañas, el almacén y las casas prefabricadas no se dibuja el exterior
 - 4.25.3 (sobre main = 4.25.2): LOS BUGS QUE QUEDARON (CAMBIOS_4_25_3.md) — gallinas con choque y piso, reintegros con lo pagado, lazos de las respuestas cariñosas, coihue grande sólo cuando la Historia lo decide, paces con Fermín y amanecer de la nevada (hecha en la otra PC)
 - 4.25.2 (sobre main = 4.25.1): TIRAR CON V Y BUGS DE LA REVISIÓN (CAMBIOS_4_25_2_NPC/HISTORIA/GUARDADO/TIRAR.md) — tirar casi todo con V y juntarlo con E, gente de la aldea que las escenas no encontraban o duplicaban, la E sobre la gente de la aldea cierra sus objetivos, récords del Desafío con perillas o códigos, reventa del tren y teclas fijas (hecha en la otra PC)
