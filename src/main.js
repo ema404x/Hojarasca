@@ -50,6 +50,7 @@ import { crearPerro } from './perro.js';
 import { fijarCalidadPiel } from './animales-piel.js';
 import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
+import { CAMPANA_ANDEN, decidirCampana, ofreceCampana, textoCampana, campanaDeElsa } from './campana-anden.js';
 // 4.6 puestos: los puestos de ruta (reglas, lo que se ve y la E)
 import { crearPuestosRutaMundo, apeaderoDelRielSur } from './puestos-ruta-mundo.js';
 import { crearPuestosRutaJuego } from './puestos-ruta-juego.js';
@@ -7071,6 +7072,26 @@ function subirALaCabina() {
   registrar('viaje');
   nota('Subiste a la cabina', 'W abre el regulador, S lo cierra y frena, Espacio silba. Pará en un andén para bajarte', true);
 }
+// 4.26.0: la campana del andén (ver campana-anden.js): en cualquier andén, si el tren tarda más de 45 s, la E la toca y la trochita aparece en un
+// fundido a 135 m del poste. `campanaAndenCerca`: lo que pasaría (o null si no hay campana a mano); `tocarCampanaAnden`: la E.
+function campanaAndenCerca() {
+  const js = jugador?.estado;
+  if (!tren?.estadoDelLlamado || !js || js.enTren || js.sentado) return null;
+  const p = tren.paradaCerca(js);
+  if (!p || Math.hypot(p.anden.x - js.pos.x, p.anden.z - js.pos.z) > CAMPANA_ANDEN.radio) return null;
+  const h = progreso.historia;
+  const elsa = campanaDeElsa({ historia: !esDesafio && !!h?.activa, capitulo: CAPITULOS[Math.min(CAPITULOS.length - 1, Math.max(0, h?.capitulo || 0))]?.id, vistas: h?.escenas?.vistas, viaje: !!progreso.entradas?.viaje, esEstacion: p === tren.estacion, esAldea: !!p.aldea && !esDesafio });
+  const d = decidirCampana(tren.estadoDelLlamado(p, CAMPANA_ANDEN.frenando), { ataque: !!desafio?.hayAtaque?.(), elsa });
+  return ofreceCampana(d) ? { ...d, parada: p } : null;
+}
+function tocarCampanaAnden() {
+  const d = campanaAndenCerca();   // (fresco: el aviso es de hace un rato)
+  if (!d) return;
+  const p = d.parada, t = textoCampana(d, p.nombre);
+  if (d.suena) sonido.campana?.({ x: p.anden.x, y: (p.espera?.y ?? jugador.estado.pos.y) + 1.8, z: p.anden.z });
+  if (d.ok) fundirCorto(() => { try { if (!jugador.estado.enTren) tren.traerAlAnden(p, CAMPANA_ANDEN.metros); } catch (e) { fallaSistema('campana-anden', e); } });
+  if (t) nota(t.titulo, t.sub);
+}
 // 3.8.4: varado en la nieve sin quitanieves, te bajás y seguís a pie: el tren espera a la cuadrilla y después sigue solo.
 // Tu caballo, si iba en la jaula, baja con vos
 function bajarEnLaNieve() {
@@ -10889,6 +10910,7 @@ const ctxInteraccion = {
   avisoTren: avisoTrenInteraccion, usarTren: usarTrenInteraccion,
   puedeConducir: () => tren.puedeConducir(jugador.estado), subirALaCabina: () => subirALaCabina(),
   puedeSubirAlTren: () => tren.puedeSubir(jugador.estado),
+  campanaAnden: () => campanaAndenCerca(), tocarCampanaAnden: () => tocarCampanaAnden(),   // 4.26.0
   subirAlTren: () => { tren.subir(jugador); diario.anotar('tren'); registrar('viaje'); nota('Subiste a la trochita', 'Se baja en la estación, cuando pare'); },
   teEnLaAldea: () => teEnLaAldea(), enLaCasaDeTe: () => enLaCasaDeTe(), servir: () => servir(),
   lugarParaBajar: (n) => (n === 'vela' ? vela.lugarParaBajar() : kayak.lugarParaBajar()),

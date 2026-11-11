@@ -153,6 +153,8 @@ export const INTERACCIONES = [
   { id: 'trochita', cuando: (c) => !c.js.enKayak && sinObjetivo(c) && c.puedeSubirAlTren(), aviso: () => 'Subir a la trochita', hacer: (c) => c.subirAlTren() },
   // 2.6.1: la casa de té de la estación, antes del kayak, la carpa y el fuego (3.9.2: en la aldea atiende Ceinwen en tu mesa)
   { id: 'casa-te', cuando: (c) => !c.js.enKayak && sentarseOnada(c) && !c.teEnLaAldea() && c.enLaCasaDeTe(), aviso: () => 'Pedir algo en la casa de té', hacer: (c) => c.servir() },
+  // 4.26.0: en el andén, con el tren lejos, la campana del jefe de estación (ver campana-anden.js): a pie, sin mirar nada, no sentado
+  { id: 'campana-anden', cuando: (c) => aPie(c) && !c.js.sentado && c.campanaAnden(), aviso: () => 'Tocar la campana del andén', hacer: (c) => c.tocarCampanaAnden() },
   // 2.9: del velero se baja antes que del kayak (arriba del velero también se está `enKayak`); sin orilla, la E avisa
   { id: 'velero', cuando: (c) => c.js.enVela, aviso: (c) => (c.lugarParaBajar('vela') ? 'Bajar del velero' : null), hacer: (c) => c.bajarDelVelero() },
   { id: 'kayak', cuando: (c) => c.js.enKayak, aviso: (c) => (c.lugarParaBajar('kayak') ? 'Bajar del kayak' : null), hacer: (c) => c.bajarDelKayak() },
