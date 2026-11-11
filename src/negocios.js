@@ -6,6 +6,7 @@
 //   hoy       { dia, jornales, pedidos }        → cuántos jornales y pedidos llevás hoy (hay un cupo por día)
 //   rep       { local: puntos }                 → la reputación con cada local (pedidos cumplidos)
 //   pedidos   { local: { id, dia } }            → el último pedido que le entregaste a cada vecino (ver pedidos.js)
+//   fijos     { local: { id, k } }              → 4.26.0, optativo: qué te pide cada vecino en la ventana de ahora (no cambia de idea a mitad)
 //   cajas     { local: pesos }                  → la caja de cada local de la aldea (ver aldea-viva.js)
 //   cierre    día                               → hasta qué día se cerraron las cuentas de la aldea
 //   banco     { ... }                           → el banco del pueblo (ver prestamos.js)
@@ -71,6 +72,8 @@ export function sanearNegocios(v, hoy = 1e6) {
   // 4.25.2 (M4): lo comprado en el tren (la cuenta y los lotes marcados del puesto): sólo si hay algo, una partida vieja carga igual que antes
   if (puesto) { const rv = sanearMarcasReventa(c.puesto.reventa, puesto.stock); if (Object.keys(rv).length) puesto.reventa = rv; }
   const reventa = sanearCuentaReventa(v.reventa);
+  // 4.26.0: lo que te pide cada vecino en la ventana de ahora, fijado la primera vez que se calculó (pedidos.js). Sólo si hay: una partida vieja carga igual
+  const fijos = mapa(v.fijos, (x) => (objeto(x) && typeof x.id === 'string' && x.id.length <= 60 && esBien(x.k) ? { id: x.id, k: x.k } : null), 40);
   return {
     oficio: mapa(v.oficio, (n) => entero(n, 1e5) || null),
     jornal: mapa(v.jornal, (d) => Math.min(dia, entero(d, 1e6))),
@@ -90,6 +93,7 @@ export function sanearNegocios(v, hoy = 1e6) {
       puesto,
     },
     ...(Object.keys(reventa).length ? { reventa } : {}),
+    ...(Object.keys(fijos).length ? { fijos } : {}),
   };
 }
 // La reputación con un local y el nivel que da (0 a 3): 0 recién llegado, 3 de confianza

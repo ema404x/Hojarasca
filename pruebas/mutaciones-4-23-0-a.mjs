@@ -35,8 +35,8 @@ const MUTACIONES = [
   ['siempre: una parada sin perfil puede tener lo de la granja', 'src/comercio.js', 'const pool = ID_BIENES.filter((b) => !DE_GRANJA_CON_VALOR.includes(b));', 'const pool = [...ID_BIENES];'],
   ['siempre: la caja de un puesto nuevo sale del azar mezclado', 'src/mercado.js', "const nuevos = resto.filter((b) => DE_GRANJA_CON_VALOR.includes(b));", 'const nuevos = [];'],
   ['siempre: el pedido de nivel 0 ya incluye la cuarta cosa', 'src/pedidos.js', 'const lista = nivel >= 3 ? NECESITA[k] : NECESITA[k].slice(0, 3);', 'const lista = NECESITA[k];'],
-  ['pedidos: el nivel 3 no pide lo de la granja', 'src/pedidos.js', '.slice(0, nivel >= 3 ? 4 : nivel >= 2 ? 3 : 2);', '.slice(0, nivel >= 2 ? 3 : 2);'],
-  ['pedidos: la panadera pide mermelada que no se consigue en ningún puesto', 'src/pedidos.js', "panadera: ['harina', 'huevo', 'miel', 'leche']", "panadera: ['harina', 'huevo', 'miel', 'mermelada-pera']"],
+  ['pedidos: el nivel 3 no pide lo de la granja', 'src/pedidos.js', '.slice(0, nivel >= 3 ? 4 : nivel >= 2 ? 3 : 2).filter', '.slice(0, nivel >= 2 ? 3 : 2).filter'],   // (4.26.0: la línea sigue con el filtro de lo que se consigue)
+  ['pedidos: la panadera pide algo que no se consigue (4.26.0: la mermelada de pera ya se consigue con el peral; ahora, truchas frescas)', 'src/pedidos.js', "panadera: ['harina', 'huevo', 'miel', 'leche']", "panadera: ['harina', 'huevo', 'miel', 'trucha-fresca']"],
   // salida pública
   ['tienda: vuelve a 4 lotes por día', 'src/oficios-propios.js', 'lotesPorDia: 6, comision: 0.04, stockMax: 12, tipos: 12,', 'lotesPorDia: 4, comision: 0.04, stockMax: 12, tipos: 12,'],
   ['tienda: vuelve a 8 clases', 'src/oficios-propios.js', 'lotesPorDia: 6, comision: 0.04, stockMax: 12, tipos: 12,', 'lotesPorDia: 6, comision: 0.04, stockMax: 12, tipos: 8,'],

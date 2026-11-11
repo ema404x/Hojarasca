@@ -170,9 +170,13 @@ const PUESTOS = {
     ceramista: ['piedra', 'haba', 'papa'], astronoma: ['cristal', 'empanadas', 'miel'],
   };
   const noEstacion = new Set(C.perfilDe('Aldea de los Duendes').produce);
-  const conRep = (k, rep) => { const p = partida(); N.negociosDe(p).rep[k] = rep; return p; };
+  // 4.26.0: los vecinos piden sólo lo que se consigue en la partida (pedidos.js, `seConsigue`): esta sección fija lo de la 4.23.0 con una partida
+  // que lo consigue todo (la granja entera, la receta de la mermelada y los cuatro puestos de ruta arreglados). Sin eso, ver verificar-4-26-0-a.mjs
+  const G = await import('../src/granja.js');
+  const todo = () => ({ entradas: Object.fromEntries(C.DE_GRANJA_CON_VALOR.map((b) => [b, { cantidad: 0 }])), cocina: { sabe: { mermeladas: 1 } }, puestosRuta: { A: { etapa: 3 }, B: { etapa: 3 }, C: { etapa: 3 }, D: { etapa: 3 } },
+    granja: { vaca: { id: 1 }, chancha: { id: 2 }, paridera: 1, frutales: Object.fromEntries(G.ORDEN_FRUTALES.map((e, i) => [`${i}:0`, { especie: e }])) } });
+  const conRep = (k, rep) => { const p = partida(todo()); N.negociosDe(p).rep[k] = rep; return p; };
   let granjaVista = 0, vecinosConGranja = 0;
-  const puestoDe = (b) => [...Object.keys(PUESTOS), 'Apeadero del Pescador'].some((par) => C.bienesDe(par).includes(b));
   for (const k of Object.keys(VIEJO_NECESITA)) {
     ok(P.hayPedidos(k), `${k} pide`);
     const pool = VIEJO_NECESITA[k].filter((b) => !noEstacion.has(b));
@@ -191,7 +195,7 @@ const PUESTOS = {
     }
     ok(granja.size === 1, `${k} de confianza (nivel 3) pide además una cosa de la granja o la cocina (${[...granja].join(',') || 'ninguna'})`);
     const g = [...granja][0];
-    ok(puestoDe(g), `${k}: ${g} se consigue en algún puesto de la trochita`);
+    ok(P.seConsigue(conRep(k, 16), g), `${k}: ${g} se consigue (4.26.0: con la granja; la 4.23.0 decía «en algún puesto de la trochita», pero miraba perfiles que no son paradas del Relax)`);
     ok(vio.size >= 3, `${k}: de confianza sigue pidiendo de varias cosas`);
     granjaVista += granja.size; vecinosConGranja++;
   }
