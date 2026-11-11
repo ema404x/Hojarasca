@@ -1184,6 +1184,21 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     est.vel = Math.min(est.objetivo, 6); est.parado = 0; est.proxima = parada; est.avisoSilbato = false; est.frenos = 0;
     return true;
   }
+  // 4.26.0: lo que necesita la campana del andén (campana-anden.js) para decidir: cuánto falta, si el tren está acá, si va alguien arriba, si está
+  // varado o plantado en la nieve, y si está parado en otro andén (`enOtra`, con los segundos que le quedan, `sale`) o frenando para entrar a otro
+  // (`entrando`, a menos de `frenando` metros de su poste): a ese tren no se lo saca de su parada.
+  function estadoDelLlamado(parada, frenando = 60) {
+    if (!parada) return null;
+    const espera = esperaEnAnden(parada);
+    const aca = espera === 0;
+    const otra = !aca && est.proxima && est.proxima !== parada ? est.proxima : null;
+    const paradoEnOtra = !!otra && est.parado > 0;
+    const entrando = !!otra && !paradoEnOtra && !est.varado && !est.conduce && delta(est.s, poste(otra)) < frenando;
+    return {
+      espera, aca, subido: !!est.subido, conduce: !!est.conduce, varado: !!est.varado, nieve: est.esperaNieve > 0,
+      enOtra: paradoEnOtra || entrando ? otra.nombre : null, sale: paradoEnOtra ? Math.ceil(est.parado) : 0, entrando,
+    };
+  }
 
   // 2.3: el Desafío lo vara y lo suelta; al soltarlo sigue a la próxima parada
   // 2.8: lo elegido en "Personalizar" (ver `personal-trochita.js`): la pintura de los
@@ -1301,7 +1316,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   return {
     varadoEnNieve, bajarEnLaNieve,
     soloLocomotora: () => !hayCoches(),   // 3.8.6: sin coches (el taller con vagones y ninguno enganchado)
-    est, actualizar, puedeSubir, subir, bajar, soltar, moverse, proximoTrenA, esperaEnAnden, traerAlAnden, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
+    est, actualizar, puedeSubir, subir, bajar, soltar, moverse, proximoTrenA, esperaEnAnden, traerAlAnden, estadoDelLlamado, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
     // 3.7.3: el lugar donde vas, ir a uno (la cocina, una cama), la vía nevada y dónde para la locomotora
     asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,
     viajando: () => est.subido, parado: () => est.parado > 0 || paradoEnCabina(),
