@@ -1899,7 +1899,7 @@ function abrir(cual) {
     const enc = resumenEncargos(progreso);
     // 2.0: y la luna de esta noche
     $('cuando').textContent = `Día ${progreso.dia}, ${horaTexto(progreso.horas)} · ${nombreEstacion()} · ${nombreFase(faseLunar(progreso.dia, progreso.horas))}`;
-    const bosque = resumenBosque(talados(), progreso.dia);
+    const bosque = resumenBosque(talados(), progreso.dia, toconQuietoDeHistoria());   // (4.26.1 B: el tocón del coihue que la historia dejó talado no rebrota: no cuenta)
     $('resumen-pausa').textContent = `${hechas} de ${ENTRADAS.length} anotaciones · ${progreso.fotos} ${progreso.fotos === 1 ? 'foto' : 'fotos'}`
       + ` · ${enc.hechos} de ${enc.total} encargos`
       + (enc.enCurso ? ` (${enc.enCurso} en curso)` : '')
@@ -2290,9 +2290,9 @@ function presenciaHistoria() {
       rumbo: () => (jugador?.estado.yaw || 0) + Math.PI, altura: alt, hora: () => progreso.horas, dia: () => progreso.dia,
       libre: () => modo === 'jugando' && !(jugador.estado.enTren || jugador.estado.enKayak || jugador.estado.enVela || jugador.estado.montado),
       enTierra: (x, z) => alt(x, z) >= 0.45,
-      cercaDeArbol: (x, z) => { p.set(x, alt(x, z), z); try { col.resolver(p, 2.4, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) > 0.05; },
-      // 4.24.1: la silueta de la primera hora tiene que verse: sin un tronco a menos de 1,1 m y sin troncos en la línea desde donde estás (cada 2 m, a 0,5 m de ancho)
-      despejada: (x, z) => { const j = jugador?.estado.pos; if (!j) return true; const libre = (px, pz, r) => { p.set(px, alt(px, pz), pz); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - px, p.z - pz) < 0.05; }; if (!libre(x, z, 1.1)) return false; const dx = x - j.x, dz = z - j.z, n = Math.max(2, Math.ceil(Math.hypot(dx, dz) / 2)); for (let k = 1; k < n; k++) if (!libre(j.x + dx * k / n, j.z + dz * k / n, 0.5)) return false; return true; },
+      cercaDeArbol: (x, z, r = 2.4) => { p.set(x, alt(x, z), z); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) > 0.05; },   // (4.26.1: `r`, la segunda vuelta de la silueta de la primera hora: el borde del bosque)
+      // 4.24.1: la silueta de la primera hora tiene que verse: sin un tronco a menos de 1,1 m y sin troncos en la línea desde donde estás (cada 1 m desde la 4.26.1, a 0,5 m de ancho)
+      despejada: (x, z) => { const j = jugador?.estado.pos; if (!j) return true; const libre = (px, pz, r) => { p.set(px, alt(px, pz), pz); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - px, p.z - pz) < 0.05; }; if (!libre(x, z, 1.1)) return false; const dx = x - j.x, dz = z - j.z, n = Math.max(2, Math.ceil(Math.hypot(dx, dz))); for (let k = 1; k < n; k++) if (!libre(j.x + dx * k / n, j.z + dz * k / n, 0.5)) return false; return true; },   // (4.26.1: cada 1 m; cada 2 m se colaba una pared fina)
       refugio: () => T.lugares.refugio, galpon: () => T.lugares.galpon || null,
       cobrar: (premio) => cobrarPremio({ premio }), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
       indicio: (id) => valle?.anotarIndicio?.(id),   // 4.24.0: la silueta de la primera hora anota su indicio en el cuaderno
@@ -7538,6 +7538,12 @@ function anotarTalado(arbol) {
   progreso.taladosTotal = Math.max(Math.floor(Number(progreso.taladosTotal)) || 0, talados().length - 1) + 1;   // 3.5.1: los tocones rebrotan; esto no baja
   diaRebrote = progreso.dia;
   vecindadJuego?.hecho('talar');   // 3.6 (vida): si talás mucho en un día, se comenta
+}
+// 4.26.1 (B): el tocón que no rebrota (el coihue grande que la historia dejó talado, D2 = b), para el resumen del bosque de la pausa: `(i) => bool` o null
+function toconQuietoDeHistoria() {
+  let i = -1;
+  try { if (coihueQuedaTocon(progreso.historia)) i = indiceCoihueDeHistoria(); } catch { i = -1; }
+  return i >= 0 ? (k) => k === i : null;
 }
 // Aplica la etapa que le toca a cada tocón. Al cargar la partida hay que forzarlo,
 // porque el mundo se genera siempre con todos los árboles en pie.

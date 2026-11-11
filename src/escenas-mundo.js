@@ -87,6 +87,26 @@ const POSES_QUIETUD = new Set(['cruzados', 'cintura', 'barba', 'gorro', 'atras',
 export const OBJETOS_EN_MANO = ['planilla', 'caña'];   // (el mate va fundido en la mano y se cuida aparte: ver brazoLibre)
 const OCUPAN_LA_MANO = new Set([...POSES_QUIETUD, 'aplaudir', 'palear', 'hachar', 'martillar', 'serruchar', 'tocar', 'bailar', 'contar', 'brindar']);
 
+// 4.26.1 (B): que nadie aparezca de golpe a la vista. Lo que la cámara de la escena ve: el cono de la pose (fov vertical en grados, el ancho según la pantalla) con un
+// margen, contra una bola del tamaño de un cuerpo a media altura; a más de `lejos` metros una persona es un punto (no cuenta). Desde `negro` de fundido (o de
+// parpadeo) la pantalla está en negro. Un corte es un plano nuevo sin mezcla (lo cuenta el director: `cortes()`).
+export const VISTA_ESCENA = { margen: 0.06, radio: 1.0, lejos: 200, negro: 0.9 };   // (a 200 m una persona mide 6 px de alto)
+// ¿Se ve a alguien parado en (px, py, pz) (los pies; py sin dato: a la altura de la cámara menos 1,6 m) desde la pose `q` ({ x, y, z, yaw, pitch, fov })?
+export function seVeDesde(q, px, py, pz, aspecto = 16 / 9) {
+  if (!q || ![q.x, q.y, q.z, q.yaw, q.pitch].every(Number.isFinite) || !Number.isFinite(px) || !Number.isFinite(pz)) return false;
+  const V = VISTA_ESCENA;
+  const vx = px - q.x, vy = (Number.isFinite(py) ? py : q.y - 1.6) + 0.9 - q.y, vz = pz - q.z;
+  if (Math.hypot(vx, vy, vz) > V.lejos) return false;
+  const cp = Math.cos(q.pitch), sp = Math.sin(q.pitch), cy = Math.cos(q.yaw), sy = Math.sin(q.yaw);
+  const adelante = -vx * cp * sy + vy * sp - vz * cp * cy, derecha = vx * cy - vz * sy, arriba = vx * sp * sy + vy * cp + vz * sp * cy;
+  if (adelante < -V.radio) return false;   // detrás de la cámara
+  const mv = (num(q.fov, 60) * Math.PI) / 360, mh = Math.atan(Math.tan(mv) * (Number.isFinite(aspecto) && aspecto > 0 ? aspecto : 16 / 9)) + V.margen;
+  // las caras del cono: el cuerpo queda afuera si está entero del otro lado de alguna
+  if (adelante * Math.sin(mh) - Math.abs(derecha) * Math.cos(mh) < -V.radio) return false;
+  if (adelante * Math.sin(mv + V.margen) - Math.abs(arriba) * Math.cos(mv + V.margen) < -V.radio) return false;
+  return true;
+}
+
 // ctx: { doc, gente(), jugador(), camara, T, col, progreso(), clima(), sonido, modo(), ajustes(), nota(t, s), puedeEmpezar(), fallo(e, donde),
 //        alEmpezar(), alTerminar(r), alquilerDeTiempo }
 export function crearEscenasMundo(ctx) {
@@ -162,13 +182,22 @@ export function crearEscenasMundo(ctx) {
   function acercarSiEstaLejos(n, d) {
     const dx = n.pos.x - d.x, dz = n.pos.z - d.z;
     if (!(Math.hypot(dx, dz) > LEJOS_M)) return;
+    // 4.26.1 (B): ni el salto ni la llegada a la vista. Si la cámara lo ve allá lejos, camina hasta que deje de verlo (o hasta un corte); el punto de llegada es uno que
+    // la cámara no ve (antes, el del lado de donde venía, aunque cayera en el cuadro: aparecía de golpe a 34 m)
+    const v = vistaAhora(), c = entradaDe(n);
+    const esperar = () => { if (c && !c.acercar) c.acercar = { x: d.x, z: d.z, t: 0, visto: 0, parpadeo: false }; };   // (se lo acerca en el próximo corte o cuando la cámara mire a otro lado: `acomodar`)
+    if (v.seVe(n.pos.x, n.pos.y, n.pos.z)) { esperar(); return; }
     const base = Math.atan2(dx, dz);
-    for (const g of [0, 0.4, -0.4, 0.8, -0.8, 1.2, -1.2, 1.6, -1.6, Math.PI]) {
+    for (const g of [0, 0.4, -0.4, 0.8, -0.8, 1.2, -1.2, 1.6, -1.6, Math.PI, 2.0, -2.0, 2.4, -2.4, 2.8, -2.8]) {
       const x = d.x + Math.sin(base + g) * LLEGADA_M, z = d.z + Math.cos(base + g) * LLEGADA_M;
+      if (v.seVe(x, num(ctx.T?.altura?.(x, z), n.pos.y), z)) continue;
       if (ctx.T?.agua?.(x, z)) continue;
       ubicar(n, { x, z }, null);
+      anotarLlegada(n, '34 m' + (enDirector ? ' (director)' : ''));
+      if (c) c.acercar = null;
       return;
     }
+    esperar();
   }
   function vigilarPaseo(c, dt) {
     const p = c.paseo, n = c.n;
@@ -191,7 +220,89 @@ export function crearEscenasMundo(ctx) {
       return;
     }
     c.paseo = null;
-    ubicar(n, { x: p.x, z: p.z }, null);
+    llegarSinQueSeVea(c, { x: p.x, z: p.z }, null);   // (4.26.1 B: de golpe sólo donde la cámara no mira)
+  }
+  // 4.26.1 (B): lo que la cámara de la escena ve en este cuadro. Adentro del director (caminar, el límite de una caminata, el final de la escena) cuenta la pose del guion
+  // que se va a poner en este cuadro y también la que se vio en el anterior; después (despuesDeGente), la que se puso. Un corte (un plano sin mezcla que empieza en este
+  // cuadro) o la pantalla en negro tapan todo. Sin escena no hay cámara dirigida que cuidar (`seVe` siempre falso).
+  let poseVista = null, cortesVistos = 0, corteCuadro = false, enDirector = false;
+  const cortesDelDirector = () => num(director.cortes?.(), 0);
+  const NADA_A_LA_VISTA = { seVe: () => false };
+  const poseDeLaCamara = () => { const k = ctx.camara; return k?.position ? { x: k.position.x, y: k.position.y, z: k.position.z, yaw: num(k.rotation?.y), pitch: num(k.rotation?.x), fov: num(k.fov, 60) } : null; };
+  function vistaAhora() {
+    if (!director.activa()) return NADA_A_LA_VISTA;
+    if (Math.max(num(director.fundido?.(), 0), nivelParpadeo()) >= VISTA_ESCENA.negro) return NADA_A_LA_VISTA;
+    if (enDirector ? cortesDelDirector() !== cortesVistos : corteCuadro) return NADA_A_LA_VISTA;
+    let q = null;
+    if (enDirector) { try { q = director.camara(); } catch { q = null; } }
+    const poses = [q, poseVista || (q ? null : poseDeLaCamara())].filter(Boolean);
+    if (!poses.length) return NADA_A_LA_VISTA;
+    const asp = num(ctx.camara?.aspect, 16 / 9);
+    return { seVe: (x, y, z) => poses.some((p) => seVeDesde(p, x, y, z, asp)) };
+  }
+  const entradaDe = (n) => { for (const c of captura.values()) if (c.n === n && !c.alias) return c; return null; };
+  // (QA: las últimas llegadas que se decidieron acá: quién, cómo y a qué hora de la escena; ver `llegadas()` abajo)
+  const registroLlegadas = [];
+  const anotarLlegada = (n, como) => { registroLlegadas.push({ quien: n?.clave, como, t: Math.round(num(director.__sesion?.()?.t, -1) * 100) / 100, corte: corteCuadro, negro: nivelParpadeo() }); if (registroLlegadas.length > 40) registroLlegadas.shift(); };
+  const pieEn = (p, n) => (Number.isFinite(p.y) ? p.y : num(ctx.T?.altura?.(p.x, p.z), n.pos.y));
+  // Lleva a alguien a `meta` de golpe sólo si la cámara no lo ve ni ve la meta (o en un corte, o con la pantalla en negro). Si no, se queda donde está (ya no camina: la
+  // escena sigue) mirando hacia donde iba, y llega en el próximo corte o cuando la cámara mire para otro lado (`acomodar`); si a los ESPERA_CORTE s la cámara lo sigue
+  // viendo, en un parpadeo. Al soltarlo, si no llegó, queda donde está.
+  function llegarSinQueSeVea(c, meta, mira) {
+    const n = c.n;
+    if (!n) return;
+    const v = vistaAhora();
+    if (!v.seVe(n.pos.x, n.pos.y, n.pos.z) && !v.seVe(meta.x, pieEn(meta, n), meta.z)) { c.pendiente = null; ubicar(n, meta, mira); anotarLlegada(n, 'de golpe' + (enDirector ? ' (director)' : '')); return; }
+    n.camino = []; n.vel = 0;
+    const m = mira || meta;
+    if (Math.hypot(m.x - n.pos.x, m.z - n.pos.z) > 0.05) { const r = Math.atan2(m.x - n.pos.x, m.z - n.pos.z); n.rumboObjetivo = r; n.miraFinal = r; }
+    c.pendiente = { x: meta.x, z: meta.z, y: meta.y, mira: mira || null, visto: 0, parpadeo: false };
+  }
+  function acomodar(c, dt) {
+    const n = c.n;
+    if (!n) { c.pendiente = null; c.acercar = null; return; }
+    if (c.pendiente) {
+      const p = c.pendiente, v = vistaAhora();
+      if (!v.seVe(n.pos.x, n.pos.y, n.pos.z) && !v.seVe(p.x, pieEn(p, n), p.z)) { c.pendiente = null; ubicar(n, p, p.mira); anotarLlegada(n, 'al dejar de verse'); }
+      else if ((p.visto += dt) >= ESPERA_CORTE && !p.parpadeo) p.parpadeo = pedirParpadeo(() => { if (entradaDe(n) === c && c.pendiente === p) { c.pendiente = null; ubicar(n, p, p.mira); anotarLlegada(n, 'en un parpadeo'); } });
+    }
+    if (c.acercar) {
+      const a = c.acercar;
+      if (!n.camino?.length || !(Math.hypot(n.pos.x - a.x, n.pos.z - a.z) > LEJOS_M)) { c.acercar = null; return; }
+      a.t += dt; a.visto += dt;
+      if (a.t < 0.25) return;   // (cuatro veces por segundo)
+      a.t = 0;
+      const ya = () => {
+        if (entradaDe(n) !== c || c.acercar !== a) return;   // (la escena terminó o ya llegó en el medio)
+        const camino = n.camino;
+        acercarSiEstaLejos(n, a);
+        if (!c.acercar) { n.camino = camino; if (c.paseo) { c.paseo.ref = Math.hypot(n.pos.x - c.paseo.x, n.pos.z - c.paseo.z); c.paseo.malos = 0; } }
+      };
+      // la cámara lo sigue (o no deja de verlo) y la escena lo espera: un parpadeo a negro, una sola vez, y llega con la pantalla tapada
+      if (a.visto >= ESPERA_CORTE && !a.parpadeo) { if ((a.parpadeo = pedirParpadeo(ya))) return; }
+      ya();
+    }
+  }
+  // 4.26.1 (B): el parpadeo: el velo de las escenas (el mismo del fundido; no dibuja nada nuevo) baja a negro en PARPADEO.baja s, a oscuras corre lo que se pidió y vuelve.
+  // Lo que se pide mientras baja entra en el mismo parpadeo; si ya pasó lo oscuro, no (devuelve false y se vuelve a pedir después).
+  const PARPADEO = { baja: 0.18, queda: 0.1, sube: 0.24 }, ESPERA_CORTE = 3;
+  let parpadeo = null;
+  function pedirParpadeo(accion) {
+    if (!parpadeo) { parpadeo = { t: 0, hecho: false, acciones: [accion] }; return true; }
+    if (!parpadeo.hecho) { parpadeo.acciones.push(accion); return true; }
+    return false;
+  }
+  function nivelParpadeo() {
+    const p = parpadeo, B = PARPADEO;
+    if (!p) return 0;
+    return p.t < B.baja ? p.t / B.baja : p.t < B.baja + B.queda ? 1 : Math.max(0, 1 - (p.t - B.baja - B.queda) / B.sube);
+  }
+  function avanzarParpadeo(dt) {
+    const p = parpadeo;
+    if (!p) return;
+    p.t += dt;
+    if (!p.hecho && p.t >= PARPADEO.baja) { p.hecho = true; for (const f of p.acciones) { try { f(); } catch (e) { ctx.fallo?.(e, 'escenas-parpadeo'); } } }
+    if (p.t >= PARPADEO.baja + PARPADEO.queda + PARPADEO.sube) parpadeo = null;
   }
   function soltarTodos() { for (const k of [...captura.keys()]) soltar(k); }
   // 4.25.1 (B): un lugar donde alguien se PARA no puede ser adentro de un sólido (un árbol, una roca, la pared del galpón, el vagón parado en el andén, una pirca) ni en el agua.
@@ -345,7 +456,14 @@ export function crearEscenasMundo(ctx) {
     },
     aparecer(clave, p, mira) { const c = toma(clave); if (!c?.n) return; c.n.dormido = false; c.n.g.visible = true; ubicar(c.n, p, mira); },
     desaparecer(clave) { const c = toma(clave); if (!c?.n) return; c.n.dormido = true; c.n.g.visible = false; },
-    teletransportar(clave, p, mira) { const c = toma(clave); if (!c?.n) return; ubicar(c.n, p, mira); },
+    teletransportar(clave, p, mira) {
+      const c = toma(clave); if (!c?.n) return;
+      // 4.26.1 (B): el director lleva a la meta al que no llegó (pasado el tiempo de la caminata, o al terminar la escena): eso no se hace a la vista. Al saltar la escena
+      // (Esc) sí, como siempre: cambia todo de golpe igual
+      if (director.corriendo() && !director.saltando() && Math.hypot(c.n.pos.x - p.x, c.n.pos.z - p.z) > 0.6) { llegarSinQueSeVea(c, p, mira); return; }
+      c.pendiente = null;
+      ubicar(c.n, p, mira);
+    },
     alEmpezar() { empezarVista(); try { ctx.alEmpezar?.(); } catch (e) { ctx.fallo?.(e, 'escenas-empezar'); } },
     alTerminar(r) { soltarTodos(); terminarVista(); try { ctx.alTerminar?.(r); } catch (e) { ctx.fallo?.(e, 'escenas-terminar'); } },
   };
@@ -409,6 +527,7 @@ export function crearEscenasMundo(ctx) {
     return dom;
   }
   function empezarVista() {
+    poseVista = poseDeLaCamara(); cortesVistos = cortesDelDirector(); corteCuadro = false; parpadeo = null;   // (4.26.1 B: la escena arranca con lo que veías)
     armarDom();
     dom.capa.classList.add('activa');
     doc.body.classList.remove('escena-saliendo');
@@ -425,6 +544,7 @@ export function crearEscenasMundo(ctx) {
     doc.body.classList.toggle('escena-tapada', si);
   }
   function terminarVista() {
+    poseVista = null; corteCuadro = false; parpadeo = null;
     if (!dom) return;
     dom.capa.classList.remove('activa');
     doc.body.classList.remove('escena-en-curso', 'escena-saliendo');
@@ -440,7 +560,7 @@ export function crearEscenasMundo(ctx) {
     // las barras se van durante la salida
     const saliendo = d.fase === 'saliendo';
     if (c.saliendo !== saliendo) { c.saliendo = saliendo; doc.body.classList.toggle('escena-saliendo', saliendo); doc.body.classList.toggle('escena-en-curso', !saliendo); dom.capa.classList.toggle('activa', !saliendo); }
-    const v = String(Math.round(d.fundido * 100) / 100);
+    const v = String(Math.round(Math.max(d.fundido, nivelParpadeo()) * 100) / 100);   // (4.26.1 B: y el parpadeo)
     if (c.velo !== v) { c.velo = v; dom.velo.style.opacity = v; }
     const dl = d.dialogo, el = d.eleccion;
     const visible = !!(dl || el);
@@ -485,11 +605,19 @@ export function crearEscenasMundo(ctx) {
     let k = 1;
     if (L > DESPEJE.minimo) {
       const ux = dx / L, uy = dy / L, uz = dz / L;
+      // 4.26.1 (B): si el foco mismo cae adentro de un sólido (un punto «adelante tuyo» adentro de la pared del galpón, de una roca, del tocón), ese sólido no está ENTRE
+      // la lente y el foco: se lo saltea hasta el primer tramo libre. Antes chocaba en la primera muestra, la lente iba a 1,3 m del foco (adentro del mismo sólido) y el
+      // empujón de costado la dejaba pegada a la pared o a la roca, que tapaba el cuadro (galpon-encuentro, coihue-talado, fiesta-nieve, en la partida real)
+      bola.x = f.x; bola.y = f.y - 0.45; bola.z = f.z;
+      col.resolver(bola, 0.1, 0.7);   // (el foco mismo adentro: con 0,1 m; un foco que sólo está cerca de un tronco o una pared sigue como siempre)
+      let libreYa = !(Math.hypot(bola.x - f.x, bola.z - f.z) > 0.02);
       for (let s = DESPEJE.minimo; s <= L; s += DESPEJE.paso) {
         bola.x = f.x + ux * s; bola.y = f.y + uy * s - 0.45; bola.z = f.z + uz * s;
         const x0 = bola.x, z0 = bola.z;
         col.resolver(bola, DESPEJE.radio, 0.7);
-        if (Math.hypot(bola.x - x0, bola.z - z0) > 0.02) { k = Math.max(DESPEJE.minimo, s - DESPEJE.paso - DESPEJE.margen) / L; break; }
+        const choca = Math.hypot(bola.x - x0, bola.z - z0) > 0.02;
+        if (!choca) { libreYa = true; continue; }
+        if (libreYa) { k = Math.max(DESPEJE.minimo, s - DESPEJE.paso - DESPEJE.margen) / L; break; }
       }
     }
     if (brazo.id !== id) brazo = { id, k };
@@ -511,14 +639,18 @@ export function crearEscenasMundo(ctx) {
     return r;
   }
   function aplicarCamara(dt = 0.016) {
+    // 4.26.1 (B): ¿empezó un plano sin mezcla en este cuadro? (un corte: ahí se puede acomodar a alguien sin que se note)
+    const k = cortesDelDirector();
+    corteCuadro = k !== cortesVistos; cortesVistos = k;
     let c = director.camara();
-    if (!c) return;
+    if (!c) { poseVista = null; return; }
     try { c = despejarCamara(c, dt, director.idActual?.()); } catch (e) { ctx.fallo?.(e, 'escenas-camara'); }
     const cam = ctx.camara;
     cam.position.set(c.x, c.y, c.z);
     cam.rotation.set(c.pitch, c.yaw, 0, 'YXZ');
     if (Math.abs(cam.fov - c.fov) > 0.01) { cam.fov = c.fov; cam.updateProjectionMatrix(); }
     cam.updateMatrixWorld();
+    poseVista = { x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, fov: c.fov };   // 4.26.1 (B): la pose que se ve en este cuadro
   }
 
   // ---- por cuadro
@@ -531,7 +663,9 @@ export function crearEscenasMundo(ctx) {
     }
     // el mouse queda suelto en toda la escena (volver de la pausa lo bloqueaba)
     if (doc?.pointerLockElement) { try { ctx.jugador().soltar(); } catch { /* ya */ } }
-    try { director.actualizar(dt); } catch (e) { ctx.fallo?.(e, 'escenas'); director.saltar(); }
+    try { avanzarParpadeo(dt); } catch (e) { ctx.fallo?.(e, 'escenas-parpadeo'); parpadeo = null; }   // (4.26.1 B)
+    enDirector = true;   // (4.26.1 B: lo que mueva el director en este cuadro se mide contra la cámara que se va a poner)
+    try { director.actualizar(dt); } catch (e) { ctx.fallo?.(e, 'escenas'); director.saltar(); } finally { enDirector = false; }
     aplicarCamara(dt);
     pintar();
   }
@@ -540,6 +674,7 @@ export function crearEscenasMundo(ctx) {
     if (!captura.size) return;
     for (const [clave, c] of captura) {
       if (c.paseo) { try { vigilarPaseo(c, dt); } catch (e) { ctx.fallo?.(e, 'escenas-paseo'); } }
+      if (c.pendiente || c.acercar) { try { acomodar(c, dt); } catch (e) { ctx.fallo?.(e, 'escenas-acomodar'); } }   // 4.26.1 (B): el que espera un corte para llegar
       if (!c.n || !c.pose) continue;
       c.pose.t += dt;
       const p = c.pose;
@@ -608,6 +743,8 @@ export function crearEscenasMundo(ctx) {
     corriendo: () => director.corriendo(),
     cerrar: () => { if (director.activa()) { if (director.corriendo()) director.saltar(); else { /* ya saliendo: se completa solo */ } return true; } return false; },
     capturados: () => [...captura.keys()],
+    llegadas: (limpiar = false) => { const r = registroLlegadas.slice(); if (limpiar) registroLlegadas.length = 0; return r; },   // 4.26.1 (B): QA (la partida real de prueba)
+    parpadeo: () => nivelParpadeo(),   // 4.26.1 (B): cuánto tapa el parpadeo ahora (0 a 1; para las pruebas)
     mirando: () => mirada.activa(),
     PERSONAJES_BASE,
   };

@@ -337,8 +337,10 @@ const bolsaJosefina = {
 
 // 4.24.0: el primer viaje en trochita sin espera. Si en el andén faltan más de 45 s para el tren, Elsa lo apura con la campana. Corta (tres líneas): el tren
 // aparece en un fundido a menos de 150 m de la parada (`mundo:tren-al-anden`) y llega solo. No es un objetivo: nada se traba si no sale.
-const ELSA_ANDEN = { lugar: 'estacion', lx: 1.7, lz: -0.4 };   // (en el marco del andén: entre el poste del medio y el de la derecha, al pie del galpón)
-const ELSA_MIRA = { lugar: 'estacion', lx: 2.4, lz: -9 };   // (mirando hacia la vía)
+// 4.26.1 (B): en la punta del andén, pasado el alero (que llega a 5,35 m del centro): bajo el alero el plano de cerca quedaba oscuro de día (el cuadro, 27 de 255 de
+// luminancia; acá, 66 a 88), con el cartel de la estación al costado y el valle atrás
+const ELSA_ANDEN = { lugar: 'estacion', lx: 7.0, lz: -0.9 };   // (en el marco del andén: lx sigue la vía, lz se aleja de ella)
+const ELSA_MIRA = { lugar: 'estacion', lx: 6.2, lz: -9 };   // (mirando hacia la vía)
 const elsaAnden = {
   id: 'elsa-anden', titulo: 'El tren se apura', acto: 1, capitulo: 2,
   resumen: 'Elsa te vio esperando la trochita en el andén, se rió de lo que tarda y la apuró con la campana: al rato asomó por la curva soltando vapor.',
@@ -347,8 +349,9 @@ const elsaAnden = {
     // 4.24.1: el encuadre desde el lado de la vía (con el plano de siempre, desde el jugador, Elsa quedaba adentro del alero, entre dos postes, a oscuras): Elsa
     // parada en el andén, entre el poste y el frente del galpón, mirando hacia la vía; la cámara cruza la vía y la ve de frente, con el valle atrás
     aparece('elsa', ELSA_ANDEN, ELSA_MIRA),
-    plano('libre', null, { pos: { lugar: 'estacion', lx: -6, lz: -10.5, dy: 3.1 }, mira: { ref: 'elsa', dy: 1.3 }, posFin: { lugar: 'estacion', lx: -2.5, lz: -8.5, dy: 2.3 }, miraFin: { ref: 'elsa', dy: 1.35 }, fov: 58, dur: 2.6 }),
-    plano('libre', null, { pos: { lugar: 'estacion', lx: 2.6, lz: -5.6, dy: 1.7 }, mira: { ref: 'elsa', dy: 1.45 }, posFin: { lugar: 'estacion', lx: 2.6, lz: -5.6, dy: 1.7 }, miraFin: { ref: 'elsa', dy: 1.45 }, fov: 48, mezcla: 1, dur: 1, sinEsperar: true }),
+    plano('libre', null, { pos: { lugar: 'estacion', lx: -0.7, lz: -10.5, dy: 3.1 }, mira: { ref: 'elsa', dy: 1.3 }, posFin: { lugar: 'estacion', lx: 2.8, lz: -8.5, dy: 2.3 }, miraFin: { ref: 'elsa', dy: 1.35 }, fov: 58, dur: 2.6 }),
+    // (4.26.1: sin posFin: el motor ya deja la lente quieta a su altura)
+    plano('libre', null, { pos: { lugar: 'estacion', lx: 5.6, lz: -5.4, dy: 1.7 }, mira: { ref: 'elsa', dy: 1.45 }, fov: 48, mezcla: 1, dur: 1, sinEsperar: true }),
     pose('elsa', 'saludar', { dur: 1.4 }),
     dlg('elsa', [
       '¿Esperando la trochita, pasajero? Acá el horario es más una opinión que otra cosa.',

@@ -98,8 +98,10 @@ export function apurarRebrote(talados, posicionDe, x, z, radio = 5, dias = DIAS_
   return mejor;
 }
 
-export function resumenBosque(talados, dia) {
-  const rebrotando = talados.length;
-  const listos = talados.filter((t) => dia - t.dia >= DIAS_REBROTE).length;
+// 4.26.1 (B): `quieto(i)` (optativo, el mismo de avanzarRebrote): ese tocón no rebrota (el coihue grande que la historia dejó talado), así que no cuenta
+export function resumenBosque(talados, dia, quieto = null) {
+  const vivos = typeof quieto === 'function' ? talados.filter((t) => quieto(t.i) !== true) : talados;
+  const rebrotando = vivos.length;
+  const listos = vivos.filter((t) => dia - t.dia >= DIAS_REBROTE).length;
   return { rebrotando, listos };
 }
