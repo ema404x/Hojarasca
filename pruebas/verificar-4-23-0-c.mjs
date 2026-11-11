@@ -263,6 +263,8 @@ const fuenteMain = leer('src/main.js');
     const env = {
       aldeaMundo: { interiorDe: () => (opciones.afuera || opciones.casaTe ? null : it) },
       interiorDeLaCasaDeTe: () => (opciones.casaTe ? it : null),
+      interiorDelValle: () => null,   // 4.26.0 (C): ajustada a propósito: el valle (refugio, cabañas, almacén, casas del jugador) lo prueba verificar-4-26-0-c.mjs
+
       window: { __hojarasca: opciones.debug ? { __sinInteriorVisible: true } : {} },
       camara: { position: { x: 0, y: 1.6, z: 0 }, fov: 70, aspect: 16 / 9, getWorldDirection(v) { v.x = opciones.mira?.x ?? 0; v.y = 0; v.z = opciones.mira?.z ?? 1; } },
       miraDeInterior: { x: 0, y: 0, z: 0 }, miraPlana: { x: 0, z: 0 },

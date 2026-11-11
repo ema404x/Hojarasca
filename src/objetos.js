@@ -328,6 +328,9 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     im.frustumCulled = false;
     im.receiveShadow = true;
     im.matrixAutoUpdate = false;
+    // 4.26.0 (C): con nombre propio: lo que tirás adentro de tu casa (o de un edificio de la aldea) no se apaga con el exterior (main.js, apagarExterior
+    // apaga los InstancedMesh sin nombre de la raíz mientras la cámara está adentro de espaldas a la puerta)
+    im.name = 'bultos-tirados';
     escena.add(im);
     mallasBulto[forma] = im;
   }

@@ -92,7 +92,7 @@ import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpes
 import { crearOficiosUI } from './oficios-ui.js';
 import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, POBLADORES_ALDEA, VECINOS_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera, fiestaDeCumple, ORDEN_PERSONAS_ALDEA, esCumpleanos, esVecinoAldea } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
-import { apagarExteriorAhora, quedaAfuera, cosVistaDe, interiorDeCaja } from './interior-visible.js';
+import { apagarExteriorAhora, quedaAfuera, cosVistaDe, interiorDeCaja, cajaDeLugar, cajaDeCasa, LUGARES_CERRADOS, CASAS_CERRADAS } from './interior-visible.js';
 import { temporadaDelDia } from './negocios-fx.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
@@ -11079,11 +11079,42 @@ function interiorDeLaCasaDeTe(cam) {
   if (!cajaCasaTe || cajaCasaTe.x !== c.x || cajaCasaTe.z !== c.z || cajaCasaTe.rot !== c.rot) cajaCasaTe = { id: 'casa-te', x: c.x, z: c.z, y: c.y, rot: c.rot, ancho: c.ancho, fondo: c.fondo, alto: ALERO_CASA_TE, frente: [[-c.ancho / 2, c.fondo / 2], [0, c.fondo / 2], [c.ancho / 2, c.fondo / 2]] };
   return interiorDeCaja(cam, cajaCasaTe, salidaCasaTe);
 }
+// 4.26.0 (C): lo mismo en el valle: el refugio, las cabañas, el almacén (estructuras.js les da paredes y aberturas) y las casas prefabricadas del jugador
+// (las de CASAS_CERRADAS, terminadas y sin estar en edición). La caja de cada una se arma una vez y se rehace si la estructura u obra cambia de lugar o
+// de plano. En el Desafío no: los duendes son instancias sin nombre y entran por la puerta.
+const salidaValle = { id: '', x: 0, z: 0, radio: 0, puertas: null, conTerreno: true };
+const cajasInterior = new WeakMap(), obrasInterior = [];
+function cajaCacheada(dueno, x, z, rot, plano, armar) {
+  let c = cajasInterior.get(dueno);
+  if (c === undefined || c.__x !== x || c.__z !== z || c.__rot !== rot || c.__plano !== plano) { c = armar() || null; if (c) { c.__x = x; c.__z = z; c.__rot = rot; c.__plano = plano; } else c = { __x: x, __z: z, __rot: rot, __plano: plano, nula: true }; cajasInterior.set(dueno, c); }
+  return c.nula ? null : c;
+}
+function interiorDelValle(cam) {
+  if (desafio) return null;
+  for (let i = 0; i < LUGARES_CERRADOS.length; i++) {
+    const clave = LUGARES_CERRADOS[i], l = T.lugares[clave];
+    if (!l) continue;
+    const c = cajaCacheada(l, l.x, l.z, l.rot, clave, () => cajaDeLugar(clave, l));
+    if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle;
+  }
+  if (!obras?.obrasCerca) return null;
+  const cerca = obras.obrasCerca(cam, 8, obrasInterior), editando = obras.editando;
+  for (let i = 0; i < cerca.length; i++) {
+    const o = cerca[i], P = o.plano, d = o.datos;
+    if (!P || !CASAS_CERRADAS.has(P.id) || o === editando || !(d.etapas >= P.etapas.length)) continue;
+    const c = cajaCacheada(o, d.x, d.z, d.rot, P.id, () => cajaDeCasa({ id: P.id, x: d.x, z: d.z, y: Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z), rot: d.rot, ancho: P.ancho, fondo: P.fondo, alto: P.alto }));
+    if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle;
+  }
+  return null;
+}
 function apagarExterior() {
   const cam = camara.position;
-  const it = aldeaMundo && !window.__hojarasca?.__sinInteriorVisible ? (aldeaMundo.interiorDe(cam) || interiorDeLaCasaDeTe(cam)) : null;
+  const it = !window.__hojarasca?.__sinInteriorVisible ? ((aldeaMundo && (aldeaMundo.interiorDe(cam) || interiorDeLaCasaDeTe(cam))) || interiorDelValle(cam)) : null;
   let apagar = false;
   if (it) { camara.getWorldDirection(miraDeInterior); miraPlana.x = miraDeInterior.x; miraPlana.z = miraDeInterior.z; apagar = apagarExteriorAhora(it, cam, miraPlana, cosVistaDe(camara.fov, camara.aspect)); }
+  // 4.26.0 (C): el cuadro en que se rehace el mapa de sombras se dibuja entero: si no, el mapa salía sin los árboles ni los cerros de afuera y la mancha de sol
+  // que entra por la puerta (a tus espaldas) cambiaba de sombras al darte vuelta. Se rehace pocas veces (el sol se movió, te alejaste, el cuerpo cambió de pose)
+  if (apagar && renderer.shadowMap.enabled && renderer.shadowMap.needsUpdate) apagar = false;
   if (!apagar) {
     if (exteriorEstabaApagado) { exteriorEstabaApagado = false; if (renderer.shadowMap.enabled) renderer.shadowMap.needsUpdate = true; }
     return;
@@ -11097,6 +11128,8 @@ function apagarExterior() {
     const nombre = o.name;
     if (o.isInstancedMesh ? (nombre === '' || nombre === 'impostores') : (nombre === 'terreno' || nombre === 'terreno-aldea' || nombre === 'sotobosque' || nombre === 'sombras-de-contacto' || nombre === 'molino-paisaje' || nombre === 'tren' || nombre === 'sombras-arboles')) ocultar(o);   // (4.24.0: las siluetas que dan sombra, fundidas por especie en un grupo)
   }
+  // 4.26.0 (C): en el valle el terreno queda (una sola llamada): entre las tablas del piso de las casas y de las cabañas se ve el suelo de abajo
+  if (it.conTerreno) for (let i = exteriorApagado.length - 1; i >= 0; i--) { const o = exteriorApagado[i]; if (o.name === 'terreno') { o.visible = true; exteriorApagado.splice(i, 1); } }
   if (pasto?.malla) { if (Array.isArray(pasto.malla)) for (const m of pasto.malla) ocultar(m); else ocultar(pasto.malla); }
   for (const ch of veg.chunks.values()) ocultar(ch.grupo);
   for (const g of gente.gente) if (g.g.visible && quedaAfuera(g.pos, it)) ocultar(g.g);

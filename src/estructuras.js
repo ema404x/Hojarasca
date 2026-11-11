@@ -843,9 +843,11 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
           matriz: matriz([x, (a + b) / 2, z + lado * 0.002]),
         });
         // tapajunta solo sobre madera sólida: nunca cruza puertas o vidrieras
+        // 4.26.0 (C): centrada en la junta (x + tabla/2). Estaba corrida 1,8 cm y dejaba abierto 1 cm de la rendija de 2 cm entre tablas: desde adentro del
+        // almacén se veía el exterior por ahí (y con el exterior apagado se veía el cielo)
         c.agregar(new THREE.BoxGeometry(0.035, b - a, espesor * 1.18), {
           color: '#6f5237', tipo: 4, variar: 0.06,
-          matriz: matriz([x + tabla / 2 - 0.018, (a + b) / 2, z + lado * 0.018]),
+          matriz: matriz([x + tabla / 2, (a + b) / 2, z + lado * 0.018]),
         });
       }
     }
@@ -900,6 +902,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   {
     const rot = Math.atan2(L.muelle.x - ref.x, L.muelle.z - ref.z);   // la puerta (+z local) mira al lago
     ref.rot = rot;
+    // 4.26.0 (C): las paredes (hasta el último tronco, 3,0 m sobre el pie) y las aberturas de verdad (la puerta, la ventana del frente y el hueco
+    // del costado, entre troncos): main.js no dibuja el exterior desde adentro si ninguna cae en lo que mira la cámara (ver interior-visible.js)
+    ref.ancho = 7; ref.fondo = 5.5; ref.alto = 3.0; ref.aberturas = [[-0.6, 2.75, 0.6, 2.75], [1.65, 2.75, 2.75, 2.75], [-3.5, -0.6, -3.5, 0.6]];
     const c = new Constructor();
     // 2.8: se anota qué armó cada tramo (paredes, aberturas, techo) para pintarlo desde
     // Personalizar sin rehacer el edificio (personal-casa-mundo.js)
@@ -1839,7 +1844,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     const info = { x, z, y, rot, nombre, chimenea: { x: ch.x, y: y + chTope + 0.08, z: ch.z }, vidrio, luz, interior, puerta,
       // incluye galería, escalinata y leñera; sirve para despejar vegetación/objetos
       // del volumen completo de la construcción, no solo de la caja principal.
-      radio: Math.max(W / 2 + 2.2, D / 2 + GAL + 1.75) };
+      radio: Math.max(W / 2 + 2.2, D / 2 + GAL + 1.75),
+      // 4.26.0 (C): las paredes (el último tronco llega a ~2,45 m del pie) y las aberturas: la puerta del frente y la ventana del costado
+      ancho: W, fondo: D, alto: 2.45, aberturas: [[PUERTA.x0, D / 2, PUERTA.x1, D / 2], [-W / 2, -0.5, -W / 2, 0.5]] };
     T.lugares[clave] = info;
     cabañas.push(info);
     registrarHuella(clave, info, info.radio, 4);
@@ -3192,6 +3199,8 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       entabladoVertical(c, { W, z: D / 2, y0: 0.45, alto: H, tabla: 0.34, lado: 1 });
       for (const l of [-1, 1]) for (let z = -D / 2; z < D / 2 - 0.01; z += 0.34) {
         c.agregar(new THREE.BoxGeometry(0.12, H, 0.32), { color: Math.round(z * 10) % 2 ? '#9a7248' : '#8a6440', tipo: 4, variar: 0.09, matriz: matriz([l * W / 2, 0.45 + H / 2, z + 0.17]) });
+        // 4.26.0 (C): la tapajunta de afuera sobre la rendija de 2 cm entre tabla y tabla (como en el frente y el fondo): desde adentro no se ve el exterior
+        if (z + 0.34 < D / 2 - 0.01) c.agregar(new THREE.BoxGeometry(0.03, H, 0.035), { color: '#6f5237', tipo: 4, variar: 0.06, matriz: matriz([l * (W / 2 + 0.075), 0.45 + H / 2, z + 0.34]) });
       }
       // frontón, cornisa alta a la calle y cartel pintado
       // 3.6.2 (visual): el frontón va delante del techo (antes, metido 0,5 m detrás del testero: los
@@ -3360,7 +3369,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const puerta = w(0, -D / 2 - 3);
       if (puertas) puertas.agregar({ sitio: { x: sitio.x, z: sitio.z, y: sitio.y, piso: 0.46 }, rot, lx: 0, lz: -D / 2 - 0.05, ancho: 1.1, alto: 2.05, lado: 1, nombre: 'la puerta del almacén' });
       almacen = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Almacén de Ramos Generales', vidrio, luz, interior,
-        puerta, mostrador, detras, radio: 9, ancho: W, fondo: D };   // 3.0.1: ancho y fondo, para saber si estás adentro
+        puerta, mostrador, detras, radio: 9, ancho: W, fondo: D,   // 3.0.1: ancho y fondo, para saber si estás adentro
+        // 4.26.0 (C): hasta dónde llegan las paredes (piso a 0,45 + 2,9) y las aberturas del frente (−z): la puerta y las dos vidrieras
+        alto: 0.45 + H, aberturas: [[-0.58, -D / 2, 0.58, -D / 2], [-3.3, -D / 2, -1.9, -D / 2], [1.9, -D / 2, 3.3, -D / 2]] };
       T.lugares.almacen = almacen;
       almacenSorteo = aldeaAlm ? (sorteado ? { x: sorteado.x, z: sorteado.z } : null) : almacen;
       if (almacenSorteo) registrarHuella('almacen', almacenSorteo, almacen.radio, 5);

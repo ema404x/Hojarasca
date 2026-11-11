@@ -273,6 +273,19 @@ function etapaParedes(M, P) {
   };
 }
 
+// 4.26.0 (C): el forro del techo: una tabla corrida por agua, 4,5 cm debajo de las tablas (sin tocarlas), que tapa las rendijas de 2,5 cm entre
+// tabla y tabla. Antes, desde adentro, por esas rendijas se veía el cielo y, cerca del alero, los árboles de afuera; ahora el techo no deja pasar la
+// luz (de afuera las rendijas se siguen viendo como surcos). Del color de las tablas del piso (TABLA): desde adentro se lee como un cielorraso de
+// madera; con el color del techo (oscuro y a la sombra) quedaba un agujero negro. Va en la misma malla de la obra: sin llamadas de dibujo nuevas. `a` = media luz con el
+// alero, `yMed` = la altura del centro del agua, `Lp` = el largo de la tabla en la pendiente, `largo` = lo que corre la cumbrera (sin los voladizos).
+function forroTecho(c, eje, a, yMed, Lp, largo, incl) {
+  const d = 0.045, sn = Math.sin(incl), cs = Math.cos(incl);
+  for (const lado of [-1, 1]) {
+    if (eje === 'z') caja(c, Lp, 0.02, largo + 0.1, [lado * (a / 2 - d * sn), yMed - d * cs, 0], TABLA, { rot: [0, 0, -lado * incl], variar: 0.08 });
+    else caja(c, largo + 0.1, 0.02, Lp, [0, yMed - d * cs, lado * (a / 2 - d * sn)], TABLA, { rot: [lado * incl, 0, 0], variar: 0.08 });
+  }
+}
+
 function etapaTecho(M, P) {
   return (c, _P, _datos, suelo) => {
     const { W, D, techoPared, subida, eje, luz, largo, g } = M;
@@ -289,6 +302,7 @@ function etapaTecho(M, P) {
       if (eje === 'z') caja(c, Lp, 0.065, 0.285, [lado * a / 2, yMed, v], color, { rot: [0, 0, -lado * incl], variar: 0.09 });
       else caja(c, 0.285, 0.065, Lp, [v, yMed, lado * a / 2], color, { rot: [lado * incl, 0, 0], variar: 0.09 });
     }
+    forroTecho(c, eje, a, yr - pend * a / 2, Lp, largo, incl);
     // cumbrera
     if (eje === 'z') caja(c, 0.16, 0.16, D + 0.6, [0, yr + 0.02, 0], MADERA_OSCURA, { tipo: 0 });
     else caja(c, W + 0.6, 0.16, 0.16, [0, yr + 0.02, 0], MADERA_OSCURA, { tipo: 0 });
@@ -455,4 +469,4 @@ export const PLANOS_CASAS = [
 ];
 
 // 4.2: lo que las ampliaciones (planos-ampliar.js) toman de las casas en vez de repetirlo: la fábrica, las etapas y los muebles de adentro.
-export const AYUDAS_CASAS = { casa, medidas, fisicaDe, etapaCimientos, etapaPiso, etapaParedes, etapaTecho, caja, cilindro, triangulo, ventana, cama, mesa, alfombra, repisa, hogar, perimetro, tramosFrente, postesGaleria, PISO_Y, Y0, PUERTA, T_PARED, ALTO_PUERTA, ZOCALO_ALTO, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED, VIDRIO };
+export const AYUDAS_CASAS = { casa, medidas, fisicaDe, etapaCimientos, etapaPiso, etapaParedes, etapaTecho, forroTecho, caja, cilindro, triangulo, ventana, cama, mesa, alfombra, repisa, hogar, perimetro, tramosFrente, postesGaleria, PISO_Y, Y0, PUERTA, T_PARED, ALTO_PUERTA, ZOCALO_ALTO, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED, VIDRIO };
