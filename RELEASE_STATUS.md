@@ -1,5 +1,8 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.26.0 (sobre main = 4.25.3): PENDIENTES CHICOS (CAMBIOS_4_26_0_A/B/C.md) — los vecinos sólo piden lo que se puede conseguir, una campana en cada andén trae la trochita sin la espera larga, y adentro del refugio, las cabañas, el almacén y las casas prefabricadas no se dibuja el exterior
+- 4.25.3 (sobre main = 4.25.2): LOS BUGS QUE QUEDARON (CAMBIOS_4_25_3.md) — gallinas con choque y piso, reintegros con lo pagado, lazos de las respuestas cariñosas, coihue grande sólo cuando la Historia lo decide, paces con Fermín y amanecer de la nevada (hecha en la otra PC)
+- 4.25.2 (sobre main = 4.25.1): TIRAR CON V Y BUGS DE LA REVISIÓN (CAMBIOS_4_25_2_NPC/HISTORIA/GUARDADO/TIRAR.md) — tirar casi todo con V y juntarlo con E, gente de la aldea que las escenas no encontraban o duplicaban, la E sobre la gente de la aldea cierra sus objetivos, récords del Desafío con perillas o códigos, reventa del tren y teclas fijas (hecha en la otra PC)
 - 4.25.1 (sobre main = 4.25.0): BUGS DE LAS CINEMÁTICAS (CAMBIOS_4_25_1_A/B/C.md) — NPC que quedaban trabados en escena, personas y cámara que traspasaban paredes y rocas, y mate, planilla y caña pegados al brazo en las poses
 - 4.25.0 (sobre main = 4.24.1): PERSONAJES Y PASADA FINAL (CAMBIOS_4_25_0_A/B/C.md) — manos con dedos y mate, nariz con volumen y capas de color en el poncho y la lana; la decisión D5 se respeta en la noche; tarjetas y panel sin barras en pantallas chicas; caza de bugs de lo nuevo
 - 4.24.1 (sobre main = 4.24.0): DETALLES DE LA 4.24.0 (CAMBIOS_4_24_1_A/B/C.md) — trochita de vuelta sin espera larga, mapa y panel pulidos, silueta y plano de Elsa de la primera hora, hojas de cerca, cipreses y pisadas en la nieve

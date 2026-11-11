@@ -1,0 +1,31 @@
+{
+  "anterior": "4.25.3",
+  "fecha": "11-11-2026",
+  "titulo": "Pendientes chicos: pedidos posibles, la campana del andén e interiores del valle",
+  "cambios": [
+    "Ramas v4260-a (pedidos imposibles), v4260-b (la campana del andén) y v4260-c (interiores que faltaban), juntadas. Detalle en CAMBIOS_4_26_0_A.md, _B.md y _C.md. El usuario eligió los pendientes chicos y mantener 0 shaders nuevos.",
+    "",
+    "- Pedidos posibles: un vecino de confianza sólo pide lo que se puede conseguir en esa partida: lo del valle (sus tres cosas de siempre, menos los cristales), lo que vende un puesto a tu alcance (las cuatro paradas de la trochita del Relax y los puestos de ruta arreglados; lo del cuaderno, sólo si ya lo conocés) o lo que producís vos (la vaca da leche y carne, la chancha cerdo y chorizo, la paridera cordero, el frutal su fruta, la mermelada con su frutal y la receta). Antes, sin granja, pedía cordero, chorizo, frutas, mermeladas o cristales que no se conseguían (711 en 2.000 ventanas). Si todo se consigue sale el mismo pedido de antes; lo que pide queda fijo sus tres días (clave nueva opcional `negocios.fijos`). Los cambios de la cocina (Mario, Ramón, Nélida) no cuentan como forma de conseguir. Entre los días 100 y 140 se gana 1,6 a 2,6 % menos: lo que pagaban esos pedidos imposibles.",
+    "- La campana del andén: en cualquier andén, con el tren a más de 45 s, la E toca la campana y la trochita llega en un fundido (en la partida real, de 319 s a 18 s). No cambian los horarios, el recorrido ni la parada; la campana no anota viajes. Con el tren cerca o parado en otro andén sólo avisa cuánto falta; con nieve no viene; en el Desafío no con un ataque encima; en la Historia espera a que salga la escena de Elsa de ese andén. Esperar sentado con R no servía: el tren anda con el tiempo real.",
+    "- Interiores del valle: adentro del refugio, las dos cabañas (la del Pescador y el Puesto Alto), el almacén y nueve casas prefabricadas del jugador, de espaldas a toda puerta y ventana, ya no se dibuja el bosque, el pasto, el sotobosque, la gente de afuera ni el tren (el terreno queda, por las juntas del piso). Placa del refugio de −9 a −19 ms y 60 a 90 llamadas de dibujo menos por interior; la plaza no cambia. Las ventanas cuentan siempre como abiertas. Para que no se vea luz por las rendijas, las casas prefabricadas suman un forro de madera bajo el techo (+72 vértices, 0 llamadas): el cielorraso se ve como madera continua. Se centró la tapajunta del almacén (dejaba una rendija). El cuadro en que se rehace el mapa de sombras se dibuja entero (arregla un defecto de la 4.23.0 en la aldea). Los bultos que tirás con V adentro de una casa ya no desaparecen al darle la espalda a la puerta.",
+    "- Quedan afuera, por no poder hacerlo sin que se note: el tren y la trochita (siete ventanas por lado), las habitaciones modulares, el quincho, la galería cerrada, la casilla, el puesto de troncos, el taller anexo, la buhardilla y la planta alta.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-26-0-a (40.230 comprobaciones; 17 mutaciones), -b (109; 30) y -c (57; 28); humo real de la campana; equivalencia de imagen de los interiores (18 lugares, 72 muestras cada uno, cinco corridas); pruebas viejas de la 4.23.0, edificios y obras ajustadas a propósito. 0 shaders nuevos.",
+    "",
+    "## Sin ver / pendiente",
+    "- No se vio en el juego real: un vecino sin granja y otro con la vaca o un frutal pidiendo en la ventana siguiente; la campana en el Desafío, con nieve, en la Aldea a la vuelta y su sonido (en la Aldea la campana no se mueve al tocarla; en las paradas chicas no hay una campana dibujada, el aviso sale a 8 m del andén); entrar y salir caminando de una casa, la puerta que se abre, Media y Baja, nieve, otoño, lluvia y la noche adentro de las casas del jugador, el piso de arriba de las casas de dos plantas, el cielorraso nuevo de cerca desde afuera.",
+    "- Mediciones de los interiores orientativas: la ventana de Electron quedó estrangulada a 1 cuadro por segundo en parte de la tanda y una última tanda se cortó por un error de red; las llamadas y los triángulos no dependen de eso.",
+    "- La regla del pedido no se explica en pantalla (el texto del vecino no cambió)."
+  ],
+  "release": "PENDIENTES CHICOS (CAMBIOS_4_26_0_A/B/C.md) — los vecinos sólo piden lo que se puede conseguir, una campana en cada andén trae la trochita sin la espera larga, y adentro del refugio, las cabañas, el almacén y las casas prefabricadas no se dibuja el exterior",
+  "seguir": "Pendientes chicos (CAMBIOS_4_26_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: la campana del andén, los pedidos con y sin granja, entrar y salir de las casas, las cinemáticas (decir escena y lugar), las noches 5 y 11 a 20 del Desafío. Pendientes de decisión del usuario: el segundo escalón de cristales, R12, Steam y el inglés; los shaders siguen cerrados a pedido del usuario. Los humos de la Historia tardan (-Espera 2700).",
+  "leemeNovedades": [
+    "- Los vecinos ya no te piden cosas que no podés conseguir: sin granja, no te piden leche ni fruta.",
+    "- En cualquier andén, la E toca la campana y la trochita viene sin la espera larga.",
+    "- Adentro del refugio, las cabañas, el almacén y las casas prefabricadas el juego anda más liviano."
+  ],
+  "leemeMirar": [
+    "- Si los pedidos de los vecinos tienen sentido con lo que tenés.",
+    "- Si la campana del andén se siente natural y no te saca de la partida.",
+    "- Si al entrar y salir de una casa no hay parpadeos ni huecos de luz."
+  ]
+}
