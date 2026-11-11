@@ -37,6 +37,15 @@ export const TIEMPOS_SUAVES = { entreSiluetas: [160, 280] };
 //   un poco más grande, adelante de donde mirás (abanico más angosto), sobre el terreno más alto de los lugares posibles (así asoma del pasto) y con los ojos ya
 //   prendidos al anochecer. Sigue siendo la misma figurita de siempre, quieta y a lo lejos: no un cartel.
 export const SILUETA_SUAVE = { dist: [18, 24], escala: 2.0, abanico: 0.6, pisoNoche: 0.5, candidatos: 6 };   // (la primera sale con la espera de siempre: 25 a 50 s de juego, que ya pasaron al caer la tarde)
+// 4.26.1: la silueta de la primera hora no encontraba lugar en la mitad de las direcciones (bosque cerrado, agua, troncos en la línea) y reintentaba a los 8 s. Si
+//   adelante no hay un lugar con las reglas de siempre, una segunda vuelta un poco más amplia: un poco más lejos o más cerca (`dist`, sin entrar al umbral de huida),
+//   en todo el abanico de la vista y con el árbol hasta a `cerca` metros (el borde del bosque, del lado del claro); siempre despejada (sin tronco pegado ni troncos entre
+//   vos y ella: nunca adentro del bosque cerrado). Si mirás al campo abierto (ningún árbol cerca de 17 a 28 m: la estepa del galpón, el lado del lago), una tercera
+//   vuelta sin el árbol, en el campo y un poco más lejos (`campo`), también despejada. Y si tampoco, se reintenta a los `reintento` segundos (te moviste o miraste
+//   para otro lado).
+//   Y una cuarta, más lejos todavía (`lejos`, también en el campo y despejada), para donde el monte tapa lo de cerca (el molino, el galpón de costado). Si tampoco, ese rumbo
+//   se deja: no se vuelve a buscar mientras sigas mirando para el mismo lado (`giro` rad) hasta pasados `descanso` s; nada se traba (la silueta es de adorno).
+export const SILUETA_AMPLIA = { dist: [17, 28], abanico: 0.9, cerca: 4.5, intentos: 24, reintento: 2.5, campo: [17, 32], lejos: [30, 46], giro: 0.5, descanso: 20 };
 const entre = (r, [a, b]) => a + r() * (b - a);
 // Un punto en el abanico delante de la cámara (`rumbo` = adónde mira, en la convención atan2(dx, dz)), a una distancia dada
 export function puntoEnAbanico(yo, rumbo, r, [dmin, dmax], abanico = 0.9) {
@@ -62,6 +71,7 @@ export const PUERTA_GALPON = { lx: 0, lz: -6.6 };   // delante del portón corre
 export function crearPresencia(ctx) {
   const azar = ctx.azar || Math.random;
   const dh = ctx.dh;
+  let sinLugar = null;   // 4.26.1: el rumbo (y hace cuánto) en que la silueta de la primera hora no encontró lugar
   let sil = null, silEdad = 0, silVista = 0, silVisto = false, espera = entre(azar, TIEMPOS.primeraSilueta);
   let risa = entre(azar, TIEMPOS.entreRisas);
   const luces = [];
@@ -87,6 +97,21 @@ export function crearPresencia(ctx) {
       if (!mejor || alto > mejor.alto) mejor = { p, alto };
       if (++nCand >= S.candidatos) break;
     }
+    // 4.26.1: las vueltas de la primera hora (el borde del bosque, el campo abierto y más lejos): ver SILUETA_AMPLIA; las mismas reglas de despeje y el mismo
+    // «el más alto»
+    for (const vuelta of ['borde', 'campo', 'lejos']) {
+      if (mejor || !S) break;
+      const A = SILUETA_AMPLIA, enCampo = vuelta !== 'borde';
+      for (let i = 0; i < A.intentos; i++) {
+        const p = puntoEnAbanico(j, rumbo, azar, vuelta === 'borde' ? A.dist : A[vuelta], A.abanico);
+        if (!ctx.enTierra(p.x, p.z) || (!enCampo && !ctx.cercaDeArbol(p.x, p.z, A.cerca))) continue;
+        if (ctx.despejada && !ctx.despejada(p.x, p.z)) continue;
+        const alto = (ctx.altura?.(p.x, p.z) ?? 0) - (ctx.altura?.(j.x, j.z) ?? 0);
+        if (!mejor || alto > mejor.alto) mejor = { p, alto };
+        if (++nCand >= S.candidatos) break;
+      }
+    }
+    if (!mejor && S) sinLugar = { rumbo, t: 0 };   // (4.26.1: ni en las cuatro vueltas: este rumbo se deja un rato)
     if (mejor) {
       const p = mejor.p;
       const d = dh.aparecer('rastreador', { x: p.x, z: p.z, mira: true, escala: S ? S.escala : ESCALA_SILUETA, pisoNoche: S ? S.pisoNoche : 0 });
@@ -101,7 +126,14 @@ export function crearPresencia(ctx) {
     if (!sil) {
       espera -= dt;
       if (espera > 0 || !enVentana(ctx.hora(), VENTANAS.silueta) || !dh.listo()) return;
+      if (suave && sinLugar) {   // (4.26.1: el rumbo sin lugar se deja: se vuelve a buscar al girar la vista o pasado el descanso)
+        sinLugar.t += SILUETA_AMPLIA.reintento;
+        let g = (ctx.rumbo?.() ?? 0) - sinLugar.rumbo; g = Math.atan2(Math.sin(g), Math.cos(g));
+        if (Math.abs(g) < SILUETA_AMPLIA.giro && sinLugar.t < SILUETA_AMPLIA.descanso) { espera = SILUETA_AMPLIA.reintento; return; }
+        sinLugar = null;
+      }
       espera = aparecerSilueta(suave) ? entre(azar, suave ? TIEMPOS_SUAVES.entreSiluetas : TIEMPOS.entreSiluetas) : 8;
+      if (suave && !sil) espera = SILUETA_AMPLIA.reintento;   // (4.26.1: la primera hora no espera 8 s para volver a buscar)
       return;
     }
     if (sil.estado === 'fuera') { sil = null; return; }

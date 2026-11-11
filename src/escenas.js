@@ -226,12 +226,18 @@ export function compilarPlano(p, ctx) {
   const desde = (A, az, dist, yBase = A.y) => ({ x: A.x + Math.sin(az) * dist, y: yBase + alto, z: A.z + Math.cos(az) * dist });
   let f = null;
   if (tipo === 'libre') {
+    // 4.26.1 (B): la altura de la lente. Sin `posFin` la cámara queda en `pos` todo el plano (antes el fin tomaba `dy` 0: la cámara bajaba al piso en la duración del
+    // plano); un `posFin` sin `dy` ni `y` propios queda a la misma altura sobre su punto que `pos`; y en un `{ ref, dy }` el `dy` ya lo sumó resolverRef (se sumaba dos veces)
+    const dyDe = (r, def) => (!objeto(r) ? def : typeof r.ref === 'string' ? (r.dy !== undefined ? 0 : def) : r.dy !== undefined ? num(r.dy) : Number.isFinite(Number(r.y)) ? 0 : def);
+    const dyPos = dyDe(p.pos, 0);
+    const dyFin = p.posFin ? dyDe(p.posFin, objeto(p.pos) && typeof p.pos.ref === 'string' ? num(p.pos.dy) : dyPos) : 0;
     f = (u) => {
       const a = R(p.pos), m = R(p.mira);
       if (!a || !m) return null;
       const a2 = p.posFin ? R(p.posFin) : a, m2 = p.miraFin ? R(p.miraFin) : m;
       if (!a2 || !m2) return null;
-      return poseMirando({ x: lerp(a.x, a2.x, u), y: lerp(a.y + num(p.pos.dy), a2.y + num(p.posFin?.dy), u), z: lerp(a.z, a2.z, u) }, { x: lerp(m.x, m2.x, u), y: lerp(m.y, m2.y, u), z: lerp(m.z, m2.z, u) }, fov);
+      const y0 = a.y + dyPos, y1 = p.posFin ? a2.y + dyFin : y0;
+      return poseMirando({ x: lerp(a.x, a2.x, u), y: lerp(y0, y1, u), z: lerp(a.z, a2.z, u) }, { x: lerp(m.x, m2.x, u), y: lerp(m.y, m2.y, u), z: lerp(m.z, m2.z, u) }, fov);
     };
   } else if (tipo === 'hombro') {
     f = () => {
@@ -460,6 +466,7 @@ export function crearDirector(opc = {}) {
     const dur = Math.max(0.05, num(p.dur, 3));
     const primero = cam.primero;
     const mezcla = p.mezcla !== undefined ? Math.max(0, num(p.mezcla)) : (primero ? ENTRADA_CAMARA : 0);
+    if (mezcla === 0) cam.cortes = num(cam.cortes, 0) + 1;   // 4.26.1 (B): un corte (plano nuevo sin mezcla): ahí escenas-mundo.js puede acomodar a alguien sin que se vea
     let congelada = null;
     if (p.congelar === true || p.plano === 'fijo') { const q = f(0); congelada = q; }
     cam.tiro = { f: congelada ? () => congelada : f, t: 0, dur, mezcla, suave: p.suave || 'suave', tiembla: num(p.tiembla), desde: cam.pose ? { ...cam.pose } : null, tf: (p.suave || 'suave') };
@@ -915,6 +922,10 @@ export function crearDirector(opc = {}) {
     fase: () => (s ? s.fase : null),
     elecciones: () => (s ? { ...s.elecciones } : {}),
     errores: () => (s ? [...s.errores] : []),
+    // 4.26.1 (B): para que escenas-mundo.js no mueva a nadie de golpe a la vista: si se está saltando la escena (Esc), cuánto tapa el fundido (0 a 1) y los cortes
+    saltando: () => !!(s && s.saltando),
+    fundido: () => (s ? num(s.fundido.a, 0) : 0),
+    cortes: () => (s ? num(s.camara.cortes, 0) : 0),   // (cuántos planos sin mezcla empezaron en esta escena)
     // para pruebas
     __sesion: () => s,
   };
