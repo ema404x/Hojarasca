@@ -147,6 +147,8 @@ function techoUnAgua(c, W, D, yFrente, yFondo, ov = 0.35) {
   for (let i = 0; i < n; i++) {
     caja(c, 0.285, 0.065, Ls, [-W / 2 - 0.3 + 0.155 + i * 0.31, (yFrente + yFondo) / 2, 0], i % 3 ? TECHO : TECHO_2, { rot: [-incl, 0, 0], variar: 0.09 });
   }
+  // 4.26.0 (C): el forro bajo las tablas (ver forroTecho en planos-casas.js): el techo de una agua tampoco deja ver afuera por las rendijas
+  caja(c, W + 0.1, 0.02, Ls, [0, (yFrente + yFondo) / 2 - 0.045 * Math.cos(incl), 0.045 * Math.sin(incl)], TABLA, { rot: [-incl, 0, 0], variar: 0.08 });
   for (const x of [-W / 2 - 0.05, W / 2 + 0.05]) caja(c, 0.1, 0.16, Ls, [x, (yFrente + yFondo) / 2 - 0.07, 0], MADERA_OSCURA, { tipo: 0, rot: [-incl, 0, 0] });
   for (const f of [0.25, 0.5, 0.75]) caja(c, W + 0.4, 0.12, 0.12, [0, yFrente + dy * f - 0.12, -D / 2 + D * f], MADERA_OSCURA, { tipo: 0 });
 }
