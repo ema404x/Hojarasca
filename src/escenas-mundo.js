@@ -348,6 +348,33 @@ export function crearEscenasMundo(ctx) {
     if (mira) { const r = Math.atan2(mira.x - p.x, mira.z - p.z); n.rumboObjetivo = r; n.miraFinal = r; n.g.rotation.y = r; n.rumbo = r; }
   }
 
+  // 4.26.2 (A): los puntos «adelante tuyo» de los guiones (`{ frente, dist, lado }`) cuando mirás a una pared, una roca o el bosque caían adentro o del otro lado y
+  // `despejarPuesto` los dejaba adentro del galpón o detrás de la pared. Hasta 12 m (lo lejano, el volador a 40 m o el enjambre a 24 m, queda como estaba) el punto vale si
+  // está libre y el tramo recto desde la base hasta él no cruza sólidos (muestras cada 0,5 m); si no, se gira el rumbo de la base en este orden hasta que valga. El giro
+  // se guarda por escena y por base: todos los `frente` de la escena lo usan (se mantiene quién queda a la izquierda y para dónde mira la cámara) y se borra al cambiar de escena.
+  const DIST_FRENTE_LIBRE = 12;
+  const GIROS_FRENTE = [0, 30, -30, 60, -60, 90, -90, 120, -120, 150, -150, 180].map((g) => (g * Math.PI) / 180);
+  let girosEscena = { id: null, giros: new Map() };
+  function puntoValeFrente(b, p) {
+    const T = ctx.T;
+    const y = alturaDePie(T, ctx.col, p.x, p.z, 0);
+    if (T?.agua && T.agua(p.x, p.z)) return false;
+    if (!libreDeSolidos(p.x, p.z, y)) return false;
+    const dx = p.x - b.x, dz = p.z - b.z, L = Math.hypot(dx, dz), k = Math.floor(L / 0.5);
+    for (let i = 1; i <= k; i++) { const qx = b.x + (dx * i * 0.5) / L, qz = b.z + (dz * i * 0.5) / L; if (!libreDeSolidos(qx, qz, alturaDePie(T, ctx.col, qx, qz, 0))) return false; }
+    return true;
+  }
+  function giroDelFrente(quien, b, punto) {
+    const id = director.idActual?.() ?? null;
+    if (girosEscena.id !== id) girosEscena = { id, giros: new Map() };
+    if (id !== null && girosEscena.giros.has(quien)) return girosEscena.giros.get(quien);
+    try {
+      if (puntoValeFrente(b, punto(0))) return 0;
+      for (const g of GIROS_FRENTE) if (g !== 0 && puntoValeFrente(b, punto(g))) { if (id !== null) girosEscena.giros.set(quien, g); return g; }
+    } catch { /* sin mundo para mirar: el punto pedido */ }
+    return 0;
+  }
+
   // 4.17.0 (C): un lugar con nombre: los de la Historia (la raíz de Ramón, el coihue, tu molino, la cantera…: `ctx.puntos()`) y los del mundo (T.lugares)
   const lugarDe = (k) => {
     const p = ctx.puntos?.();
@@ -383,7 +410,10 @@ export function crearEscenasMundo(ctx) {
           if (ref.frente === 'jugador') b = { x: js.pos.x, z: js.pos.z, fx: -Math.sin(js.yaw), fz: -Math.cos(js.yaw) };
           else { const n = actor(ref.frente); if (!n) return null; b = { x: n.pos.x, z: n.pos.z, fx: Math.sin(n.g.rotation.y), fz: Math.cos(n.g.rotation.y) }; }
           const d = num(ref.dist, 3), l = num(ref.lado);
-          return { x: b.x + b.fx * d + -b.fz * l, z: b.z + b.fz * d + b.fx * l };
+          const punto = (g) => { const c = Math.cos(g), s = Math.sin(g), fx = b.fx * c - b.fz * s, fz = b.fx * s + b.fz * c; return { x: b.x + fx * d + -fz * l, z: b.z + fz * d + fx * l }; };
+          // 4.26.2 (A): lo cercano (hasta 12 m) no cae adentro de lo que tenés enfrente: ver `giroDelFrente`
+          if (d <= DIST_FRENTE_LIBRE) { const g = giroDelFrente(ref.frente, b, punto); if (g !== 0) return punto(g); }
+          return punto(0);
         }
       }
       return null;
