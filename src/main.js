@@ -2611,12 +2611,27 @@ function efectoDuendesActo3(id, a, crear) {
   const en = (adelante, lado) => ({ x: j.pos.x + fx * adelante + lx * lado, z: j.pos.z + fz * adelante + lz * lado });
   const vivos = () => duendesDeEscena.filter((d) => d.estado !== 'fuera');
   const sacar = (d, ms) => setTimeout(() => { try { d.huir(null, { desaparecer: true }); } catch { /* ya */ } }, ms);
-  const galpon = id.startsWith('galpon-') ? puntosCacheadosDeHistoria()['galpon-noche'] : null;   // los del encuentro se sientan dentro de tu galponcito (si lo hay)
+  // 4.26.3: el grupo se para ADELANTE TUYO (el mismo punto que usa la cámara de la escena: `frente` de escenas-mundo, que gira si hay un sólido o el agua) y, si cae adentro de tu
+  // galponcito (atrás del frente de tablas no se los ve: sólo asoman los ojos), se lo corre afuera, del lado más cercano a vos. Antes se sentaban adentro del galponcito, en ronda
+  const sitioGalpon = id.startsWith('galpon-') ? obrasTerminadas('galponcito')[0] || null : null;
+  const frente = (adelante, lado) => { try { const q = escenasMundo?.mundo.posicion({ frente: 'jugador', dist: adelante, lado }); if (q && Number.isFinite(q.x) && Number.isFinite(q.z)) return q; } catch { /* el punto recto */ } return en(adelante, lado); };
+  const fueraDelGalpon = (p) => {
+    const o = sitioGalpon?.datos, P = sitioGalpon?.plano;
+    if (!o || !P) return p;
+    const r = Number(o.rot) || 0, c = Math.cos(r), sn = Math.sin(r), mx = P.ancho / 2 + 1.2, mz = P.fondo / 2 + 1.2;
+    const dx = p.x - o.x, dz = p.z - o.z, lx = dx * c - dz * sn, lz = dx * sn + dz * c;
+    if (Math.abs(lx) >= mx || Math.abs(lz) >= mz) return p;
+    let mejor = null;
+    for (const [qx, qz] of [[mx, lz], [-mx, lz], [lx, mz], [lx, -mz]]) {
+      const w = { x: o.x + qx * c + qz * sn, z: o.z - qx * sn + qz * c }, d = Math.hypot(w.x - j.pos.x, w.z - j.pos.z);
+      if (!mejor || d < mejor.d) mejor = { w, d };
+    }
+    return mejor.w;
+  };
   const grupo = (tipo, n, adelante, ancho, o = {}) => {
     const hechos = [];
     for (let i = 0; i < Math.min(n || 1, 12); i++) {
-      let p = en(adelante + (i % 3) * 0.9, ((i / Math.max(1, (n || 1) - 1)) - 0.5) * ancho);
-      if (galpon) { const ang = (i / Math.max(1, n || 1)) * 6.28 + 0.4, r = tipo === 'jefe' ? 0.2 : 1.1 + (i % 2) * 0.7; p = { x: galpon.x + Math.cos(ang) * r, z: galpon.z + Math.sin(ang) * r }; }
+      const p = fueraDelGalpon(frente(adelante + (i % 3) * 0.9, ((i / Math.max(1, (n || 1) - 1)) - 0.5) * ancho));
       const d = crear(tipo, p, o);
       if (d) { hechos.push(d); sacar(d, 45000); }
     }

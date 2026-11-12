@@ -78,7 +78,7 @@ function comprobarInterior(M) {
   // cajaDeCasa
   falla(M.CASAS_CERRADAS.has('cabana-piedra') && M.CASAS_CERRADAS.has('casa-galeria') && M.CASAS_CERRADAS.has('casona') && M.CASAS_CERRADAS.has('salon-grande') && M.CASAS_CERRADAS.has('torreon-piedra'), 'las casas prefabricadas cerradas están en la lista');
   // (4.26.1 (A), ajustada a propósito: la casilla, el puesto de troncos, el taller anexo, la buhardilla y la planta alta entran: sus rendijas se cerraron con geometría)
-  falla(M.CASAS_CERRADAS.has('casilla') && M.CASAS_CERRADAS.has('taller-anexo') && M.CASAS_CERRADAS.has('planta-alta') && !M.CASAS_CERRADAS.has('puesto') && !M.CASAS_CERRADAS.has('buhardilla'), 'la casilla, el taller anexo y la planta alta entran (4.26.1); el puesto de troncos y la buhardilla no (la equivalencia de imagen los dejó afuera)');
+  falla(M.CASAS_CERRADAS.has('casilla') && M.CASAS_CERRADAS.has('taller-anexo') && M.CASAS_CERRADAS.has('planta-alta') && M.CASAS_CERRADAS.has('buhardilla') && !M.CASAS_CERRADAS.has('puesto'), 'la casilla, el taller anexo, la planta alta (4.26.1) y la buhardilla (4.26.3) entran; el puesto de troncos no (la equivalencia de imagen lo dejó afuera)');
   falla(!M.CASAS_CERRADAS.has('quincho') && !M.CASAS_CERRADAS.has('galeria-cerrada') && !M.CASAS_CERRADAS.has('piso-modular') && !M.CASAS_CERRADAS.has('techo-modular'), 'el quincho (frente abierto), la galería cerrada (sin pared de atrás) y lo modular quedan afuera');
   const casa = { id: 'casa-galeria', x: -50, z: 30, y: 4, rot: 2.1, ancho: 7.8, fondo: 5.6, alto: 2.6 };
   const k = M.cajaDeCasa(casa);
@@ -328,7 +328,7 @@ const fuenteMain = leer('src/main.js');
     ['casa-vano-angosto', 'export const MEDIO_VANO_CASAS = 0.6;', 'export const MEDIO_VANO_CASAS = 0.1;'],
     ['casa-tope-alto', 'export const TOPE_CASAS = 0.25;', 'export const TOPE_CASAS = 1.5;'],
     ['casa-sin-casilla', "'casilla', ", ''],
-    ['casa-quincho', "'taller-anexo', 'planta-alta']);", "'taller-anexo', 'planta-alta', 'quincho']);"],
+    ['casa-quincho', "'planta-alta', 'buhardilla']);", "'planta-alta', 'buhardilla', 'quincho']);"],
     ['casa-sin-casona', "'casa-galeria', 'casona', ", "'casa-galeria', "],
     ['casa-cualquiera', "if (!o || !CASAS_CERRADAS.has(o.id) || ", 'if (!o || '],
     ['lugares-sin-almacen', "['refugio', 'cabana', 'puesto', 'almacen']", "['refugio', 'cabana', 'puesto']"],

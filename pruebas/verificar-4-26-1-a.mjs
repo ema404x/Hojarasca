@@ -227,12 +227,12 @@ function comprobarInterior(M) {
   const mal = [];
   const falla = (c, t) => { if (!c) mal.push(t); };
   const cos = M.cosVistaDe(70, 16 / 9);
-  for (const id of ['casilla', 'taller-anexo', 'planta-alta']) falla(M.CASAS_CERRADAS.has(id), `${id} está en CASAS_CERRADAS`);
-  for (const id of ['puesto', 'buhardilla']) falla(!M.CASAS_CERRADAS.has(id), `${id} queda afuera de CASAS_CERRADAS (la equivalencia de imagen mostró diferencias)`);
+  for (const id of ['casilla', 'taller-anexo', 'planta-alta', 'buhardilla']) falla(M.CASAS_CERRADAS.has(id), `${id} está en CASAS_CERRADAS`);   // (4.26.3 (A), ajustada a propósito: la buhardilla entra)
+  for (const id of ['puesto']) falla(!M.CASAS_CERRADAS.has(id), `${id} queda afuera de CASAS_CERRADAS (la equivalencia de imagen mostró diferencias: el pasto y el terreno asoman por el piso)`);
   for (const id of ['cabana-piedra', 'casa-galeria', 'casona', 'dormitorio-anexo', 'despensa-anexa', 'cocina-ampliada', 'bodega-piedra', 'salon-grande', 'torreon-piedra']) falla(M.CASAS_CERRADAS.has(id), `${id} sigue en CASAS_CERRADAS (la 4.26.0)`);
   for (const id of ['quincho', 'galeria-cerrada', 'piso-modular', 'pared-modular', 'pared-puerta', 'pared-ventana', 'techo-modular', 'techo-una-agua', 'techo-plano', 'entrepiso-modular']) falla(!M.CASAS_CERRADAS.has(id), `${id} no es una casa de la lista (frente abierto, sin pared de atrás o pieza modular)`);
   for (const [id, [W, D, H]] of Object.entries(MEDIDAS)) {
-    if (id === 'puesto' || id === 'buhardilla') continue;   // afuera de la regla (equivalencia de imagen)
+    if (id === 'puesto') continue;   // afuera de la regla (equivalencia de imagen)
     const o = { id, x: 40, z: -70, y: 6, rot: 0.7, ancho: W, fondo: D, alto: H };
     const k = M.cajaDeCasa(o);
     falla(k && k.id === 'obra-' + id && k.ancho === W && k.fondo === D && Math.abs(k.alto - (H + 0.25)) < 1e-9, `${id}: la caja con las medidas del plano y las paredes hasta alto + 0,25`);
@@ -444,11 +444,11 @@ const I = await import('../src/interior-visible.js');
   ok(correr('interior-original', interior) === '0', 'mutación 0 (interior-visible.js): la copia sin tocar cumple todo');
   for (const [n, de, a] of [
     ['sin-casilla', "'casilla', ", ''],
-    ['con-puesto', "'planta-alta']);", "'planta-alta', 'puesto']);"],
+    ['con-puesto', "'buhardilla']);", "'buhardilla', 'puesto']);"],
     ['sin-taller', "'taller-anexo', ", ''],
-    ['con-buhardilla', "'planta-alta']);", "'planta-alta', 'buhardilla']);"],
-    ['sin-planta-alta', ", 'planta-alta']);", ']);'],
-    ['con-techo-modular', "'planta-alta']);", "'planta-alta', 'techo-modular']);"],
+    ['sin-buhardilla', ", 'buhardilla']);", ']);'],
+    ['sin-planta-alta', "'planta-alta', 'buhardilla']);", "'buhardilla']);"],
+    ['con-techo-modular', "'buhardilla']);", "'buhardilla', 'techo-modular']);"],
     ['vano-angosto', 'export const MEDIO_VANO_CASAS = 0.6;', 'export const MEDIO_VANO_CASAS = 0.4;'],
     ['modulo-sin-la-union', 'if (p === null) { frente.push(...puntosDeAbertura(tramo(lado, -M, M, M))); continue; }', 'if (p === null) continue;'],
     ['modulo-ventana-angosta', "'pared-ventana': 0.72,", "'pared-ventana': 0.3,"],
