@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (12-11-2026, notebook): VERSIÓN 4.26.3 en `main`, etiqueta `v4.26.3`** — El galpón y la buhardilla (CAMBIOS_4_26_3_A.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: el encuentro del galpón con el galponcito construido. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
+
 > **ÚLTIMO (12-11-2026, notebook): VERSIÓN 4.26.2 en `main`, etiqueta `v4.26.2`** — Los puntos adelante tuyo (CAMBIOS_4_26_2_A.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: las cinemáticas mirando a una pared o al bosque. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
 
 > **ÚLTIMO (11-11-2026, notebook): VERSIÓN 4.26.1 en `main`, etiqueta `v4.26.1`** — Los detalles que faltaban (CAMBIOS_4_26_1_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Próximo: los puntos «adelante tuyo» del guion dentro de paredes. Para jugar: la campana, los pedidos, las cinemáticas, las casas por dentro. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
