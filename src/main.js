@@ -16,6 +16,8 @@ import { crearCielo, crearConstelaciones, crearFugaces, permitirSiluetasEnSombra
 import { cajaDeSombra, umbralDeRecentrado } from './sombras-alcance.js';
 import { faseLunar, nombreFase, iluminada, luzDeLuna, nocheDeEstrellas, fugacesPorMinuto, fugaz, lunaAnotable, FUGACES_PARA_ANOTAR } from './cielo-noche.js';
 import { crearPostproceso } from './postproceso.js';
+import { crearUltraLuz } from './ultra-luz-mundo.js';
+import { ultraPedido } from './ultra-luz.js';
 import { crearVariantesLuces, registrarLuz } from './luces.js';
 import { crearPresupuestoLuces } from './luces.js';
 import { crearNiebla } from './niebla.js';
@@ -788,6 +790,7 @@ async function construir() {
   fugaces = crearFugaces(escena);
   mallaRastros = crearRastrosMalla(escena, T);
   if (calidad.post) post = crearPostproceso(renderer, escena, camara, calidad);
+  if (post) ultraLuz = crearUltraLuz({ renderer, escena, camara, cielo, post, T, bocas: bocasUltra });   // 4.28.0 (Ultra): no arma nada hasta que Ultra se pide
   niebla = crearNiebla(T, escena, calidad);
   rayosBosque = crearRayosBosque(T, escena, calidad);   // 4.0: sólo media y alta
   flotantes = crearFlotantes(escena, calidad, T);
@@ -1182,6 +1185,7 @@ async function construir() {
     veg.actualizar(camara.position);
     objetos.actualizar(camara.position);
     cielo.actualizar(progreso.horas, clima.estado, camara.position, 0);
+    ultraLuz?.sincronizar(ultraPedido(ajustes, calidadActiva, post));   // 4.28.0 (Ultra): con Ultra pedido, sus programas se compilan acá, con los de la carga
     // 3.6: si aparecés en la aldea (o a la vista de ella), se termina de armar antes de entrar
     if (aldeaMundo) {
       const p = jugador.estado.pos;
@@ -2932,6 +2936,11 @@ function sincronizarAjustes() {
   document.querySelectorAll('[data-ajuste-rango]').forEach((i) => { i.value = ajustes[i.dataset.ajusteRango]; });
   sonido.setMezcla({ ambiente: ajustes.volumenAmbiente, efectos: ajustes.volumenEfectos, musica: ajustes.volumenMusica });
   $('aviso-calidad').classList.toggle('oculto', !calidadPideReinicio());
+  // 4.28.0: Ultra sólo con la calidad en Alta (si no, gris y con el motivo); con Alta elegida y el mundo armado en otra, vale al volver a cargar
+  { const alta = ajustes.calidad === 'alta', av = $('aviso-ultra');
+    document.querySelectorAll('[data-ajuste="ultra"] button').forEach((b) => { b.disabled = !alta; });
+    const m = !alta ? 'Necesita calidad Alta' : (ajustes.ultra && calidadActiva !== 'alta' ? 'Se aplica al volver a cargar.' : '');
+    if (av) { av.textContent = m; av.classList.toggle('oculto', !m); } }
   textoAjustesDistancia();   // 3.5
   if ($('modo-texto')) $('modo-texto').textContent = ajustes.modo === 'desafio'
     ? 'Cada noche salen los duendes del bosque. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
@@ -2966,6 +2975,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     if (clave === 'limiteFps' && v !== 'libre' && v !== 'auto') v = Number(v);   // 3.2: 'auto', según el monitor
     if (clave === 'musica' || clave === 'invertirY' || clave === 'autoCalidad' || clave === 'subtitulos' || clave === 'guiaPrimerDia' || clave === 'sonidosEscritos' || clave === 'vibracion') v = v === 'true';
     if (clave === 'modoFluido') v = v === 'true';   // 3.3
+    if (clave === 'ultra') v = v === 'true';   // 4.28.0: el nivel Ultra, Sí o No
     if (clave.startsWith('perilla')) v = Number(v);   // 4.22.0: las perillas de la dificultad (−2 a +2)
     // 3.8.4: la corrida sin fin ya empezada no cambia de dificultad (vale para la próxima corrida)
     if (clave === 'dificultad' && corridaFijada() && v !== dificultadEnJuego()) {
@@ -3023,6 +3033,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     // 3.5: la distancia de dibujo o de plantas, en vivo (y el ritmo se vuelve a medir)
     if (clave === 'distancia' || clave === 'distanciaPlantas') { aplicarDistancias(); ritmoAuto.reiniciar(); }
     if (clave === 'calidad' && !calidadPideReinicio()) $('aviso-calidad').classList.add('oculto');
+    if (clave === 'ultra' || clave === 'calidad') ultraLuz?.sincronizar(ultraPedido(ajustes, calidadActiva, post));   // 4.28.0: Ultra se prende y se apaga en vivo (en el menú: sus programas se compilan acá)
     sincronizarAjustes();
   });
 });
@@ -11076,6 +11087,19 @@ let avisoMarca = false;
 const COLOR_RAYO = new THREE.Color('#cfe0ff');
 let cascada = null;
 let post = null;
+let ultraLuz = null;   // 4.28.0 (Ultra, A): la luz y el cielo del nivel Ultra (ultra-luz-mundo.js); sólo arma algo con Ultra prendido
+// 4.28.0 (Ultra, A): de dónde sale el aliento con frío: tu boca (la cámara) y la de los vecinos cercanos a la vista (sólo lo pide Ultra)
+function bocasUltra() {
+  const c = camara.position, js = jugador?.estado;
+  const vecinos = [];
+  for (const g of gente?.gente || []) {
+    if (!g.g || !g.g.visible || !g.pos || g.dormido) continue;
+    const d = Math.hypot(g.pos.x - c.x, g.pos.z - c.z);
+    if (d < 16) vecinos.push({ id: g.clave || g, x: g.pos.x, y: g.pos.y + 1.55 * (g.g.scale?.y || 1), z: g.pos.z, yaw: (g.g.rotation?.y || 0) + Math.PI, d });
+  }
+  vecinos.sort((a, b) => a.d - b.d);
+  return { jugador: js && modo === 'jugando' ? { x: c.x, y: c.y - 0.15, z: c.z, yaw: js.yaw || 0, rapido: (js.velocidadActual || 0) > 4 } : null, vecinos: vecinos.slice(0, 6), invierno: U.uInvierno.value, otono: U.uOtono.value };
+}
 let niebla = null;
 let rayosBosque = null;
 let flotantes = null;
@@ -11642,6 +11666,7 @@ function cuadroDelJuego(tRaf, manual) {
   const ambienteDesafio = desafio?.ambiente?.clima;   // 4.8 ambiente: la niebla y la luna llena de la noche del Desafío (sin desafío: nada)
   const luzCielo = cielo.actualizar(progreso.horas, clima.estado, cam, ambienteDesafio ? ambienteDesafio.extra : 0, ambienteDesafio);
   luzUltimaFoto = luzCielo;
+  ultraLuz?.actualizar(ultraPedido(ajustes, calidadActiva, post), luzCielo, clima.estado, progreso.horas);   // 4.28.0 (Ultra): se apaga solo si la calidad deja de ser Alta
   const noche = 1 - luzCielo.dia;
   obras?.actualizarAmbiente?.(noche);
 

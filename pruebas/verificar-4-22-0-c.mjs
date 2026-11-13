@@ -317,7 +317,7 @@ const armarTodo = (cfg, ids, etapas = null) => {
 
 // ---------------------------------------------------------------- 5. las reglas del presupuesto
 {
-  const fuentes = fs.readdirSync(path.join(raiz, 'src')).filter((f) => f.endsWith('.js'));
+  const fuentes = fs.readdirSync(path.join(raiz, 'src')).filter((f) => f.endsWith('.js') && !f.startsWith('ultra'));   // 4.28.0: lo del nivel Ultra (src/ultra*.js) sí puede traer shaders nuevos: sólo corre con Ultra prendido
   let shaders = 0; for (const f of fuentes) shaders += (leer('src/' + f).match(/new THREE\.ShaderMaterial\(/g) || []).length;
   ok(shaders === 18, `las construcciones de ShaderMaterial siguen siendo 18 como en la 4.21.0 (${shaders}): 0 programas de shader nuevos`);
   const det = leer('src/detalle-obras.js');

@@ -266,6 +266,10 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
   try { quad.material = matRayos; renderer.setRenderTarget(rtRayos); renderer.compile(escenaPlana, camaraPlana); } catch { /* sin compile: queda para el primer cuadro, como antes */ } finally { renderer.setRenderTarget(null); }
 
   const solPantalla = new THREE.Vector3();
+  // 4.28.0 (Ultra, A): lo del nivel Ultra se engancha acá (ver ultra-luz-mundo.js): su destino (la escena con la textura de profundidad),
+  // una pasada antes de componer (la oclusión ambiental) y su propia composición. Con Ultra apagado vale null y nada de esto corre.
+  let ultra = null;
+  function ponerUltra(u) { ultra = u || null; }
   let exposicionSuave = 1;
   let interiorSuave = 0;
 
@@ -277,6 +281,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
     }
     tam.set(ancho, alto);
     matComponer.uniforms.uTexel.value.set(1 / Math.max(1, ancho * p), 1 / Math.max(1, alto * p));
+    if (ultra) ultra.redimensionar(ancho * p, alto * p);   // 4.28.0 (Ultra)
   }
 
   function render(estado) {
@@ -285,7 +290,8 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
     // 3.2: mientras dibuja el postproceso, los materiales propios no gradúan el color
     // (lo hace la composición de abajo); dibujando directo a la pantalla, sí
     // 3.4: uGradoMat lleva además la tarde (ver cielo.js): se guarda y se devuelve igual
-    renderer.setRenderTarget(destino);
+    const dst = ultra ? ultra.destino : destino;   // 4.28.0 (Ultra): con Ultra, la escena va a su destino con profundidad
+    renderer.setRenderTarget(dst);
     if (!renderer.autoClear) renderer.clear();
     const gradoDirecto = U.uGradoMat.value;
     U.uGradoMat.value = 0;
@@ -322,7 +328,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
     matBrillo.uniforms.uAspecto.value = tam.x / Math.max(1, tam.y);
 
     // 2. lo que brilla, desenfocado dos veces
-    matBrillo.uniforms.uColor.value = destino.texture;
+    matBrillo.uniforms.uColor.value = dst.texture;
     matBrillo.uniforms.uUmbral.value = estado.noche > 0.5 ? 0.92 : 0.92;
     matBrillo.uniforms.uDia.value = 1 - (estado.noche || 0);   // 3.5.2
     pasada(matBrillo, rtBrillo);
@@ -350,7 +356,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
 
     // 4. composición final a la pantalla
     const u = matComponer.uniforms;
-    u.uColor.value = destino.texture;
+    u.uColor.value = dst.texture;
     u.uBrillo.value = rtBrillo.texture;
     u.uRayos.value = fuerzaRayos > 0 ? rtRayos2.texture : rtBrillo.texture;
     u.uRayosFuerza.value = fuerzaRayos;
@@ -368,10 +374,12 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
     u.uHumedad.value = estado.humedad ?? 0;
     u.uInterior.value = interiorSuave;
     if (estado.colorSol) u.uColorRayos.value.copy(estado.colorSol);
+    if (ultra) ultra.componer(dst, estado, pasada);   // 4.28.0 (Ultra): la oclusión y su composición (niebla de los valles), a la pantalla
+    else
     pasada(matComponer, null);
     renderer.setRenderTarget(null);
   }
 
   // 2.7.4: `destino` para compilar los programas de la escena contra el mismo tipo de salida
-  return { render, redimensionar, uniforms: matComponer.uniforms, destino, materialComponer: matComponer };
+  return { render, redimensionar, uniforms: matComponer.uniforms, destino, materialComponer: matComponer, ponerUltra };   // 4.28.0: + ponerUltra
 }

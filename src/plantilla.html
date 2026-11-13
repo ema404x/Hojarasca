@@ -1047,6 +1047,10 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <div class="segmentos" data-ajuste="calidad"><button data-valor="muybaja">Mínima</button><button data-valor="baja">Baja</button><button data-valor="media">Media</button><button data-valor="alta">Alta</button></div>
         <small id="aviso-calidad" class="oculto">Se aplica al volver a la portada.</small>
       </div>
+      <div class="fila-ajuste" id="fila-ultra"><span>Ultra (efectos nuevos, pide una buena placa)</span>
+        <div class="segmentos" data-ajuste="ultra"><button data-valor="true">Sí</button><button data-valor="false">No</button></div>
+        <small id="aviso-ultra" class="oculto"></small>
+      </div>
       <div class="fila-ajuste" id="fila-distancia"><span>Distancia de dibujo</span>
         <input type="range" min="2" max="10" step="1" id="ajuste-distancia" aria-label="Distancia de dibujo en bloques">
         <div class="segmentos" data-ajuste="distancia"><button data-valor="calidad">Según la calidad</button></div>

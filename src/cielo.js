@@ -484,6 +484,19 @@ export function crearCielo(escena, calidad) {
     return true;
   }
 
+  // 4.28.0 (Ultra, A): el mapa de sombras grande del nivel Ultra ({ mapa, caja, radio }, ver ultra-luz.js); con `null` vuelve al de la calidad
+  function sombraUltra(cfg) {
+    if (!cfg) return reponerSombras();
+    if (!calidad.sombras) return false;
+    sol.castShadow = true;
+    // (la caja de Ultra se pone un instante en la calidad mientras se arma la cámara de la luz, y se devuelve)
+    const cajaAntes = calidad.sombraCaja;
+    calidad.sombraCaja = cfg.caja;
+    try { configurarSombra(cfg.mapa, cfg.radio); } finally { calidad.sombraCaja = cajaAntes; }
+    if (sol.shadow.map) { sol.shadow.map.dispose(); sol.shadow.map = null; }
+    return true;
+  }
+
   escena.add(sol, sol.target);
   const hemi = new THREE.HemisphereLight(0xbcd4e6, 0x3a3222, 1);
   escena.add(hemi);
@@ -668,7 +681,8 @@ export function crearCielo(escena, calidad) {
     luzLuna = efecto.luz;
   }
 
-  return { actualizar, sol, hemi, ajustarSombras, reponerSombras, ponerLuna, uniforms };
+  const malla = cielo, material = matCielo;   // 4.28.0: el nivel Ultra cambia el material del cielo (ultra-luz-mundo.js)
+  return { actualizar, sol, hemi, ajustarSombras, reponerSombras, ponerLuna, uniforms, sombraUltra, malla, material };   // 4.28.0: + sombraUltra, malla y material
 }
 
 // ---------------------------------------------------------------- constelaciones del sur

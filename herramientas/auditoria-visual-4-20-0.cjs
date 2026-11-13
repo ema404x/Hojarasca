@@ -14,6 +14,7 @@ const path = require('path');
 const env = (n, d) => process.env['AUD_' + n] || d;
 const pagina = path.resolve(env('PAGINA', 'index.html'));
 const calidad = env('CALIDAD', 'alta');
+const ultra = env('ULTRA', '0') === '1';   // 4.28.0: AUD_ULTRA=1 prende el nivel Ultra (ver src/ultra.js; sólo vale con la calidad en Alta)
 const grupo = env('GRUPO', 'verano');
 const estacion = env('ESTACION', grupo);
 const clima = env('CLIMA', 'despejado');
@@ -298,7 +299,7 @@ app.whenReady().then(async () => {
   w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) errores.push(m.slice(0, 300)); });
   const js = (c) => w.webContents.executeJavaScript(c, true);
   const H = 'window.__hojarasca';
-  const ajustes = `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'${calidad}', clima:'${clima}', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, limiteFps:'libre', modoFluido:false, estacion:'${estacion}'})); 1`;
+  const ajustes = `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'${calidad}', ultra:${ultra}, clima:'${clima}', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, limiteFps:'libre', modoFluido:false, estacion:'${estacion}'})); 1`;
   await w.loadFile(pagina, { search: '?debug=1' });
   await js(ajustes);
   await w.loadFile(pagina, { search: '?debug=1' });
@@ -314,7 +315,7 @@ app.whenReady().then(async () => {
   // sin carteles del HUD en la captura
   await js(`(() => { let s = document.createElement('style'); s.textContent = 'body > *:not(canvas):not(script) { visibility: hidden !important; } canvas { visibility: visible !important; }'; document.head.appendChild(s); return 1 })()`);
   const tomas = JSON.parse(fs.readFileSync(path.resolve(env('TOMAS', path.join(__dirname, 'auditoria-visual-4-20-0.json'))), 'utf8')).filter((t) => t.grupo === grupo && (!solo || solo.includes(t.id)));
-  const resultado = { pagina, calidad, grupo, estacion, clima, muestraMs: MUESTRA_MS, lastre: LASTRE, escala: ESCALA, ciclos: CICLOS, tomas: {}, errores: [] };
+  const resultado = { pagina, calidad, ultra, grupo, estacion, clima, muestraMs: MUESTRA_MS, lastre: LASTRE, escala: ESCALA, ciclos: CICLOS, tomas: {}, errores: [] };
   resultado.inventario = await js(`window.__AUD.inventario()`);
   const hayAldea = tomas.some((t) => t.aldea), hayObras = tomas.some((t) => t.obras);
   if (hayAldea) {

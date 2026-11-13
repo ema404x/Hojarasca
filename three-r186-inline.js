@@ -4235,6 +4235,7 @@ void main() {
     CylinderGeometry: Le,
     DataTexture: ri,
     DataUtils: Ur,
+    DepthTexture: Ii,
     DirectionalLight: Zr,
     DoubleSide: cn,
     Euler: da,

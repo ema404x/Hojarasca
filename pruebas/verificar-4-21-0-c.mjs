@@ -103,7 +103,7 @@ const cielo = leer('src/cielo.js'), clima = leer('src/clima.js'), post = leer('s
 // ---------------------------------------------------------------- 3. las reglas del presupuesto
 {
   let cuentaShader = 0;
-  const recorrer = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) recorrer(p); else if (e.name.endsWith('.js')) cuentaShader += (fs.readFileSync(p, 'utf8').match(/new THREE\.(Raw)?ShaderMaterial\(/g) || []).length; } };
+  const recorrer = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) recorrer(p); else if (e.name.endsWith('.js') && !e.name.startsWith('ultra'))   /* 4.28.0: lo de Ultra (src/ultra*.js) sí puede traer shaders y destinos nuevos */ cuentaShader += (fs.readFileSync(p, 'utf8').match(/new THREE\.(Raw)?ShaderMaterial\(/g) || []).length; } };
   recorrer(path.join(raiz, 'src'));
   ok(cuentaShader === 18, `programas de shader: ${cuentaShader} construcciones de ShaderMaterial en el código (18 como en la 4.20.0: ninguna nueva)`);
   ok((clima.match(/crearNube\(/g) || []).length === 6, 'clima.js arma los mismos puntos de antes (la definición y cinco usos: nieve, hojas, luciérnagas, humo y fuegos): sin dibujos nuevos');
