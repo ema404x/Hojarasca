@@ -253,7 +253,7 @@ const secuenciaDe = (p) => { const s = typeof p?.secuencia === 'number' ? p.secu
 export function origenUltimaCarga() { return ultimoOrigenCarga; }
 
 export const AJUSTES_BASE = {
-  calidad: 'media', estacion: 'verano', clima: 'variable', duracion: 30, limiteFps: 'auto', virado: 'suave',
+  calidad: 'media', ultra: false, estacion: 'verano', clima: 'variable', duracion: 30, limiteFps: 'auto', virado: 'suave',
   volumen: 0.8, musica: true, volumenAmbiente: 1, volumenEfectos: 1, volumenMusica: 1, sensibilidad: 1, invertirY: false, fov: 70, movimientoCamara: 'normal', modo: 'relax', dificultad: 'normal', ranura: 1, autoCalidad: true, guiaPrimerDia: true, idioma: 'es',
   tamanoLetra: 'normal', paleta: 'normal', subtitulos: false, teclas: {},
   // 2.0: los sonidos del Desafío escritos con dirección, y el mando que vibra
@@ -395,6 +395,8 @@ function sanearAjustes(a) {
   return {
     versionAjustes: VERSION_AJUSTES,
     calidad: opcion(x.calidad, ['muybaja', 'baja', 'media', 'alta'], AJUSTES_BASE.calidad),
+    // 4.28.0: el nivel Ultra (efectos nuevos), sólo vale encima de Alta; ver src/ultra.js
+    ultra: x.ultra === true,
     estacion: opcion(x.estacion, ['verano', 'otono', 'invierno', 'auto'], AJUSTES_BASE.estacion),
     clima: opcion(x.clima, ['variable', 'despejado', 'lluvioso'], AJUSTES_BASE.clima),
     duracion: dur,
