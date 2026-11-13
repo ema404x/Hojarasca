@@ -204,8 +204,13 @@ export const TIPO_HELECHO = 1.25;
 // 3.5.2: el aTipo del coirón: pasto perenne de la estepa (entre 1.35 y 1.45). No se cierra con el
 // invierno como las flores: queda seco y pajizo, con la nieve en las puntas (ver color_vertex)
 export const TIPO_COIRON = 1.4;
+// 4.28.0 (B): los materiales que el nivel Ultra parcha (ver ultra-bosque.js): las plantas (copas, matas, hierbas: `copa` o con viento) y
+// el suelo. Acá sólo se anotan (referencias débiles); con Ultra apagado nadie los toca.
+export const REGISTRO_ULTRA_B = { veg: [], suelo: [], version: 0 };
+function anotarUltraB(lista, m) { REGISTRO_ULTRA_B[lista].push(new WeakRef(m)); REGISTRO_ULTRA_B.version++; }
 export function materialVegetal({ flex = 1, doble = false, lod = null, copa = false, detalle = true, soto = null } = {}) {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: doble ? THREE.DoubleSide : THREE.FrontSide });
+  if (copa || flex > 0) anotarUltraB('veg', m);
   m.userData.estilo = { copa, detalle };
   const uLod = {
     uLodModo: { value: lod?.modo || 0 },
@@ -592,6 +597,7 @@ export const SOMBRA_NUBES = `
 // ruido fino: el suelo se lee limpio de cerca y de lejos, y cuesta mucho menos.
 export function materialTerreno() {
   const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  anotarUltraB('suelo', m);   // 4.28.0 (B)
   m.onBeforeCompile = (sh) => {
     const conManchas = nivelTexturas() > 0;
     if (conManchas) sh.uniforms.uManchas = { value: texturaManchas() };

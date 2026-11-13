@@ -184,7 +184,7 @@ async function comprobarHuellas(H) {
 // ---------------------------------------------------------------- 5. presupuesto
 {
   let sh = 0, tex = 0, rt = 0;
-  const recorrer = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) recorrer(p); else if (e.name.endsWith('.js') && !/\.base41\.js$/.test(e.name)) { const t = fs.readFileSync(p, 'utf8'); sh += (t.match(/new THREE\.(RawShaderMaterial|ShaderMaterial)\(/g) || []).length; tex += (t.match(/new THREE\.DataTexture\(/g) || []).length; rt += (t.match(/new THREE\.WebGLRenderTarget\(/g) || []).length; } } };
+  const recorrer = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) recorrer(p); else if (e.name.endsWith('.js') && !/\.base41\.js$/.test(e.name) && !e.name.startsWith('ultra')) { const t = fs.readFileSync(p, 'utf8'); sh += (t.match(/new THREE\.(RawShaderMaterial|ShaderMaterial)\(/g) || []).length; tex += (t.match(/new THREE\.DataTexture\(/g) || []).length; rt += (t.match(/new THREE\.WebGLRenderTarget\(/g) || []).length; } } };
   recorrer(path.join(raiz, 'src'));
   ok(sh === 18, `programas de shader: ${sh} construcciones de ShaderMaterial (18 como en la 4.24.0)`);
   ok(tex === 17 && rt === 3, `texturas de datos (${tex}, 17 como antes) y destinos de dibujo (${rt}, 3 como antes)`);

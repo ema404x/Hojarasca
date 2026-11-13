@@ -38,6 +38,7 @@ import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS
 import { crearPuertas } from './puertas.js';
 import { generarVegetacion } from './vegetacion.js';
 import { crearPasto } from './pasto.js';
+import { crearUltraBosque } from './ultra-bosque.js';
 import { crearColisiones } from './colisiones.js';
 import { crearEstructuras } from './estructuras.js';
 import { crearObjetos } from './objetos.js';
@@ -524,6 +525,7 @@ function calidadPideReinicio() {
 }
 // 1.6: el juego mide los cuadros por segundo reales y acomoda la calidad solo.
 const autoCalidad = crearEstadoAutocalidad(ajustes.calidad);
+const ultraBosque = crearUltraBosque();   // 4.28.0 (B): sólo hace algo con Ultra prendido (ver ultra-bosque.js)
 
 // ------------------------------------------------------------------ render
 const lienzo = $('mundo');
@@ -11617,6 +11619,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (acumuladoVeg > presupuestoAdaptativo.intervalo(0.25, 1.7) && planificadorAntitirones.permitir('vegetacion', { pesada: true })) { veg.actualizar(cam, presupuestoAdaptativo.factorDetalle()); objetos.actualizar(cam); acumuladoVeg = 0; }
   camara.getWorldDirection(miraPasto);
   pasto.actualizar(cam, miraPasto, presupuestoAdaptativo.factorDetalle(0.78));
+  try { ultraBosque.revisarAjustes(ajustes, calidadActiva, dt, js, pasto, progreso.horas); } catch (e) { fallaSistema('ultra del bosque', e); }   // 4.28.0 (B)
 
   const k = T.indice(cam.x, cam.z);
   const ref = T.lugares.refugio;
@@ -12652,6 +12655,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     amigo: (k, puntos = 60) => { for (let i = 0; i < 12; i++) sumarAmistadDe(progreso, k, puntos, progreso.dia); return progreso.vecindad?.personas?.[k]?.p ?? null; } };
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__ultraBosque = ultraBosque;   // 4.28.0 (B)
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
