@@ -11,6 +11,7 @@ import { sanearGrabaciones } from './grabador.js';
 import { sanearHuerta, desdeCanteroViejo, claveCantero, sanearSemillaElegida } from './huerta.js';
 import { sanearGallineros } from './gallinero.js';
 import { sanearFeria } from './feria.js';
+import { sanearPanales } from './panales.js';
 import { sanearVisitas, visitasNuevas } from './visitas.js';
 import { sanearMajada, majadaNueva } from './majada.js';
 import { sanearCorral } from './corral.js';
@@ -701,6 +702,8 @@ function sanearProgreso(p) {
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,
     semillasJuntadas: p.semillasJuntadas && typeof p.semillasJuntadas === 'object' ? { dia: Math.floor(finito(p.semillasJuntadas.dia, 0)), arboles: arr(p.semillasJuntadas.arboles).filter(Number.isInteger).slice(0, 64) } : null,
+    // 4.27.0: los panales silvestres de los que ya sacaste miel ({ id: horas de recarga }); una partida vieja no trae ninguno
+    panales: sanearPanales(p.panales),
     humedadLena: Math.max(0, Math.min(1, finito(p.humedadLena, 0))),
     lomoUltimo: Math.floor(finito(p.lomoUltimo, -99)),
     ranura: Math.max(0, Math.min(7, Math.floor(finito(p.ranura, 0)))),

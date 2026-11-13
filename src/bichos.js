@@ -12,6 +12,7 @@ import { crearSombraContacto, actualizarSombraContacto } from './naturaleza-reac
 import { publicarAnimal, animalMasCercano, actividadFaunaPatagonica } from './ecosistema.js';
 import { actualizarMicroconducta, gestoMicroconducta } from './microconductas.js';
 import { crearPoolPosicional, limitarSombrasPorDistancia, consumirPresupuestoIA } from './rendimiento.js';
+import { PANALES, hayAbejasPanal } from './panales.js';
 
 // ---------------------------------------------------------------- modelos
 // 3.4: el ciervo colorado con su anatomía: cuerpo grande de pecho hondo, cuello fuerte (con
@@ -466,20 +467,61 @@ function mallaMariposa() {
   return { g, alas: a };
 }
 
-function mallaPanal(alto) {
-  const g = new THREE.Group();
-  const cera = lam('#b9924a');
-  for (let i = 0; i < 4; i++) g.add(esfera(cera, [0.26 - i * 0.03, 0.13, 0.1], [0, i * 0.22, 0]));
-  compactar(g, { suave: true });
-  const hueco = new THREE.Mesh(new THREE.CircleGeometry(0.1, 10), new THREE.MeshBasicMaterial({ color: '#1a1208' }));
-  hueco.position.set(0, 0.34, 0.085);
-  g.add(hueco);
-  g.position.y = alto;
-  return g;
+// 4.27.0: los panales (el del tronco hueco y los de miel que cuelgan de una rama) van fundidos en UNA sola malla, con las
+// coordenadas del mundo ya puestas: un solo dibujo, y sólo cuando hay un panal a menos de 70 m (antes eran dos, el panal y su hueco).
+// Cada pieza es { geo, color, esc, pos, rot } en el marco de su panal: origen donde sale del tronco, y hacia arriba, +z hacia afuera.
+const GEO_OVOIDE = new THREE.SphereGeometry(1, 10, 8), GEO_RAMA = new THREE.CylinderGeometry(1, 0.7, 1, 6);
+// el del tronco hueco: cuatro ovoides de cera clara
+function mallaPanal() {
+  return [0, 1, 2, 3].map((i) => ({ geo: GEO_OVOIDE, color: '#b9924a', esc: [0.26 - i * 0.03, 0.13, 0.1], pos: [0, i * 0.22, 0] }));
+}
+// el de miel: una rama corta que sale del tronco y, colgando de su punta, el panal de cera oscura con la tapa más clara
+function mallaPanalDeMiel() {
+  const oscura = '#6a4818', media = '#7d5a22', clara = '#b88c3a', K = 1.35;   // K: el tamaño del panal (se tiene que ver desde unos 15 m)
+  const ovoide = (color, ex, ey, ez, y) => ({ geo: GEO_OVOIDE, color, esc: [ex * K, ey * K, ez * K], pos: [0, y * K, 0.72] });
+  return [
+    { geo: GEO_RAMA, color: '#4b3823', esc: [0.06, 1.1, 0.06], pos: [0, 0, 0.32], rot: [Math.PI / 2, 0, 0] },
+    { geo: GEO_RAMA, color: '#4b3823', esc: [0.026, 0.2, 0.026], pos: [0, -0.1, 0.72] },
+    ovoide(clara, 0.13, 0.08, 0.08, -0.22), ovoide(media, 0.2, 0.2, 0.09, -0.34), ovoide(oscura, 0.25, 0.21, 0.1, -0.5),
+    ovoide(media, 0.19, 0.17, 0.085, -0.66), ovoide(oscura, 0.1, 0.1, 0.06, -0.78),
+  ];
+}
+const _pq = new THREE.Quaternion(), _pe = new THREE.Euler(), _pp = new THREE.Vector3(), _ps = new THREE.Vector3(), _pm = new THREE.Matrix4(), _pc = new THREE.Color();
+// Junta los panales en una geometría indexada con el color en los vértices (el material de la fauna). `lista`: [{ base: {x, y, z}, giro, piezas }].
+// Devuelve { geo, rangos } (rangos: [primer vértice, último+1] de cada panal, para sacar uno sin tocar a los demás).
+function fundirPanales(lista) {
+  const pos = [], nor = [], col = [], idx = [], rangos = [];
+  for (const p of lista) {
+    const base = new THREE.Matrix4().compose(_pp.set(p.base.x, p.base.y, p.base.z), _pq.setFromEuler(_pe.set(0, p.giro, 0)), _ps.set(1, 1, 1));
+    const ini = pos.length / 3;
+    for (const q of p.piezas) {
+      _pm.compose(_pp.set(...q.pos), _pq.setFromEuler(_pe.set(...(q.rot || [0, 0, 0]))), _ps.set(...q.esc)).premultiply(base);
+      const g = q.geo.clone().applyMatrix4(_pm);
+      _pc.set(q.color);
+      const v0 = pos.length / 3, P = g.attributes.position, N = g.attributes.normal;
+      for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); col.push(_pc.r, _pc.g, _pc.b); }
+      for (let i = 0; i < g.index.count; i++) idx.push(g.index.getX(i) + v0);
+      g.dispose();
+    }
+    rangos.push([ini, pos.length / 3]);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nor), 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+  geo.setIndex(new THREE.BufferAttribute(pos.length / 3 > 65535 ? new Uint32Array(idx) : new Uint16Array(idx), 1));
+  geo.computeBoundingSphere();
+  return { geo, rangos };
+}
+// Un panal talado (su árbol cayó): sus vértices se van bajo tierra
+function quitarPanalDeLaMalla(geo, rango) {
+  const P = geo.attributes.position;
+  for (let i = rango[0]; i < rango[1]; i++) P.setXYZ(i, 0, -1000, 0);
+  P.needsUpdate = true;
 }
 
 // ---------------------------------------------------------------- lógica
-export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos) {
+export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos, panalesDeMiel = []) {
   const r = rng(20260911);
   const tmp = new THREE.Vector3(), adelante = new THREE.Vector3();
   let cam = null, zoom = false;
@@ -597,27 +639,55 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
   }
   let proxCauquen = 20;
 
-  // ---------------------------------------------------------------- panal en un tronco
+  // ---------------------------------------------------------------- panal en un tronco (y, desde la 4.27.0, los de miel)
   let panal = null;
+  const panalesMiel = [];   // 4.27.0: { id, sitio, pos, arbol, enojo, rango, talado } (ver panales.js)
+  let nubePanales = null;   // la malla única de todos los panales y su única nube de abejas
   {
     const candidatos = veg.arboles.filter((a) => !a.sacado && a.esc > 1 && (a.especie === 'coihue' || a.especie === 'lenga'));
     const a = candidatos[Math.floor(r() * candidatos.length)];
+    const lista = [];
+    let pAbejas = null;
     if (a) {
       const ang = r() * 6.28;
-      const g = mallaPanal(a.y + 2.6);
-      g.position.set(a.x + Math.cos(ang) * (a.r - 0.05), a.y + 2.6, a.z + Math.sin(ang) * (a.r - 0.05));
-      g.rotation.y = Math.atan2(Math.cos(ang), Math.sin(ang));
-      escena.add(g);
-      // abejas entrando y saliendo
+      const base = { x: a.x + Math.cos(ang) * (a.r - 0.05), y: a.y + 2.6, z: a.z + Math.sin(ang) * (a.r - 0.05) };
+      const giro = Math.atan2(Math.cos(ang), Math.sin(ang));
+      lista.push({ base, giro, piezas: mallaPanal() });
+      // el hueco oscuro por donde entran y salen (el único dibujo aparte, y sólo con el panal del tronco a la vista)
+      const hueco = new THREE.Mesh(new THREE.CircleGeometry(0.1, 10), new THREE.MeshBasicMaterial({ color: '#1a1208' }));
+      hueco.position.set(base.x + Math.sin(giro) * 0.085, base.y + 0.34, base.z + Math.cos(giro) * 0.085);
+      hueco.rotation.y = giro;
+      // abejas entrando y saliendo (la misma nube sirve para los panales de miel: va al que tenga más cerca)
       const N = 26;
-      const geo = new THREE.BufferGeometry();
-      const pos = new Float32Array(N * 3);
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const puntos = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#e0b344', size: 0.09, sizeAttenuation: true, depthWrite: false }));
-      puntos.frustumCulled = false;
-      escena.add(puntos);
-      panal = { g, puntos, pos: new THREE.Vector3(g.position.x, a.y + 2.9, g.position.z), fases: Array.from({ length: N }, () => r()), arbol: a, enojo: 0 };
+      pAbejas = { N, fases: Array.from({ length: N }, () => r()) };
+      panal = { hueco, pos: new THREE.Vector3(base.x, a.y + 2.9, base.z), fases: pAbejas.fases, arbol: a, enojo: 0 };
       col.agregar({ x: a.x, z: a.z, r: a.r + 0.1, duenio: 'panal' });   // 4.0.3 (F4): con dueño, para sacarlo si talás el árbol
+    }
+    for (const s of panalesDeMiel || []) {
+      const giro = Math.atan2(Math.cos(s.ang), Math.sin(s.ang));
+      lista.push({ base: s.base, giro, piezas: mallaPanalDeMiel() });
+      panalesMiel.push({ id: s.id, sitio: s, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), arbol: s.arbol, enojo: 0, talado: false, rango: null });
+    }
+    if (lista.length) {
+      const { geo, rangos } = fundirPanales(lista);
+      const g = new THREE.Group();
+      g.name = 'panales';
+      const malla = new THREE.Mesh(geo, MAT_FAUNA);
+      malla.castShadow = true; malla.frustumCulled = false;   // una malla con todo el valle adentro: se prende sólo con un panal cerca
+      g.add(malla);
+      if (panal) g.add(panal.hueco);
+      g.visible = false;
+      escena.add(g);
+      const N = pAbejas ? pAbejas.N : 26;
+      const geoA = new THREE.BufferGeometry();
+      geoA.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+      const puntos = new THREE.Points(geoA, new THREE.PointsMaterial({ color: '#e0b344', size: 0.09, sizeAttenuation: true, depthWrite: false }));
+      puntos.frustumCulled = false; puntos.visible = false;
+      escena.add(puntos);
+      let k = 0;
+      if (panal) { panal.g = g; panal.puntos = puntos; panal.malla = malla; panal.rango = rangos[k++]; }
+      for (const c of panalesMiel) { c.rango = rangos[k++]; c.fases = Array.from({ length: N }, (_, i) => (i * 0.37) % 1); }
+      nubePanales = { g, malla, puntos, N, fasesMiel: Array.from({ length: N }, (_, i) => (i * 0.37) % 1) };
     }
   }
 
@@ -889,40 +959,60 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
       proxCauquen = 25 + r() * 45;
     }
 
-    // ----- panal
+    // ----- panal (el del tronco hueco y, desde la 4.27.0, los de miel: una sola malla y una sola nube de abejas)
     let panalSonido = null;
-    // 4.0.3 (F4): si talaste el árbol del panal, el panal y sus abejas se van (antes giraban sobre el tocón) y el cilindro de colisión del tronco se retira
-    if (panal && !panal.talado && panal.arbol.sacado) {
-      panal.talado = true; panal.g.visible = false; panal.puntos.visible = false;
-      try { col.eliminarPorDuenio?.('panal'); } catch { /* sin colisiones */ }
-    }
-    if (panal && !panal.talado) {
-      const d = Math.hypot(panal.pos.x - js.pos.x, panal.pos.z - js.pos.z);
-      const visible = d < 70;
-      panal.g.visible = (visible) && sale(panal);
-      panal.puntos.visible = visible && deDia;
-      if (visible) {
-        panalSonido = { pos: panal.pos, fuerza: clamp(1 - d / 24, 0, 1) * (deDia ? 1 : 0.45) * (1 + panal.enojo) };
-        if (panal.puntos.visible) {
-          const arr = panal.puntos.geometry.attributes.position.array;
-          for (let i = 0; i < panal.fases.length; i++) {
-            panal.fases[i] += dt * (0.18 + (i % 5) * 0.05);
-            if (panal.fases[i] > 1) panal.fases[i] -= 1;
-            const f = panal.fases[i], a = i * 2.4 + U() * (0.6 + panal.enojo * 2);
-            const rad = Math.sin(f * Math.PI) * (1.2 + panal.enojo * 2.2);
-            arr[i * 3] = panal.pos.x + Math.cos(a) * rad;
-            arr[i * 3 + 1] = panal.pos.y + Math.sin(f * 7 + i) * 0.5 + (f - 0.5) * 0.6;
-            arr[i * 3 + 2] = panal.pos.z + Math.sin(a) * rad;
-          }
-          panal.puntos.geometry.attributes.position.needsUpdate = true;
-        }
-        if (d < 4.5) {
-          panal.enojo = Math.min(1, panal.enojo + dt * 0.5);
-          if (panal.enojo > 0.6 && !panal.aviso) { panal.aviso = true; registrar('panal'); }
-        } else panal.enojo = Math.max(0, panal.enojo - dt * 0.3);
-        ver('panal', panal.pos, null);
-        if (!progreso.entradas.panal && mirando(panal.pos, 9, 26)) registrar('panal');
+    if (nubePanales) {
+      // 4.0.3 (F4): si talaste el árbol del panal, el panal y sus abejas se van (antes giraban sobre el tocón) y el cilindro de colisión del tronco se retira
+      if (panal && !panal.talado && panal.arbol.sacado) {
+        panal.talado = true; panal.hueco.visible = false; quitarPanalDeLaMalla(nubePanales.malla.geometry, panal.rango);
+        try { col.eliminarPorDuenio?.('panal'); } catch { /* sin colisiones */ }
       }
+      for (const c of panalesMiel) if (!c.talado && c.arbol.sacado) { c.talado = true; quitarPanalDeLaMalla(nubePanales.malla.geometry, c.rango); }
+      const hayMiel = hayAbejasPanal({ dia: m.dia, lluvia: m.lluvia, invierno: m.invierno });
+      let aVista = false, foco = null, dFoco = Infinity, objSonido = null, fSonido = 0;
+      const dist = (c) => Math.hypot(c.pos.x - js.pos.x, c.pos.z - js.pos.z);
+      if (panal && !panal.talado) {
+        const d = dist(panal);
+        if (d < PANALES.vista) {
+          aVista = true;
+          panal.hueco.visible = sale(panal);
+          if (deDia) { foco = panal; dFoco = d; }
+          fSonido = clamp(1 - d / 24, 0, 1) * (deDia ? 1 : 0.45) * (1 + panal.enojo); objSonido = panal;
+          if (d < 4.5) {
+            panal.enojo = Math.min(1, panal.enojo + dt * 0.5);
+            if (panal.enojo > 0.6 && !panal.aviso) { panal.aviso = true; registrar('panal'); }
+          } else panal.enojo = Math.max(0, panal.enojo - dt * 0.3);
+          ver('panal', panal.pos, null);
+          if (!progreso.entradas.panal && mirando(panal.pos, 9, 26)) registrar('panal');
+        }
+      }
+      for (const c of panalesMiel) {
+        if (c.talado) continue;
+        const d = dist(c);
+        if (d >= PANALES.vista) continue;
+        aVista = true;
+        if (hayMiel && d < PANALES.abejas.radio && d < dFoco) { foco = c; dFoco = d; }
+        c.enojo = d < 4.5 ? Math.min(1, c.enojo + dt * 0.5) : Math.max(0, c.enojo - dt * 0.3);
+      }
+      // 4.27.0: la nube va al panal con abejas que tengas más cerca; el zumbido, al que más fuerte suena (el de miel sólo suena con sus abejas afuera)
+      if (foco && foco !== panal) { const f = clamp(1 - dFoco / 24, 0, 1) * (1 + foco.enojo); if (f > fSonido) { fSonido = f; objSonido = foco; } }
+      nubePanales.g.visible = aVista;
+      const puntos = nubePanales.puntos;
+      puntos.visible = !!foco;
+      if (foco) {
+        const arr = puntos.geometry.attributes.position.array, fases = foco.fases;
+        for (let i = 0; i < fases.length; i++) {
+          fases[i] += dt * (0.18 + (i % 5) * 0.05);
+          if (fases[i] > 1) fases[i] -= 1;
+          const f = fases[i], a = i * 2.4 + U() * (0.6 + foco.enojo * 2);
+          const rad = Math.sin(f * Math.PI) * (1.2 + foco.enojo * 2.2);
+          arr[i * 3] = foco.pos.x + Math.cos(a) * rad;
+          arr[i * 3 + 1] = foco.pos.y + Math.sin(f * 7 + i) * 0.5 + (f - 0.5) * 0.6;
+          arr[i * 3 + 2] = foco.pos.z + Math.sin(a) * rad;
+        }
+        puntos.geometry.attributes.position.needsUpdate = true;
+      }
+      if (objSonido && fSonido > 0) panalSonido = { pos: objSonido.pos, fuerza: fSonido };
     }
 
     // ----- mangangás
@@ -1255,6 +1345,8 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
     actualizar: (dt, jugador, camara, m) => { reloj += dt; return actualizar(dt, jugador, camara, m); },
     sujetos: () => sujetos,
     rastros: () => rastros,
-    _debug: { ciervos, jabalies, liebres, coipos, cauquenes, abejorros, mariposas, murcielagos, zorzales, lagartijas, guanacos, panal },
+    // 4.27.0: los panales de miel se alborotan cuando les sacás un frasco (las abejas salen en nube y el zumbido sube)
+    alborotarPanal: (id) => { const c = panalesMiel.find((x) => x.id === id); if (c) c.enojo = 1; },
+    _debug: { ciervos, jabalies, liebres, coipos, cauquenes, abejorros, mariposas, murcielagos, zorzales, lagartijas, guanacos, panal, panalesMiel, nubePanales: () => nubePanales },
   };
 }

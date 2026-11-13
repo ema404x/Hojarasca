@@ -111,6 +111,8 @@ export const INTERACCIONES = [
   { id: 'cantero', cuando: (c, enE) => aMano(c) && c.cerca('cantero', enE), aviso: (c, k) => c.textoAvisoCantero(k), hacer: (c, k) => c.usarCantero(k) },
   { id: 'gallinero', cuando: (c, enE) => aMano(c) && c.cerca('gallinero', enE), aviso: (c, g) => c.textoGallinero(g), hacer: (c, g) => c.usarGallinero(g) },
   { id: 'telar', cuando: (c, enE) => aMano(c) && c.cerca('telar', enE), aviso: (c) => c.textoTelar(), hacer: (c) => c.tejer() },
+  // 4.27.0: un panal silvestre colgado de un árbol del bosque, a 2,5 m o menos y mirándolo (ver panales.js); el «Anotar lenga» del tronco donde cuelga no le gana
+  { id: 'panal', cuando: (c, enE) => libre(c.js) && (!c.objetivo || c.objetivo.tipo === 'arbol') && c.cerca('panal', enE), aviso: (c, h) => c.textoPanal(h), hacer: (c, h) => c.sacarMielDelPanal(h) },
   // 2.3: colmena, ahumadero, vivero, leñera y las obras que trabajan (sin texto, el aviso sigue; la E la usa igual)
   { id: 'obra-trabaja', cuando: (c, enE) => aMano(c) && c.cerca('obraTrabaja', enE), sigue: true, aviso: (c, o) => c.avisoObraQueTrabaja(o), hacer: (c, o) => c.usarObraQueTrabaja(o) },
   // 3.6: parado en el lote de una obra de la aldea, E aporta lo que tengas

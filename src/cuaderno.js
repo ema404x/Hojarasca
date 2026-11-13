@@ -431,6 +431,9 @@ ENTRADAS.push(
 ENTRADAS.push(
   { id: 'miel', seccion: 'huerta', nombre: 'Miel', cientifico: 'de tu colmena', modo: 'cosechar', pista: 'Armá una colmena (O → Trabajo) cerca de la huerta y esperá unos días de sol.',
     texto: 'Las abejas salen con sol y calor, y vuelven cargadas de todo lo que florece: el notro, el amancay, la rosa mosqueta, lo que sembraste. Por eso la miel de cada valle sabe distinta. En invierno no salen: se quedan apretadas adentro, calentándose entre ellas.' },
+  // 4.27.0: la miel de los panales del bosque (la primera vez que sacás un frasco)
+  { id: 'panal-miel', seccion: 'huerta', nombre: 'Panal silvestre', cientifico: 'miel del bosque', modo: 'cosechar', pista: 'En los árboles grandes del bosque, de día y con sol se oyen las abejas.',
+    texto: 'Las abejas asilvestradas cuelgan su panal de una rama baja, lejos de los caminos. Con sol y sin viento dejan sacar un frasco; después necesitan unos días de sol para volver a llenarlo.' },
   { id: 'trucha-fresca', seccion: 'huerta', nombre: 'Trucha para ahumar', cientifico: 'dos por día', modo: 'cosechar', pista: 'Con un ahumadero armado, de lo que pescás te quedás con dos truchas por día.',
     texto: 'Las truchas no son de acá: llegaron en tren, en tachos con hielo, hace más de cien años. Se llevan pocas —el permiso de pesca de la zona pide devolver casi todo—, y las nativas, la perca y el pejerrey, vuelven siempre al agua.' },
   { id: 'trucha-ahumada', seccion: 'huerta', nombre: 'Trucha ahumada', cientifico: 'del ahumadero', modo: 'cosechar', pista: 'Colgá truchas en el ahumadero con un tronco de leña y esperá medio día.',

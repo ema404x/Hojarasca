@@ -199,6 +199,8 @@ import { ESPEJO_QUE_SE_USA } from './planos-espejo.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
+// 4.27.0: los panales silvestres
+import { PANALES, TEXTO_PANAL, elegirPanales, avanzarPanales, usarPanal, panalConMiel, panalAlAlcance, hayAbejasPanal, colmenaDisponible } from './panales.js';
 import { AHUMADERO, TRUCHAS, sanearAhumadero, teLaQuedas, avanzarAhumado, usarAhumadero, avisoAhumadero } from './ahumadero.js';
 import { VIVERO, ARBOLES_VIVERO, sanearVivero, sanearJuntadas, puedeJuntarSemilla, usarVivero, avisoVivero, plantinDisponible } from './vivero.js';
 import { LENA, sanearLenera, sanearHumedad, humedecer, guardarEnLenera, avisoLenera, lenaParaPrender, horasEntumecido, desentumecer } from './lena.js';
@@ -679,7 +681,7 @@ window.addEventListener('resize', () => {
 let modo = 'carga';
 let escenasMundo = null;   // 4.14.0: el director de escenas (se arma con el jugador)
 let trucosJuego = null;   // 4.5: la consola de códigos (se arma abajo, con las preguntas del juego)
-let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, gente, perro, tren, pesca, kayak, fotos, linterna;
+let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, panalesSilvestres = [], gente, perro, tren, pesca, kayak, fotos, linterna;
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
 let modos = null;   // 3.1: el desafío del día (ver modos-juego.js)
 // 3.6.1: alrededor de la aldea (desde el borde de sus calles y edificios) no se construye
@@ -946,7 +948,9 @@ async function construir() {
   // 2.8: cuántos animales, según la receta con que empezó la partida (Tu partida)
   fauna = await paso('Despertando la fauna patagónica', 86, () => crearFauna(T, veg, col, escena, sonido, registrar, progreso, { animales: factorAnimales(progreso) }));
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
-  bichos = await paso('Escondiendo un panal en un tronco', 91, () => crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos));
+  // 4.27.0: ocho panales de miel en los árboles grandes del bosque (sólo en el Relax y la Historia; los mismos para una misma partida)
+  panalesSilvestres = esDesafio ? [] : elegirPanales(veg.arboles, { camino: (x, z) => Math.min(T.val(T.distSendero, x, z), T.val(T.distRiel, x, z)), aldea: (x, z) => distanciaAldea(x, z), agua: (x, z) => !!T.agua(x, z), altura: (x, z) => T.altura(x, z) });
+  bichos = await paso('Escondiendo un panal en un tronco', 91, () => crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos, panalesSilvestres));
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
@@ -7639,8 +7643,10 @@ function aserrar() {
 }
 
 // ------- el modo obra: elegir plano, marcar el lugar, levantar por etapas
+// 4.27.0: en la Historia la colmena aparece en el menú recién cuando sacaste miel de un panal silvestre (en el Relax está siempre)
+const colmenaALaVista = () => colmenaDisponible({ desafio: esDesafio, historia: ajustes.relaxTipo === 'historia', sacoMiel: !!progreso.entradas?.['panal-miel'] });
 function planosDeCategoria(clave = categoriaObra) {
-  const lista = PLANOS_JUEGO.filter((p) => p.categoria === clave && !p.soloMejora && (!p.requierePlano || progreso.desafio?.planos?.includes(p.requierePlano)));
+  const lista = PLANOS_JUEGO.filter((p) => p.categoria === clave && !p.soloMejora && (!p.requierePlano || progreso.desafio?.planos?.includes(p.requierePlano)) && (p.id !== 'colmena' || colmenaALaVista()));
   return lista.length ? lista : PLANOS_JUEGO;
 }
 function totalPaginasObra(clave = categoriaObra) {
@@ -8494,6 +8500,8 @@ function actualizarTendales() {
       if (avanzarAhumado(datosDe(o, 'ahumadero', sanearAhumadero), horas)) nota('Las truchas ya están ahumadas', 'Están en el ahumadero, esperándote');
     }
   }
+  // 4.27.0: los panales silvestres se recargan con el sol (cinco días, fuera del invierno), estés donde estés
+  if (!esDesafio && progreso.panales) avanzarPanales(progreso.panales, horas, { noche: 1 - (luzUltimaFoto?.dia ?? 1), invierno: U.uInvierno.value, lluvia: clima.estado.lluvia });
   // 2.3: la leña que llevás encima se moja con la lluvia y se seca despacio
   const js = jugador.estado;
   { const bajoTecho = !!(obras?.dentro?.(js.pos) || obras?.bajoCubierta?.(js.pos)); let h = sanearHumedad(progreso.humedadLena); for (const s of tramos) h = humedecer(h, s.horas, { lluvia: s.lluvia, bajoTecho }); progreso.humedadLena = h; }
@@ -9241,6 +9249,32 @@ function arbolParaSemilla() {
   const r = puedeJuntarSemilla({ i, especie: arbol.especie, esc: arbol.esc }, { otono: U.uOtono.value, juntadas: progreso.semillasJuntadas });
   return r.ok ? { arbol, i, semilla: r.semilla } : null;
 }
+// 4.27.0: los panales silvestres (ver panales.js): E a 2,5 m o menos, mirándolo, saca un frasco de miel; se recarga con cinco días de sol
+const _dirPanal = new THREE.Vector3();
+const panalesEstado = () => (progreso.panales && typeof progreso.panales === 'object' ? progreso.panales : (progreso.panales = {}));
+function panalCerca() {
+  if (esDesafio || !panalesSilvestres.length || !camara) return null;
+  camara.getWorldDirection(_dirPanal);
+  return panalAlAlcance(panalesSilvestres, camara.position, _dirPanal);
+}
+const textoPanal = (h) => (panalConMiel(panalesEstado(), h.sitio.id) ? TEXTO_PANAL.aviso : TEXTO_PANAL.avisoVacio);
+function sacarMielDelPanal(h) {
+  const est = panalesEstado();
+  if (panalConMiel(est, h.sitio.id) && !cabeJuntar('miel', PANALES.frascos)) return;   // 4.7 carga: sin lugar, la miel queda en el panal
+  const r = usarPanal(est, h.sitio.id);
+  if (r.accion === 'sacar') {
+    const primera = !progreso.entradas['panal-miel'];
+    const total = sumarEntrada('miel', r.frascos);
+    registrar('panal-miel');
+    sonido.juntar();
+    bichos?.alborotarPanal?.(h.sitio.id);
+    nota('Sacaste un frasco de miel', `Llevás ${total}. Las abejas se alborotan`, true);
+    // en la Historia, el primer panal es el que da las abejas para tu colmena (el menú de obras la suma desde ahora)
+    if (primera && ajustes.relaxTipo === 'historia') { nota(TEXTO_PANAL.abejas[0], TEXTO_PANAL.abejas[1], true); if (modoObra) dibujarPanelObra(); }
+    refrescarBarra(true);
+    guardar();
+  } else nota(TEXTO_PANAL.vacio[0], TEXTO_PANAL.vacio[1]);
+}
 function juntarSemilla(s) {
   if (!cabeJuntar(s.semilla, 1)) return;   // 4.7 carga: con la mochila llena la semilla queda en el árbol
   progreso.semillasJuntadas.arboles.push(s.i);
@@ -9262,6 +9296,22 @@ function revisarColmenas(dt) {
     if (seAlborotan(d, true, alborotoColmena)) {
       alborotoColmena = 0;
       nota('Las abejas se alborotan', 'Pasá despacio al lado de la colmena');
+      return;
+    }
+  }
+}
+// 4.27.0: y pasar corriendo al lado de un panal silvestre, con las abejas afuera, también las alborota (no pican: avisan)
+let alborotoPanal = 99;
+function revisarPanales(dt) {
+  alborotoPanal += dt;
+  const js = jugador.estado;
+  if (!js.corriendo || esDesafio || !panalesSilvestres.length || !hayAbejasPanal({ dia: luzUltimaFoto?.dia ?? 1, lluvia: clima.estado.lluvia, invierno: U.uInvierno.value })) return;
+  for (const s of panalesSilvestres) {
+    if (s.arbol?.sacado) continue;
+    if (seAlborotan(Math.hypot(s.pos.x - js.pos.x, s.pos.z - js.pos.z), true, alborotoPanal)) {
+      alborotoPanal = 0;
+      bichos?.alborotarPanal?.(s.id);
+      nota(TEXTO_PANAL.alboroto[0], TEXTO_PANAL.alboroto[1]);
       return;
     }
   }
@@ -10784,6 +10834,7 @@ let ambienteBichos = null;
 let estadoTren = null;
 let acumuladoBuscar = 0, acumuladoVecino = 99, acumuladoInteraccion = 99;
 const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
+let cachePanal = null;   // 4.27.0: el panal silvestre que tenés a mano (ver panales.js)
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
@@ -10852,6 +10903,7 @@ function cercaInteraccion(nombre, enE) {
     case 'obraAldea': return enE ? aldeaGente && aldeaGente.obraCerca(js.pos) : cacheObraAldea;
     case 'acopio': return enE ? hayAcopioCerca(RADIO_ACOPIO_MANO) : cacheAcopio;
     case 'semillaArbol': return enE ? arbolParaSemilla() : cacheSemillaArbol;
+    case 'panal': return enE ? panalCerca() : cachePanal;   // 4.27.0
     default: return null;
   }
 }
@@ -10986,6 +11038,7 @@ const ctxInteraccion = {
   tendalCerca: () => tendalCerca(), avisoTendal: (t) => avisoTendal(datosTendal(t), progreso.entradas) || 'Mirar el tendal', usarElTendal: () => usarElTendal(),
   rastroAlPie: () => rastroAlPie(), mirarRastro: () => mirarRastro(),
   textoHuellas: (ra) => (progreso.entradas[ra.R.entrada] ? `Rastro de ${ra.R.nombre}: ¿para dónde va?` : 'Mirar las huellas'),
+  textoPanal: (h) => textoPanal(h), sacarMielDelPanal: (h) => sacarMielDelPanal(h),   // 4.27.0
   textoSemilla: (s) => `Juntar semilla de ${ARBOLES_VIVERO[s.arbol.especie].nombre}`, juntarSemilla: (s) => juntarSemilla(s),
   usarObjetivo,
   // las otras teclas y los «·»
@@ -11555,7 +11608,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (modo === 'jugando') { if (!foto.activo) actualizarTendales(); actualizarRastros(dtReal); revisarEstacion(); }
   if (modo === 'jugando') actualizarMaquinas(dt);   // 2.9: el molino, el aserradero y la estación
   est?.molinoPaisaje?.actualizar(dt, camara.position.x, camara.position.z);   // 4.0: el agua que corre y los tulipanes lejanos se ocultan
-  if (modo === 'jugando' && !desafio) { revisarColmenas(dtReal); actualizarLomo(dtReal); }
+  if (modo === 'jugando' && !desafio) { revisarColmenas(dtReal); revisarPanales(dtReal); actualizarLomo(dtReal); }
   actualizarTiempo(dt);
 
   const cam = camara.position;
@@ -11987,6 +12040,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheCantina = cantinaJuego ? (cantinaJuego.accion(js) || teJuego?.accion(js) || null) : null;   // 3.9.0 (3.9.2: y la casa de té)
       cachePena = penaJuego ? penaJuego.accion(js) : null;   // 3.9.1
       cacheSemillaArbol = arbolParaSemilla();
+      cachePanal = panalCerca();   // 4.27.0
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
       if (matasHuerta && canterosTerminados().length !== canterosVistos) refrescarHuerta();
@@ -12474,6 +12528,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __bucle: () => bucle(0, true),
     __mochilaCarga: () => ({ capacidad: capacidad(progreso, ctxCarga()), ocupacion: ocupacion(progreso, ctxCarga()) }),   // 4.7 carga (pruebas/humo-4-7-carga.cjs)
     __lugarEn: (k, n) => lugarEn(k, n),
+    __panales: () => ({ sitios: panalesSilvestres, estado: progreso.panales, cerca: panalCerca() }),   // 4.27.0 (pruebas/humo-4-27-0-a.cjs)
     __gpuMs: () => msGpu,   // 4.3.1: lo que tardó la placa en el último cuadro leído (herramientas/medir-caminata.cjs; -1 si no se mide)
     // 3.6.1 (vecinos): el aviso de ahora mismo (sin esperar los relojes de lo que hay adelante), para
     // comparar en cada lugar lo que dice el aviso con lo que hace E (humo-3-6-1-vecinos.cjs)
