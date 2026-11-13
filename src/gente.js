@@ -891,6 +891,7 @@ export const caminarHaciaParaPruebas = (...a) => caminarHacia(...a);   // (4.25.
 // dejó lejos vuelve en línea recta y se trababa para siempre contra el lago (Fermín, de la puerta del refugio al galpón) o contra una pared (Josefina, a 4 m del mirador).
 // Como el trabado de la aldea (aldea-gente.js): si en TRABA_RUTA_S segundos no ganó TRABA_RUTA_M metros, llega de una. Con vos al lado no cuenta (te está mirando).
 export const TRABA_RUTA_S = 12, TRABA_RUTA_M = 0.5, TRABA_RUTA_AL_LADO = 7.5;
+export const PARADA_MIRAR_S = 8;   // 4.26.5: cuánto se frena a mirarte el vecino que camina
 export function trabadoEnRuta(g, etapa, dJugador, dt) {
   if (!etapa || !Number.isFinite(etapa.x) || !Number.isFinite(etapa.z)) return false;
   const falta = Math.hypot(etapa.x - g.pos.x, etapa.z - g.pos.z);
@@ -1181,6 +1182,10 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       // 3.7.1 (mundo): ni la que vuelve al refugio ni la que camina con vos (`enLejano`, `conVos`)
       let cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos && !g.enCita;
       if (g.enLejano || g.conVos || g.alAmor || g.sinFrenar) cerquita = false;   // (3.9.1: y la de la cantina)
+      // 4.26.5: el de la aldea que camina se frena a mirarte sólo unos segundos: parado vos a menos de 7 m de su calle, no se movía más (la abuela se quedaba
+      // 20 minutos del juego en la vereda y el aviso de «trabado» no cuenta a los que tenés cerca). Pasados PARADA_MIRAR_S sigue su camino hasta que se aleja
+      if (!(d < 7) || !g.camino?.length) g.__miraT = 0;
+      else if (cerquita) { g.__miraT = (g.__miraT || 0) + dt; if (g.__miraT > PARADA_MIRAR_S) cerquita = false; }
       let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
       if (g.camino && !charlando && !cerquita) {
         // 3.6: con horario (la gente de la aldea): `camino` son los puntos que faltan (por las
