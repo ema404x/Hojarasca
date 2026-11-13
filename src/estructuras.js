@@ -12,6 +12,7 @@ import { crearDecoRefugio } from './personal-casa-mundo.js';
 import { asentadoActivo, asentarGeometria, teselarGeometria, remarcarRangos, huellaDe, semillaDe } from './asentado.js';
 import { crearPanoBandera, registrarBandera } from './bandera-viento.js';
 import { cubierta } from './techo-lluvia.js';
+import { apoyoEnPlano } from './apoyo-plano.js';
 // 4.0 (prototipo): faroles encendidos, halos, fuego y ventanales de la casa de té
 import { crearLuzCasaTe, ferreteriaFarolColgado, ferreteriaFarolMesa } from './casa-te-luz.js';
 
@@ -119,8 +120,12 @@ function exteriorCasaTe({ c, col, grupoTe, sitio, rot, W, D, vidrio, w, sueloLoc
   // ---- el camino de lajas, del escalón hacia el sendero
   for (let k = 0; k < 9; k++) {
     const lz = D / 2 + 3.5 + k * 0.5, lx = Math.sin(k * 1.3) * 0.18 + (hs(k) - 0.5) * 0.18;
-    const y = suelo(lx, lz);
-    c.agregar(new THREE.BoxGeometry(0.62 + hs(k + 3) * 0.2, 0.05, 0.4 + hs(k + 7) * 0.12), { color: ['#8a8378', '#7d766c', '#948c80'][k % 3], tipo: 4, matriz: matriz([lx, y + 0.015, lz], [0, hs(k) * 0.6, 0]), variar: 0.1 });
+    // 4.26.5: cada laja se apoya en el plano del terreno que tiene abajo (la altura de los cuatro lados, no sólo la del centro): en la Aldea el camino baja
+    // hacia la calle (28 % medido) y la laja plana quedaba con una punta colgada hasta 24 cm sobre el pasto y la otra hundida hasta 11 cm en el ripio
+    const w = 0.62 + hs(k + 3) * 0.2, d = 0.4 + hs(k + 7) * 0.12, giro = hs(k) * 0.6, cg = Math.cos(giro), sg = Math.sin(giro);
+    const alturaA = (a, b) => suelo(lx + a * cg + b * sg, lz - a * sg + b * cg);   // (a: a lo largo de la laja; b: a lo ancho)
+    const { y, inclinaX, inclinaZ } = apoyoEnPlano(alturaA, w, d);   // (apoyo-plano.js)
+    c.agregar(new THREE.BoxGeometry(w, 0.05, d), { color: ['#8a8378', '#7d766c', '#948c80'][k % 3], tipo: 4, matriz: matriz([lx, y + 0.015, lz], [inclinaX, giro, inclinaZ]), variar: 0.1 });
   }
   // ---- la pizarra con la carta del día, de caballete, junto al camino
   {
