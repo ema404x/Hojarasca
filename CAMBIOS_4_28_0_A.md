@@ -53,8 +53,7 @@ En `C:\Users\Andres\AppData\Local\Temp\hx\a4280\`: Alta = `base2-verano`, `base-
   12 cm del ojo y a medio metro ya medía media pantalla (con nieve el frío lo prende siempre; aparecía según en qué momento del soplo caía
   la captura). Medido en la partida: bocanadas vivas a 0,52–0,55 m del ojo. Arreglo (sin costo): el tuyo sale 60 cm adelante y más abajo,
   más tenue; toda bocanada se apaga a menos de 1,2 m del ojo y tiene tope de tamaño en pantalla. Después: a 0,88–1 m, sin mancha
-  (capturas en `hx4280
-ieve-u4` antes y `nieve-u5` después).
+  (capturas en hx/a4280/nieve-u4 antes y hx/a4280/nieve-u5 después).
 
 ## Rendimiento (costo por cuadro, placa, 1080p de lienzo, la herramienta de la auditoría con lastre, 3 rondas, ventana visible, notebook)
 | | Alta (r1, r2, r3) | Ultra final, 9 pasos (r1, r2, r3) | Ultra con 14 pasos |
