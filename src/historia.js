@@ -23,6 +23,7 @@ import { sanearEscenas, escenasNuevas } from './escenas.js';
 import { nocheNueva, sanearNoche } from './historia-noche.js';
 // 4.15.0: los textos del acto I (el cuaderno de lo raro)
 import { TEXTO_ACTO1 } from './historia-texto-acto1.js';
+import { MARCA_VUELTA } from './campana-anden.js';
 // 4.16.0: y los del acto II (los escribe otro agente; mismo formato)
 import { TEXTO_ACTO2 } from './historia-texto-acto2.js';
 // 4.17.0: y los del acto III (el cuaderno de lo raro)
@@ -359,7 +360,7 @@ export const CAPITULOS = [
       { id: 'ramon', tecla: 'E', texto: 'Hablá con Don Ramón: pasa con la majada frente al refugio', vecinos: true, hecho: hablar('ramon', 'alero') },
       { id: 'viaje', tecla: 'E', texto: 'Tomá la trochita a la Aldea de los Duendes', hecho: (s) => s.viaje },
       { id: 'hacha', tecla: 'E', texto: 'Conseguí el hacha en el almacén de Ercilia', hecho: (s) => s.hacha },
-      { id: 'talar', tecla: 'H', texto: 'Talá un árbol seco: tres hachazos (al pehuén no se lo toca)', hecho: (s, b) => desde(s, b, 'talados') >= 1 },
+      { id: 'talar', tecla: 'H', texto: (s) => 'Talá un árbol seco: tres hachazos (al pehuén no se lo toca)' + (s.viaje && s.hacha && s.temas && !s.temas.has(MARCA_VUELTA) ? ' · Tocá la campanita del andén para llamar a la trochita.' : ''), hecho: (s, b) => desde(s, b, 'talados') >= 1 },
       { id: 'banco', tecla: 'O', texto: 'Levantá un banco de carpintero (O → Trabajo)', hecho: tiene('banco-trabajo') },
       { id: 'alero', tecla: 'E', texto: 'Arreglá el alero del refugio: cuatro tablas (E en el alero)', meta: 4, cuenta: (s) => s.reparaciones.alero || 0 },
       { id: 'bolsa', tecla: '·', texto: 'Decidí qué hacer con la bolsa del molinero', hecho: decision('bolsa') },

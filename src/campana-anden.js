@@ -20,6 +20,7 @@
 export const CAMPANA_ANDEN = Object.freeze({
   radio: 8,      // metros desde el centro del andén (los andenes miden 9 y 18 m)
   umbral: 45,    // segundos: con menos, el tren «ya viene» (el mismo número que usa la escena de Elsa)
+  umbralHistoria: 25,   // 4.26.4: en la Historia, hasta la primera vuelta en trochita (subirse en la Aldea), la campana ya lo llama con más de 25 s
   metros: 135,   // dónde aparece la locomotora, antes del poste (fuera de la vista desde el andén)
   frenando: 60,  // metros: el tren que entra a otro andén ya está frenando ahí (ver trochita.js `actualizar`)
   alcance: 3,    // 4.26.1: metros (en el piso) del jugador a la campana para que la E la ofrezca
@@ -37,6 +38,13 @@ export function mirandoLaCampana(js, campana) {
   const yaw = Number(js.yaw) || 0;
   return (-Math.sin(yaw) * dx - Math.cos(yaw) * dz) / d >= CAMPANA_ANDEN.frente;
 }
+
+// 4.26.4: la marca (en los temas de la Historia) de la primera vuelta en trochita: subirse en la Aldea de los Duendes
+export const MARCA_VUELTA = 'mundo:vuelta-trochita';
+// A partir de cuántos segundos la campana trae el tren: 25 en la Historia mientras no hiciste la primera vuelta; 45 en lo demás
+export const umbralDeCampana = (d) => (d && d.historia && !d.vuelta ? CAMPANA_ANDEN.umbralHistoria : CAMPANA_ANDEN.umbral);
+// ¿Ya hiciste la primera vuelta? (`temas`: los temas de la Historia guardados, un objeto)
+export const vueltaHecha = (temas) => !!temas && typeof temas === 'object' && Object.hasOwn(temas, MARCA_VUELTA);
 
 // Las escenas de Elsa que se quedan con la campana (ver historia-disparadores.js)
 export const ESCENA_ELSA_IDA = 'elsa-anden';
@@ -66,7 +74,7 @@ export function decidirCampana(f, o = {}) {
   if (f.varado) return r('varado');
   if (f.nieve) return r('nieve');
   if (f.enOtra) return r('otra');
-  if (!(Number(f.espera) > CAMPANA_ANDEN.umbral)) return r('cerca');
+  if (!(Number(f.espera) > (Number(o.umbral) || CAMPANA_ANDEN.umbral))) return r('cerca');
   return r('viene', true);
 }
 

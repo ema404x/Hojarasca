@@ -178,7 +178,7 @@ const estTren = (o = {}) => ({ s: 0, vel: 7, objetivo: 7, parado: 0, proxima: nu
       progreso: { historia: o.historia ?? { activa: false, capitulo: 0, escenas: { vistas: {} } }, entradas: o.entradas || {} },
       esDesafio: !!o.desafio, desafio: o.desafio ? { hayAtaque: () => !!o.ataque } : null,
       mirandoLaCampana: C.mirandoLaCampana, mecanicasAldea: { dondeCampana: () => ({ x: -302, y: 14.4, z: 78.5 }), tocarCampana: () => { R.sonidos.push({ x: -302, y: 14.4, z: 78.5, aldea: true }); return { x: -302, y: 14.4, z: 78.5 }; } },   // (4.26.1)
-      CAPITULOS: CAP, CAMPANA_ANDEN: C.CAMPANA_ANDEN, decidirCampana: C.decidirCampana, ofreceCampana: C.ofreceCampana, textoCampana: C.textoCampana, campanaDeElsa: C.campanaDeElsa,
+      CAPITULOS: CAP, CAMPANA_ANDEN: C.CAMPANA_ANDEN, decidirCampana: C.decidirCampana, ofreceCampana: C.ofreceCampana, textoCampana: C.textoCampana, campanaDeElsa: C.campanaDeElsa, umbralDeCampana: C.umbralDeCampana, vueltaHecha: C.vueltaHecha,
       sonido: { campana: (p) => R.sonidos.push(p) },
       nota: (t, s) => R.notas.push([t, s]),
       fundirCorto: (f) => { R.fundidos++; if (o.alFundir) o.alFundir(env); f(); },
@@ -257,7 +257,7 @@ const MUT = [
   ['main.js', "  if (!tren?.estadoDelLlamado || !js || js.enTren || js.sentado) return null;", "  if (!tren?.estadoDelLlamado || !js || js.enTren) return null;", 'se toca sentado'],
   ['main.js', "esEstacion: p === tren.estacion,", "esEstacion: false,", 'main.js no ve que es la estación de Elsa'],
   ['main.js', "const elsa = campanaDeElsa({ historia: !esDesafio && !!h?.activa,", "const elsa = campanaDeElsa({ historia: false,", 'main.js no le avisa a la campana de la Historia'],
-  ['main.js', "{ ataque: !!desafio?.hayAtaque?.(), elsa }", "{ ataque: false, elsa }", 'main.js no mira el ataque'],
+  ['main.js', "{ ataque: !!desafio?.hayAtaque?.(), elsa, umbral", "{ ataque: false, elsa, umbral", 'main.js no mira el ataque'],
   ['main.js', "  if (d.ok) fundirCorto(() => { try { if (!jugador.estado.enTren) tren.traerAlAnden(p, CAMPANA_ANDEN.metros); }", "  if (d.ok) { try { if (!jugador.estado.enTren) tren.traerAlAnden(p, CAMPANA_ANDEN.metros); }", 'el tren aparece sin fundido'],
   ['main.js', "  if (d.ok) fundirCorto(() => { try { if (!jugador.estado.enTren) tren.traerAlAnden(", "  if (d.ok) fundirCorto(() => { try { if (true) tren.traerAlAnden(", 'el tren se mueve con el jugador ya arriba'],
   ['main.js', "  if (d.ok) fundirCorto(", "  if (d.ok || d.motivo === 'cerca') fundirCorto(", 'hay fundido con el tren que ya viene'],

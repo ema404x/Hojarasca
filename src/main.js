@@ -50,7 +50,7 @@ import { crearPerro } from './perro.js';
 import { fijarCalidadPiel } from './animales-piel.js';
 import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
-import { CAMPANA_ANDEN, decidirCampana, ofreceCampana, textoCampana, campanaDeElsa, mirandoLaCampana } from './campana-anden.js';
+import { CAMPANA_ANDEN, decidirCampana, ofreceCampana, textoCampana, campanaDeElsa, mirandoLaCampana, umbralDeCampana, vueltaHecha, MARCA_VUELTA } from './campana-anden.js';
 // 4.6 puestos: los puestos de ruta (reglas, lo que se ve y la E)
 import { crearPuestosRutaMundo, apeaderoDelRielSur } from './puestos-ruta-mundo.js';
 import { crearPuestosRutaJuego } from './puestos-ruta-juego.js';
@@ -267,7 +267,7 @@ import { crearPresencia } from './historia-presencia.js';
 // 4.21.0: la estación propia de la Historia, la hora de tu reloj apagada y «Primeros pasos» (historia-ajustes.js)
 import { estacionEfectiva, avisosDeAjustes, duracionAlEntrar, sinPrimerosPasos } from './historia-ajustes.js';
 // 3.8.6: la noche del temporal del capítulo 8
-import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
+import { CAPITULOS, FIN_TEMPORAL, marcarTema } from './historia.js';
 // 4.5: la consola de códigos (Ctrl+Mayús+C) y hasta dónde se puede teletransportar
 import { crearTrucosJuego } from './trucos-juego.js';
 // 4.14.0: las escenas de la Historia (director de escenas: escenas.js; en el juego: escenas-mundo.js)
@@ -7100,7 +7100,7 @@ function campanaAndenCerca() {
   if (!mirandoLaCampana(js, campana)) return null;
   const h = progreso.historia;
   const elsa = campanaDeElsa({ historia: !esDesafio && !!h?.activa, capitulo: CAPITULOS[Math.min(CAPITULOS.length - 1, Math.max(0, h?.capitulo || 0))]?.id, vistas: h?.escenas?.vistas, viaje: !!progreso.entradas?.viaje, esEstacion: p === tren.estacion, esAldea: !!p.aldea && !esDesafio });
-  const d = decidirCampana(tren.estadoDelLlamado(p, CAMPANA_ANDEN.frenando), { ataque: !!desafio?.hayAtaque?.(), elsa });
+  const d = decidirCampana(tren.estadoDelLlamado(p, CAMPANA_ANDEN.frenando), { ataque: !!desafio?.hayAtaque?.(), elsa, umbral: umbralDeCampana({ historia: !esDesafio && !!h?.activa, vuelta: vueltaHecha(h?.temas) }) });   // 4.26.4: 25 s en la Historia hasta la primera vuelta
   return ofreceCampana(d) ? { ...d, parada: p } : null;
 }
 function tocarCampanaAnden() {
@@ -7493,6 +7493,8 @@ let enTrenAntes = false;
 function prepararTren(dt) {
   const subido = !!jugador?.estado.enTren;
   if (subido && !enTrenAntes && !desafio) empezarViaje(viajeTren(), ahoraJuego());
+  // 4.26.4: la primera vuelta en trochita de la Historia: subirse en la Aldea (desde entonces la campana vuelve a los 45 s de siempre)
+  if (subido && !enTrenAntes && !desafio) { try { const h = progreso.historia, pa = paradaAldeaHist(), js = jugador.estado; if (h?.activa && pa?.espera && !vueltaHecha(h.temas) && Math.hypot(js.pos.x - pa.espera.x, js.pos.z - pa.espera.z) < 30) marcarTema(h, 'mundo', MARCA_VUELTA.split(':')[1], progreso.dia); } catch (e) { fallaSistema('historia-vuelta', e); } }
   enTrenAntes = subido;
   if (!trenMejorado()) return;
   cacheManejo.t -= dt;
