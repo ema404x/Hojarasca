@@ -33,6 +33,9 @@ async function comprobar(archivoUltra, archivoPasto) {
   const mal = [];
   let n = 0;
   const falla = (c, t) => { n++; if (!c) mal.push(t); };
+  // (junta, pasada final) el viento y el pasto pisado se tienen que ver en una captura de cerca: ráfaga más fuerte, huella de 60 cm y aplastado hondo
+  { const tx = fs.readFileSync(archivoUltra, 'utf8');
+    falla(tx.includes('const r = 0.6 / tam;') && tx.includes('pisadoUB * 0.8;') && tx.includes('olaUB * 1.8)') && tx.includes('* 0.42 * smoothstep(0.3, 1.0, t)'), 'junta: la ráfaga y el pasto pisado se ven de cerca (huella de 60 cm, aplastado hondo, ola 1,8)'); }
   const avisos = [];
   const warnOrig = console.warn;
   console.warn = (...a) => { avisos.push(a.join(' ')); };
@@ -228,6 +231,8 @@ ok((ub.match(/new THREE\.(ShaderMaterial|MeshLambertMaterial|MeshBasicMaterial|P
 // ---------------------------------------------------------------- mutaciones
 const mutaciones = [
   ['u', 'Ultra sin mirar el ajuste', "revisar(esUltra(ajustes) && calidadActiva === 'alta'", "revisar(calidadActiva === 'alta'"],
+  ['u', 'el pasto pisado, otra vez chico', 'const r = 0.6 / tam;', 'const r = 0.45 / tam;'],
+  ['u', 'la ráfaga, otra vez débil', 'olaUB * 1.8)', 'olaUB * 1.1)'],
   ['u', 'Ultra sin mirar la calidad que corre', "revisar(esUltra(ajustes) && calidadActiva === 'alta'", 'revisar(esUltra(ajustes)'],
   ['u', 'la clave de Ultra igual a la de Alta', "m.customProgramCacheKey = () => claveAlta + '|' + CLAVE_ULTRA_B;", 'm.customProgramCacheKey = () => claveAlta;'],
   ['u', 'apagar no devuelve el onBeforeCompile', 'if (g.propioObc) m.onBeforeCompile = g.obc; else delete m.onBeforeCompile;', ''],

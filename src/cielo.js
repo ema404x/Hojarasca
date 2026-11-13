@@ -517,6 +517,10 @@ export function crearCielo(escena, calidad) {
   // 4.24.0: la sombra de la nieve es azulada: con el invierno el ambiente de día (lo que alumbra lo que el sol no toca) se corre hacia un celeste
   // frío y el rebote del suelo, de pardo tibio a blanco azulado (la nieve devuelve luz fría). Sólo colores de las luces que ya existen.
   const AMBIENTE_NIEVE = C('#86aaf0'), SUELO_NIEVE = C('#b0c0e2');
+  // 4.28.0 (Ultra, A): con Ultra la sombra de la nieve (el bosque denso) es un celeste pálido y no el azul hondo de Alta (ver ponerNieveUltra)
+  const AMBIENTE_NIEVE_U = C('#b4c4e0'), SUELO_NIEVE_U = C('#c4cde0');
+  let nieveUltra = false;
+  function ponerNieveUltra(v) { nieveUltra = !!v; }
   // 3.2: la bruma del estilo: turquesa de día, dorada a la tarde; hacia el sol, más cálida
   // 3.4: de día la bruma es gris azulada pálida (funde el bosque lejano en siluetas); a la
   // tarde, durazno hacia el sol y lavanda lejos de él
@@ -611,10 +615,12 @@ export function crearCielo(escena, calidad) {
     {
       const nieve = Math.min(1, Math.max(0, U.uInvierno.value)) * dia;
       if (nieve > 0.001) { hemi.color.lerp(AMBIENTE_NIEVE, 0.8 * nieve); hemi.groundColor.lerp(SUELO_NIEVE, 0.7 * nieve); }
+      if (nieveUltra && nieve > 0.001) { hemi.color.lerp(AMBIENTE_NIEVE_U, 0.75 * nieve); hemi.groundColor.lerp(SUELO_NIEVE_U, 0.6 * nieve); }   // 4.28.0 (Ultra)
     }
     // 3.2: de día el ambiente pesa un poco menos que el sol: más contraste, sombras de color
     // 4.21.0: de noche 0,78 → 0,9 y de día 1,73 → 1,6 (0,9 + 0,7 · dia): la noche sube y el día gana contraste entre el sol y la sombra del follaje
-    hemi.intensity = 0.9 + 0.7 * dia + 0.4 * lunaK * (1 - dia);   // 4.8 ambiente: la luna llena rellena las sombras
+    hemi.intensity = 0.9 + 0.7 * dia + 0.4 * lunaK * (1 - dia);
+    if (nieveUltra) hemi.intensity *= 1 + 0.32 * (U.uInvierno.value > 1 ? 1 : Math.max(0, U.uInvierno.value)) * dia;   // 4.28.0 (Ultra): la nieve a la sombra (o con el cielo cubierto) no se hunde: más clara y menos azul   // 4.8 ambiente: la luna llena rellena las sombras
 
     U.uSolDir.value.copy(dirLuz);
     U.uSolColor.value.copy(sol.color).multiplyScalar(intensidad / Math.PI);
@@ -682,7 +688,7 @@ export function crearCielo(escena, calidad) {
   }
 
   const malla = cielo, material = matCielo;   // 4.28.0: el nivel Ultra cambia el material del cielo (ultra-luz-mundo.js)
-  return { actualizar, sol, hemi, ajustarSombras, reponerSombras, ponerLuna, uniforms, sombraUltra, malla, material };   // 4.28.0: + sombraUltra, malla y material
+  return { actualizar, sol, hemi, ajustarSombras, reponerSombras, ponerLuna, uniforms, sombraUltra, malla, material, ponerNieveUltra };   // 4.28.0: + sombraUltra, malla y material
 }
 
 // ---------------------------------------------------------------- constelaciones del sur

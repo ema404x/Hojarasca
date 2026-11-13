@@ -56,3 +56,8 @@ Ninguna nueva (el ajuste `ultra` es de la base).
 - Nueva: `pruebas/verificar-4-28-0-b.mjs` (170, 21 mutaciones), en verde.
 - Ajustadas a propósito (sólo para no contar los `ultra*.js`, cuyos programas existen sólo con Ultra): `verificar-4-21-0-c.mjs`, `verificar-4-22-0-c.mjs`, `verificar-4-24-0-c.mjs` y `verificar-4-24-1-c.mjs` contaban 18 `ShaderMaterial` (y en las dos de la 4.24, 17 texturas de datos) en todo `src/`; las motas y el pisado suman uno y una en `ultra-bosque.js`.
 - Previas: las 290 `verificar-*.mjs` que leen `main.js`, `materiales.js` o `pasto.js`, en verde (`verificar-4-18-0-optativas-a.mjs` falló una vez en paralelo por una carpeta temporal y pasó sola). No se corrió `npm run verify` completo.
+
+## Pasada final (A + B + C juntos, 13-11-2026)
+- Medido todo junto: ver `CAMBIOS_4_28_0_A.md` (plaza 31,6 ms, bosque denso 28,8 ms con Ultra; en la plaza B pesa ~2,2 ms). No hizo falta bajar nada de B.
+- **Subido para que se vea de cerca** (capturas `junta4280/c2-ver`, `c3-ver`): la ráfaga empuja el pasto más (`olaUB` de 1,1 a 1,8) y aclara el lomo más (0,24 a 0,42); el pasto pisado se aplasta más hondo (0,55 a 0,8 de la altura y 0,5 a 0,7 de lado), con huella de 60 cm (antes 45) y más pálido. El rastro de pasto pisado se ve en la captura con huellas (`d8-prado-huellas`); la ráfaga se ve como bandas claras (`d9`): en movimiento no se pudo ver (las capturas son quietas).
+- **La nieve azul del bosque denso** no era del grano ni del pisado: ver A (es el ambiente de la nieve a la sombra, también en Alta).

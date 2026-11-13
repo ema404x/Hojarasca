@@ -101,21 +101,21 @@ export function parchePasto(sh) {
   v = cambiar(v, 'vec3 p = vec3(b.x, h, b.y) + frente * (0.025', `t = mix(t, 0.92, step(0.4, t) * step(t, 0.6) * max(espigaUB, florUB));
         vec3 p = vec3(b.x, h, b.y) + frente * (0.025`, 'pasto: tallo');
   v = cambiar(v, 'float fuerzaV = uViento * (0.45 + racha * 1.25) * (1.0 + estepa * 0.32);', `float olaUB = olaUltraB(b, uTiempo);
-        float fuerzaV = uViento * (1.0 + 0.9 * uLluviaUB) * (0.45 + racha * 1.25 + olaUB * 1.1) * (1.0 + estepa * 0.32);`, 'pasto: ola');
+        float fuerzaV = uViento * (1.0 + 0.9 * uLluviaUB) * (0.45 + racha * 1.25 + olaUB * 1.8) * (1.0 + estepa * 0.32);`, 'pasto: ola');
   v = cambiar(v, 'vec4 mvPosition = viewMatrix * vec4(p, 1.0);', `float pisadoUB = 0.0;
         {
           vec2 uvPU = (b - uPisadoCentroUB) / uPisadoLadoUB + 0.5;
           float dentroPU = step(0.0, uvPU.x) * step(uvPU.x, 1.0) * step(0.0, uvPU.y) * step(uvPU.y, 1.0);
           pisadoUB = texture2D(uPisadoUB, clamp(uvPU, 0.0, 1.0)).r * dentroPU;
-          p.y -= t * alto * pisadoUB * 0.55;
-          p.xz += frente.xz * t * alto * pisadoUB * 0.5;
+          p.y -= t * alto * pisadoUB * 0.8;
+          p.xz += frente.xz * t * alto * pisadoUB * 0.7;
         }
         p += derecha * position.x * ancho * step(0.99, t) * (florUB * 2.2 + espigaUB * 1.2);   // (la cabeza de la flor y de la espiga)
         vPosUB = p;
         vec4 mvPosition = viewMatrix * vec4(p, 1.0);`, 'pasto: pisado');
   // la hoja que dobla la ola muestra el lomo (más clara) y la aplastada queda un poco más pálida
-  v = cambiar(v, 'vT = t;', `vColor *= 1.0 + olaUB * min(uViento, 1.0) * 0.24 * smoothstep(0.3, 1.0, t);
-        vColor = mix(vColor, vColor * vec3(1.08, 1.06, 0.9), pisadoUB * 0.6);
+  v = cambiar(v, 'vT = t;', `vColor *= 1.0 + olaUB * min(uViento, 1.0) * 0.42 * smoothstep(0.3, 1.0, t);
+        vColor = mix(vColor, vColor * vec3(1.14, 1.1, 0.82), pisadoUB * 0.8);
         vec3 florColUB = fract(rnd * 13.7) < 0.4 ? vec3(0.95, 0.93, 0.86) : (fract(rnd * 13.7) < 0.72 ? vec3(0.95, 0.78, 0.18) : vec3(0.64, 0.5, 0.86));
         vColor = mix(vColor, srgb(florColUB), florUB * smoothstep(0.95, 1.0, t));
         vColor = mix(vColor, srgb(vec3(0.62, 0.5, 0.26)), espigaUB * smoothstep(0.7, 1.0, t) * 0.8);
@@ -249,7 +249,7 @@ export function crearPisado() {
   // una huella de pasto aplastado (unos 45 cm de radio, más fuerte en el medio)
   function marcar(x, z) {
     const u = (x - centro.x) / tam + PISADO_RES / 2 - 0.5, v = (z - centro.y) / tam + PISADO_RES / 2 - 0.5;
-    const r = 0.45 / tam;
+    const r = 0.6 / tam;
     for (let j = Math.floor(v - r); j <= Math.ceil(v + r); j++) {
       for (let i = Math.floor(u - r); i <= Math.ceil(u + r); i++) {
         if (i < 0 || j < 0 || i >= PISADO_RES || j >= PISADO_RES) continue;

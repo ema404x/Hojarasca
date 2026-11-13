@@ -21,7 +21,7 @@ export const SOMBRA_ULTRA = { mapa: 4096, caja: 125, radio: 4.2 };
 export const NIEBLA_VOLUMEN = { largo: 160, ambiente: 0.85, sol: 0.2, luces: 0.35, lago: 0.05 };
 
 // La oclusión ambiental de pantalla (a media resolución): radio en metros, fuerza y hasta dónde llega (de lejos se apaga).
-export const AO_ULTRA = { radio: 0.9, intensidad: 0.9, fuerza: 0.6, lejos: 70, muestras: 6 };
+export const AO_ULTRA = { radio: 0.9, intensidad: 0.9, fuerza: 0.6, lejos: 70, muestras: 4 };
 
 // La niebla de altura de los valles: se junta abajo (cerca del nivel del lago) y se adelgaza hacia arriba. Más espesa a la mañana
 // (de las 5 a las 10) y con lluvia; algo de noche; casi nada a la siesta. `densidad` es por metro a la altura `base`; `alto` es cuánto

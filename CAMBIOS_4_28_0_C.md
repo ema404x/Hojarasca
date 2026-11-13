@@ -78,3 +78,10 @@ Lo que mejor se ve: el relieve y la veta de la madera, la piedra con juntas hund
 - También en verde: todas las `verificar-*` que leen los archivos que toqué (aldea-arquitectura, gente-cuerpo, tren, clima, cocina-mundo, estructuras, construccion, aldea-mundo, materiales), corridas una por una.
 - Partida real (auditoría, con el candado): verano de día, al ocaso y de noche, invierno y lluvia, en Alta y con Ultra cambiado en vivo. **Sin errores de consola.**
 - No hay claves de guardado nuevas: `ultra` ya venía en la base.
+
+## Pasada final (A + B + C juntos, 13-11-2026)
+- Medido todo junto: ver `CAMBIOS_4_28_0_A.md` (plaza 31,6 ms con Ultra; C pesa ~2,2 ms en la plaza).
+- **Relieve a distancia:** el relieve (y los ruidos que lo calculan) de la aldea, el tren, las estructuras y las obras se apaga entre 14 y 25 m y más allá ya no se calcula (antes sólo dependía del tamaño del píxel).
+- **Lo que «casi no se notaba», ahora se ve de cerca** (capturas `junta4280/c2-*`, `c3-*`, Ultra contra Alta): la **nieve pegada** en paredes, postes, cercos y bancos (manchones más anchos y más seguidos: umbral 0,45/0,75 a 0,3/0,6, más viento, menos piso); el **musgo** (umbral de 0,55 a 0,5, colores más vivos, 0,7 a 0,8 de mezcla) y los **líquenes** claros (más seguidos), sin cubrir la plaza entera (un primer ajuste la tapó de verde y se volvió atrás: el lado húmedo pesa menos en lo horizontal); los **charcos del ripio** (umbral de 0,5/0,74 a 0,34/0,58) y los de la laja de la plaza se ven con lluvia.
+- **Apagado: el vapor de la olla** (`cocina-mundo.js`): en ninguna captura se vio (no hay una toma cocinando) y no se pudo comprobar la hebra; sale. El humo de las chimeneas en hebras queda (se ve flojo, un hilo sobre la chimenea de la cantina al atardecer).
+- Los vidrios que reflejan el cielo siguen sin engancharse (ver arriba).

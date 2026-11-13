@@ -136,8 +136,11 @@ export const GLSL_ALDEA_ULTRA = /* glsl */`
       {
         // (el relieve se apaga cuando un píxel cubre más de ~2 cm: de lejos no titila)
         float fwU = max(fwidth(uv.x), fwidth(uv.y));
-        float vivoU = 1.0 - smoothstep(0.006, 0.03, fwU);
-        float hU = 0.0, porosoU = 0.6;
+        // (junta: más allá de ~25 m no se calcula el relieve —ni sus ruidos—: se apaga entre 14 y 25 m)
+        float vivoU = (1.0 - smoothstep(0.006, 0.03, fwU)) * (1.0 - smoothstep(14.0, 25.0, length(vViewPosition)));
+        float porosoU = tipo < 3.5 ? 0.6 : tipo < 4.5 ? 0.0 : tipo < 5.5 ? 1.0 : tipo < 6.5 ? 0.8 : tipo < 7.5 ? 0.6 : tipo < 8.5 ? 0.4 : tipo < 9.5 ? 1.0 : 0.6;
+        float hU = 0.0;
+        if (vivoU > 0.001) {
         if (tipo < 1.5) {
           float u = uv.x / 0.18, b = min(fract(u), 1.0 - fract(u));
           hU = smoothstep(0.0, 0.16, b) * 0.007 + nA(vec2(uv.x * 70.0, uv.y * 2.4 + floor(u) * 7.0)) * 0.0014;
@@ -173,6 +176,7 @@ export const GLSL_ALDEA_ULTRA = /* glsl */`
           hU = nA(pL.xz * 3.1 + pL.y) * 0.012 + nA(pL.xz * 14.0) * 0.003;
           porosoU = 1.0;
         }
+        }
         hU -= junta * 0.006;
         alturaU = hU * vivoU * 2.2;
         // lo hundido se ve también a la sombra (la luz del cielo no le llega igual): el color baja en el fondo de las juntas y entre piedras
@@ -201,12 +205,12 @@ export const GLSL_ALDEA_ULTRA = /* glsl */`
           potU = mix(potU, 40.0, mojU);
           // musgo y líquenes del lado húmedo (al sur y a la sombra, cerca del suelo y arriba) en la piedra, la laja, las tejuelas y la madera tosca
           float viejoU = (((tipo > 2.5 && tipo < 3.5) || (tipo > 4.5 && tipo < 5.5) || (tipo > 6.5 && tipo < 7.5) || tipo > 8.5) ? 1.0 : 0.25) * (abs(tipo - 8.0) < 0.5 ? 0.0 : 1.0);
-          float humedoU = clamp((1.0 - smoothstep(-0.6, 0.1, vNormWA.z)) * 0.6 + (1.0 - smoothstep(0.0, 0.8, h)) * 0.5 + smoothstep(0.4, 0.9, vNormWA.y) * 0.3, 0.0, 1.0);
-          float musgoU = smoothstep(0.55, 0.78, nA(pL.xz * 1.9 + pL.y * 1.3 + 11.0) * 0.7 + nA(uv * 6.0) * 0.3) * humedoU * viejoU;
-          alb = mix(alb, mix(vec3(0.07, 0.11, 0.04), vec3(0.17, 0.22, 0.07), nA(uv * 23.0)) * clamp(dot(alb, vec3(0.333)) / 0.25, 0.7, 1.3), musgoU * 0.7);
+          float humedoU = clamp((1.0 - smoothstep(-0.6, 0.1, vNormWA.z)) * 0.6 + (1.0 - smoothstep(0.0, 0.8, h)) * 0.5 + smoothstep(0.4, 0.9, vNormWA.y) * 0.12, 0.0, 1.0);
+          float musgoU = smoothstep(0.5, 0.72, nA(pL.xz * 1.9 + pL.y * 1.3 + 11.0) * 0.7 + nA(uv * 6.0) * 0.3) * humedoU * viejoU;
+          alb = mix(alb, mix(vec3(0.09, 0.14, 0.045), vec3(0.22, 0.3, 0.09), nA(uv * 23.0)) * clamp(dot(alb, vec3(0.333)) / 0.25, 0.75, 1.3), musgoU * 0.8);
           alturaU += musgoU * nA(uv * 120.0) * 0.003 * vivoU;
-          float liqU = smoothstep(0.8, 0.9, nA(uv * 7.0 + 31.0)) * smoothstep(0.5, 0.75, nA(uv * 31.0)) * viejoU * (1.0 - musgoU);
-          alb = mix(alb, vec3(0.55, 0.58, 0.48), liqU * 0.5);
+          float liqU = smoothstep(0.76, 0.88, nA(uv * 7.0 + 31.0)) * smoothstep(0.48, 0.72, nA(uv * 31.0)) * viejoU * (1.0 - musgoU);
+          alb = mix(alb, vec3(0.6, 0.64, 0.5), liqU * 0.55);
           // charcos en lo plano de afuera (la laja y la piedra de la plaza y las veredas): ver GLSL_CHARCO_ALDEA_U
           if (horiz > 0.5 && ((tipo > 4.5 && tipo < 5.5) || tipo > 8.5)) charcoU = uMojadoVeg * smoothstep(0.6, 0.75, nA(pL.xz * 0.7 + 5.0) * 0.75 + nA(pL.xz * 4.0) * 0.25) * (1.0 - uInvierno);
           alb *= 1.0 - charcoU * 0.5;
@@ -232,8 +236,8 @@ export const glslNieveU = (extra) => `
               {
                 vec3 nNU = normalize(vNormMundoVeg);
                 float costadoNU = 1.0 - smoothstep(0.3, 0.6, abs(nNU.y));
-                float pegadaNU = smoothstep(0.45, 0.75, nUc(vPosMundoVeg.xz * 1.7 + vPosMundoVeg.y * 2.3) * 0.7 + nUc(vPosMundoVeg.xz * 9.0 + vPosMundoVeg.y * 7.0) * 0.3)
-                  * max(0.45, smoothstep(-0.6, 0.6, dot(normalize(nNU.xz + vec2(1e-4)), normalize(vec2(1.0, 0.35))))) * costadoNU * uInvierno * 0.8;
+                float pegadaNU = smoothstep(0.3, 0.6, nUc(vPosMundoVeg.xz * 1.7 + vPosMundoVeg.y * 2.3) * 0.7 + nUc(vPosMundoVeg.xz * 9.0 + vPosMundoVeg.y * 7.0) * 0.3)
+                  * max(0.65, smoothstep(-0.6, 0.6, dot(normalize(nNU.xz + vec2(1e-4)), normalize(vec2(1.0, 0.35))))) * costadoNU * uInvierno * 1.1;
                 acumula = max(acumula, pegadaNU * (1.0 - texture2D(uEstepaVeg, vec2(vPosMundoVeg.x / 1024.0 + 0.5, vPosMundoVeg.z / 1024.0 + 0.5)).g) * ${extra});
               }`;
 export const GLSL_NIEVE_BRILLO_U = `
@@ -335,13 +339,14 @@ export const GLSL_ESTRUCTURA_ULTRA = /* glsl */`
     float maderaU = smoothstep(0.18, 0.32, satU) * step(cU.b, cU.r) * (1.0 - step(3.5, vTipoVeg));
     float piedraU = max(1.0 - smoothstep(0.1, 0.22, satU), step(3.5, vTipoVeg) * (1.0 - horizU)) * (1.0 - maderaU);
     float fwU = max(fwidth(uvU.x), fwidth(uvU.y));
-    float vivoU = 1.0 - smoothstep(0.006, 0.03, fwU);
+    float vivoU = (1.0 - smoothstep(0.006, 0.03, fwU)) * (1.0 - smoothstep(14.0, 25.0, length(vViewPosition)));   // (más allá de ~25 m no se calcula el relieve)
     // la veta: a lo alto en las paredes (tablas paradas), a lo largo en lo horizontal
     // (en un tronco acostado la normal gira rápido a lo alto: la veta va a lo largo, acostada)
     float curvaU = length(fwidth(nWU)) / max(length(fwidth(pWU)), 1e-4);
     bool acostadaU = horizU > 0.5 || curvaU > 2.5;
     vec2 vetaU = acostadaU ? vec2(uvU.x * 1.6, uvU.y * 60.0) : vec2(uvU.x * 60.0, uvU.y * 1.6);
-    float hU = maderaU * (nUc(vetaU) * 0.007 + nUc(vetaU * vec2(2.9, 2.9) + 3.0) * 0.002)
+    float hU = 0.0;
+    if (vivoU > 0.001) hU = maderaU * (nUc(vetaU) * 0.007 + nUc(vetaU * vec2(2.9, 2.9) + 3.0) * 0.002)
       + piedraU * (nUc(uvU * 6.0) * 0.008 + nUc(uvU * 23.0) * 0.0025 + nUc(uvU * 71.0) * 0.0008)
       + (1.0 - maderaU - piedraU) * nUc(uvU * 31.0) * 0.0009;
     alturaU = hU * vivoU * 2.2;
@@ -362,12 +367,12 @@ export const GLSL_ESTRUCTURA_ULTRA = /* glsl */`
     // musgo y líquenes del lado húmedo (al sur, cerca del suelo, arriba de lo que junta agua) en la piedra y la madera
     {
       float hS = pWU.y - vSueloVeg;
-      float humedoU = clamp((1.0 - smoothstep(-0.6, 0.1, nWU.z)) * 0.6 + (1.0 - smoothstep(0.0, 0.8, hS)) * 0.5 + smoothstep(0.4, 0.9, nWU.y) * 0.3, 0.0, 1.0);
-      float musgoU = smoothstep(0.56, 0.8, nUc(pWU.xz * 1.9 + pWU.y * 1.3 + 11.0) * 0.7 + nUc(uvU * 6.0) * 0.3) * humedoU * max(piedraU, maderaU * 0.7);
-      diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.10, 0.15, 0.05), vec3(0.24, 0.30, 0.09), nUc(uvU * 23.0)), musgoU * 0.7);
+      float humedoU = clamp((1.0 - smoothstep(-0.6, 0.1, nWU.z)) * 0.6 + (1.0 - smoothstep(0.0, 0.8, hS)) * 0.5 + smoothstep(0.4, 0.9, nWU.y) * 0.12, 0.0, 1.0);
+      float musgoU = smoothstep(0.5, 0.73, nUc(pWU.xz * 1.9 + pWU.y * 1.3 + 11.0) * 0.7 + nUc(uvU * 6.0) * 0.3) * humedoU * max(piedraU, maderaU * 0.7);
+      diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.1, 0.16, 0.05), vec3(0.25, 0.33, 0.1), nUc(uvU * 23.0)), musgoU * 0.8);
       alturaU += musgoU * nUc(uvU * 120.0) * 0.003 * vivoU;
-      float liqU = smoothstep(0.8, 0.9, nUc(uvU * 7.0 + 31.0)) * smoothstep(0.5, 0.75, nUc(uvU * 31.0)) * piedraU * (1.0 - musgoU);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.58, 0.48), liqU * 0.5);
+      float liqU = smoothstep(0.76, 0.88, nUc(uvU * 7.0 + 31.0)) * smoothstep(0.48, 0.72, nUc(uvU * 31.0)) * piedraU * (1.0 - musgoU);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6, 0.64, 0.5), liqU * 0.55);
     }
   }
 `;
@@ -397,7 +402,7 @@ export function inyectarRipioUltra(sh) {
   uniformesCielo(sh);
   sh.fragmentShader = sh.fragmentShader
     .replace('#include <common>', '#include <common>\n' + GLSL_CIELO_U)
-    .replace(CHARCO_RIPIO_ALTA, 'charcoR = uMojadoR * smoothstep(0.5, 0.74,')
+    .replace(CHARCO_RIPIO_ALTA, 'charcoR = uMojadoR * smoothstep(0.34, 0.58,')
     .replace('#include <opaque_fragment>', GLSL_CHARCO_RIPIO_U + '\n#include <opaque_fragment>');
 }
 
@@ -410,7 +415,7 @@ export const GLSL_HUMO_U_PARS = /* glsl */`
   float hebrasU(vec2 p, float vida, float semilla) {
     vec2 q = p * 3.2 + vec2(semilla * 17.0, semilla * 5.0 - vida * 2.2);
     float n = nHU(q) * 0.6 + nHU(q * 2.3 + 4.0) * 0.4;
-    return clamp(0.2 + 1.5 * n - length(p) * 0.6, 0.0, 1.4);
+    return clamp(0.05 + 1.9 * n - length(p) * 0.6, 0.0, 1.5);
   }
 `;
 // `semilla`: una expresión GLSL de azar por bocanada (vAzar en el clima; vPeso en la cocina)

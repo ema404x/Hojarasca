@@ -175,7 +175,7 @@ const FRAG_NIEBLA = `
     vec3 S = vec3(0.0);
     float Tr = 1.0;
     float tPrev = 0.0;
-    const int PASOS = 9;
+    const int PASOS = 7;
     for (int i = 0; i < PASOS; i++) {
       float u1 = (float(i) + 1.0) / float(PASOS);
       float t1 = Lm * u1 * u1;
@@ -329,6 +329,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0 };
     cielo.malla.material = matCielo;
     cielo.sombraUltra(SOMBRA_ULTRA);
+    cielo.ponerNieveUltra?.(true);   // la sombra de la nieve, celeste pálido (no el azul hondo de Alta)
     renderer.shadowMap.needsUpdate = true;
     post.ponerUltra(api);
     // los cuatro programas nuevos se compilan acá (al prender Ultra en el menú o al cargar), nunca a mitad de juego
@@ -348,6 +349,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     post.ponerUltra(null);
     cielo.malla.material = p.cieloBase;
     cielo.sombraUltra(null);
+    cielo.ponerNieveUltra?.(false);
     renderer.shadowMap.needsUpdate = true;
     p.destino.depthTexture?.dispose(); p.destino.dispose(); p.rtAO.dispose(); p.rtNiebla.dispose(); p.bosque.dispose();
     p.matAO.dispose(); p.matNiebla.dispose(); p.matComponer.dispose(); p.matCielo.dispose();
