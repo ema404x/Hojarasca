@@ -49,8 +49,11 @@ En `C:\Users\Andres\AppData\Local\Temp\hx\a4280\`: Alta = `base2-verano`, `base-
 - **Ocaso (15):** el aire hacia el sol se ilumina (la niebla toma la luz del sol bajo); banda anaranjada en el horizonte.
 - **Noche en la aldea (07):** los faroles y las ventanas con halo en la niebla, la calle con más profundidad.
 - **Lluvia (52):** el fondo se pierde antes, el bosque se lee en planos.
-- **Nieve (32):** queda una neblina blanca baja sobre el campo nevado cerca de la cámara: es la niebla de altura con el color de la bruma
-  de invierno; se ve bien de lejos pero de cerca parece una mancha: **a mirar** (se puede bajar en invierno si molesta).
+- **Nieve (32), de día y de noche:** la mancha blanca que había cerca de la cámara era **tu propio aliento**: la bocanada salía a
+  12 cm del ojo y a medio metro ya medía media pantalla (con nieve el frío lo prende siempre; aparecía según en qué momento del soplo caía
+  la captura). Medido en la partida: bocanadas vivas a 0,52–0,55 m del ojo. Arreglo (sin costo): el tuyo sale 60 cm adelante y más abajo,
+  más tenue; toda bocanada se apaga a menos de 1,2 m del ojo y tiene tope de tamaño en pantalla. Después: a 0,88–1 m, sin mancha
+  ( antes,  después).
 
 ## Rendimiento (costo por cuadro, placa, 1080p de lienzo, la herramienta de la auditoría con lastre, 3 rondas, ventana visible, notebook)
 | | Alta (r1, r2, r3) | Ultra final, 9 pasos (r1, r2, r3) | Ultra con 14 pasos |

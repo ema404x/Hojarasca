@@ -22,7 +22,10 @@ const VERT = `
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     float t = clamp(aEdad, 0.0, 1.0);
     vAlfa = aAlfa * smoothstep(0.0, 0.12, t) * (1.0 - smoothstep(0.35, 1.0, t));
-    gl_PointSize = (0.08 + 0.42 * sqrt(t)) * uEscala / max(-mv.z, 0.1);
+    // 4.28.0: pegada a la cámara, una bocanada de medio metro tapaba media pantalla con una mancha blanca (con nieve se veía siempre):
+    // se apaga a menos de 1,2 m del ojo y nunca pasa de un 8 % del alto de la pantalla
+    vAlfa *= smoothstep(0.5, 1.2, -mv.z);
+    gl_PointSize = min((0.08 + 0.42 * sqrt(t)) * uEscala / max(-mv.z, 0.1), uEscala * 0.08);
     gl_Position = projectionMatrix * mv;
   }
 `;
@@ -56,14 +59,15 @@ export function crearAliento({ escena, renderer = null, camara = null }) {
   const relojes = new Map();
   const stats = { soplos: 0 };
 
-  function soplar(x, y, z, yaw, fuerza) {
+  function soplar(x, y, z, yaw, fuerza, propio = false) {
     // tres bocanadas seguidas, hacia adelante y apenas hacia arriba
     for (let k = 0; k < 3; k++) {
       const i = siguiente; siguiente = (siguiente + 1) % n;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), v = 0.45 + k * 0.12;
-      pos[i * 3] = x + fx * 0.12; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z + fz * 0.12;
+      const ad = propio ? 0.6 : 0.12;   // el tuyo sale abajo y adelante (se ve al alejarse), no en el ojo
+      pos[i * 3] = x + fx * ad; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z + fz * ad;
       vel[i * 3] = fx * v + (Math.random() - 0.5) * 0.08; vel[i * 3 + 1] = 0.05 + k * 0.03; vel[i * 3 + 2] = fz * v + (Math.random() - 0.5) * 0.08;
-      edad[i] = -k * 0.08; vida[i] = ALIENTO.vida * (0.85 + Math.random() * 0.3); alfa[i] = 0.32 * fuerza;
+      edad[i] = -k * 0.08; vida[i] = ALIENTO.vida * (0.85 + Math.random() * 0.3); alfa[i] = (propio ? 0.16 : 0.32) * fuerza;
     }
     stats.soplos++;
   }
@@ -75,7 +79,7 @@ export function crearAliento({ escena, renderer = null, camara = null }) {
       const fuerza = Math.min(1, (frio - ALIENTO.umbral) / 0.4);
       if (jugador) {
         const r = (relojes.get('jugador') ?? 0) - dt * (jugador.rapido ? 1.8 : 1);
-        if (r <= 0) { soplar(jugador.x, jugador.y, jugador.z, jugador.yaw, fuerza); relojes.set('jugador', ALIENTO.cadaJugador * (0.85 + Math.random() * 0.3)); } else relojes.set('jugador', r);
+        if (r <= 0) { soplar(jugador.x, jugador.y, jugador.z, jugador.yaw, fuerza, true); relojes.set('jugador', ALIENTO.cadaJugador * (0.85 + Math.random() * 0.3)); } else relojes.set('jugador', r);
       }
       for (const v of vecinos || []) {
         const r = (relojes.get(v.id) ?? Math.random() * ALIENTO.cadaVecino) - dt;

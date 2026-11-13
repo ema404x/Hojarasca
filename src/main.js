@@ -11098,7 +11098,7 @@ function bocasUltra() {
     if (d < 16) vecinos.push({ id: g.clave || g, x: g.pos.x, y: g.pos.y + 1.55 * (g.g.scale?.y || 1), z: g.pos.z, yaw: (g.g.rotation?.y || 0) + Math.PI, d });
   }
   vecinos.sort((a, b) => a.d - b.d);
-  return { jugador: js && modo === 'jugando' ? { x: c.x, y: c.y - 0.15, z: c.z, yaw: js.yaw || 0, rapido: (js.velocidadActual || 0) > 4 } : null, vecinos: vecinos.slice(0, 6), invierno: U.uInvierno.value, otono: U.uOtono.value };
+  return { jugador: js && modo === 'jugando' ? { x: c.x, y: c.y - 0.32, z: c.z, yaw: js.yaw || 0, rapido: (js.velocidadActual || 0) > 4 } : null, vecinos: vecinos.slice(0, 6), invierno: U.uInvierno.value, otono: U.uOtono.value };
 }
 let niebla = null;
 let rayosBosque = null;

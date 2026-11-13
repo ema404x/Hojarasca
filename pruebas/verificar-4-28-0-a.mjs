@@ -198,6 +198,7 @@ okm(main.includes("'Necesita calidad Alta'") && main.includes("'Se aplica al vol
 okm(!/ajustes\.ultra\s*=[^=]/.test(main) && !/ultra\s*=\s*true/.test(leer('autocalidad.js')), 'la autocalidad (ni nada del juego) prende Ultra solo');
 okm(plantilla.includes('<span>Ultra (efectos nuevos, pide una buena placa)</span>') && enUnaLinea(plantilla, ['data-ajuste="ultra"', 'data-valor="true">Sí</button>', 'data-valor="false">No</button>']), 'el menú de gráficos tiene el ajuste Sí/No');
 okm(plantilla.indexOf('data-ajuste="ultra"') > plantilla.indexOf('id="aviso-calidad"'), 'debajo de la calidad gráfica');
+{ const al = leer('ultra-aliento.js'); okm(al.includes('vAlfa *= smoothstep(0.5, 1.2, -mv.z);') && al.includes('uEscala * 0.08);') && al.includes('const ad = propio ? 0.6 : 0.12;'), 'el aliento no tapa la cámara: se apaga pegado al ojo, tiene tope de tamaño y el tuyo sale adelante (la mancha blanca con nieve)'); }
 okm(/ultra: false,/.test(guardado) && /ultra: x\.ultra === true,/.test(guardado), 'el ajuste se guarda, apagado por defecto (la base de la 4.28.0)');
 
 // ---------------------------------------------------------------- MUTACIONES (cada una en una copia con otro nombre, así el caché de módulos no las tapa)
