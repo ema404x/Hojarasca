@@ -510,6 +510,46 @@ export function crearPasto(calidad) {
   if (helechos) malla.add(helechos.malla);
   const anillos = [flores, helechos].filter(Boolean);
 
+  // 4.28.0 (B, Ultra): el doble de matas a menos de ~20 m. Una malla más, hija de la del pasto, con el MISMO material (ningún programa
+  // más): su anillo mide R_DENSA (se funde de 12 a 20 m, como cada anillo en su borde) y lleva tantas matas como las que el pasto de
+  // siempre tiene en ese cuadrado (la densidad de cerca de los tres anillos, que no cambia con la distancia de plantas). Sólo existe
+  // con Ultra: `ponerUltra(false)` la saca y suelta sus búferes. Los parches del material los pone ultra-bosque.js.
+  const R_DENSA = 20;
+  const densidadCerca = nMatas * (0.38 / (2 * 0.45 * R) ** 2 + 0.3 / (2 * 0.7 * R) ** 2 + 0.32 / (2 * R) ** 2);
+  let densa = null, ultraPasto = false;
+  function radioDensa() { if (densa) { densa.geometry.attributes.aRadio.array.fill(R_DENSA / uniforms.uR.value); densa.geometry.attributes.aRadio.needsUpdate = true; } }
+  function ponerUltra(activo, h = {}) {
+    if (!!activo === ultraPasto) return false;
+    ultraPasto = !!activo;
+    if (ultraPasto) {
+      h.parchar?.(mat, h.parchePasto);
+      for (const a of anillos) h.parchar?.(a.malla.material, h.parcheAnillo);
+      const n = Math.round(densidadCerca * (2 * R_DENSA) ** 2);
+      const g = new THREE.InstancedBufferGeometry();
+      g.setAttribute('position', geo.attributes.position.clone());
+      g.setAttribute('aHoja', geo.attributes.aHoja.clone());
+      g.setIndex(geo.index.clone());
+      const r = rng(4280), o = new Float32Array(n * 2), az = new Float32Array(n), ra = new Float32Array(n);
+      for (let i = 0; i < n; i++) { o[i * 2] = (r() * 2 - 1) * R_DENSA; o[i * 2 + 1] = (r() * 2 - 1) * R_DENSA; az[i] = r(); }
+      g.setAttribute('aOffset', new THREE.InstancedBufferAttribute(o, 2));
+      g.setAttribute('aAzar', new THREE.InstancedBufferAttribute(az, 1));
+      g.setAttribute('aRadio', new THREE.InstancedBufferAttribute(ra, 1));
+      g.instanceCount = n;
+      g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
+      densa = new THREE.Mesh(g, mat);
+      densa.name = 'pasto-ultra';
+      densa.frustumCulled = false;
+      densa.renderOrder = 1;
+      radioDensa();
+      malla.add(densa);
+    } else {
+      h.quitar?.(mat);
+      for (const a of anillos) h.quitar?.(a.malla.material);
+      if (densa) { malla.remove(densa); densa.geometry.dispose(); densa = null; }
+    }
+    return true;
+  }
+
   // 3.5: la distancia de plantas en vivo: se rellenan los búferes (los mismos programas)
   let factorPlantas = 1;
   function ajustar(fp) {
@@ -520,11 +560,14 @@ export function crearPasto(calidad) {
     for (const nombre of ['aOffset', 'aAzar', 'aRadio']) geo.attributes[nombre].needsUpdate = true;
     uniforms.uR.value = R * f;
     for (const a of anillos) a.ajustar(f);
+    radioDensa();   // 4.28.0 (B, Ultra)
     return true;
   }
   return {
     malla,
     ajustar,
+    ponerUltra,   // 4.28.0 (B)
+    get matasUltra() { return densa ? densa.geometry.instanceCount : 0; },
     get factorPlantas() { return factorPlantas; },
     get radio() { return R * factorPlantas; },
     get matas() { return geo.instanceCount; },
