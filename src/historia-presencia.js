@@ -45,7 +45,10 @@ export const SILUETA_SUAVE = { dist: [18, 24], escala: 2.0, abanico: 0.6, pisoNo
 //   para otro lado).
 //   Y una cuarta, más lejos todavía (`lejos`, también en el campo y despejada), para donde el monte tapa lo de cerca (el molino, el galpón de costado). Si tampoco, ese rumbo
 //   se deja: no se vuelve a buscar mientras sigas mirando para el mismo lado (`giro` rad) hasta pasados `descanso` s; nada se traba (la silueta es de adorno).
-export const SILUETA_AMPLIA = { dist: [17, 28], abanico: 0.9, cerca: 4.5, intentos: 24, reintento: 2.5, campo: [17, 32], lejos: [30, 46], giro: 0.5, descanso: 20 };
+//   4.26.4: y una quinta (`monte`), sólo si las cuatro no dieron lugar (el monte cerrado: molino-2, -3 y -4): de 12 a 24 m, en el abanico de la vista, en un punto sin tronco a menos de
+//   `libre` m y fuera del agua; NO se exige la línea limpia (puede verse entre los troncos, a propósito: el monte cerrado no deja otra), pero entre los lugares posibles (todos los
+//   intentos) se prefiere uno con la línea limpia y, entre esos, el más alto.
+export const SILUETA_AMPLIA = { dist: [17, 28], abanico: 0.9, cerca: 4.5, intentos: 24, reintento: 2.5, campo: [17, 32], lejos: [30, 46], monte: [12, 24], libre: 1.2, giro: 0.5, descanso: 20 };
 const entre = (r, [a, b]) => a + r() * (b - a);
 // Un punto en el abanico delante de la cámara (`rumbo` = adónde mira, en la convención atan2(dx, dz)), a una distancia dada
 export function puntoEnAbanico(yo, rumbo, r, [dmin, dmax], abanico = 0.9) {
@@ -99,19 +102,22 @@ export function crearPresencia(ctx) {
     }
     // 4.26.1: las vueltas de la primera hora (el borde del bosque, el campo abierto y más lejos): ver SILUETA_AMPLIA; las mismas reglas de despeje y el mismo
     // «el más alto»
-    for (const vuelta of ['borde', 'campo', 'lejos']) {
+    for (const vuelta of ['borde', 'campo', 'lejos', 'monte']) {
       if (mejor || !S) break;
       const A = SILUETA_AMPLIA, enCampo = vuelta !== 'borde';
       for (let i = 0; i < A.intentos; i++) {
         const p = puntoEnAbanico(j, rumbo, azar, vuelta === 'borde' ? A.dist : A[vuelta], A.abanico);
-        if (!ctx.enTierra(p.x, p.z) || (!enCampo && !ctx.cercaDeArbol(p.x, p.z, A.cerca))) continue;
-        if (ctx.despejada && !ctx.despejada(p.x, p.z)) continue;
-        const alto = (ctx.altura?.(p.x, p.z) ?? 0) - (ctx.altura?.(j.x, j.z) ?? 0);
+        if (!ctx.enTierra(p.x, p.z) || (vuelta === 'borde' && !ctx.cercaDeArbol(p.x, p.z, A.cerca))) continue;
+        if (vuelta === 'monte') { if (!ctx.sinTronco || !ctx.sinTronco(p.x, p.z, A.libre)) continue; }   // (4.26.4: sólo el punto libre; la línea no se exige)
+        else if (ctx.despejada && !ctx.despejada(p.x, p.z)) continue;
+        let alto = (ctx.altura?.(p.x, p.z) ?? 0) - (ctx.altura?.(j.x, j.z) ?? 0);
+        // (4.26.4: en la quinta, entre todos los lugares posibles se prefiere uno con la línea limpia, si lo hay: no se exige, pero no se esconde atrás de una casa a propósito)
+        if (vuelta === 'monte') { if (ctx.despejada && ctx.despejada(p.x, p.z)) alto += 1000; }
+        else if (++nCand >= S.candidatos) { if (!mejor || alto > mejor.alto) mejor = { p, alto }; break; }
         if (!mejor || alto > mejor.alto) mejor = { p, alto };
-        if (++nCand >= S.candidatos) break;
       }
     }
-    if (!mejor && S) sinLugar = { rumbo, t: 0 };   // (4.26.1: ni en las cuatro vueltas: este rumbo se deja un rato)
+    if (!mejor && S) sinLugar = { rumbo, t: 0 };   // (4.26.1: ni en las cinco vueltas: este rumbo se deja un rato)
     if (mejor) {
       const p = mejor.p;
       const d = dh.aparecer('rastreador', { x: p.x, z: p.z, mira: true, escala: S ? S.escala : ESCALA_SILUETA, pisoNoche: S ? S.pisoNoche : 0 });

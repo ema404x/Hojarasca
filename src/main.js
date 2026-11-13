@@ -984,6 +984,7 @@ async function construir() {
     escenasMundo = crearEscenasMundo({
       doc: document, gente: () => gente, jugador: () => jugador, camara, T, col, alturaDePie, progreso: () => progreso, clima: () => clima, sonido, modo: () => modo, ajustes: () => ajustes,
       puntos: () => puntosCacheadosDeHistoria(),   // 4.17 C: los lugares de la historia sirven de ancla ({ lugar: 'raiz-ramon' })
+      grupoDuendes: (que) => centroDeLosDuendesDeEscena(que),   // 4.26.4 (A): el centro (o el Mandamás) de la gente que puso la escena ({ grupo: 'centro' | 'jefe' })
       armarYa: (k) => genteCampoMundo?.armarYa?.(k) || figuraDeAldeaParaHistoria(k) || invitadoDeHistoria(k),   // 4.17 C: Fermín, Belisario y Tobías se arman al pedirlos una escena, aunque estés lejos de su lugar   (4.25.2: y el que vive en la aldea es el de la aldea, no una copia)
       nota: (t, s) => nota(t, s), fallo: (e, donde) => fallaSistema(donde || 'escenas', e),
       puedeEmpezar: () => puedeEmpezarEscena(),   // (4.17.1: la regla, en una función: historia-ui.js la pregunta antes de mover al jugador)
@@ -2291,6 +2292,7 @@ function presenciaHistoria() {
       libre: () => modo === 'jugando' && !(jugador.estado.enTren || jugador.estado.enKayak || jugador.estado.enVela || jugador.estado.montado),
       enTierra: (x, z) => alt(x, z) >= 0.45,
       cercaDeArbol: (x, z, r = 2.4) => { p.set(x, alt(x, z), z); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) > 0.05; },   // (4.26.1: `r`, la segunda vuelta de la silueta de la primera hora: el borde del bosque)
+      sinTronco: (x, z, r) => { p.set(x, alt(x, z), z); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - x, p.z - z) < 0.05; },   // 4.26.4 (A): el punto sin tronco a menos de r m (la quinta vuelta de la silueta: sin exigir la línea limpia)
       // 4.24.1: la silueta de la primera hora tiene que verse: sin un tronco a menos de 1,1 m y sin troncos en la línea desde donde estás (cada 1 m desde la 4.26.1, a 0,5 m de ancho)
       despejada: (x, z) => { const j = jugador?.estado.pos; if (!j) return true; const libre = (px, pz, r) => { p.set(px, alt(px, pz), pz); try { col.resolver(p, r, 1.0); } catch { return false; } return Math.hypot(p.x - px, p.z - pz) < 0.05; }; if (!libre(x, z, 1.1)) return false; const dx = x - j.x, dz = z - j.z, n = Math.max(2, Math.ceil(Math.hypot(dx, dz))); for (let k = 1; k < n; k++) if (!libre(j.x + dx * k / n, j.z + dz * k / n, 0.5)) return false; return true; },   // (4.26.1: cada 1 m; cada 2 m se colaba una pared fina)
       refugio: () => T.lugares.refugio, galpon: () => T.lugares.galpon || null,
@@ -2578,6 +2580,13 @@ function efectoMundoHistoria(id, args) {
 function dibujarObjetosHistoriaYa() { cacheObjetoHist.t = -1; }
 // 4.16.0: los duendes del acto II (siluetas en las raíces, el lechucero, las lucecitas del lago, los pillos con bellotas): se ven y se mueven (historia-duendes.js)
 const duendesDeEscena = [];
+// 4.26.4 (A): dónde están los duendes que puso la escena (los vivos): su centro, o el del Mandamás (tipo 'jefe') si se pide; null si no hay ninguno
+function centroDeLosDuendesDeEscena(que) {
+  let l = duendesDeEscena.filter((d) => d.estado !== 'fuera' && d.posicion && Number.isFinite(d.posicion.x) && Number.isFinite(d.posicion.z));
+  if (que === 'jefe') { const j = l.filter((d) => d.tipo === 'jefe'); if (j.length) l = j; }
+  if (!l.length) return null;
+  return { x: l.reduce((t, d) => t + d.posicion.x, 0) / l.length, z: l.reduce((t, d) => t + d.posicion.z, 0) / l.length };
+}
 // 4.17.1: los que aparecen de a uno (cada 0,5 o 0,7 s) se anotan: si la escena se saltea o termina antes, los que faltaban ya no nacen
 // (antes nacían después de la despedida y quedaban quietos «mirando» para siempre)
 const nacimientosDeEscena = new Set();

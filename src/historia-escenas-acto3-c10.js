@@ -54,6 +54,9 @@ const sinGolpear = {
   ],
 };
 
+// 4.26.4 (A): los planos miran a la gente donde de verdad está (el centro del grupo o el Mandamás), del lado tuyo y entre vos y ellos
+const GRUPO = { grupo: 'centro' };
+const JEFE = { grupo: 'jefe' };
 const encuentro = {
   id: 'galpon-encuentro', titulo: 'Los del galpón', acto: 3, capitulo: 10,
   resumen: 'Adentro de tu galpón había once duendes sentados en ronda amasando harina, y el Mandamás arriba de una bolsa. Te señaló las bolsas, la ventana y a vos. Sin palabras. Tenías que decidir: dejar la puerta abierta, devolver la bolsa o echarlos.',
@@ -67,24 +70,24 @@ const encuentro = {
     efecto('duende:galpon-yuyero', { tipo: 'curandero', n: 1, huele: 'harina' }),
     efecto('duende:galpon-topo', { tipo: 'excavador', n: 1, alPozo: true }),
     efecto('duende:galpon-mandamas', { tipo: 'jefe', sobre: 'bolsa', hongosApagados: true }),
-    plano('general', FRENTE(6), { desde: 'jugador', dist: 10, alto: 2.6, dur: 3.8, mezcla: 0.9 }),
+    plano('general', GRUPO, { desde: 'jugador', dist: 10, alto: 2.6, fov: 72, entre: true, dur: 3.8, mezcla: 0.9 }),
     narra('Once duendes sentados en ronda alrededor de las bolsas abiertas. Pillos de orejas grandes, dos saltarines colgados de las vigas, duendecitos con lucecitas ámbar y un yuyero que huele la harina con cara de catador.'),
     narra('Amasan bollitos con las manos, como chicos en una cocina ajena. Cuando entrás, se congelan. Todos a la vez. Un bollito se cae al piso.'),
     efecto('duende:galpon-se-congelan', { n: 11 }),
-    plano('paneo', FRENTE(4, -4), { hasta: FRENTE(4, 4), desde: 'jugador', dist: 6, alto: 1.6, dur: 5, mezcla: 0.9 }),
+    plano('paneo', { grupo: 'centro', lado: -4 }, { hasta: { grupo: 'centro', lado: 4 }, desde: 'jugador', dist: 6, alto: 1.6, dur: 5, mezcla: 0.9 }),
     narra('Cara por cara. Ojos verdes, ojos ámbar. Nadie parpadea. Nadie se mueve. Se oye el goteo de la nieve que se derrite en el techo.'),
-    plano('contrapicado', FRENTE(8), { desde: 'jugador', dist: 5, mezcla: 0.9, dur: 4 }),
+    plano('contrapicado', JEFE, { desde: 'jugador', dist: 5, entre: true, mezcla: 0.9, dur: 4 }),
     narra('Al fondo, sentado arriba de una bolsa, el Mandamás. Es el más grande de todos, con una barba de musgo y unos hongos en el lomo que brillan apenas. Te mira mucho rato.'),
-    plano('primer', FRENTE(8), { desde: 'jugador', dist: 1.6, alto: 1.7, mezcla: 0.8, dur: 3.2 }),
+    plano('primer', JEFE, { desde: 'jugador', dist: 1.6, alto: 1.7, entre: true, mezcla: 0.8, dur: 3.2 }),
     narra('Levanta un brazo y señala las bolsas. Después, despacio, la ventana.'),
     plano('hombro', FRENTE(60, -8), { desde: 'jugador', atras: 0, costado: 0, miraY: 22, alto: 1.7, mezcla: 0.9, dur: 2.4 }),
     narra('Por la ventana, el cerro nevado. Nada: nieve y oscuridad.'),
-    plano('primer', FRENTE(8), { desde: 'jugador', dist: 1.6, alto: 1.7, mezcla: 0.8, dur: 3 }),
+    plano('primer', JEFE, { desde: 'jugador', dist: 1.6, alto: 1.7, entre: true, mezcla: 0.8, dur: 3 }),
     narra('Vuelve la cara, y te señala a vos. ¿Te está pidiendo, te está avisando o te está amenazando? No se sabe. A propósito.'),
     narra('Un duendecito estornuda harina. Risas tapadas por todos lados. El Mandamás no se ríe.'),
     efecto('duendes:vistos'),
     efecto('raro:once-en-el-galpon'),
-    plano('general', FRENTE(6), { desde: 'jugador', dist: 9, alto: 2.4, dur: 2.8, mezcla: 0.9 }),
+    plano('general', GRUPO, { desde: 'jugador', dist: 9, alto: 2.4, fov: 72, entre: true, dur: 2.8, mezcla: 0.9 }),
     narra('Esto no tiene tiempo límite. El valle espera. Las bolsas, la puerta, el farol y la pala: lo que hagas ahora es lo que va a pasar.'),
     con(eleccion('duendes', '¿Qué hacés?', [
       opcion('trato', 'Dejar la puerta abierta y sentarte en el umbral, con las manos vacías.', { efecto: 'duendes:trato' }),

@@ -110,7 +110,7 @@ export function validarEscena(e) {
   if (!Array.isArray(e.pasos) || !e.pasos.length) { err.push('sin pasos'); return { ok: false, errores: err }; }
   const etq = new Set();
   e.pasos.forEach((p) => { if (objeto(p) && typeof p.etiqueta === 'string') etq.add(p.etiqueta); });
-  const ref = (r) => typeof r === 'string' ? r.length > 0 && !PROHIBIDOS.has(r) : objeto(r) && (Number.isFinite(Number(r.x)) || typeof r.ref === 'string' || typeof r.lugar === 'string' || typeof r.frente === 'string');
+  const ref = (r) => typeof r === 'string' ? r.length > 0 && !PROHIBIDOS.has(r) : objeto(r) && (Number.isFinite(Number(r.x)) || typeof r.ref === 'string' || typeof r.lugar === 'string' || typeof r.frente === 'string' || typeof r.grupo === 'string');
   const efectoOk = (x) => typeof x === 'string' && x.length > 0;
   e.pasos.forEach((p, i) => {
     const w = `paso ${i + 1}`;
@@ -286,7 +286,11 @@ export function compilarPlano(p, ctx) {
       if (!A) return null;
       const az = (p.angulo !== undefined ? num(p.angulo) * DEG : dir(A)) + giro;
       const dist = tipo === 'empuje' ? lerp(dist0, num(p.distFin, dist0 * 0.45), u) : dist0;
-      const c = desde(A, az, dist);
+      // 4.26.4 (A): `entre: true` = la cámara queda del lado del espectador (`desde`) pero nunca más allá de él: a lo sumo al 70 % del camino entre el espectador y el ancla (antes, con
+      // `dist` mayor que la distancia al grupo, la lente quedaba detrás del jugador, del otro lado de la gente que hay que ver)
+      let distEntre = dist;
+      if (p.entre === true) { const e = p.desde !== undefined ? R(p.desde) : (ctx.base ? { x: ctx.base.x, z: ctx.base.z } : null); if (e) distEntre = Math.min(dist, Math.max(1.5, Math.hypot(e.x - A.x, e.z - A.z) * 0.7)); }
+      const c = desde(A, az, distEntre);
       return poseMirando(c, { x: A.x, y: A.y + miraY, z: A.z }, tipo === 'empuje' ? lerp(fov, num(p.fovFin, fov), u) : fov);
     };
   }

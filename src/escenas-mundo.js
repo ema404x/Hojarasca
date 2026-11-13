@@ -405,6 +405,17 @@ export function crearEscenasMundo(ctx) {
           if (ref.techo === true && (ref.lugar === 'galpon-noche' || ref.lugar === 'galpon-propio') && lugarDe('galpon-propio') && ctx.T?.altura) q.y = ctx.T.altura(q.x, q.z) + CUMBRERA_GALPONCITO;
           return q;
         }
+        // 4.26.4 (A): `{ grupo: 'centro' | 'jefe', lado }`: el centro (o el Mandamás) del grupo de duendes que puso la escena, con un corrimiento `lado` de costado visto desde vos; sin grupo todavía,
+        // el punto de siempre adelante tuyo (galpon-encuentro: los planos miran a la gente, esté donde esté: afuera del galponcito, girada por una pared, etc.)
+        if (typeof ref.grupo === 'string') {
+          const g = (() => { try { return ctx.grupoDuendes?.(ref.grupo) || null; } catch { return null; } })();
+          const b = g && Number.isFinite(g.x) && Number.isFinite(g.z) ? g : mundo.posicion({ frente: 'jugador', dist: 6.5 });
+          if (!b) return null;
+          const l = num(ref.lado);
+          if (!l) return { x: b.x, z: b.z };
+          const dx = b.x - js.pos.x, dz = b.z - js.pos.z, L = Math.hypot(dx, dz) || 1;
+          return { x: b.x + (-dz / L) * l, z: b.z + (dx / L) * l };
+        }
         if (typeof ref.frente === 'string') {
           let b;
           if (ref.frente === 'jugador') b = { x: js.pos.x, z: js.pos.z, fx: -Math.sin(js.yaw), fz: -Math.cos(js.yaw) };
