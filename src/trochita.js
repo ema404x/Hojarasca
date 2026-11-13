@@ -1186,12 +1186,17 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     est.asiento = i;
     return true;
   }
+  // 4.26.5: el andén donde está parado el tren (el que se pisa al bajar), o null si anda
+  function paradaDondeParo() {
+    if (est.parado <= 0) return null;
+    const p = enVia(est.s + (tren.adelanto ? -tren.adelanto : -5.2));
+    return paradas.reduce((a, b) => (Math.hypot(b.anden.x - p.x, b.anden.z - p.z) < Math.hypot(a.anden.x - p.x, a.anden.z - p.z) ? b : a), paradas[0]);
+  }
   function bajar(jugador) {
-    if (est.parado <= 0) return false;
+    const parada = paradaDondeParo();
+    if (!parada) return false;
     est.subido = false;
     jugador.estado.enTren = false;
-    const p = enVia(est.s + (tren.adelanto ? -tren.adelanto : -5.2));
-    const parada = paradas.reduce((a, b) => (Math.hypot(b.anden.x - p.x, b.anden.z - p.z) < Math.hypot(a.anden.x - p.x, a.anden.z - p.z) ? b : a), paradas[0]);
     jugador.ubicar(parada.anden.x, parada.anden.z, jugador.estado.yaw);
     return true;
   }
@@ -1361,7 +1366,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,
     viajando: () => est.subido, parado: () => est.parado > 0 || paradoEnCabina(),
     // 2.9: de maquinista y el puesto de cargas de cada parada
-    puedeConducir, subirACabina, bajarDeCabina, silbar, puestoCerca, paradaEnVentana,
+    puedeConducir, subirACabina, bajarDeCabina, silbar, puestoCerca, paradaEnVentana, paradaDondeParo,
     conduciendo: () => est.conduce, paradaCabina: () => est.paradaCabina,
     largo: total, varar, soltarVarada, soltar,
     personalizar, personal: () => personal, nombreLocomotora: () => personal.nombre, tren,   // 2.8

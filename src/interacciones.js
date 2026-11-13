@@ -104,7 +104,7 @@ export const INTERACCIONES = [
   { id: 'feria', cuando: (c) => aMano(c) && c.feriaCerca(), aviso: () => 'Ver la feria', hacer: (c) => c.abrirFeria() },
   // 2.9: el puesto de cargas de la parada
   // (4.26.1: mirando de cerca la campana del andén, que cuelga junto al puesto, gana la campana: ver 'campana-anden')
-  { id: 'cargas', cuando: (c) => aMano(c) && c.puestoDeCargasCerca() && !campanaALaVista(c), aviso: () => 'Comerciar en el puesto de cargas', hacer: (c, p) => c.abrirCargas(p) },
+  { id: 'cargas', cuando: (c) => aMano(c) && !campanaALaVista(c) && c.puestoDeCargasCerca(), aviso: () => 'Comerciar en el puesto de cargas', hacer: (c, p) => c.abrirCargas(p) },
   // 4.6 puestos: un puesto de ruta: reparar, dormir, comerciar y el depósito
   { id: 'puestos', ...delModulo('puestos', aPie) },
   // cantero, gallinero y telar van antes que las puertas (con un cantero al lado de una puerta, E siembra)
