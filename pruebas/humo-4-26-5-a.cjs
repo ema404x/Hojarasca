@@ -74,7 +74,7 @@ const PAGINA = String.raw`(() => {
         const b = { x: p.x, y: p.y, z: p.z };
         H.col.resolver(b, 0.22, 1.2);
         const d = Math.hypot(b.x - p.x, b.z - p.z);
-        if (d > 0.25) registrar(o, 'solido', k, { x: +p.x.toFixed(1), z: +p.z.toFixed(1), empuje: +d.toFixed(2), y: +p.y.toFixed(2), obs: cerca(p.x, p.z, 0.22), dest, pose: n.pose || null, cam: p.cam });
+        if (d > 0.25 && !p.cam) registrar(o, 'solido', k, { x: +p.x.toFixed(1), z: +p.z.toFixed(1), empuje: +d.toFixed(2), y: +p.y.toFixed(2), obs: cerca(p.x, p.z, 0.22), dest, pose: n.pose || null, cam: p.cam });
       } catch (e) { /* sin choque */ }
       r.x = p.x; r.y = p.y; r.z = p.z; r.yaw = p.yaw; r.dest = dest;
       pos.push({ k, x: p.x, z: p.z, pose: n.pose || null, cam: p.cam, dest });
@@ -143,6 +143,13 @@ app.whenReady().then(async () => {
       for (const i of inf.inc) (por[i.tipo] = por[i.tipo] || []).push(i);
       for (const t of Object.keys(por)) { console.log(`  ${t}: ${por[t].length}`); for (const i of por[t].slice(0, 12)) console.log('    ' + JSON.stringify(i)); }
       if (!inf.inc.length) console.log('  sin incidentes');
+    }
+    if (va('anden')) {
+      donde = 'anden';
+      console.log('— el que baja del tren y espera en el anden');
+      const r = await N(`(() => { N.despejado(); P.horas = 10; const A = H.__aldea, M = A.mundo(); const a = P.aldea; a.llegando = null; a.pobladores = a.pobladores.filter((p) => p.clave !== 'musico' && p.clave !== 'tejedora'); delete a.locales.salon; delete a.locales.hilanderia; const okl = A.llamar(); M.revisarLlegada(true); N.cuadros(30); const q = a.llegando && a.llegando.clave; const pe = A.puntos('estacion-aldea').espera || A.puntos('estacion-aldea').anden; H.jugador.ubicar(pe.x + 3, pe.z + 3, 0, null); for (let i = 0; i < 6; i++) H.jugador.actualizar(0.05); M.actualizar && 0; H.__aldeaMundo().actualizar(4, H.camara.position); N.cuadros(300); const st = q && M.personas.get(q); const n = st && st.npc; if (!n) return { okl, q, sinFigura: true, esp: [pe.x, pe.z] }; const su = H.T.altura(n.pos.x, n.pos.z); H.jugador.estado.yaw = Math.atan2(-(n.pos.x - H.jugador.estado.pos.x), -(n.pos.z - H.jugador.estado.pos.z)); N.cuadros(20); return { okl, q, x: +n.pos.x.toFixed(1), z: +n.pos.z.toFixed(1), y: +n.pos.y.toFixed(2), suelo: +su.toFixed(2), pose: n.pose, dest: st.destino && st.destino.punto, camino: n.camino ? n.camino.length : -1, mano: !!n.mano, esp: [+pe.x.toFixed(1), +pe.z.toFixed(1)], llegando: n.llegando, solido: N.cerca(n.pos.x, n.pos.z, 0.22) } })()`);
+      console.log('  ', JSON.stringify(r));
+      await captura('anden-llegada');
     }
     if (va('cama')) {
       donde = 'cama';

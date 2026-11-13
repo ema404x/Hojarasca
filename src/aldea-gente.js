@@ -594,6 +594,40 @@ export function crearAldeaGente(ctx) {
   // ubica de una, de lejos, quedaba abajo del piso)
   const yDesde = (npc, d, p = npc.pos) => (d.arriba ? EDIFICIOS_ALDEA[d.edificio].y + ESCALERAS_ALDEA[d.edificio].alto + 0.1 : d.edificio === 'taller-tren' && enTaller(p) ? Math.max(npc.pos.y, EDIFICIOS_ALDEA[d.edificio].y + 0.32) : npc.pos.y);
   const enTaller = (p) => { const l = M.aLocal(p.x, p.z); return dentroDePlanta('taller-tren', l.lx, l.lz, -0.1); };
+  // 4.26.5: los puntos de pie de la casa y del trabajo que caen a 0,3 m adentro de un muro o un mueble (la panadera en la pared, el apicultor en el estante, el
+  // gerente en el accesorio) se corren al lugar libre más cercano (el criterio de `despejarPuesto` de escenas-mundo.js: radio 0,22, hasta 1,2 m, sin salir del edificio).
+  // Se calcula una vez por punto, con los obstáculos del edificio ya armados (si todavía no hay ninguno cerca, no se anota); no en cada cuadro
+  const despejados = new Map();
+  const PUNTOS_DE_PIE = new Set(['adentro', 'trabajo', 'cliente']);
+  const sonda = { x: 0, y: 0, z: 0 };
+  function libreEn(col, x, z, y) { sonda.x = x; sonda.y = y; sonda.z = z; col.resolver(sonda, 0.22, 1.65); return Math.hypot(sonda.x - x, sonda.z - z) < 0.02; }
+  function despejarDestino(d) {
+    if (!d || d.sentado || d.arriba || d.lejano || d.amor || Number.isFinite(d.y) || !d.edificio || !PUNTOS_DE_PIE.has(d.punto)) return false;
+    const col = ctx.col?.();
+    if (!col?.resolver || !col.cercanos) return false;
+    const clave = d.clave + '|' + d.x.toFixed(2) + '|' + d.z.toFixed(2);
+    let r = despejados.get(clave);
+    if (r === undefined) {
+      if (!col.cercanos(d.x, d.z).length) return false;
+      const y = ctx.alturaDePie(d.x, d.z, 0);
+      r = null;
+      if (!libreEn(col, d.x, d.z, y)) {
+        const l0 = M.aLocal(d.x, d.z), dentro = !!edificioEn(l0.lx, l0.lz);
+        buscar: for (let rad = 0.2; rad <= 1.2; rad += 0.2) {
+          const k = Math.max(8, Math.round(rad * 14));
+          for (let i = 0; i < k; i++) {
+            const a = (i / k) * Math.PI * 2, qx = d.x + Math.cos(a) * rad, qz = d.z + Math.sin(a) * rad;
+            const l = M.aLocal(qx, qz);
+            if (!!edificioEn(l.lx, l.lz) === dentro && libreEn(col, qx, qz, y)) { r = { x: qx, z: qz }; break buscar; }
+          }
+        }
+      }
+      despejados.set(clave, r);
+    }
+    if (!r) return false;
+    d.x = r.x; d.z = r.z; const l = M.aLocal(r.x, r.z); d.lx = l.lx; d.lz = l.lz;
+    return true;
+  }
   function ubicar(npc, d) {
     // (3.7.1 (mundo): `d.y`: la altura justa, la de la cama del refugio donde se acuesta)
     npc.pos.set(d.x, Number.isFinite(d.y) ? d.y : ctx.alturaDePie(d.x, d.z, yDesde(npc, d, d)), d.z);
@@ -1246,6 +1280,12 @@ export function crearAldeaGente(ctx) {
       const l = M.aLocal(d.x, d.z); d.lx = l.lx; d.lz = l.lz;
     }
     const hablando = ctx.hablandoCon?.();
+    // (el que ya estaba parado en el punto de antes, que se armó sin los obstáculos, se corre con él)
+    for (const [k, d] of destinos) {
+      if (!despejarDestino(d)) continue;
+      const q = personas.get(k), n = q?.npc;
+      if (n && !n.camino?.length && q.clave === d.clave && !n.deVisita && !n.conVos && Math.hypot(n.pos.x - d.x, n.pos.z - d.z) < 1.3) { n.pos.x = d.x; n.pos.z = d.z; }
+    }   // 4.26.5
     for (const [k, st] of personas) {
       const d = destinos.get(k);
       st.destino = d || null;

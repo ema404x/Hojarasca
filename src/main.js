@@ -6398,6 +6398,7 @@ function armarOficiosYAldea(esDesafio) {
     deTurnoNegocio: (k) => !!empleadosNegocioJuego?.deTurno(k), salidaDeTurno: (k) => empleadosNegocioJuego?.salidaDeTurno(k) || null,   // 4.11.2 (D3): el que termina el turno sale caminando de tu local
     temporada: () => temporadaDelDia(progreso.dia),   // 3.8.8: la demanda del pueblo. 4.11.2 (S2): por el calendario (negocios-fx.js), no por el cielo: coherente con los precios de los puestos y con «Estación fija»
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
+    col: () => col,   // 4.26.5: para correr los puntos de pie que caen en un muro
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), agua: (x, z) => !!T.agua(x, z),   // (4.25.2: el visitante que guiás no aparece en el agua)
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
