@@ -25,12 +25,12 @@ async function comprobar() {
 
   // ---- 1. la regla
   ok('buhardilla en CASAS_CERRADAS', I.CASAS_CERRADAS.has('buhardilla'));
-  ok('el puesto de troncos queda afuera', !I.CASAS_CERRADAS.has('puesto'));
+  ok('el puesto de troncos entra (4.26.4 (C), ajustada a propósito)', I.CASAS_CERRADAS.has('puesto'));
   ok('lo de la 4.26.1 sigue (casilla, taller anexo, planta alta)', ['casilla', 'taller-anexo', 'planta-alta'].every((k) => I.CASAS_CERRADAS.has(k)));
   const bu = { id: 'buhardilla', x: 40, z: -70, y: 6, rot: 0.7, ancho: 4.4, fondo: 5.2, alto: 3.25 };
   const caja = I.cajaDeCasa(bu);
   ok('cajaDeCasa de la buhardilla: las medidas del plano y las paredes hasta alto + 0,25', !!caja && caja.id === 'obra-buhardilla' && caja.ancho === 4.4 && caja.fondo === 5.2 && Math.abs(caja.alto - 3.5) < 1e-9);
-  ok('cajaDeCasa del puesto: no hay', I.cajaDeCasa({ ...bu, id: 'puesto' }) === null);
+  ok('cajaDeCasa del puesto: hay (4.26.4 (C))', I.cajaDeCasa({ ...bu, id: 'puesto' }) !== null);
   const l = (a, b, y) => ({ x: bu.x + a * Math.cos(bu.rot) + b * Math.sin(bu.rot), y, z: bu.z - a * Math.sin(bu.rot) + b * Math.cos(bu.rot) });
   const sal = {};
   ok('adentro de la buhardilla la caja encuentra la cámara', !!caja && I.interiorDeCaja(l(0.3, 0.4, 6 + 1.65), caja, sal)?.id === 'obra-buhardilla');
@@ -125,7 +125,7 @@ for (const [n, v] of base) { console.log((v ? 'ok   ' : 'MAL  ') + n); if (!v) m
 // ---- mutaciones
 const MUT = [
   ['interior-visible.js', 'la buhardilla sale de la regla', "'planta-alta', 'buhardilla']);", "'planta-alta']);"],
-  ['interior-visible.js', 'el puesto entra a la regla', "'planta-alta', 'buhardilla']);", "'planta-alta', 'buhardilla', 'puesto']);"],
+  ['interior-visible.js', 'la casilla sale de la regla', "'casilla', ", ''],
   ['main.js', 'no se corre el punto de la huella', 'if (Math.abs(lx) >= mx || Math.abs(lz) >= mz) return p;', 'return p;'],
   ['main.js', 'sin margen alrededor del galponcito', 'mx = P.ancho / 2 + 1.2, mz = P.fondo / 2 + 1.2;', 'mx = P.ancho / 2 + 0.1, mz = P.fondo / 2 + 0.1;'],
   ['main.js', 'sale por el borde más lejano', 'if (!mejor || d < mejor.d) mejor = { w, d };', 'if (!mejor || d > mejor.d) mejor = { w, d };'],

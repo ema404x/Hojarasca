@@ -227,12 +227,10 @@ function comprobarInterior(M) {
   const mal = [];
   const falla = (c, t) => { if (!c) mal.push(t); };
   const cos = M.cosVistaDe(70, 16 / 9);
-  for (const id of ['casilla', 'taller-anexo', 'planta-alta', 'buhardilla']) falla(M.CASAS_CERRADAS.has(id), `${id} está en CASAS_CERRADAS`);   // (4.26.3 (A), ajustada a propósito: la buhardilla entra)
-  for (const id of ['puesto']) falla(!M.CASAS_CERRADAS.has(id), `${id} queda afuera de CASAS_CERRADAS (la equivalencia de imagen mostró diferencias: el pasto y el terreno asoman por el piso)`);
+  for (const id of ['casilla', 'puesto', 'taller-anexo', 'planta-alta', 'buhardilla']) falla(M.CASAS_CERRADAS.has(id), `${id} está en CASAS_CERRADAS`);   // (4.26.3 (A), ajustada a propósito: la buhardilla entra; 4.26.4 (C): y el puesto de troncos, con el pasto del piso cerrado en main.js)
   for (const id of ['cabana-piedra', 'casa-galeria', 'casona', 'dormitorio-anexo', 'despensa-anexa', 'cocina-ampliada', 'bodega-piedra', 'salon-grande', 'torreon-piedra']) falla(M.CASAS_CERRADAS.has(id), `${id} sigue en CASAS_CERRADAS (la 4.26.0)`);
   for (const id of ['quincho', 'galeria-cerrada', 'piso-modular', 'pared-modular', 'pared-puerta', 'pared-ventana', 'techo-modular', 'techo-una-agua', 'techo-plano', 'entrepiso-modular']) falla(!M.CASAS_CERRADAS.has(id), `${id} no es una casa de la lista (frente abierto, sin pared de atrás o pieza modular)`);
   for (const [id, [W, D, H]] of Object.entries(MEDIDAS)) {
-    if (id === 'puesto') continue;   // afuera de la regla (equivalencia de imagen)
     const o = { id, x: 40, z: -70, y: 6, rot: 0.7, ancho: W, fondo: D, alto: H };
     const k = M.cajaDeCasa(o);
     falla(k && k.id === 'obra-' + id && k.ancho === W && k.fondo === D && Math.abs(k.alto - (H + 0.25)) < 1e-9, `${id}: la caja con las medidas del plano y las paredes hasta alto + 0,25`);
@@ -444,7 +442,7 @@ const I = await import('../src/interior-visible.js');
   ok(correr('interior-original', interior) === '0', 'mutación 0 (interior-visible.js): la copia sin tocar cumple todo');
   for (const [n, de, a] of [
     ['sin-casilla', "'casilla', ", ''],
-    ['con-puesto', "'buhardilla']);", "'buhardilla', 'puesto']);"],
+    ['sin-puesto', "'casilla', 'puesto', ", "'casilla', "],
     ['sin-taller', "'taller-anexo', ", ''],
     ['sin-buhardilla', ", 'buhardilla']);", ']);'],
     ['sin-planta-alta', "'planta-alta', 'buhardilla']);", "'buhardilla']);"],
@@ -483,7 +481,7 @@ const I = await import('../src/interior-visible.js');
   env.cajaDeModuloCacheada = funcion(fuente, 'cajaDeModuloCacheada', env);
   const f = funcion(fuente, 'interiorDelValle', env);
   ok(f({ x: 300, y: 3 + 0.62 + 1.65, z: 300 })?.id === 'obra-casilla', 'interiorDelValle: adentro de la casilla terminada');
-  ok(f({ x: 330, y: 3 + 0.58 + 1.65, z: 300 }) === null, 'interiorDelValle: el puesto de troncos queda afuera de la regla');
+  ok(f({ x: 330, y: 3 + 0.58 + 1.65, z: 300 })?.id === 'obra-puesto', 'interiorDelValle: adentro del puesto de troncos (4.26.4 (C), ajustada a propósito: entra a la regla)');
   ok(f({ x: 360, y: 3 + 0.62 + 1.65, z: 300 }) === null, 'interiorDelValle: el taller a medio hacer (sin techo) no');
   ok(f({ x: 300, y: 3 + 2.25 + 0.5, z: 300 }) === null, 'interiorDelValle: arriba de las paredes de la casilla (un salto), no: se dibuja todo');
   const r1 = f({ x: 400.3, y: 3 + 0.285 + 1.6, z: 300.2 });
