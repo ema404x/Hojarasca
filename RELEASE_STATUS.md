@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.27.0 (sobre main = 4.26.5): PANALES SILVESTRES (CAMBIOS_4_27_0_A.md) — ocho panales en el bosque que dan miel, y en la Historia te llevás las abejas para armar tu colmena
 - 4.26.5 (sobre main = 4.26.4): CACERÍA DE BUGS EN EL PUEBLO (CAMBIOS_4_26_5_A/B/C.md) — vecinos que ya no se clavan ni quedan en los muros, el puesto de cargas abre otra vez, guardar en la trochita carga donde estabas, pedidos bien escritos y lajas apoyadas
 - 4.26.4 (sobre main = 4.26.3): LOS CUATRO PENDIENTES (CAMBIOS_4_26_4_A/B/C.md) — los duendes del galpón en cuadro, la silueta también en el monte cerrado, la campanita llama a la trochita para la primera vuelta y el puesto de troncos más liviano por dentro
 - 4.26.3 (sobre main = 4.26.2): EL GALPÓN Y LA BUHARDILLA (CAMBIOS_4_26_3_A.md) — los duendes del encuentro ya no quedan adentro del galponcito y la buhardilla se dibuja más liviana por dentro

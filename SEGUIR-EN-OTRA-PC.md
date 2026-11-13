@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (13-11-2026, notebook): VERSIÓN 4.27.0 en `main`, etiqueta `v4.27.0`** — Panales silvestres (CAMBIOS_4_27_0_A.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: buscar un panal en el bosque, sacar miel y armar la colmena en la Historia. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
+
 > **ÚLTIMO (13-11-2026, notebook): VERSIÓN 4.26.5 en `main`, etiqueta `v4.26.5`** — Cacería de bugs en el pueblo (CAMBIOS_4_26_5_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Próximo pedido: panales silvestres en el bosque. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
 
 > **ÚLTIMO (13-11-2026, notebook): VERSIÓN 4.26.4 en `main`, etiqueta `v4.26.4`** — Los cuatro pendientes (CAMBIOS_4_26_4_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: la primera vuelta en trochita con la campanita, el encuentro del galpón, la silueta cerca del molino. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
