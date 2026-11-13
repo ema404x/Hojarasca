@@ -68,7 +68,7 @@ const GRUPOS = {
       jugador: { estado: { pos: { x: o.px, z: o.pz }, yaw: o.yaw ?? 0, enTren: false, sentado: false } },
       tren: { estadoDelLlamado: () => ({ espera: 300 }), paradaCerca: () => o.parada, estacion: null },
       progreso: { historia: null, entradas: {} }, esDesafio: false, desafio: null, CAPITULOS: [{ id: 'llave' }],
-      CAMPANA_ANDEN: C.CAMPANA_ANDEN, campanaDeElsa: C.campanaDeElsa, decidirCampana: C.decidirCampana, ofreceCampana: C.ofreceCampana, mirandoLaCampana: C.mirandoLaCampana,
+      CAMPANA_ANDEN: C.CAMPANA_ANDEN, campanaDeElsa: C.campanaDeElsa, umbralDeCampana: C.umbralDeCampana, vueltaHecha: C.vueltaHecha, decidirCampana: C.decidirCampana, ofreceCampana: C.ofreceCampana, mirandoLaCampana: C.mirandoLaCampana,
       mecanicasAldea: o.mec || null,
     });
     const cerca = (o) => funcion(main, 'campanaAndenCerca', mundo(o))();
