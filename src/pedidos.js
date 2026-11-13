@@ -162,7 +162,8 @@ export function ofertaDePedido(p, k, dia, nombre = '', seguir = '') {
   const v = puedeEntregar(p, k, dia);
   if (v.motivo === 'no pide' || !v.pedido) return null;
   const q = v.pedido;
-  const lo = `${q.n} de ${nombreCosa(q.k)}`;
+  // (4.26.5: «2 frascos de miel», no «2 de frascos de miel»: los nombres ya son los plurales, «medidas de harina», «litros de leche»)
+  const lo = `${q.n} ${nombreCosa(q.k)}`;
   const hasta = `hasta el día ${q.limite}`;
   if (v.ok) {
     return {

@@ -236,6 +236,7 @@ function revisarMain(fuente) {
       nota: (a, b) => notas.push([a, b]), sonido: { paso() {} }, refrescarBarra() {}, guardar() {}, enMano: null,
       pesca: { est: { equipada: false }, equipar(v) { this.est.equipada = v; } }, linterna: { intensity: 45 },
       motivoParaNoTirar: TI.motivoParaNoTirar, sacarDeMochila: TI.sacarDeMochila, devolverAMochila: TI.devolverAMochila,
+      enLasCargas: () => false, puestoCargas: null,   // 4.26.5: tirar con el puesto de cargas abierto redibuja el panel (el mundo de mentira no lo tiene abierto)
       ...sobre,
     };
     return { env, notas, bultos, progreso, js };

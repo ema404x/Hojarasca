@@ -4646,6 +4646,7 @@ function soltarRanura(todo = false) {
   sonido.paso('hojarasca', 0.5);
   refrescarBarra(true);
   if (enMano) enMano.mostrar(ranuras[elegida]?.id);
+  if (enLasCargas()) puestoCargas.dibujar();   // 4.26.5: con el puesto de cargas abierto, tirar algo dejaba en el panel el «tenés 8» de antes
   guardar();
 }
 
@@ -10399,7 +10400,8 @@ function guardar() {
   const m = T.lugares.muelle;
   const e = T.lugares.estacion;
   progreso.pos = jugador.estado.enKayak ? { x: m.punta.x, z: m.punta.z }
-    : jugador.estado.enTren && e ? { x: e.espera.x, z: e.espera.z }
+    // 4.26.5: con el tren parado en un andén (la Aldea, el Mallín…) se guarda ese andén; sólo en marcha, la Estación del Valle (antes siempre la Estación: guardar arriba de la trochita en la Aldea te dejaba a 700 m)
+    : jugador.estado.enTren && e ? (() => { const q = tren?.paradaDondeParo?.(), s = q?.espera; return s && Number.isFinite(s.x) && Number.isFinite(s.z) ? { x: s.x, ...(Number.isFinite(s.y) ? { y: s.y } : {}), z: s.z } : { x: e.espera.x, z: e.espera.z }; })()
     // 3.6.1: sentado, se guarda donde estabas parado (el asiento puede caer adentro de un mueble)
     : jugador.estado.sentado && jugador.estado.salida ? { x: jugador.estado.salida.x, y: jugador.estado.salida.y, z: jugador.estado.salida.z }
     : { x: jugador.estado.pos.x, y: jugador.estado.pos.y, z: jugador.estado.pos.z };
