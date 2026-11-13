@@ -388,8 +388,9 @@ function materiales() {
   if (materialesHechos) return materialesHechos;
   const estructura = prepararMaterialAldea(materialVegetal({ flex: 0 }));
   const previo = estructura.onBeforeCompile;
-  const clave = estructura.customProgramCacheKey();
-  estructura.customProgramCacheKey = () => clave + '|tren-3.7.3';
+  // 4.28.0 (C): la clave de la aldea se pide en cada compilación (con Ultra suma la suya: ver ultra-materiales.js)
+  const claveAldea = estructura.customProgramCacheKey;
+  estructura.customProgramCacheKey = () => claveAldea.call(estructura) + '|tren-3.7.3';
   estructura.onBeforeCompile = (sh, r) => {
     previo(sh, r);
     const f0 = sh.fragmentShader, v0 = sh.vertexShader;

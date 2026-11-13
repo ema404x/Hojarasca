@@ -1,0 +1,283 @@
+[
+ {
+  "id": "c1-banco-dia",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('banco-pueblo'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8.5 + fz * 2.5, z = s.z + fz * 8.5 - fx * 2.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c2-casa-familia-dia",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('casa-familia'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8 + fz * -3, z = s.z + fz * 8 - fx * -3; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c3-cantina-dia",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.02,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('cantina'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10 + fz * 3, z = s.z + fz * 10 - fx * 3; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c4-biblioteca-vidrios-dia",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": 0.02,
+  "fov": 50,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('biblioteca'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10.5 + fz * 0, z = s.z + fz * 10.5 - fx * 0; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c5-gente-plaza-dia",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.06,
+  "fov": 38,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; const c = window.__AUD.camaraGente(g, 2.2, 12); c.y = c.altoPersona + 1.62; return c })()"
+ },
+ {
+  "id": "c1-banco-ocaso",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('banco-pueblo'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8.5 + fz * 2.5, z = s.z + fz * 8.5 - fx * 2.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 18.6 } })()"
+ },
+ {
+  "id": "c2-casa-familia-ocaso",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('casa-familia'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8 + fz * -3, z = s.z + fz * 8 - fx * -3; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 18.6 } })()"
+ },
+ {
+  "id": "c3-cantina-ocaso",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.02,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('cantina'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10 + fz * 3, z = s.z + fz * 10 - fx * 3; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 18.6 } })()"
+ },
+ {
+  "id": "c4-biblioteca-vidrios-ocaso",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": 0.02,
+  "fov": 50,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('biblioteca'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10.5 + fz * 0, z = s.z + fz * 10.5 - fx * 0; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 18.6 } })()"
+ },
+ {
+  "id": "c5-gente-plaza-ocaso",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.06,
+  "fov": 38,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; const c = window.__AUD.camaraGente(g, 2.2, 18.6); c.y = c.altoPersona + 1.62; return c })()"
+ },
+ {
+  "id": "c1-banco-noche",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('banco-pueblo'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8.5 + fz * 2.5, z = s.z + fz * 8.5 - fx * 2.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 22 } })()"
+ },
+ {
+  "id": "c2-casa-familia-noche",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('casa-familia'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8 + fz * -3, z = s.z + fz * 8 - fx * -3; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 22 } })()"
+ },
+ {
+  "id": "c3-cantina-noche",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.02,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('cantina'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10 + fz * 3, z = s.z + fz * 10 - fx * 3; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 22 } })()"
+ },
+ {
+  "id": "c4-biblioteca-vidrios-noche",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": 0.02,
+  "fov": 50,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('biblioteca'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10.5 + fz * 0, z = s.z + fz * 10.5 - fx * 0; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 22 } })()"
+ },
+ {
+  "id": "c5-gente-plaza-noche",
+  "grupo": "verano",
+  "aldea": true,
+  "pitch": -0.06,
+  "fov": 38,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; const c = window.__AUD.camaraGente(g, 2.2, 22); c.y = c.altoPersona + 1.62; return c })()"
+ },
+ {
+  "id": "c1-banco-nieve",
+  "grupo": "invierno",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('banco-pueblo'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8.5 + fz * 2.5, z = s.z + fz * 8.5 - fx * 2.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c2-casa-familia-nieve",
+  "grupo": "invierno",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('casa-familia'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8 + fz * -3, z = s.z + fz * 8 - fx * -3; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c3-cantina-nieve",
+  "grupo": "invierno",
+  "aldea": true,
+  "pitch": -0.02,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('cantina'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10 + fz * 3, z = s.z + fz * 10 - fx * 3; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c4-biblioteca-vidrios-nieve",
+  "grupo": "invierno",
+  "aldea": true,
+  "pitch": 0.02,
+  "fov": 50,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('biblioteca'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10.5 + fz * 0, z = s.z + fz * 10.5 - fx * 0; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c5-gente-plaza-nieve",
+  "grupo": "invierno",
+  "aldea": true,
+  "pitch": -0.06,
+  "fov": 38,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; const c = window.__AUD.camaraGente(g, 2.2, 12); c.y = c.altoPersona + 1.62; return c })()"
+ },
+ {
+  "id": "c1-banco-lluvia",
+  "grupo": "lluvia",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('banco-pueblo'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8.5 + fz * 2.5, z = s.z + fz * 8.5 - fx * 2.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c2-casa-familia-lluvia",
+  "grupo": "lluvia",
+  "aldea": true,
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('casa-familia'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 8 + fz * -3, z = s.z + fz * 8 - fx * -3; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c3-cantina-lluvia",
+  "grupo": "lluvia",
+  "aldea": true,
+  "pitch": -0.02,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('cantina'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10 + fz * 3, z = s.z + fz * 10 - fx * 3; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c4-biblioteca-vidrios-lluvia",
+  "grupo": "lluvia",
+  "aldea": true,
+  "pitch": 0.02,
+  "fov": 50,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const e = A.estadoEdificio('biblioteca'); if (!e) return null; const s = e.sitio; const fx = Math.sin(s.rot), fz = Math.cos(s.rot); const x = s.x + fx * 10.5 + fz * 0, z = s.z + fz * 10.5 - fx * 0; return { x, z, y: H.T.altura(x, z) + 1.7, yaw: Math.atan2(x - s.x, z - s.z), horas: 12 } })()"
+ },
+ {
+  "id": "c5-gente-plaza-lluvia",
+  "grupo": "lluvia",
+  "aldea": true,
+  "pitch": -0.06,
+  "fov": 38,
+  "medir": false,
+  "donde": "(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio; const l = (H.gente.gente || []).filter((q) => q.pos && (q.pos.x !== 0 || q.pos.z !== 0) && Math.hypot(q.pos.x - s.x, q.pos.z - s.z) < 45).sort((a, b) => Math.hypot(a.pos.x - s.x, a.pos.z - s.z) - Math.hypot(b.pos.x - s.x, b.pos.z - s.z)); const g = l[0]; if (!g) return null; const c = window.__AUD.camaraGente(g, 2.2, 12); c.y = c.altoPersona + 1.62; return c })()"
+ },
+ {
+  "id": "c6-refugio-dia",
+  "grupo": "verano",
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 6.5, z = L.z + 6.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - L.x, z - L.z), horas: 12 } })()"
+ },
+ {
+  "id": "c6-refugio-ocaso",
+  "grupo": "verano",
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 6.5, z = L.z + 6.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - L.x, z - L.z), horas: 18.6 } })()"
+ },
+ {
+  "id": "c6-refugio-noche",
+  "grupo": "verano",
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 6.5, z = L.z + 6.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - L.x, z - L.z), horas: 22 } })()"
+ },
+ {
+  "id": "c6-refugio-nieve",
+  "grupo": "invierno",
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 6.5, z = L.z + 6.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - L.x, z - L.z), horas: 12 } })()"
+ },
+ {
+  "id": "c6-refugio-lluvia",
+  "grupo": "lluvia",
+  "pitch": -0.04,
+  "fov": 55,
+  "medir": false,
+  "donde": "(()=>{ const L = H.T.lugares.refugio; const x = L.x + 6.5, z = L.z + 6.5; return { x, z, y: H.T.altura(x, z) + 1.6, yaw: Math.atan2(x - L.x, z - L.z), horas: 12 } })()"
+ },
+ {
+  "id": "c7-gente-fermin-dia",
+  "grupo": "verano",
+  "pitch": -0.08,
+  "fov": 30,
+  "medir": false,
+  "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E && E.mundo; const g = (H.gente.gente || []).find((q) => q.clave === 'fermin'); if (!g || !M) return null; M.capturar('fermin'); const L = T.lugares.refugio; const x0 = L.x + 14, z0 = L.z + 4; M.teletransportar('fermin', { x: x0, z: z0 }, { x: x0 + 10, z: z0 }); g.pos.x = x0; g.pos.z = z0; return { x: x0 + 1.9, z: z0 + 0.25, y: T.altura(x0, z0) + 1.6, yaw: Math.atan2(1.9, 0.25), horas: 11 } })()"
+ },
+ {
+  "id": "c7-gente-fermin-ocaso",
+  "grupo": "verano",
+  "pitch": -0.08,
+  "fov": 30,
+  "medir": false,
+  "donde": "(()=>{ const T = H.T, E = H.__escenas, M = E && E.mundo; const g = (H.gente.gente || []).find((q) => q.clave === 'fermin'); if (!g || !M) return null; M.capturar('fermin'); const L = T.lugares.refugio; const x0 = L.x + 14, z0 = L.z + 4; M.teletransportar('fermin', { x: x0, z: z0 }, { x: x0 + 10, z: z0 }); g.pos.x = x0; g.pos.z = z0; return { x: x0 + 1.9, z: z0 + 0.25, y: T.altura(x0, z0) + 1.6, yaw: Math.atan2(1.9, 0.25), horas: 18.6 } })()"
+ }
+]

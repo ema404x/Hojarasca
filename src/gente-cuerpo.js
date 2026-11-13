@@ -20,6 +20,7 @@ import { bola, tubo, torno, huso, deformar, coser, matiz as matizF, mezcla as me
 import { MAT_FAUNA } from './vida.js';
 import { atlasPersonajes } from './gente-atlas.js';
 import { aspectoGente } from './gente-ropa.js';
+import { conUltraC, inyectarGenteUltra, ultraDetalle, CERCA_CARA_ULTRA } from './ultra-materiales.js';
 
 const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const gauss = (x, y, sx, sy) => Math.exp(-((x / sx) ** 2 + (y / sy) ** 2));
@@ -2019,6 +2020,8 @@ function materialAtlas() {
       .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + GLSL_BRILLO);
   };
   MAT_ATLAS.customProgramCacheKey = () => 'gente-atlas-370';
+  // 4.28.0 (C): con Ultra, el relieve de la tela, los poros, el brillo de la piel y los labios (ultra-materiales.js); apagado, el mismo programa
+  conUltraC(MAT_ATLAS, 'gente', inyectarGenteUltra);
   return MAT_ATLAS;
 }
 export const materialGente = () => materialAtlas();
@@ -2293,7 +2296,7 @@ function alPosar(est) {
     // el gesto (neutral, sonrisa al charlar, de vez en cuando una risa; `g.__gesto` lo fuerza)
     const cara = g.cara;
     if (cara) {
-      const cercaCara = !g.__lejos && (g.__gesto || dist < CERCA_CARA);
+      const cercaCara = !g.__lejos && (g.__gesto || dist < (ultraDetalle() ? CERCA_CARA_ULTRA : CERCA_CARA));   // 4.28.0 (C): con Ultra, hasta 10 m
       if (cercaCara !== cara.visible) { cara.visible = cercaCara; g.cabeza.userData.rasgos.scale.setScalar(cercaCara ? 0.001 : 1); }
       if (cercaCara) {
         const contento = charlando || g.charlaVecinos || g.pose === 'bailar' || g.pose === 'jugar';

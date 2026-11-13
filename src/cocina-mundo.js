@@ -17,6 +17,7 @@ import { Constructor, matriz } from './geometria.js';
 import { CRUZ, BRASAS_PARRILLA, GRILLA, COCINA_LENA, HORNO_BOCA, ALACENA, centroCruz } from './planos-cocina.js';
 import { RECETA_PASOS, alacenaDe } from './cocina-pasos.js';
 import { registrarLuz } from './luces.js';
+import { conUltraC, inyectarHumoUltra } from './ultra-materiales.js';
 
 const PI = Math.PI;
 const VER = 45;          // a cuántos metros se ve lo de las estaciones
@@ -274,6 +275,7 @@ export function crearCocinaMundo(ctx) {
         #include <fog_fragment>
       }`,
   });
+  conUltraC(matHumo, 'vapor', inyectarHumoUltra('vPeso'));   // 4.28.0 (C): con Ultra, el humo y el vapor de la olla en hebras (ultra-materiales.js)
   // el humo: una nube de puntos para todas las estaciones
   const geoH = new THREE.BufferGeometry();
   const posH = new Float32Array(NH * 3), vidaH = new Float32Array(NH), pesoH = new Float32Array(NH);

@@ -32,6 +32,7 @@ const SIN_GENTE = env('SIN_GENTE', '0') === '1';   // 4.24.0: AUD_SIN_GENTE=1: s
 const PERFIL_MS = Number(env('PERFIL_MS', 0));   // 4.23.0: con un número, además perfila la CPU con el perfilador de Chromium durante esos ms (por encuadre) y deja perfil-<id>.json
 // 4.21.0: AUD_LLUVIA=1 pone el tiempo en lluvia plena de verdad antes de cada encuadre (el bucle de la herramienta corre los cuadros sin tiempo entre uno y otro: el clima
 // real tarda ~25 s de juego en llegar y las capturas de la 4.20.0 «con lluvia» salían a medio camino).
+// 4.28.0 (C): AUD_ULTRA=1 prende el nivel Ultra (ajustes.ultra, sólo vale con calidad alta) desde la carga.
 const FORZAR_LLUVIA = env('LLUVIA', '0') === '1';
 fs.mkdirSync(salida, { recursive: true });
 dialog.showErrorBox = (t, c) => { try { fs.writeFileSync(path.join(salida, 'error.txt'), t + String.fromCharCode(10) + c); } catch { /* sin carpeta */ } };
@@ -298,7 +299,7 @@ app.whenReady().then(async () => {
   w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) errores.push(m.slice(0, 300)); });
   const js = (c) => w.webContents.executeJavaScript(c, true);
   const H = 'window.__hojarasca';
-  const ajustes = `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'${calidad}', clima:'${clima}', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, limiteFps:'libre', modoFluido:false, estacion:'${estacion}'})); 1`;
+  const ajustes = `localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'${calidad}', clima:'${clima}', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, limiteFps:'libre', modoFluido:false, estacion:'${estacion}', ultra:${process.env.AUD_ULTRA === '1'}})); 1`;
   await w.loadFile(pagina, { search: '?debug=1' });
   await js(ajustes);
   await w.loadFile(pagina, { search: '?debug=1' });
@@ -374,6 +375,18 @@ app.whenReady().then(async () => {
       try { img = await w.webContents.capturePage(); } catch (e) { console.log('  (captura fallida: ' + (e && e.message) + ', se reintenta)'); try { w.show(); w.focus(); } catch { /* sin ventana */ } await js(`window.__AUD.cuadros(3)`); await esperar(1500); }
     }
     if (img) { fs.writeFileSync(path.join(salida, `${t.id}.png`), img.toPNG()); r.captura = `${t.id}.png`; } else console.log('  ' + t.id + ': sin captura');
+    // 4.28.0 (C): AUD_PAR_ULTRA=1: la misma toma otra vez con Ultra dado vuelta EN VIVO (sin recargar: el mismo cielo, las mismas nubes y la misma gente), `<id>-ultra.png`
+    // o `<id>-alta.png`, y los programas antes y después (lo que compila el cambio). Después vuelve como estaba.
+    if (env('PAR_ULTRA', '0') === '1') {
+      const antes = await js(`(() => { const H = ${H}; const v = H.ajustes.ultra === true; H.ajustes.ultra = !v; return v })()`);
+      await js(`window.__AUD.cuadros(6)`);
+      let img2 = null;
+      try { img2 = await w.webContents.capturePage(); } catch { await esperar(1500); try { img2 = await w.webContents.capturePage(); } catch { /* sin captura */ } }
+      if (img2) fs.writeFileSync(path.join(salida, `${t.id}-${antes ? 'alta' : 'ultra'}.png`), img2.toPNG());
+      r.programasPar = await js(`window.__AUD.programas()`);
+      await js(`(() => { ${H}.ajustes.ultra = ${antes}; return 1 })()`);
+      await js(`window.__AUD.cuadros(3)`);
+    }
     if (EVAL) { try { const rr = await js(fs.readFileSync(path.resolve(EVAL), 'utf8')); fs.writeFileSync(path.join(salida, 'eval-' + t.id + '.json'), JSON.stringify(rr, null, 1)); } catch (e) { console.log('  (falló el eval: ' + (e && e.message) + ')'); } }
     if (medir && t.medir) {
       const intentar = async (nombre, cod) => { try { r[nombre] = await js(cod); } catch (e) { r[nombre] = { error: String(e && e.message || e) }; console.log('  (falló ' + nombre + ': ' + (e && e.message) + ')'); } };

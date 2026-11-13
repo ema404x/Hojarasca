@@ -40,6 +40,7 @@ import { crearLuzAldeaNoche } from './aldea-noche-luz.js';
 import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea, EDIFICIOS_ALDEA as EDIFICIOS_ARQUITECTURA } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
+import { conUltraC, inyectarRipioUltra, conocerCieloUltraC } from './ultra-materiales.js';
 import { materialBandera, prepararPano } from './bandera-viento.js';
 import { registrarLuz, olvidarLuz } from './luces.js';
 import { armarTerreno } from './terreno.js';
@@ -967,6 +968,7 @@ function materialRipio(grava, mascara) {
   };
   m.customProgramCacheKey = () => 'ripio-aldea-3.6';
   m.userData.ripio36 = true;
+  conUltraC(m, 'ripio', inyectarRipioUltra);   // 4.28.0 (C): con Ultra, más charcos y que reflejen el cielo con las gotas (ultra-materiales.js)
   return m;
 }
 // La mancha de luz de una ventana en el suelo: fuerte contra la pared, se abre y se apaga.
@@ -1324,6 +1326,7 @@ export function crearAldeaMundo(ctx) {
     ocio(() => { completarTexturas(true); completarDespues(); });
   }
   function crearMateriales() {
+    conocerCieloUltraC(U);   // 4.28.0 (C): el cielo que reflejan los charcos de Ultra (ultra-materiales.js)
     // (3.6 pulido: un material PROPIO con el detalle de superficie del shader; no el est.mat compartido)
     const estructura = prepararMaterialAldea(materialVegetal({ flex: 0 }));
     // 3.6 (plaza y álamos): las cartas de hojas pintadas, como el bosque (sin esto los álamos son sólo tronco y ramitas)
