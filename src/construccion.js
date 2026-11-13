@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { Constructor, matriz, troncoCurvo } from './geometria.js';
 import { materialVegetal } from './materiales.js';
+import { conUltraC, inyectarEstructuraUltra } from './ultra-materiales.js';
 import { clamp } from './ruido.js';
 import { crearIndiceEspacial2D } from './rendimiento.js';
 import { TINTES, tenible, tenirColores } from './tintes.js';
@@ -2472,6 +2473,7 @@ export function faltan(pide, materiales) {
 // ---------------------------------------------------------------- el sistema
 export function crearConstruccion(T, escena, col, veg, interacciones = null, asiento = null) {
   const mat = materialVegetal({ flex: 0 });
+  conUltraC(mat, 'estructura', inyectarEstructuraUltra);   // 4.28.0 (C): con Ultra, veta, relieve y suciedad (ultra-materiales.js)
   const matFantasma = new THREE.MeshLambertMaterial({ color: 0x8ad48a, transparent: true, opacity: 0.35, depthWrite: false });
   const grupo = new THREE.Group();
   escena.add(grupo);

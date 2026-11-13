@@ -1,7 +1,8 @@
 // Construcciones de madera del sendero, con sus colisiones y plataformas
 import * as THREE from 'three';
 import { Constructor, matriz, troncoCurvo, abollar, h3 } from './geometria.js';
-import { materialVegetal } from './materiales.js';
+import { materialVegetal, U } from './materiales.js';
+import { conUltraC, inyectarEstructuraUltra, conocerCieloUltraC } from './ultra-materiales.js';
 import { piezas } from './piezas.js';
 import { rng, lerp } from './ruido.js';
 import { LAGO } from './config.js';
@@ -483,6 +484,8 @@ function repasoSinOcultos(obj) {
 // que sin aldea.
 export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   const mat = materialVegetal({ flex: 0 });
+  conUltraC(mat, 'estructura', inyectarEstructuraUltra);   // 4.28.0 (C): con Ultra, veta, relieve y suciedad (ultra-materiales.js)
+  conocerCieloUltraC(U);   // (el cielo que reflejan los charcos de Ultra)
   const enAldea = opciones.aldea || null;
   const TS = opciones.sorteo || T;
   const grupo = new THREE.Group();

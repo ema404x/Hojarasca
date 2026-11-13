@@ -361,6 +361,7 @@ import { existeEnJuego } from './tablon.js';
 // (4.17 C: la cantera y el puesto del paso, como lugares de la historia)
 import { genteCampoDe, PUESTO_PASO, CANTERA as CANTERA_HIST, PUESTO_PASO as PUESTO_PASO_HIST } from './gente-campo.js';
 import { avisoDe, hacerConE } from './interacciones.js';
+import { sincronizarUltraC } from './ultra-materiales.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
@@ -376,6 +377,7 @@ const ajustes = cargarAjustes();
 if (primeraVez) { ajustes.calidad = calidadParaEquipo(nombrePlaca()); guardarAjustes(ajustes); }
 // 3.8.4 (decisión 35): y avisa cuál eligió (en la portada y al entrar: ver avisarCalidadInicial)
 const calidadElegidaAlAbrir = primeraVez ? ajustes.calidad : null;
+sincronizarUltraC(ajustes);   // 4.28.0 (C): Ultra en los materiales, antes de armar ninguno (ver ultra-materiales.js)
 // Relax (el recorrido tranquilo de siempre) o Desafío (invasores cada noche).
 // Cada modo carga su propia partida; cambiar de modo en el menú recarga el mundo.
 const modoJuego = usarModoGuardado(ajustes.modo, ajustes.ranura);
@@ -11579,6 +11581,7 @@ function cuadroDelJuego(tRaf, manual) {
   presupuestoAdaptativo.actualizar(dtReal, objetivoMs);
   planificadorAntitirones.comenzarCuadro(dtReal, presupuestoAdaptativo.nivel, objetivoMs);
   const factorEfectos = presupuestoAdaptativo.soloCadencias ? 1 : factorEfectosPorPresupuesto(presupuestoAdaptativo.nivel);   // 3.8.4: las partículas no bajan solas
+  sincronizarUltraC(ajustes);   // 4.28.0 (C): si Ultra se prendió o se apagó (el menú, la calidad), los materiales cambian de programa
   if (modo === 'carga') return;
   // 3.8.4 (decisión 35): la calidad ya no se acomoda sola: si el equipo no da, se pregunta (ver revisarSiVaLento)
   // (3.8.6: el dt recortado a 0,2 s, como siempre: un equipo que no llega ni a 2 cuadros por segundo también es lento; un

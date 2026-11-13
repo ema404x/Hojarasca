@@ -118,6 +118,7 @@
 import * as THREE from 'three';
 import { Constructor, matriz, abollar } from './geometria.js';
 import { piezas } from './piezas.js';
+import { conUltraC, inyectarAldeaUltra } from './ultra-materiales.js';
 
 // ---------------------------------------------------------------- medidas comunes
 export const PISO_ALDEA = 0.32;          // cara de arriba del piso de adentro, sobre el suelo del lote
@@ -6315,6 +6316,8 @@ export function prepararMaterialAldea(mat) {
     sh.vertexShader = sh.vertexShader.replace(NIEVE_VERT_ALDEA, 'uInvierno * arriba * 0.9 * (1.0 - step(9.5, aSuperficie)));');
   };
   mat.userData.aldea36 = true;
+  // 4.28.0 (C): con Ultra, el relieve, el desgaste, la suciedad y el brillo (ultra-materiales.js); apagado, el mismo programa de antes
+  conUltraC(mat, 'aldea', inyectarAldeaUltra);
   mat.needsUpdate = true;
   return mat;
 }

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { U } from './materiales.js';
 import { clamp, lerp, smoothstep } from './ruido.js';
 import { registrarLuz } from './luces.js';
+import { conUltraC, inyectarHumoUltra } from './ultra-materiales.js';
 import { MAX_FOGATAS, lugarParaFogata, masCercano, fuegoEn } from './fogatas.js';
 
 function puntosMaterial({ color, tam, aditivo = false, forma = 'redonda', opacidad = 1 }) {
@@ -102,7 +103,8 @@ export function crearClima(escena, T, ajustes) {
 
   // humo de chimenea
   const NH = 120;   // 3.6: más bocanadas (con la aldea hay hasta ocho chimeneas a la vista)
-  const humo = crearNube(NH, puntosMaterial({ color: '#b9b6b0', tam: 6, forma: 'humo', opacidad: 0.55 }), 0, 0);
+  // (4.28.0 (C): con Ultra, cada bocanada en hebras que se deshacen: ultra-materiales.js)
+  const humo = crearNube(NH, conUltraC(puntosMaterial({ color: '#b9b6b0', tam: 6, forma: 'humo', opacidad: 0.55 }), 'humo', inyectarHumoUltra('vAzar')), 0, 0);
   humo.visible = true;
   const humoVida = new Float32Array(NH).map(() => Math.random());
 
@@ -112,7 +114,7 @@ export function crearClima(escena, T, ajustes) {
   // apagado tiene la luz en 0 y no cuenta, así que prender otro no compila nada a mitad del juego
   const NF = 70, NHF = 30;
   const matFuego = puntosMaterial({ color: '#ffaa33', tam: 0.55, aditivo: true, forma: 'fuego', opacidad: 0.55 });
-  const matHumoFuego = puntosMaterial({ color: '#9a9690', tam: 5, forma: 'humo', opacidad: 0.45 });
+  const matHumoFuego = conUltraC(puntosMaterial({ color: '#9a9690', tam: 5, forma: 'humo', opacidad: 0.45 }), 'humo', inyectarHumoUltra('vAzar'));   // (4.28.0 (C))
   const matLenia = new THREE.MeshLambertMaterial({ color: '#4a3524' });
   const matPiedraFogon = new THREE.MeshLambertMaterial({ color: '#6b6761' });
   const geoTronco = new THREE.CylinderGeometry(0.06, 0.07, 0.9, 6);
