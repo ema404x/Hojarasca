@@ -4942,7 +4942,19 @@ function canterosParaPisos() {
     const P = o?.plano, d = o?.datos;
     if (!P || !d || !Number.isFinite(d.x) || !Number.isFinite(d.z)) continue;
     const alto = T.altura(d.x, d.z) + 0.3, ang = -(Number(d.rot) || 0);
-    if (P.id === 'cantero') lista.push({ x: d.x, z: d.z, ang, largo: 2.1, ancho: 1.18, alto });
+    // 4.26.4 (C): el puesto de troncos: el mapa de 2 m con filtro lineal dejaba la orilla del piso (junto a las paredes) por debajo del umbral y el pasto
+    // asomaba entre las tablas; 40 cm más de piso por lado (sólo la marca, no se pisa) la cierra. Desde que tiene piso (etapa 2).
+    if (P.id === 'puesto') {
+      if (d.etapas >= 2) {
+        lista.push({ x: d.x, z: d.z, ang, largo: P.ancho + 0.4, ancho: P.fondo + 0.4, alto });
+        const rt = Number(d.rot) || 0;   // (y las cuatro esquinas, donde el filtro lineal en las dos direcciones deja la marca más baja)
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+          const lx = sx * P.ancho / 2, lz = sz * P.fondo / 2;
+          lista.push({ x: d.x + lx * Math.cos(rt) + lz * Math.sin(rt), z: d.z - lx * Math.sin(rt) + lz * Math.cos(rt), radio: 0.7, alto });
+        }
+      }
+    }
+    else if (P.id === 'cantero') lista.push({ x: d.x, z: d.z, ang, largo: 2.1, ancho: 1.18, alto });
     else if (P.jardin === 'flores' && !P.apoyaEnPlataforma) {
       lista.push(P.id === 'macizo-flores' ? { x: d.x, z: d.z, radio: 0.9, alto } : { x: d.x, z: d.z, ang, largo: P.ancho || 2, ancho: P.fondo || 1, alto });
     }

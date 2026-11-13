@@ -89,8 +89,10 @@ export const LUGARES_CERRADOS = ['refugio', 'cabana', 'puesto', 'almacen'];
 // 4.26.1 (A): entran la casilla (sus hastiales y el alero, cerrados con un forro y tablas oscuras metidas en la pared), el puesto de troncos (el
 // alma de barro entre tronco y tronco y el forro del techo) y el taller anexo, la buhardilla y la planta alta (el alma de las juntas de sus
 // paredes de tablas: la «rendija de un píxel» de la 4.26.0 era la junta de 8 mm entre tabla y tabla, vista de frente).
+// 4.26.4 (C): el puesto de troncos entra de verdad (la 4.26.3 lo había dejado afuera por el pasto que asomaba por el piso: era la marca de pisos sin pasto de main.js,
+// `marcarPisos`, que con el filtro lineal de 2 m dejaba la orilla del piso por debajo del umbral; ver canterosParaPisos).
 export const CASAS_CERRADAS = new Set(['cabana-piedra', 'casa-galeria', 'casona', 'dormitorio-anexo', 'despensa-anexa',
-  'cocina-ampliada', 'bodega-piedra', 'salon-grande', 'torreon-piedra', 'casilla', 'taller-anexo', 'planta-alta', 'buhardilla']);
+  'cocina-ampliada', 'bodega-piedra', 'salon-grande', 'torreon-piedra', 'casilla', 'puesto', 'taller-anexo', 'planta-alta', 'buhardilla']);
 // Hasta dónde llegan las paredes, desde el pie de la obra: en las casas de planos-casas.js Y0 + alto − 0,35 = alto + 0,25. Arriba de eso la
 // cámara ya está en el techo (o afuera).
 export const TOPE_CASAS = 0.25;
