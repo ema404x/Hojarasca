@@ -14,3 +14,6 @@ Sin shaders nuevos, sin claves de guardado nuevas. Prueba: `pruebas/verificar-4-
 Pruebas viejas ajustadas a propósito: `verificar-4-25-2-tirar`, `verificar-4-26-5-c` (V ya no tira con el puesto abierto), `verificar-3-8-8-banco` (cartel en dos renglones). En verde: 3-6-mundo, 3-6-1-mundo, 3-6-2-visual, 3-7-3-taller, 4-10-3-sitios, 2-9-tren.
 
 No visto a ojo: el cartel desde un ángulo cómodo (el pilar de la galería lo tapa en las capturas); el costo en milisegundos de cuadro del parche de 1 m (no medido; son triángulos de un solo dibujo).
+
+## Ajuste: el parche de 1 m sólo en Media y Alta
+`parcheSuelo` usa `PASO_PARCHE` (1 m) cuando la calidad tiene `post` (Media y Alta) y `PASO_PARCHE_BAJA` (2 m, el de antes) en Baja y Muy baja. Prueba con 2 mutaciones más. Partida corta minimizada en Baja: celda 1,99 m, parche 26.732 triángulos, ripio 2.614, emparejar 48 ms, sin errores de consola (el desvío es el de antes: máx. 28 cm, 39 puntos sobre 10 cm).

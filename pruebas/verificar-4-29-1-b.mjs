@@ -136,7 +136,8 @@ async function comprobar() {
     ok(`con nodos cada 1 m ningún punto de la Aldea pasa de 10 cm (peor ${Math.round(con1.max * 100)} cm)`, con1.max <= 0.10 && con1.n10 === 0);
     ok('el parche usa PASO_PARCHE y vale 1 m', AM.PASO_PARCHE === 1);
     const aldeaFuente = fs.readFileSync(path.join(SRC, 'aldea-mundo.js'), 'utf8');
-    ok('parcheSuelo arma sus nodos con PASO_PARCHE', /const nx = Math\.max\(2, Math\.ceil\(\(X1 - X0\) \/ PASO_PARCHE\)\), nz = Math\.max\(2, Math\.ceil\(\(Z1 - Z0\) \/ PASO_PARCHE\)\);/.test(aldeaFuente));
+    ok('en Baja y Muy baja el parche queda de 2 m (sin `post`), en Media y Alta de 1 m', AM.PASO_PARCHE_BAJA === 2 && /const paso = ctx\.calidad\?\.post \? PASO_PARCHE : PASO_PARCHE_BAJA;/.test(aldeaFuente));
+    ok('parcheSuelo arma sus nodos con PASO_PARCHE', /const nx = Math\.max\(2, Math\.ceil\(\(X1 - X0\) \/ paso\)\), nz = Math\.max\(2, Math\.ceil\(\(Z1 - Z0\) \/ paso\)\);/.test(aldeaFuente));
     // lo que PASO_PARCHE da, usado por el parche: la prueba de que el parche de verdad lo usa (con la malla del terreno de mentira)
     ok('con el 1 m los nodos de 2 m siguen siendo nodos (el borde cose igual con la gruesa)', Number.isInteger(2 / AM.PASO_PARCHE));
   }
@@ -174,7 +175,9 @@ if (process.argv.includes('--hijo')) {
     ['trochita.js', 'el alero del andén sin `emissive`', 'new THREE.MeshLambertMaterial({ color: 0x5a4a3e, emissive: 0x241a12 })', 'new THREE.MeshLambertMaterial({ color: 0x5a4a3e })'],
     ['trochita.js', 'el alero del andén con un `emissive` casi negro', 'emissive: 0x241a12', 'emissive: 0x050403'],
     ['aldea-mundo.js', 'el parche vuelve a 2 m', 'export const PASO_PARCHE = 1;', 'export const PASO_PARCHE = 2;'],
-    ['aldea-mundo.js', 'el parche no usa PASO_PARCHE', 'Math.ceil((X1 - X0) / PASO_PARCHE)), nz = Math.max(2, Math.ceil((Z1 - Z0) / PASO_PARCHE))', 'Math.ceil((X1 - X0) / 2)), nz = Math.max(2, Math.ceil((Z1 - Z0) / 2))'],
+    ['aldea-mundo.js', 'Baja también arma el de 1 m', 'ctx.calidad?.post ? PASO_PARCHE : PASO_PARCHE_BAJA', 'PASO_PARCHE'],
+    ['aldea-mundo.js', 'Media y Alta arman el de 2 m', 'ctx.calidad?.post ? PASO_PARCHE : PASO_PARCHE_BAJA', 'PASO_PARCHE_BAJA'],
+    ['aldea-mundo.js', 'el parche no usa PASO_PARCHE', 'Math.ceil((X1 - X0) / paso)), nz = Math.max(2, Math.ceil((Z1 - Z0) / paso))', 'Math.ceil((X1 - X0) / 2)), nz = Math.max(2, Math.ceil((Z1 - Z0) / 2))'],
   ];
   for (const [archivo, nombre, de, a] of MUT) {
     const original = fs.readFileSync(path.join(SRC, archivo), 'utf8');
