@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.29.1 (sobre main = 4.29.0): ULTRA MEDIDO Y EL PUEBLO (CAMBIOS_4_29_1_A/B.md) — Ultra un poco más liviano, V que no tira con un panel abierto, el aviso de la trochita, el cartel del banco, el alero del andén y el suelo de la Aldea
 - 4.29.0 (sobre main = 4.28.0): ULTRA EN LOS DETALLES (CAMBIOS_4_29_0_A/B/C.md) — el lago que refleja, nubes con sombra, la Vía Láctea, relámpagos, fuego vivo, huellas, luciérnagas, ropa y pelo con viento y cinemáticas con fondo desenfocado
 - 4.28.0 (sobre main = 4.27.0): NIVEL ULTRA (CAMBIOS_4_28_0_A/B/C.md) — un ajuste nuevo encima de Alta con niebla volumétrica, cielo real, viento en el pasto, prado tupido, materiales con relieve, lo mojado y la nieve pegada; Alta, Media y Baja quedan iguales
 - 4.27.0 (sobre main = 4.26.5): PANALES SILVESTRES (CAMBIOS_4_27_0_A.md) — ocho panales en el bosque que dan miel, y en la Historia te llevás las abejas para armar tu colmena
