@@ -59,7 +59,7 @@ por encima de 33. Lo de A suma 1,0 ms ahí (dentro del tope de 1 ms de la zona);
 ## Ultra apagado = 4.28.0 (partida real)
 - Programas de shader con Ultra apagado (claves ordenadas, resumidas): plaza 105 y bosque 104, **idénticas** a la 4.28.0 (mismo resumen).
 - Capturas Ultra apagado contra la 4.28.0 (`hxa4290k-nuevo` / `k-base`, corridas distintas): plaza 2,7 de media sobre 255 (6,6 % de píxeles > 8),
-  bosque 8,1 (25,6 %): el pasto con viento y las nubes que corren (`kp-par.jpg`: misma imagen, otra posición del viento). Con las claves de
+  bosque 8,1 (25,6 %): el pasto con viento y las nubes que corren (`kp\02-par.jpg`: misma imagen, otra posición del viento). Con las claves de
   programa idénticas, la imagen sólo puede diferir en la animación.
 
 ## Qué quedó afuera / sin ver
