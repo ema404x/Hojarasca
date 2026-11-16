@@ -794,7 +794,7 @@ async function construir() {
   fugaces = crearFugaces(escena);
   mallaRastros = crearRastrosMalla(escena, T);
   if (calidad.post) post = crearPostproceso(renderer, escena, camara, calidad);
-  if (post) ultraLuz = crearUltraLuz({ renderer, escena, camara, cielo, post, T, bocas: bocasUltra });   // 4.28.0 (Ultra): no arma nada hasta que Ultra se pide
+  if (post) ultraLuz = crearUltraLuz({ renderer, escena, camara, cielo, post, T, bocas: bocasUltra, agua });   // 4.28.0 (Ultra): no arma nada hasta que Ultra se pide   // 4.29.0 (A): + el agua
   niebla = crearNiebla(T, escena, calidad);
   rayosBosque = crearRayosBosque(T, escena, calidad);   // 4.0: sólo media y alta
   flotantes = crearFlotantes(escena, calidad, T);
@@ -11102,7 +11102,8 @@ function bocasUltra() {
     if (d < 16) vecinos.push({ id: g.clave || g, x: g.pos.x, y: g.pos.y + 1.55 * (g.g.scale?.y || 1), z: g.pos.z, yaw: (g.g.rotation?.y || 0) + Math.PI, d });
   }
   vecinos.sort((a, b) => a.d - b.d);
-  return { jugador: js && modo === 'jugando' ? { x: c.x, y: c.y - 0.32, z: c.z, yaw: js.yaw || 0, rapido: (js.velocidadActual || 0) > 4 } : null, vecinos: vecinos.slice(0, 6), invierno: U.uInvierno.value, otono: U.uOtono.value };
+  return { jugador: js && modo === 'jugando' ? { x: c.x, y: c.y - 0.32, z: c.z, yaw: js.yaw || 0, rapido: (js.velocidadActual || 0) > 4 } : null, vecinos: vecinos.slice(0, 6), invierno: U.uInvierno.value, otono: U.uOtono.value,
+    pies: js && js.pos && modo === 'jugando' ? { x: js.pos.x, z: js.pos.z } : null };   // 4.29.0 (A): dónde pisás (los anillos en el agua)
 }
 let niebla = null;
 let rayosBosque = null;
@@ -11766,6 +11767,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (modo === 'jugando') diario.clima(dt, clima.estado, U.uInvierno.value);   // 3.8.6: la lluvia y el viento de la pausa no van al diario
   // tormenta: el relámpago enciende el valle un instante y el trueno llega después
   const fogonazo = clima.actualizarTormenta(dt, cam, sonido);
+  ultraLuz?.relampago(fogonazo);   // 4.29.0 (Ultra, A): el cielo se enciende y se ve el rayo (sólo con Ultra prendido)
   if (fogonazo > 0.004) {
     cielo.sol.intensity += fogonazo * 3.2;
     cielo.hemi.intensity += fogonazo * 2.6;
@@ -12684,6 +12686,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
   if (HOJARASCA_DEBUG) window.__hojarasca.__ultraBosque = ultraBosque;   // 4.28.0 (B)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__ultraLuz = () => ultraLuz;   // 4.29.0 (A)
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
   // 3.7.2 (granja): la granja, para las pruebas y las capturas

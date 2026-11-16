@@ -368,6 +368,8 @@ app.whenReady().then(async () => {
     if (env('FORZAR_VEG', '1') !== '0') { await js(`(() => { const H = ${H}, c = H.camara.position; for (let i = 0; i < 4; i++) { H.veg.actualizar(c, 1); H.objetos.actualizar?.(c); } return 1 })()`); await esperar(800); await js(`window.__AUD.cuadros(40)`); }
     if (t.haciaSol) { lugar.yaw = await js(`window.__AUD.haciaSol()`); await js(`window.__AUD.cuadros(40)`); }
     const r = { id: t.id, donde: lugar, programasAntes: await js(`window.__AUD.programas()`) };
+    // 4.29.0 (A): `antes`: código (puede ser async) que corre justo antes de la captura (caminar por el agua, un relámpago quieto)
+    if (t.antes) { try { await js(`(async () => { const H = ${H}, T = H.T; ${t.antes}; return 1 })()`); } catch (e) { console.log('  (falló antes: ' + (e && e.message) + ')'); } }
     // captura (a veces la placa devuelve UnknownVizError: se reintenta con la ventana al frente)
     await js(`(() => { const H = ${H}; if (H.__actualizarCasaViva) H.__actualizarCasaViva(3); return 1 })()`);   // 4.21.0: las ventanas encendidas de las casas se rehacen cada 2 s de juego: acá, al momento
     await js(`window.__AUD.cuadros(3)`);

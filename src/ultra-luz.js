@@ -67,3 +67,80 @@ export function cieloFisico(d, s) {
   const lu = c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722;
   return c.map((v) => Math.max(0, lu + (v - lu) * 1.6));
 }
+
+// ------------------------------------------------------------------ 4.29.0 (Ultra, A): agua y cielo
+// Las nubes de Ultra andan a `alto` metros: su sombra cae sobre el valle siguiendo al sol (ver ultra-cielo.js), en manchas de unos `escala`
+// metros que el viento arrastra a `vel` m/s (más con viento fuerte) en el rumbo `rumbo`. `sombra` es lo más que le quitan al sol directo.
+export const NUBES_ULTRA = { alto: 1600, sombra: 0.5, escala: 480, vel: 4, rumbo: [0.92, 0.39] };
+// Cuánto oscurecen las sombras de las nubes: de día y con nubes sueltas; con el cielo cubierto o lloviendo no hay manchas (todo está a la
+// sombra), con el sol bajo se estiran y se borran, y de noche, nada.
+export function sombraDeNubes({ dia = 1, nublado = 0, lluvia = 0, solY = 1 } = {}) {
+  const nub = entre(Number(nublado) || 0, 0, 1), ll = entre(Number(lluvia) || 0, 0, 1);
+  return NUBES_ULTRA.sombra * suave(0.15, 0.6, Number(dia) || 0) * suave(0.1, 0.35, Number(solY)) * (1 - suave(0.55, 0.92, nub)) * (1 - ll * 0.85);
+}
+// Cuánto corren las sombras de las nubes (m/s, x y z): despacio, más con viento
+export function vientoNubes(viento = 0.4) {
+  const v = NUBES_ULTRA.vel * (1 + 1.5 * entre(Number(viento) || 0, 0, 1.25));
+  return { x: NUBES_ULTRA.rumbo[0] * v, z: NUBES_ULTRA.rumbo[1] * v };
+}
+
+// La humedad del aire de noche (el halo de la luna): con la niebla de los valles, las nubes sueltas y después de la lluvia; con el cielo
+// cerrado la luna no se ve.
+export function humedadLuna({ horas = 0, nublado = 0, lluvia = 0 } = {}) {
+  const n = nieblaDeValle({ horas, lluvia, nublado });
+  const nub = entre(Number(nublado) || 0, 0, 1);
+  return entre((n.densidad - 0.0012) / 0.006 + nub * 0.8 + entre(Number(lluvia) || 0, 0, 1) * 0.4, 0, 1);
+}
+
+// El reflejo del lago (en pantalla, en la composición): hasta dónde se busca y cuántos pasos; `cerca` es a cuántos metros del lago tiene
+// que estar la cámara para que se calcule (lejos no hay agua en pantalla y no cuesta nada); lo que está a más de `lejano` metros (los cerros,
+// la cordillera, el cielo) se refleja sin buscarlo: se toma en la dirección del reflejo.
+export const REFLEJO_LAGO = { pasos: 14, lejos: 280, cerca: 260, medioLado: 210, nivel: 0, lejano: 160 };
+export function lagoCerca(cx, cy, cz, lago) {
+  if (!(cy > REFLEJO_LAGO.nivel + 0.05)) return false;
+  const dx = Math.max(0, Math.abs(cx - lago.x) - REFLEJO_LAGO.medioLado), dz = Math.max(0, Math.abs(cz - lago.z) - REFLEJO_LAGO.medioLado);
+  return Math.hypot(dx, dz) < REFLEJO_LAGO.cerca;
+}
+
+// Los anillos de tus pasos en el agua: cada pisada en la orilla o en el agua baja (el piso entre `hondo` y `orilla` metros del nivel del
+// lago) abre un anillo; uno cada `paso` metros caminados, los últimos `max`, cada uno vive `vida` segundos. `lista` va directo al uniforme
+// (x, z, cuándo, fuerza).
+export const PISADAS_AGUA = { max: 6, paso: 0.55, vida: 3, orilla: 0.12, hondo: -1.3 };
+export function crearPisadasAgua(cfg = PISADAS_AGUA) {
+  const lista = Array.from({ length: cfg.max }, () => ({ x: 0, z: 0, t: -99, f: 0 }));
+  let ultima = null, siguiente = 0;
+  return {
+    lista,
+    // devuelve true si abrió un anillo
+    actualizar(x, z, piso, ahora, lago = null) {
+      const enLago = !lago || (Math.abs(x - lago.x) <= REFLEJO_LAGO.medioLado && Math.abs(z - lago.z) <= REFLEJO_LAGO.medioLado);
+      const enAgua = enLago && Number.isFinite(piso) && piso < cfg.orilla && piso > cfg.hondo;
+      if (!enAgua) { ultima = null; return false; }
+      if (ultima && Math.hypot(x - ultima.x, z - ultima.z) < cfg.paso) return false;
+      const primera = !ultima;
+      ultima = { x, z };
+      if (primera) return false;   // pararse en el agua no abre anillos: caminar, sí
+      const a = lista[siguiente];
+      a.x = x; a.z = z; a.t = ahora; a.f = piso < 0 ? 1 : 0.6;   // en la orilla seca, más chico
+      siguiente = (siguiente + 1) % cfg.max;
+      return true;
+    },
+    vivos(ahora) { return lista.filter((a) => ahora - a.t >= 0 && ahora - a.t < cfg.vida).length; },
+  };
+}
+
+// El relámpago de Ultra: cada destello nuevo cae en otro rumbo del cielo (y su rayo es otro). `v` es la luz del relámpago del juego (0..1+).
+export function seguirRelampago(estado, v, azar = Math.random) {
+  const luz = Math.max(0, Number(v) || 0);
+  const nuevo = luz > 0.3 && !(estado.luz > 0.05);
+  if (nuevo) {
+    const az = azar() * Math.PI * 2, alto = 0.12 + azar() * 0.22;
+    const c = Math.sqrt(1 - alto * alto);
+    estado.dir = { x: Math.sin(az) * c, y: alto, z: Math.cos(az) * c };
+    estado.semilla = Math.floor(azar() * 1000);
+    estado.cuantos = (estado.cuantos || 0) + 1;
+  }
+  estado.luz = luz;
+  if (!estado.dir) estado.dir = { x: 0, y: 0.2, z: 1 };
+  return nuevo;
+}

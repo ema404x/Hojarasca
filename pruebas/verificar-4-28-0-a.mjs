@@ -187,7 +187,7 @@ const total = await revisar({ reglasUrl: urlSrc('ultra-luz.js'), mundoUrl: urlSr
 const main = leer('main.js'), plantilla = leer('plantilla.html'), guardado = leer('guardado.js');
 let enganche = 0;
 const okm = (c, t) => { assert.ok(c, `main.js: ${t}`); enganche++; };
-okm(enUnaLinea(main, ['if (post) ultraLuz = crearUltraLuz({ renderer, escena, camara, cielo, post, T, bocas: bocasUltra });']), 'lo de Ultra se crea sólo con postproceso (y no arma nada hasta que se pide)');
+okm(enUnaLinea(main, ['if (post) ultraLuz = crearUltraLuz({ renderer, escena, camara, cielo, post, T, bocas: bocasUltra, agua });']), 'lo de Ultra se crea sólo con postproceso (y no arma nada hasta que se pide)');
 okm(enUnaLinea(main, ['ultraLuz?.actualizar(ultraPedido(ajustes, calidadActiva, post), luzCielo, clima.estado, progreso.horas);']), 'cada cuadro pregunta si Ultra sigue pedido (si la calidad baja, se apaga solo)');
 okm(enUnaLinea(main, ['ultraLuz?.sincronizar(ultraPedido(ajustes, calidadActiva, post));', 'compilan acá, con los de la carga']), 'con Ultra pedido, sus programas se compilan en la carga');
 okm(main.indexOf('ultraLuz?.sincronizar(ultraPedido(ajustes, calidadActiva, post));') < main.indexOf('await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3'), 'antes de compilar la carga');

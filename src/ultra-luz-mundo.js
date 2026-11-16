@@ -6,9 +6,11 @@
 //   · la escena se dibuja a un destino con textura de profundidad; de ahí salen la oclusión ambiental (a media resolución) y la
 //     niebla de altura de los valles, las dos en una composición propia (la de Alta con un agregado; otro programa).
 import * as THREE from 'three';
-import { SOMBRA_ULTRA, AO_ULTRA, NIEBLA_VOLUMEN, nieblaDeValle, mezclaCielo } from './ultra-luz.js';
+import { SOMBRA_ULTRA, AO_ULTRA, NIEBLA_VOLUMEN, nieblaDeValle, mezclaCielo, sombraDeNubes, vientoNubes, humedadLuna, NUBES_ULTRA, REFLEJO_LAGO, lagoCerca, crearPisadasAgua, seguirRelampago, PISADAS_AGUA } from './ultra-luz.js';
 import { LAGO } from './config.js';
 import { crearAliento, frioDelAire, ALIENTO } from './ultra-aliento.js';
+import { CIELO_UNIFORMES, CIELO_FUNCIONES, CIELO_VOLUMEN, CIELO_NOCHE, CIELO_LUNA, CIELO_RELAMPAGO, GLSL_SOMBRA_NUBES } from './ultra-cielo.js';
+import { crearAguaUltra, GLSL_REFLEJO_FUNCIONES, GLSL_REFLEJO } from './ultra-agua.js';
 
 const NL = String.fromCharCode(10);
 
@@ -129,7 +131,9 @@ const FRAG_NIEBLA = `
   uniform float uLuzCos[${LUCES_NIEBLA}];
   uniform float uLuzRad[${LUCES_NIEBLA}];
   uniform float uLargo;
+  uniform float uRelampagoF;
   varying vec2 vUv;
+  ${GLSL_SOMBRA_NUBES}
   float h31(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
   float ruido3(vec3 p) {
     vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -212,6 +216,15 @@ const FRAG_NIEBLA = `
     // lo más que tapa
     float tapa = 1.0 - Tr;
     if (tapa > uMax) { S *= uMax / tapa; Tr = 1.0 - uMax; }
+    // 4.29.0 (Ultra): la sombra de las nubes que pasan sobre el valle (sólo donde le da el sol: lo que ya está a la sombra no se oscurece dos veces)
+    if (d < 0.999999 && uNubesF.z > 0.001) {
+      vec4 sc = uSombraMat * vec4(pw, 1.0);
+      vec3 cs = sc.xyz / sc.w;
+      float alSol = (uHaySombra < 0.5 || cs.x <= 0.0 || cs.x >= 1.0 || cs.y <= 0.0 || cs.y >= 1.0 || cs.z >= 1.0) ? 1.0 : texture(uSombra, vec3(cs.xy, cs.z - 0.004));
+      Tr *= 1.0 - uNubesF.z * nubeSobre(pw) * (0.25 + 0.75 * alSol) * (1.0 - uInterior) * (1.0 - 0.65 * smoothstep(500.0, 2500.0, L));
+    }
+    // 4.29.0 (Ultra): el relámpago enciende el aire húmedo
+    S += vec3(0.72, 0.8, 1.0) * uRelampagoF * (0.08 + (1.0 - Tr) * 0.8);
     gl_FragColor = vec4(S, Tr);
   }
 `;
@@ -225,8 +238,9 @@ const GLSL_COMPONER_FUNCIONES = `
   uniform vec2 uTexelAO;
   uniform float uAOFuerza;
   vec3 posVistaC(vec2 uv, float d) { vec4 p = uProyInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); return p.xyz / p.w; }
+${GLSL_REFLEJO_FUNCIONES}
 `;
-const GLSL_COMPONER_ULTRA = `
+const GLSL_COMPONER_ULTRA = `${GLSL_REFLEJO}
     {
       float dU = texture2D(uProf, vUv).r;
       float zU = -posVistaC(vUv, min(dU, 0.99999)).z;
@@ -253,8 +267,14 @@ const insertar = (texto, marca, antes, agregado) => {
 
 export const FRAG_NIEBLA_PARA_PRUEBAS = FRAG_NIEBLA;
 export function fragmentoCieloUltra(base) {
-  let f = insertar(base, 'varying vec3 vDir;' + NL + '      float hash31', true, GLSL_CIELO_FUNCIONES + NL + '      ');
+  let f = insertar(base, 'varying vec3 vDir;' + NL + '      float hash31', true, GLSL_CIELO_FUNCIONES + CIELO_UNIFORMES + NL + '      ');
   f = insertar(f, '        // estrellas' + NL, true, GLSL_CIELO_MEZCLA);
+  f = insertar(f, '      void main() {', true, CIELO_FUNCIONES);
+  // 4.29.0 (Ultra, A): nubes con volumen, la Vía Láctea y las estrellas que titilan, el halo de la luna, el relámpago
+  f = insertar(f, '          col = mix(col, nube, cobertura * smoothstep(-0.02, 0.2, h) * 0.94);', true, CIELO_VOLUMEN.trimStart() + '          ');
+  f = insertar(f, '        // luna' + NL, true, CIELO_NOCHE);
+  f = insertar(f, '        // nubes' + NL, true, CIELO_LUNA);
+  f = insertar(f, '        gl_FragColor = vec4(gradoEstilo(col), 0.0);', true, CIELO_RELAMPAGO.trimStart() + '        ');
   return f;
 }
 export function fragmentoComponerUltra(base) {
@@ -264,7 +284,8 @@ export function fragmentoComponerUltra(base) {
 }
 
 // `bocas`: () => { jugador: { x, y, z, yaw, rapido } | null, vecinos: [{ id, x, y, z, yaw }], invierno, otono } (para el aliento con frío)
-export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null, bocas = null }) {
+// 4.29.0 (A): `agua` = { lago, arroyo, mat } (agua.js): con Ultra, el lago y el arroyo dibujan con el agua de Ultra (ultra-agua.js)
+export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null, bocas = null, agua = null }) {
   let partes = null;
   const stats = { armados: 0, desarmados: 0 };
   const plano = new THREE.Scene(), camPlana = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -272,6 +293,8 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
   quad.frustumCulled = false;
   plano.add(quad);
   const solN = new THREE.Vector3(), tmpV = new THREE.Vector3(), tmpC = new THREE.Color(0.9, 0.92, 0.95);
+  const ahoraSeg = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+  let relampagoLuz = 0, relampagoFijo = -1;   // 4.29.0 (A): la luz del relámpago del juego (main.js la pasa en cada cuadro)
   const BLANCO_ALIENTO = new THREE.Color(0.92, 0.94, 0.97);
   void ALIENTO;
   const medio = (w, h) => [Math.max(2, Math.floor(w / 2)), Math.max(2, Math.floor(h / 2))];
@@ -311,22 +334,35 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
         uDens: { value: 0 }, uAlto: { value: 15 }, uBase: { value: 0 }, uMax: { value: 0.6 }, uBosqueK: { value: 1 }, uPolvo: { value: 0 }, uInterior: { value: 0 }, uManana: { value: 0 },
         uLago: { value: new THREE.Vector3(LAGO.x, LAGO.z, 200) }, uLagoDens: { value: NIEBLA_VOLUMEN.lago }, uColorAmb: { value: new THREE.Color() }, uSolCol: { value: new THREE.Color() },
         uSolDir: { value: new THREE.Vector3(0, 1, 0) }, uLuzPos: { value: lista(LUCES_NIEBLA, () => new THREE.Vector3()) }, uLuzCol: { value: lista(LUCES_NIEBLA, () => new THREE.Color()) },
-        uLuzDir: { value: lista(LUCES_NIEBLA, () => new THREE.Vector3(0, -1, 0)) }, uLuzCos: { value: lista(LUCES_NIEBLA, () => 0) }, uLuzRad: { value: lista(LUCES_NIEBLA, () => 0) }, uLargo: { value: NIEBLA_VOLUMEN.largo } },
+        uLuzDir: { value: lista(LUCES_NIEBLA, () => new THREE.Vector3(0, -1, 0)) }, uLuzCos: { value: lista(LUCES_NIEBLA, () => 0) }, uLuzRad: { value: lista(LUCES_NIEBLA, () => 0) }, uLargo: { value: NIEBLA_VOLUMEN.largo },
+        // 4.29.0 (A): las sombras de las nubes y el relámpago
+        uNubesF: { value: new Float32Array([0, 0, 0, NUBES_ULTRA.alto]) }, uVientoNubesF: { value: new THREE.Vector2() }, uRelampagoF: { value: 0 } },
     });
+    // 4.29.0 (A): lo que comparten el agua de Ultra y el reflejo del lago (los anillos de la lluvia y de tus pasos)
+    const comunAgua = { uPasosU: { value: new Float32Array(PISADAS_AGUA.max * 4) }, uAhoraAU: { value: 0 }, uLluviaAU: { value: 0 } };
     const base = post.materialComponer;
     const matComponer = new THREE.ShaderMaterial({
       vertexShader: base.vertexShader, fragmentShader: fragmentoComponerUltra(base.fragmentShader), depthTest: false, depthWrite: false,
       uniforms: { ...base.uniforms,
         uProf: { value: destino.depthTexture }, uAO: { value: rtAO.texture }, uNieblaTex: { value: rtNiebla.texture }, uProyInv: proyInv,
-        uTexelAO: { value: new THREE.Vector2(1 / wa, 1 / ha) }, uAOFuerza: { value: AO_ULTRA.fuerza } },
+        uTexelAO: { value: new THREE.Vector2(1 / wa, 1 / ha) }, uAOFuerza: { value: AO_ULTRA.fuerza },
+        // 4.29.0 (A): el reflejo del lago
+        uCamMundoC: camMundo, uVistaC: { value: new THREE.Matrix4() }, uProyC: { value: new THREE.Matrix4() }, uCamPosC: camPos,
+        uLagoC: { value: new Float32Array([LAGO.x, LAGO.z, REFLEJO_LAGO.medioLado, REFLEJO_LAGO.nivel]) }, uLagoVis: { value: 0 }, uVientoC: { value: 0.5 }, ...comunAgua },
     });
     const matCielo = new THREE.ShaderMaterial({
-      uniforms: { ...cielo.material.uniforms, uUltraCielo: { value: 0 } },
+      uniforms: { ...cielo.material.uniforms, uUltraCielo: { value: 0 },
+        // 4.29.0 (A): nubes con volumen, la noche, el halo de la luna y el relámpago
+        uUltraNubesU: { value: 1 }, uUltraNocheU: { value: 1 }, uHumedadLunaU: { value: 0 }, uRelampagoU: { value: new Float32Array([0, 0.2, 1, 0]) }, uSemillaRayoU: { value: 0 } },
       vertexShader: cielo.material.vertexShader, fragmentShader: fragmentoCieloUltra(cielo.material.fragmentShader),
       side: cielo.material.side, depthWrite: false, fog: false,
     });
     const aliento = crearAliento({ escena, renderer, camara });
-    partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0 };
+    // 4.29.0 (A): el agua de Ultra para el lago y el arroyo (el material de siempre queda guardado y vuelve al apagar)
+    const matAgua = agua && agua.mat ? crearAguaUltra(agua.mat, comunAgua) : null;
+    if (matAgua) { if (agua.lago) agua.lago.material = matAgua; if (agua.arroyo) agua.arroyo.material = matAgua; }
+    partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0,
+      matAgua, comunAgua, pisadas: crearPisadasAgua(), rel: {}, t0: ahoraSeg() };
     cielo.malla.material = matCielo;
     cielo.sombraUltra(SOMBRA_ULTRA);
     cielo.ponerNieveUltra?.(true);   // la sombra de la nieve, celeste pálido (no el azul hondo de Alta)
@@ -339,6 +375,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
       quad.material = matNiebla; renderer.setRenderTarget(rtNiebla); renderer.compile(plano, camPlana);
       quad.material = matComponer; renderer.setRenderTarget(null); renderer.compile(plano, camPlana);
       renderer.setRenderTarget(destino); renderer.compile(cielo.malla, camara, escena);
+      if (matAgua && agua.lago) renderer.compile(agua.lago, camara, escena);   // 4.29.0 (A): el agua de Ultra
     } catch { /* sin compile: se arman en el primer cuadro */ } finally { renderer.setRenderTarget(previo); }
     stats.armados++;
   }
@@ -354,6 +391,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     p.destino.depthTexture?.dispose(); p.destino.dispose(); p.rtAO.dispose(); p.rtNiebla.dispose(); p.bosque.dispose();
     p.matAO.dispose(); p.matNiebla.dispose(); p.matComponer.dispose(); p.matCielo.dispose();
     p.aliento.desarmar();
+    if (p.matAgua) { if (agua.lago) agua.lago.material = agua.mat; if (agua.arroyo) agua.arroyo.material = agua.mat; p.matAgua.dispose(); }   // 4.29.0 (A)
     stats.desarmados++;
   }
 
@@ -409,8 +447,38 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
         u.uLuzCos.value[k] = Math.cos(l.angle);
       } else u.uLuzCos.value[k] = 0;
     }
+    // 4.29.0 (A): la sombra de las nubes en el valle, el halo de la luna, el lago y el relámpago
+    const cam = camara.position;
+    const vn = vientoNubes(clima && clima.viento);
+    u.uVientoNubesF.value.set(vn.x, vn.z);
+    const tCielo = cielo.material && cielo.material.uniforms && cielo.material.uniforms.uTiempo ? cielo.material.uniforms.uTiempo.value : 0;
+    u.uNubesF.value.set([tCielo, nub, sombraDeNubes({ dia: luz ? luz.dia : 1, nublado: nub, lluvia, solY }), NUBES_ULTRA.alto]);
+    p.matCielo.uniforms.uHumedadLunaU.value = humedadLuna({ horas, nublado: nub, lluvia });
+    const aU = ahora - p.t0;
+    p.comunAgua.uAhoraAU.value = aU;
+    p.comunAgua.uLluviaAU.value = lluvia;
+    const jp = b && b.pies;
+    if (jp && T && typeof T.altura === 'function') p.pisadas.actualizar(jp.x, jp.z, T.altura(jp.x, jp.z), aU, LAGO);
+    p.pisadas.lista.forEach((a, i) => p.comunAgua.uPasosU.value.set([a.x, a.z, a.t, a.f], i * 4));
+    const uk = p.matComponer.uniforms;
+    uk.uLagoVis.value = lagoCerca(cam.x, cam.y, cam.z, LAGO) ? 1 : 0;
+    uk.uVientoC.value = Math.min(1.5, Number(clima && clima.viento) || 0.4);
+    aplicarRelampago();
     return true;
   }
+
+  // 4.29.0 (A): el relámpago del juego (clima.actualizarTormenta, main.js) en el cielo y el aire de Ultra
+  function aplicarRelampago() {
+    const p = partes;
+    if (!p) return;
+    const v = relampagoFijo >= 0 ? relampagoFijo : relampagoLuz;
+    seguirRelampago(p.rel, v);
+    const luzR = Math.min(1.2, v);
+    p.matCielo.uniforms.uRelampagoU.value.set([p.rel.dir.x, p.rel.dir.y, p.rel.dir.z, luzR]);
+    p.matCielo.uniforms.uSemillaRayoU.value = p.rel.semilla || 0;
+    p.matNiebla.uniforms.uRelampagoF.value = luzR * 0.25;
+  }
+  function relampago(v) { relampagoLuz = Math.max(0, Number(v) || 0); aplicarRelampago(); }
 
   // dentro del dibujo del postproceso, antes de componer: la oclusión, la niebla y la composición de Ultra a la pantalla
   function componer(dst, estado, pasada) {
@@ -421,6 +489,8 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     p.matAO.uniforms.uAspecto.value = dst.width / Math.max(1, dst.height);
     p.matNiebla.uniforms.uCamMundo.value.copy(camara.matrixWorld);
     p.matNiebla.uniforms.uCamPos.value.setFromMatrixPosition(camara.matrixWorld);
+    p.matComponer.uniforms.uVistaC.value.copy(camara.matrixWorldInverse);   // 4.29.0 (A): el reflejo del lago
+    p.matComponer.uniforms.uProyC.value.copy(camara.projectionMatrix);
     const sol = cielo.sol, mapa = sol.castShadow && sol.shadow && sol.shadow.map ? sol.shadow.map.depthTexture : null;
     p.matNiebla.uniforms.uSombra.value = mapa;
     p.matNiebla.uniforms.uHaySombra.value = mapa ? 1 : 0;
@@ -442,7 +512,10 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
   }
 
   const api = {
-    sincronizar, actualizar, componer, redimensionar, stats,
+    sincronizar, actualizar, componer, redimensionar, stats, relampago,
+    // 4.29.0 (A): para las capturas y las pruebas: un relámpago quieto (v >= 0) o el del juego (-1); y lo de adentro
+    fijarRelampago(v, dir = null) { relampagoFijo = Number.isFinite(v) ? v : -1; if (dir && partes) { partes.rel.luz = 1; partes.rel.dir = { ...dir }; } aplicarRelampago(); },
+    get partes() { return partes; },
     get activo() { return !!partes; },
     get destino() { return partes ? partes.destino : post.destino; },
   };
