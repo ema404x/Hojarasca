@@ -11,6 +11,7 @@ import { LAGO } from './config.js';
 import { crearAliento, frioDelAire, ALIENTO } from './ultra-aliento.js';
 import { CIELO_UNIFORMES, CIELO_FUNCIONES, CIELO_VOLUMEN, CIELO_NOCHE, CIELO_LUNA, CIELO_RELAMPAGO, GLSL_SOMBRA_NUBES } from './ultra-cielo.js';
 import { crearAguaUltra, GLSL_REFLEJO_FUNCIONES, GLSL_REFLEJO } from './ultra-agua.js';
+import { crearCineUltra } from './ultra-cine-mundo.js';
 
 const NL = String.fromCharCode(10);
 
@@ -362,7 +363,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     const matAgua = agua && agua.mat ? crearAguaUltra(agua.mat, comunAgua) : null;
     if (matAgua) { if (agua.lago) agua.lago.material = matAgua; if (agua.arroyo) agua.arroyo.material = matAgua; }
     partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0,
-      matAgua, comunAgua, pisadas: crearPisadasAgua(), rel: {}, t0: ahoraSeg() };
+      matAgua, comunAgua, pisadas: crearPisadasAgua(), rel: {}, t0: ahoraSeg(), cine: crearCineUltra({ renderer, camara }) };   // 4.29.0 (C): la profundidad de campo de las cinemáticas
     cielo.malla.material = matCielo;
     cielo.sombraUltra(SOMBRA_ULTRA);
     cielo.ponerNieveUltra?.(true);   // la sombra de la nieve, celeste pálido (no el azul hondo de Alta)
@@ -374,6 +375,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
       quad.material = matAO; renderer.setRenderTarget(rtAO); renderer.compile(plano, camPlana);
       quad.material = matNiebla; renderer.setRenderTarget(rtNiebla); renderer.compile(plano, camPlana);
       quad.material = matComponer; renderer.setRenderTarget(null); renderer.compile(plano, camPlana);
+      cine.compilar(rtAO);
       renderer.setRenderTarget(destino); renderer.compile(cielo.malla, camara, escena);
       if (matAgua && agua.lago) renderer.compile(agua.lago, camara, escena);   // 4.29.0 (A): el agua de Ultra
     } catch { /* sin compile: se arman en el primer cuadro */ } finally { renderer.setRenderTarget(previo); }
@@ -392,6 +394,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     p.matAO.dispose(); p.matNiebla.dispose(); p.matComponer.dispose(); p.matCielo.dispose();
     p.aliento.desarmar();
     if (p.matAgua) { if (agua.lago) agua.lago.material = agua.mat; if (agua.arroyo) agua.arroyo.material = agua.mat; p.matAgua.dispose(); }   // 4.29.0 (A)
+    p.cine.dispose();   // 4.29.0 (C)
     stats.desarmados++;
   }
 
@@ -498,6 +501,8 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     if (mapa) p.matNiebla.uniforms.uSombraMat.value.copy(sol.shadow.matrix);
     pasada(p.matAO, p.rtAO);
     pasada(p.matNiebla, p.rtNiebla);
+    const desenfocada = p.cine.pasar(dst, pasada);   // 4.29.0 (C): en una cinemática, la escena con el fondo desenfocado (null fuera de ellas)
+    if (desenfocada) p.matComponer.uniforms.uColor.value = desenfocada;
     pasada(p.matComponer, null);
   }
 

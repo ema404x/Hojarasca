@@ -6,6 +6,7 @@
 // Lo que necesita de main.js (el enganche, mínimo) está en `ctx`; ver el llamado en main.js y CAMBIOS_4_14_0.md.
 import { crearDirector, crearMirada, escenasDe, escenasNuevas, PERSONAJES_BASE } from './escenas.js';
 import { ESCENA_DEMO, ID_ESCENA_DEMO } from './escenas-demo.js';
+import { ponerCine } from './ultra-cine.js';
 
 const num = (v, d = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : d);
 const acotar = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -684,7 +685,7 @@ export function crearEscenasMundo(ctx) {
     const k = cortesDelDirector();
     corteCuadro = k !== cortesVistos; cortesVistos = k;
     let c = director.camara();
-    if (!c) { poseVista = null; return; }
+    if (!c) { poseVista = null; ponerCine(null); return; }
     try { c = despejarCamara(c, dt, director.idActual?.()); } catch (e) { ctx.fallo?.(e, 'escenas-camara'); }
     const cam = ctx.camara;
     cam.position.set(c.x, c.y, c.z);
@@ -692,12 +693,15 @@ export function crearEscenasMundo(ctx) {
     if (Math.abs(cam.fov - c.fov) > 0.01) { cam.fov = c.fov; cam.updateProjectionMatrix(); }
     cam.updateMatrixWorld();
     poseVista = { x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, fov: c.fov };   // 4.26.1 (B): la pose que se ve en este cuadro
+    // 4.29.0 (C): el cine de Ultra enfoca el punto al que mira la cámara dirigida (el que habla); sin foco (plano sin despeje), no desenfoca
+    ponerCine(c.foco ? Math.hypot(c.foco.x - c.x, c.foco.y - c.y, c.foco.z - c.z) : null);
   }
 
   // ---- por cuadro
   // Se llama en main.js con modo 'jugando', justo después de jugador.actualizar (la cámara del jugador ya está puesta).
   function actualizar(dt) {
     if (!director.activa()) {
+      ponerCine(null);   // 4.29.0 (C): sin escena, sin desenfoque
       if (pendiente && ctx.modo() === 'jugando') { const id = pendiente; pendiente = null; if (!disparar(id, { forzar: true })) ctx.nota?.('No es el momento', 'Probá de nuevo cuando estés a pie y sin nada abierto'); }
       else if (mirada.activa()) pasoMirada(dt);
       return;

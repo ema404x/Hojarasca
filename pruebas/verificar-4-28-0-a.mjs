@@ -143,7 +143,7 @@ async function revisar({ reglasUrl, mundoUrl, postUrl, etiqueta = 'código' }) {
     ok(m.cielo.malla.material !== matCielo && m.cielo.malla.material.fragmentShader.includes('cieloFisicoU'), 'el cielo pasa al material con dispersión');
     ok(m.cielo.sombras.length === 1 && m.cielo.sombras[0] && m.cielo.sombras[0].mapa === 4096, 'las sombras pasan al mapa de Ultra');
     ok(m.enganches.length === 1 && m.enganches[0] === m.ultra, 'el postproceso recibe el enganche de Ultra');
-    ok(m.renderer.compilados.length - compAntes === 5 && !!m.escena.getObjectByName('ultra-aliento'), 'se compilan los cinco programas nuevos (oclusión, niebla, composición, cielo y aliento) al prenderlo, no a mitad de juego');
+    ok(m.renderer.compilados.length - compAntes === 6 && !!m.escena.getObjectByName('ultra-aliento'), 'se compilan los seis programas nuevos (oclusión, niebla, composición, cielo, aliento y, desde la 4.29.0, el del cine) al prenderlo, no a mitad de juego');
     ok(m.ultra.destino.depthTexture && m.ultra.destino.depthTexture.isDepthTexture, 'el destino de Ultra tiene textura de profundidad');
     ok(m.ultra.destino.width === m.post.destino.width && m.ultra.destino.texture.type === m.post.destino.texture.type, 'del mismo tamaño y tipo que el de Alta (los programas de la escena no cambian)');
     ok(!/uProf|uNiebla/.test(m.post.materialComponer.fragmentShader) && !/uUltraCielo/.test(matCielo.fragmentShader), 'prendido, los materiales de Alta siguen intactos (sus programas no cambian)');

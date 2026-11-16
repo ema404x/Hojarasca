@@ -18,9 +18,10 @@
 import * as THREE from 'three';
 import { bola, tubo, torno, huso, deformar, coser, matiz as matizF, mezcla as mezclaF, color, puntasBufanda } from './formas.js';
 import { MAT_FAUNA } from './vida.js';
+import { U } from './materiales.js';
 import { atlasPersonajes } from './gente-atlas.js';
 import { aspectoGente } from './gente-ropa.js';
-import { conUltraC, inyectarGenteUltra, ultraDetalle, CERCA_CARA_ULTRA } from './ultra-materiales.js';
+import { conUltraC, inyectarGenteUltra, ultraDetalle, CERCA_CARA_ULTRA, mojarPersona, estadoJugadorU } from './ultra-materiales.js';
 
 const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const gauss = (x, y, sx, sy) => Math.exp(-((x / sx) ** 2 + (y / sy) ** 2));
@@ -1271,6 +1272,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       else if (tapeta && (col === 0 || col === lados) && p.y > 0.0 && p.y < 0.5) c.multiplyScalar(0.72);
     });
     if (R.telaCampera) conTela(capaHombro, TELA[R.telaCampera]);
+    capaHombro.userData.viento = R.campera === 'larga' ? 0.55 : R.abierta ? 0.4 : 0.1;   // 4.29.0: el faldón de la campera se abre con el viento (Ultra)
     torso.add(rol(capaHombro, 'campera', perfilCampera.length, lados));
     if (!(R.escote && mujer)) torso.add(rol(capa(matiz(abrigo, 0.88), [[0.078, 0.525], [0.08, 0.565], [0.07, 0.58]], 16, 0, Math.PI * 2, 0.95), 'cuello', 3, 16));   // el cuello
     if (R.escote && mujer) {
@@ -1536,7 +1538,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     torso.add(rol(conTela(deformar(p, caida), TELA.lana), 'poncho', perfilP.length, 30));
     const flecos = torno(colPoncho, [[0.352 * sx, -0.215], [0.35 * sx, -0.178]], null, null, null, 56);
     pintarPieza(flecos, (c, v, nn, i) => { c.multiplyScalar(Math.floor(i / 2) % 2 ? 0.6 : 1.08); });
-    torso.add(conTela(deformar(flecos, caida), TELA.lana));
+    { const fl = conTela(deformar(flecos, caida), TELA.lana); fl.userData.viento = 0.9; torso.add(fl); }   // (4.29.0: los flecos vuelan con el viento, Ultra)
     torso.add(conTela(torno(mezcla(colPoncho, '#d8c49c', 0.34), [[0.08, 0.578], [0.077, 0.605], [0.066, 0.612]], null, null, null, 14), TELA.lana));   // (4.25.0: el cuello del poncho, con el forro claro)
     yCuello = 0.6; rCuello = 0.078; pechoBuf = 0.2;
   }
@@ -1599,13 +1601,13 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       for (const l of [-1, 1]) {
         const punta = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.095, 5, 2), color(matiz(cuello, 0.94))), (v) => { v.z = v.z * 0.22 + 0.006 * Math.sin(v.y * 60 + l); v.x *= 1 + 0.25 * Math.max(0, -v.y / 0.05); });
         punta.position.set(l * 0.013, yCuello - 0.076, 0.117); punta.rotation.set(Math.PI - 0.28, 0, -l * 0.22);
-        torso.add(conTela(pintarPieza(punta, (c, p) => { c.multiplyScalar(0.9 + 0.1 * sv(-0.04, 0.03, p.y)); }), TELA.lienzo));
+        { const pu = conTela(pintarPieza(punta, (c, p) => { c.multiplyScalar(0.9 + 0.1 * sv(-0.04, 0.03, p.y)); }), TELA.lienzo); pu.userData.viento = 0.8; torso.add(pu); }   // (4.29.0: Ultra)
       }
     } else {
       const v2 = new THREE.Mesh(new THREE.TorusGeometry(rCuello - 0.003, 0.023, 8, 22), color(matiz(cuello, 0.93)));
       v2.position.set(0, yCuello - 0.028, 0.012); v2.rotation.set(Math.PI / 2 - 0.1, 0.12, 0);
       torso.add(conTela(v2, TELA.punto));
-      for (const pz of puntasBufanda(cuello, { x: -0.088, y: yCuello - 0.036, pecho: pechoBuf, largo: conPoncho ? 0.14 : 0.16 })) torso.add(conTela(pz, TELA.punto));
+      for (const pz of puntasBufanda(cuello, { x: -0.088, y: yCuello - 0.036, pecho: pechoBuf, largo: conPoncho ? 0.14 : 0.16 })) { conTela(pz, TELA.punto); pz.userData.viento = 1.3; torso.add(pz); }   // (4.29.0: las puntas de la bufanda vuelan con el viento, Ultra)
     }
   }
   if (R.centimetro && !conPoncho) {
@@ -1787,6 +1789,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
 // todos van en una textura compartida (por páginas de 170 personas): una sola subida por cuadro en vez
 // de una por persona. Cada persona tiene su tramo; el índice de hueso de sus vértices ya viene corrido
 // (`base`). 3.7.0: el tramo de quien se va (soltarPersona) queda libre para el que llega.
+const HUESO_MOJADO = 23;   // 4.29.0: el último hueso del tramo de cada persona está libre: ahí va cuánto está mojada
 const HUESOS_POR_PERSONA = 24, LADO_PAGINA = 128, CAP_PAGINA = ((LADO_PAGINA * LADO_PAGINA) / 4 / HUESOS_POR_PERSONA) | 0;
 const paginas = [];
 function lugarHuesos() {
@@ -1822,6 +1825,7 @@ class Esqueleto {
       this._m.multiplyMatrices(this._inv, this.huesos[i].matrixWorld).multiply(this.inversas[i]);
       this._m.toArray(this.boneMatrices, (this.base + i) * 16);
     }
+    if (this.huesos.length < HUESO_MOJADO) this.boneMatrices[(this.base + HUESO_MOJADO) * 16] = this.mojado || 0;   // 4.29.0: cuánto está mojada la persona (sólo lo lee Ultra)
     this.boneTexture.needsUpdate = true;   // (la compartida sube una vez: la primera vez que se usa en el cuadro)
   }
   dispose() { soltarHuesos(this.lugar); }
@@ -2021,7 +2025,7 @@ function materialAtlas() {
   };
   MAT_ATLAS.customProgramCacheKey = () => 'gente-atlas-370';
   // 4.28.0 (C): con Ultra, el relieve de la tela, los poros, el brillo de la piel y los labios (ultra-materiales.js); apagado, el mismo programa
-  conUltraC(MAT_ATLAS, 'gente', inyectarGenteUltra);
+  conUltraC(MAT_ATLAS, 'gente', (sh) => inyectarGenteUltra(sh, U));   // (4.29.0: y el viento en el pelo y la ropa, y lo mojado)
   return MAT_ATLAS;
 }
 export const materialGente = () => materialAtlas();
@@ -2109,7 +2113,7 @@ function* continuoPasos(f) {
   let nv = 0, ni = 0;
   for (const m of mallas) { nv += m.geometry.attributes.position.count; ni += m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count; }
   const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3), zona = new Float32Array(nv * 2);
-  const aTela = new Float32Array(nv * 3), aGuarda = new Float32Array(nv * 4);
+  const aTela = new Float32Array(nv * 3), aGuarda = new Float32Array(nv * 4), aViento = new Float32Array(nv);   // (4.29.0: aViento: cuánto se mueve con el viento cada vértice, sólo lo lee Ultra)
   const si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4), pieza = new Uint16Array(nv), tapa = new Uint8Array(nv), crudo = new Uint8Array(nv);
   const ind = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   const p = new THREE.Vector3(), q = new THREE.Vector3(), n = new THREE.Vector3(), c = new THREE.Color();
@@ -2138,6 +2142,10 @@ function* continuoPasos(f) {
     const sup = m.userData.superior, Z = geo.attributes.zona, esCrudo = !!m.userData.crudo;
     const TV = geo.attributes.telaV, B = geo.attributes.borde, telaPieza = m.userData.tela || 0, AT = geo.attributes.aTela, GU = geo.attributes.guarda;
     const canas = m.userData.canas || 0;
+    // 4.29.0: el viento: la pollera y el poncho (por su rol) y lo que se marcó (`userData.viento`) se mueven más cuanto más abajo del borde de arriba
+    const kViento = m.userData.viento || (m.userData.rol === 'pollera' ? 1 : m.userData.rol === 'poncho' ? 0.9 : 0);
+    let yAlto = 0, yBajo = 0;
+    if (kViento) { yAlto = -Infinity; yBajo = Infinity; for (let i = 0; i < P.count; i++) { q.fromBufferAttribute(P, i).applyMatrix4(m.matrix); if (q.y > yAlto) yAlto = q.y; if (q.y < yBajo) yBajo = q.y; } }
     if (m.userData.mate && iMate < 0) iMate = oi;
     if ((m.userData.fino || m.userData.mate) && iFino < 0) iFino = oi;
     for (let i = 0; i < P.count; i++) {
@@ -2160,6 +2168,7 @@ function* continuoPasos(f) {
       if (tp === TELA.canas || tp === TELA.barba) x = tp + 0.4 * canas;
       if (AT) { x = AT.getX(i); y = AT.getY(i); z = AT.getZ(i); }   // (el rostro trae la suya)
       aTela[j * 3] = x; aTela[j * 3 + 1] = y; aTela[j * 3 + 2] = z;
+      aViento[j] = kViento ? kViento * Math.pow(Math.min(1, Math.max(0, (yAlto - q.y) / Math.max(0.05, yAlto - yBajo))), 1.6) : (grupo === cabeza && (tp === TELA.pelo || tp === TELA.canas)) ? 1.2 * sv(-0.09, -0.3, q.y) : 0;
       if (GU) { aGuarda[j * 4] = GU.getX(i); aGuarda[j * 4 + 1] = GU.getY(i); aGuarda[j * 4 + 2] = GU.getZ(i); aGuarda[j * 4 + 3] = GU.getW(i); }
       col[j * 3] = c.r; col[j * 3 + 1] = c.g; col[j * 3 + 2] = c.b;
       zona[j * 2] = Z ? Z.getX(i) : m.userData.piel ? 1 : 0; zona[j * 2 + 1] = 1; crudo[j] = esCrudo ? 1 : 0;
@@ -2217,6 +2226,7 @@ function* continuoPasos(f) {
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.setAttribute('aTela', new THREE.BufferAttribute(aTela, 3));
   geo.setAttribute('aGuarda', new THREE.BufferAttribute(aGuarda, 4));
+  geo.setAttribute('aVientoU', new THREE.BufferAttribute(aViento, 1));
   geo.setIndex(new THREE.BufferAttribute(ind, 1));
   geo.computeBoundingSphere();
   const malla = new MallaConPiel(geo, materialAtlas());
@@ -2288,6 +2298,8 @@ function alPosar(est) {
     // la abuela, un poco encorvada
     if (est.encorvada && !g.pose) { g.torso.rotation.x += est.encorvada; g.cabeza.rotation.x -= est.encorvada * 0.75; }
     quietud(g, st, dt, andando, charlando);   // manos en la cintura, brazos cruzados...
+    // 4.29.0 (Ultra): la ropa mojada: con lluvia a cielo abierto se va mojando de a poco (20 s) y se seca más despacio (2 min); adentro de un edificio, no
+    if (ultraDetalle() && est.malla?.skeleton) est.malla.skeleton.mojado = mojarPersona(est, dt, U.uLluvia.value, !!g.soloCerca);
     let dist = 99;
     if (camara) { const dx = camara.position.x - g.pos.x, dz = camara.position.z - g.pos.z; dist = Math.sqrt(dx * dx + dz * dz); }
     // de lejos, sin las piezas finas (una vez que cambia)
@@ -2614,6 +2626,7 @@ function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
   }
   // lo que se lleva en la mano (la caña, la planilla, el arco) va en el antebrazo
   if (brazos[1].userData.codo) { const a = brazos[1].userData.ante; brazos[1].userData.codo.add(a); a.position.set(0, -0.01, 0); mano = a; }
+  est.malla = malla;
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible, alPosar: alPosar(est), posesM: A.poses || ['cintura', 'cruzados', 'atras'], cara: cabeza.userData.rostro || null, conPoncho: f.conPoncho, edad: A.edad };
   r.soltar = () => soltarPersona(r);
   r.pasoCorto = A.R && A.R.curvas ? 0.72 : 1;   // 4.0.2: la falda ceñida con tajo (Dalia) abre menos el paso al bailar: con el paso entero parecía un pantalón ancho
@@ -2682,7 +2695,7 @@ export function manoPrimeraPersona(a) {
       telaS(c, n, esPiel);
       col.set([c.r, c.g, c.b], j * 3);
       zona.set([esPiel ? 1 : 0, 1], j * 2);
-      aTela.set([tp > 0 ? tp + 0.4 : 0, 0, 0], j * 3);
+      aTela.set([tp > 0 ? tp + 0.4 : 0, 0, 99], j * 3);   // (4.29.0: en la mano, `aTela.z` = 99 marca «la mano» y `aTela.y` lleva cuánto está mojada la manga: sólo lo lee Ultra)
       if (GU) aGuarda.set([GU.getX(i), GU.getY(i), GU.getZ(i), GU.getW(i)], j * 4);
     }
     for (let i = 0; i < geo.index.count; i++) ind[oi++] = geo.index.getX(i) + ov;
@@ -2699,6 +2712,11 @@ export function manoPrimeraPersona(a) {
   geo.setIndex(new THREE.BufferAttribute(ind, 1));
   geo.computeBoundingSphere();
   const malla = new THREE.Mesh(geo, materialAtlas());
+  let mojadoPuesto = 0;
+  malla.onBeforeRender = () => {
+    const v = ultraDetalle() ? Math.round(estadoJugadorU.mojado * 20) / 20 : 0;
+    if (v !== mojadoPuesto) { mojadoPuesto = v; const A = geo.attributes.aTela; for (let i = 0; i < A.count; i++) A.array[i * 3 + 1] = v; A.needsUpdate = true; }
+  };
   malla.castShadow = false; malla.receiveShadow = false; malla.frustumCulled = false;
   return malla;
 }

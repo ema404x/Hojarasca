@@ -40,7 +40,7 @@ import { crearLuzAldeaNoche } from './aldea-noche-luz.js';
 import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea, EDIFICIOS_ALDEA as EDIFICIOS_ARQUITECTURA } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
-import { conUltraC, inyectarRipioUltra, conocerCieloUltraC } from './ultra-materiales.js';
+import { conUltraC, inyectarRipioUltra, conocerCieloUltraC, vidrioUltra } from './ultra-materiales.js';
 import { materialBandera, prepararPano } from './bandera-viento.js';
 import { registrarLuz, olvidarLuz } from './luces.js';
 import { armarTerreno } from './terreno.js';
@@ -1343,7 +1343,7 @@ export function crearAldeaMundo(ctx) {
       ripio: materialRipio(texturas.grava, texturas.mascara),
       ventanaLuz: new THREE.MeshBasicMaterial({ map: texturaCharco(), color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
       carteles: new THREE.MeshLambertMaterial({ map: atlas }),
-      vidrios: prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: U.uCieloBajo }),
+      vidrios: vidrioUltra(prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: U.uCieloBajo }), U),   // 4.29.0 (C): con Ultra, el vidrio refleja el cielo
       brasas: new THREE.MeshBasicMaterial({ vertexColors: true }),
       puerta: new THREE.MeshLambertMaterial({ vertexColors: true }),
       bandera: materialBandera({ vertexColors: true }),   // 3.8.8: las banderas flamean con el viento y el clima
