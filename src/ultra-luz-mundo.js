@@ -362,8 +362,9 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     // 4.29.0 (A): el agua de Ultra para el lago y el arroyo (el material de siempre queda guardado y vuelve al apagar)
     const matAgua = agua && agua.mat ? crearAguaUltra(agua.mat, comunAgua) : null;
     if (matAgua) { if (agua.lago) agua.lago.material = matAgua; if (agua.arroyo) agua.arroyo.material = matAgua; }
+    const cine = crearCineUltra({ renderer, camara });   // 4.29.0 (C): la profundidad de campo de las cinemáticas
     partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0,
-      matAgua, comunAgua, pisadas: crearPisadasAgua(), rel: {}, t0: ahoraSeg(), cine: crearCineUltra({ renderer, camara }) };   // 4.29.0 (C): la profundidad de campo de las cinemáticas
+      matAgua, comunAgua, pisadas: crearPisadasAgua(), rel: {}, t0: ahoraSeg(), cine };
     cielo.malla.material = matCielo;
     cielo.sombraUltra(SOMBRA_ULTRA);
     cielo.ponerNieveUltra?.(true);   // la sombra de la nieve, celeste pálido (no el azul hondo de Alta)
@@ -394,7 +395,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     p.matAO.dispose(); p.matNiebla.dispose(); p.matComponer.dispose(); p.matCielo.dispose();
     p.aliento.desarmar();
     if (p.matAgua) { if (agua.lago) agua.lago.material = agua.mat; if (agua.arroyo) agua.arroyo.material = agua.mat; p.matAgua.dispose(); }   // 4.29.0 (A)
-    p.cine.dispose();   // 4.29.0 (C)
+    p.cine.dispose();
     stats.desarmados++;
   }
 
