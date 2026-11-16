@@ -1,0 +1,29 @@
+{
+  "anterior": "4.28.0",
+  "fecha": "16-11-2026",
+  "titulo": "Ultra en los detalles",
+  "cambios": [
+    "Ramas v4290-a (agua y cielo), v4290-b (fuego, rastros y vida chica) y v4290-c (personajes, cine y lo que faltaba), juntadas. Detalle en CAMBIOS_4_29_0_A.md, _B.md y _C.md. Todo detrás de Ultra: con Ultra apagado, mismos programas de shader que la 4.28.0.",
+    "",
+    "- Agua y cielo: el lago espeja la orilla de enfrente, los cerros y el cielo, con anillos al caminar por la orilla; espuma y brillo en el arroyo rápido; nubes con volumen y sus sombras que pasan por el valle; de noche la Vía Láctea, estrellas que titilan y la luna con halo; relámpagos en las tormentas.",
+    "- Fuego, rastros y vida chica: el fogón con llamas que cambian, chispas y luz que titila; velas y faroles que tiemblan; el humo acostado por el viento; pisadas hundidas en el barro y con forma de pie en la nieve; la lluvia que rebota en el ripio; luciérnagas, telarañas con rocío y bandadas que se espantan.",
+    "- Personajes y cine: pelo y ropa (polleras, chamal, flecos, bufandas, trenzas) con viento; la ropa más oscura con lluvia a cielo abierto; el fondo desenfocado en las cinemáticas; las hojas que caen en otoño; vidrios que reflejan el cielo; vapor de la olla y la pava.",
+    "- Rendimiento: cada zona medida contra la 4.28.0 en la misma sesión: plaza +1,0 ms (agua y cielo), bosque denso +0,8 ms (las hojas), lago +5,4 ms sólo ahí; el fuego y la vida chica ≈ 0.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-29-0-a (59; 33 mutaciones), -b (62; 28 mutaciones) y -c (88; 39 mutaciones); humo de la junta con Ultra prendido y apagado en vivo, 0 errores de consola.",
+    "",
+    "## Sin ver / afuera",
+    "- Ese día la PC midió todo más lento (Alta en la plaza 26,7 contra 24,2 del 13-11): la 4.28.0 sola dio 34,5 ms en Ultra en la plaza. Medir Ultra en otro momento con la PC fresca.",
+    "- Afuera: hornos y fragua de la aldea (sin fuego a la vista), huellas en el ripio y las lajas, el mojado de los vecinos al salir del agua (no nadan); el reflejo del lago es sólo de lo que está en pantalla; la cascada no cambia.",
+    "- Probado en Node, no visto jugando: huellas y salpicaduras de la gente, fuego de estufa, hogar y cocina, la lluvia sobre un techo, telarañas en los cercos."
+  ],
+  "release": "ULTRA EN LOS DETALLES (CAMBIOS_4_29_0_A/B/C.md) — el lago que refleja, nubes con sombra, la Vía Láctea, relámpagos, fuego vivo, huellas, luciérnagas, ropa y pelo con viento y cinemáticas con fondo desenfocado",
+  "seguir": "Ultra en los detalles (CAMBIOS_4_29_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Pendiente: medir Ultra con la PC fresca. Steam y el inglés esperan.",
+  "leemeNovedades": [
+    "- Más Ultra: el lago refleja, nubes con sombra, la Vía Láctea, relámpagos, fuego vivo, huellas en la nieve y el barro, luciérnagas y ropa que se mueve con el viento.",
+    "- En las cinemáticas, con Ultra, el fondo se desenfoca como en una película."
+  ],
+  "leemeMirar": [
+    "- Cómo anda Ultra en la plaza y en el lago en tu PC.",
+    "- El fogón de noche y las huellas en la nieve."
+  ]
+}

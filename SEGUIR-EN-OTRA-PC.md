@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (16-11-2026, notebook): VERSIÓN 4.29.0 en `main`, etiqueta `v4.29.0`** — Ultra en los detalles (CAMBIOS_4_29_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Pendiente: medir Ultra con la PC fresca. Steam y el inglés esperan.
+
 > **ÚLTIMO (13-11-2026, notebook): VERSIÓN 4.28.0 en `main`, etiqueta `v4.28.0`** — Nivel Ultra (CAMBIOS_4_28_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra` (src/ultra.js). Próximo pedido: agua, fuego, cielo, rastros, vida chica, personajes y cine en Ultra. Steam y el inglés esperan.
 
 > **ÚLTIMO (13-11-2026, notebook): VERSIÓN 4.27.0 en `main`, etiqueta `v4.27.0`** — Panales silvestres (CAMBIOS_4_27_0_A.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Para jugar: buscar un panal en el bosque, sacar miel y armar la colmena en la Historia. Shaders cerrados a pedido del usuario; Steam y el inglés esperan.
