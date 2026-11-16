@@ -265,18 +265,18 @@ for (const [de, a] of MUT_MAIN) {
   const chequeo = (cielo, mundo, reglas) => {
     const pasos = /const int PASOS = ([0-9]+);/.exec(mundo);
     const mu = /muestras: ([0-9]+) }/.exec(reglas);
-    return !!pasos && Number(pasos[1]) >= 6 && Number(pasos[1]) <= 7   // (la niebla: sin bajar de 6 pasos, 7 para entrar en 33 ms)
-      && !!mu && Number(mu[1]) <= 4                                    // (la oclusión: 4 muestras)
+    return !!pasos && Number(pasos[1]) >= 6 && Number(pasos[1]) <= 6   // (la niebla: sin bajar de 6 pasos, 7 para entrar en 33 ms)
+      && !!mu && Number(mu[1]) <= 3                                    // (la oclusión: 4 muestras)
       && cielo.includes('if (nieveUltra && nieve > 0.001) { hemi.color.lerp(AMBIENTE_NIEVE_U')   // (la sombra de la nieve, celeste pálido, sólo con Ultra)
       && cielo.includes('if (nieveUltra) hemi.intensity *=')
       && mundo.includes('cielo.ponerNieveUltra?.(true)') && mundo.includes('cielo.ponerNieveUltra?.(false)');
   };
   const c0 = leer('cielo.js'), m0 = leer('ultra-luz-mundo.js'), r0 = leer('ultra-luz.js');
-  assert.ok(chequeo(c0, m0, r0), 'junta A: 7 pasos de niebla, 4 muestras de oclusión y la nieve a la sombra más clara sólo con Ultra');
+  assert.ok(chequeo(c0, m0, r0), 'junta A: 6 pasos de niebla, 3 muestras de oclusión y la nieve a la sombra más clara sólo con Ultra');
   const MJ = [
-    ['la niebla vuelve a 9 pasos', () => chequeo(c0, m0.replace('const int PASOS = 7;', 'const int PASOS = 9;'), r0)],
-    ['la niebla baja de 6 pasos', () => chequeo(c0, m0.replace('const int PASOS = 7;', 'const int PASOS = 5;'), r0)],
-    ['la oclusión vuelve a 6 muestras', () => chequeo(c0, m0, r0.replace('muestras: 4 }', 'muestras: 6 }'))],
+    ['la niebla vuelve a 9 pasos', () => chequeo(c0, m0.replace('const int PASOS = 6;', 'const int PASOS = 9;'), r0)],
+    ['la niebla baja de 6 pasos', () => chequeo(c0, m0.replace('const int PASOS = 6;', 'const int PASOS = 5;'), r0)],
+    ['la oclusión vuelve a 6 muestras', () => chequeo(c0, m0, r0.replace('muestras: 3 }', 'muestras: 6 }'))],
     ['la nieve celeste también sin Ultra', () => chequeo(c0.replace('if (nieveUltra && nieve > 0.001) {', 'if (nieve > 0.001) {'), m0, r0)],
     ['Ultra no pone la nieve suave', () => chequeo(c0, m0.replace('cielo.ponerNieveUltra?.(true)', 'void 0'), r0)],
     ['al apagar Ultra la nieve queda suave', () => chequeo(c0, m0.replace('cielo.ponerNieveUltra?.(false)', 'void 0'), r0)],

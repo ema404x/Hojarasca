@@ -137,7 +137,7 @@ export const GLSL_ALDEA_ULTRA = /* glsl */`
         // (el relieve se apaga cuando un píxel cubre más de ~2 cm: de lejos no titila)
         float fwU = max(fwidth(uv.x), fwidth(uv.y));
         // (junta: más allá de ~25 m no se calcula el relieve —ni sus ruidos—: se apaga entre 14 y 25 m)
-        float vivoU = (1.0 - smoothstep(0.006, 0.03, fwU)) * (1.0 - smoothstep(14.0, 25.0, length(vViewPosition)));
+        float vivoU = (1.0 - smoothstep(0.006, 0.03, fwU)) * (1.0 - smoothstep(12.0, 20.0, length(vViewPosition)));
         float porosoU = tipo < 3.5 ? 0.6 : tipo < 4.5 ? 0.0 : tipo < 5.5 ? 1.0 : tipo < 6.5 ? 0.8 : tipo < 7.5 ? 0.6 : tipo < 8.5 ? 0.4 : tipo < 9.5 ? 1.0 : 0.6;
         float hU = 0.0;
         if (vivoU > 0.001) {
@@ -402,7 +402,7 @@ export const GLSL_ESTRUCTURA_ULTRA = /* glsl */`
     float maderaU = smoothstep(0.18, 0.32, satU) * step(cU.b, cU.r) * (1.0 - step(3.5, vTipoVeg));
     float piedraU = max(1.0 - smoothstep(0.1, 0.22, satU), step(3.5, vTipoVeg) * (1.0 - horizU)) * (1.0 - maderaU);
     float fwU = max(fwidth(uvU.x), fwidth(uvU.y));
-    float vivoU = (1.0 - smoothstep(0.006, 0.03, fwU)) * (1.0 - smoothstep(14.0, 25.0, length(vViewPosition)));   // (más allá de ~25 m no se calcula el relieve)
+    float vivoU = (1.0 - smoothstep(0.006, 0.03, fwU)) * (1.0 - smoothstep(12.0, 20.0, length(vViewPosition)));   // (más allá de ~20 m no se calcula el relieve)
     // la veta: a lo alto en las paredes (tablas paradas), a lo largo en lo horizontal
     // (en un tronco acostado la normal gira rápido a lo alto: la veta va a lo largo, acostada)
     float curvaU = length(fwidth(nWU)) / max(length(fwidth(pWU)), 1e-4);
