@@ -100,7 +100,7 @@ async function comprobar() {
   ok('y al cumplirlo («¡Justo lo que necesitaba!»), también', sinCosa === 0);
 
 
-  // ---- 4. tirar con el puesto de cargas abierto: el panel se vuelve a dibujar (antes quedaba el «tenés 8» de antes)
+  // ---- 4. tirar con el puesto de cargas abierto (4.29.1: ahora V no tira nada con un panel abierto; en la 4.26.5 tiraba y volvía a dibujar el panel)
   const { funcion } = await import('./ayuda-codigo.mjs');
   const tirarCon = (abierto) => {
     let dibujos = 0, bultos = 0;
@@ -109,14 +109,14 @@ async function comprobar() {
       durmiendo: false, escenasMundo: null, motivoParaNoTirar: () => null, T: { agua: () => false }, LIMITE: 1e9, col: null, progreso: {},
       sacarDeMochila: () => ({ ok: true, carga: { id: 'tabla', n: 1 } }), objetos: { soltar: () => false, tirarBulto: () => { bultos++; return { ok: true }; } },
       alturaDePie: () => 0, nota: () => {}, sonido: { paso: () => {} }, refrescarBarra: () => {}, enMano: null, guardar: () => {},
-      enLasCargas: () => abierto, puestoCargas: { dibujar: () => { dibujos++; } },
+      charla: { npc: null, menu: null }, panelDelHudAbierto: () => abierto, panelFueraDelHudAbierto: () => false, personalAbierto: () => false,
     };
     funcion(main, 'soltarRanura', env)();
     return { dibujos, bultos };
   };
   const t1 = tirarCon(true), t0 = tirarCon(false);
-  ok('con el puesto de cargas abierto, V tira y vuelve a dibujar el panel', t1.bultos === 1 && t1.dibujos === 1);
-  ok('sin el puesto abierto no lo toca', t0.bultos === 1 && t0.dibujos === 0);
+  ok('con el puesto de cargas abierto, V no tira nada (4.29.1)', t1.bultos === 0 && t1.dibujos === 0);
+  ok('sin el puesto abierto tira', t0.bultos === 1 && t0.dibujos === 0);
 
   return R;
 }
@@ -141,7 +141,6 @@ if (process.argv.includes('--hijo')) {
     ['main.js', 'siempre la Estación', 'const q = tren?.paradaDondeParo?.(), s = q?.espera;', 'const q = null, s = q?.espera;'],
     ['main.js', 'sin la altura del andén (y perdido)', '{ x: s.x, ...(Number.isFinite(s.y) ? { y: s.y } : {}), z: s.z }', '{ x: s.x, y: NaN, z: s.z }'],
     ['main.js', 'el andén sin validar', 'return s && Number.isFinite(s.x) && Number.isFinite(s.z) ?', 'return s ?'],
-    ['main.js', 'tirar no redibuja el puesto', 'if (enLasCargas()) puestoCargas.dibujar();   // 4.26.5', 'if (false) puestoCargas.dibujar();   // 4.26.5'],
     ['pedidos.js', 'el pedido vuelve a decir «2 de frascos»', 'const lo = `${q.n} ${nombreCosa(q.k)}`;', 'const lo = `${q.n} de ${nombreCosa(q.k)}`;'],
     ['trochita.js', 'paradaDondeParo sin el chequeo de tren parado', 'if (est.parado <= 0) return null;\n    const p = enVia(est.s + (tren.adelanto', 'const p = enVia(est.s + (tren.adelanto'],
     ['trochita.js', 'paradaDondeParo no se exporta', 'puestoCerca, paradaEnVentana, paradaDondeParo,', 'puestoCerca, paradaEnVentana,'],

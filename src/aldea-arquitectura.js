@@ -822,6 +822,7 @@ function chapaPlanoBase(K, c, e0, e1, t1, t0, o) {
 // ---------------------------------------------------------------- carteles pintados a mano
 // Un solo atlas para toda la aldea (crearTexturaCarteles): cada cartel es una celda de 512 × 96.
 // `mano`: letra cursiva (Caveat), como los que se pintan con pincel chico; si no, Spectral.
+export const HORARIO_BANCO_CARTEL = 'Lun a sáb 8:30 a 12:30 y 14:30 a 18\nSáb. de baile hasta las 16 · Dom. cerrado';
 export const CARTELES_ALDEA = [
   { texto: 'Aldea de los Duendes', fondo: '#3d5745', tinta: '#efe3c4' },
   { texto: 'Plaza de los Duendes', fondo: '#5a4330', tinta: '#efe0bd' },
@@ -857,7 +858,8 @@ export const CARTELES_ALDEA = [
   // 3.8.8: el del banco del pueblo (sobre la galería)
   { texto: 'Banco del Pueblo', fondo: '#27382f', tinta: '#e9d79c' },
   // 3.8.9: el horario del banco, en la pared junto a la puerta (HORARIO_BANCO en aldea.js: 8:30 a 12:30 y 14:30 a 18)
-  { texto: '8:30 a 12:30 y 14:30 a 18', fondo: '#e4ddca', tinta: '#27382f', mano: true },
+  // 4.29.1: ahora en dos renglones (el «\n» parte el texto): también dice el sábado de baile (16 h) y que el domingo no atiende
+  { texto: HORARIO_BANCO_CARTEL, fondo: '#e4ddca', tinta: '#27382f', mano: true },
   // 3.9.0: el de la cantina sobre la galería y su horario junto a la puerta (HORARIO_CANTINA en aldea.js: de 18 a 2)
   { texto: 'La Cantina', fondo: '#4a1e22', tinta: '#f0d9a0' },
   { texto: 'Abre de 18 a 2', fondo: '#e4ddca', tinta: '#4a1e22', mano: true },
@@ -899,12 +901,16 @@ export function pintarCarteles(ctx) {
       xTexto += 38; anchoTexto -= 76;
     }
     const familia = cfg.mano ? '"Caveat", "Spectral", Georgia, cursive' : '"Spectral", Georgia, serif';
-    let tam = cfg.mano ? 66 : 54;
+    const renglones = cfg.texto.split('\n');   // 4.29.1: un «\n» parte el cartel en renglones (el del banco)
+    let tam = renglones.length > 1 ? 40 : cfg.mano ? 66 : 54;
     ctx.font = `${cfg.mano ? 700 : 600} ${tam}px ${familia}`;
-    while (tam > 18 && ctx.measureText(cfg.texto).width > anchoTexto) { tam -= 2; ctx.font = `${cfg.mano ? 700 : 600} ${tam}px ${familia}`; }
+    while (tam > 18 && renglones.some((t) => ctx.measureText(t).width > anchoTexto)) { tam -= 2; ctx.font = `${cfg.mano ? 700 : 600} ${tam}px ${familia}`; }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillText(cfg.texto, xTexto + 2, A.celdaAlto / 2 + 4);
-    ctx.fillStyle = cfg.tinta; ctx.fillText(cfg.texto, xTexto, A.celdaAlto / 2 + 2);
+    renglones.forEach((t, k) => {
+      const dy = (k - (renglones.length - 1) / 2) * tam * 1.1;
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillText(t, xTexto + 2, A.celdaAlto / 2 + 4 + dy);
+      ctx.fillStyle = cfg.tinta; ctx.fillText(t, xTexto, A.celdaAlto / 2 + 2 + dy);
+    });
     // descascarado: manchitas del color del fondo encima de las letras
     ctx.fillStyle = cfg.fondo;
     for (let k = 0; k < 40; k++) { ctx.globalAlpha = 0.25 + r() * 0.4; ctx.fillRect(r() * A.celdaAncho, r() * A.celdaAlto, 2 + r() * 5, 1 + r() * 3); }
@@ -4931,7 +4937,7 @@ function bancoDelPueblo(K) {
   caja(K.ext, [0.08, H + 0.72, D / 2 + 0.15], [0.16, 0.03, 0.02], '#2a2826', { tipo: 4 });
   cartelGaleria(K, 'Banco del Pueblo', 0, 3.2, 0.5);
   // el horario de atención, en una chapita junto a la puerta (entre la puerta y la ventana de la derecha)
-  cartel(K, '8:30 a 12:30 y 14:30 a 18', [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.2, 0);
+  cartel(K, HORARIO_BANCO_CARTEL, [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.24, 0);   // (4.29.1: un poco más alto, con dos renglones)
   // las rejas de hierro de las ventanas del frente
   for (const x of [-2.5, 2.5]) for (let i = -4; i <= 4; i++) caja(K.ext, [x + i * 0.12, PISO + 0.9 + 0.7, D / 2 + 0.04], [0.02, 1.4, 0.02], '#26241f', { tipo: 4 });
   // el mostrador de lado a lado, con la tapa de mármol, y la reja de bronce con su ventanilla

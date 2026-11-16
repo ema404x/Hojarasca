@@ -67,9 +67,9 @@ const ID = 'banco-pueblo';
     const HB = A.HORARIO_BANCO, h = (x) => (x % 1 ? `${Math.floor(x)}:${String(Math.round((x % 1) * 60)).padStart(2, '0')}` : String(x));
     const texto = `${h(HB.manana[0])} a ${h(HB.manana[1])} y ${h(HB.tarde[0])} a ${h(HB.tarde[1])}`;
     ok(texto === '8:30 a 12:30 y 14:30 a 18', `el horario del cartel sale del horario del gerente (${texto})`);
-    ok(AR.CARTELES_ALDEA.some((c) => c.texto === texto), 'hay una celda del atlas con ese cartel');
+    ok(AR.CARTELES_ALDEA.some((c) => c.texto.split('\n')[0] === 'Lun a sáb ' + texto), 'hay una celda del atlas con ese cartel (4.29.1: en dos renglones, el primero con el horario)');
     ok(AR.CARTELES_ALDEA.length <= Math.floor(AR.ATLAS_CARTELES.alto / AR.ATLAS_CARTELES.celdaAlto) * AR.ATLAS_CARTELES.columnas, 'y el atlas alcanza');
-    ok(fsLeer('src/aldea-arquitectura.js').includes("cartel(K, '8:30 a 12:30 y 14:30 a 18', [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.2, 0);"), 'el banco lo cuelga entre la puerta y la ventana de la derecha');
+    ok(fsLeer('src/aldea-arquitectura.js').includes("cartel(K, HORARIO_BANCO_CARTEL, [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.24, 0);"), 'el banco lo cuelga entre la puerta y la ventana de la derecha');
   }
   ok(d.puntos.nombrados.adentro && d.puntos.nombrados.puerta && d.puntos.nombrados.trabajo && d.puntos.nombrados.cama, 'los puntos con nombre');
   const dentro = (p) => Math.abs(p.lx) < 7.8 / 2 && Math.abs(p.lz) < 6.4 / 2;

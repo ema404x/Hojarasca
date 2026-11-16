@@ -57,6 +57,7 @@ export const SOMBRA_ALDEA = 60;
 export const ALAMO_LOD = 70, ALAMO_BANDA = 10;
 // cuánto más que la planta se empareja (en el marco de cada edificio, la puerta en +Z): la galería,
 // el horno o la leña del costado, los materiales de la obra y el frente hasta la vereda
+export const PASO_PARCHE = 1;   // 4.29.1: metros entre nodos del suelo fino de la aldea (ver parcheSuelo)
 export const MARGEN_EMPAREJAR = { lado: 2.2, atras: 2.1, frente: 3.2 };
 
 // ---------------------------------------------------------------- el terreno (puro)
@@ -1081,7 +1082,10 @@ export function crearAldeaMundo(ctx) {
       const ha = f(i, j), hb = f(i, j + 1), hc = f(i + 1, j + 1), hd = f(i + 1, j);
       return u + v <= 1 ? ha + (hd - ha) * u + (hb - ha) * v : hc + (hb - hc) * (1 - u) + (hd - hc) * (1 - v);
     };
-    const nx = Math.max(2, Math.ceil((X1 - X0) / 2)), nz = Math.max(2, Math.ceil((Z1 - Z0) / 2));
+    // 4.29.1: nodos cada 1 m (antes cada 2 m, los de la grilla del terreno): el terreno es bilineal en celdas de 2 m y el parche son triángulos, y donde el emparejado
+    // deja un escalón (bordes de lotes, pie de las escalinatas) el suelo que se ve se despegaba hasta 30 a 42 cm del que se pisa. Con 1 m, a lo sumo 6 cm. Los nodos
+    // de 2 m siguen siendo nodos (X0 y Z0 son múltiplos de 4), así que el borde cose igual con la gruesa.
+    const nx = Math.max(2, Math.ceil((X1 - X0) / PASO_PARCHE)), nz = Math.max(2, Math.ceil((Z1 - Z0) / PASO_PARCHE));
     const pos = new Float32Array((nx + 1) * (nz + 1) * 3), nor = new Float32Array(pos.length), uv = new Float32Array((nx + 1) * (nz + 1) * 2);
     // 3.6.1 (mundo): la gruesa hundida (4 m sus vértices de adentro; los del borde no se tocan), para que el
     // parche no quede nunca por debajo de ella: en las celdas del borde, donde el terreno emparejado
