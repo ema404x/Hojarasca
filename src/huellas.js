@@ -23,6 +23,17 @@ export function crearHuellas() {
   let acumuladoBorrado = 0;
   let sucia = false;
   const ultimasFauna = new Map();
+  // 4.29.0 (B): con Ultra, las huellas finas de ultra-vida.js ocupan U.uHuellas y éstas quedan en pausa (no marcan ni borran);
+  // al apagar Ultra, `reponer` las devuelve al suelo (limpias). Sin Ultra nunca se pausan: todo como en la 4.28.0.
+  let pausadas = false;
+  function pausar(v) { pausadas = !!v; }
+  function reponer() {
+    pausadas = false;
+    limpiar();
+    tex.needsUpdate = true; sucia = false;
+    U.uHuellas.value = tex; U.uHuellasLado.value = LADO; U.uHuellasCentro.value.copy(centro);
+    ultima.set(1e9, 1e9);
+  }
 
   function limpiar() {
     datos.fill(0);
@@ -55,6 +66,7 @@ export function crearHuellas() {
   // RC17: rastros de fauna cercana en nieve. Sólo se marcan animales que ya
   // están siendo simulados/visibles; no agrega búsquedas globales ni IA extra.
   function actualizarFauna(sujetos, invierno) {
+    if (pausadas) return;   // 4.29.0 (B): con Ultra marcan las huellas finas (ultra-vida.js)
     if (invierno < 0.25 || !Array.isArray(sujetos)) return;
     const vivos = new Set();
     for (const s of sujetos) {
@@ -81,6 +93,7 @@ export function crearHuellas() {
   }
 
   function actualizar(dt, js, invierno, nevando) {
+    if (pausadas) return;   // 4.29.0 (B): ídem
     if (invierno < 0.25) {
       if (datos[0] !== 0 || sucia) { limpiar(); tex.needsUpdate = true; sucia = false; }
       return;
@@ -119,5 +132,5 @@ export function crearHuellas() {
     if (sucia) { tex.needsUpdate = true; sucia = false; }
   }
 
-  return { actualizar, actualizarFauna, limpiar, tex };
+  return { actualizar, actualizarFauna, limpiar, tex, pausar, reponer };
 }

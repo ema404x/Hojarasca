@@ -542,7 +542,7 @@ export function crearPresupuestoLuces(escena, camara, { puntuales = PRESUPUESTO_
     ultimoAsignar = ahora;
     fundirLuces(lugaresP, candP, puntuales, dt);
     fundirLuces(lugaresS, candS, focos, dt);
-    for (let i = 0; i < puntuales; i++) { const l = lugaresP[i]; if (l.fuente && l.peso > 0) { copiar(fijasP[i], l.fuente); fijasP[i].intensity *= l.peso; } else apagar(fijasP[i]); }
+    for (let i = 0; i < puntuales; i++) { const l = lugaresP[i]; if (l.fuente && l.peso > 0) { copiar(fijasP[i], l.fuente); fijasP[i].intensity *= l.peso; if (api.temblor) api.temblor(fijasP[i], l.fuente); } else apagar(fijasP[i]); }   // (4.29.0 (B): `temblor` sólo lo pone Ultra: ultra-vida.js)
     for (let i = 0; i < focos; i++) { const l = lugaresS[i]; if (l.fuente && l.peso > 0) { copiar(fijasS[i], l.fuente); fijasS[i].intensity *= l.peso; } else apagar(fijasS[i]); }
     previasP = lugaresP.map((l) => l.fuente); previasS = lugaresS.map((l) => l.fuente);
     stats.cuadros++;
@@ -576,7 +576,7 @@ export function crearPresupuestoLuces(escena, camara, { puntuales = PRESUPUESTO_
   // (la que ya salió de la escena: vuelve a su máscara de verdad, por si se registra otra vez; una que
   // sigue colgada queda como estaba, escondida)
   const soltar = (l) => { if (!capas.has(l) || l.parent) return; l.layers.mask = capas.get(l); capas.delete(l); };
-  const api = { grupo, activar, esconder, soltar, asignar, compilarTodo, stats, puntuales, focos, fijasP, fijasS };
+  const api = { grupo, activar, esconder, soltar, asignar, compilarTodo, stats, puntuales, focos, fijasP, fijasS, temblor: null };   // 4.29.0 (B): temblor(fija, fuente), sólo con Ultra
   escena.userData.presupuestoLuces = api;   // para las pruebas y el diagnóstico (F3, ?debug=1)
   return api;
 }
