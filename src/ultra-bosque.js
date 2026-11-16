@@ -146,7 +146,7 @@ export function parcheAnillo(sh) {
 // El suelo (materialTerreno): el grano de menos de 4 m con relieve y el borde pisoteado de los pisos
 export function parcheTerreno(sh) {
   let f = sh.fragmentShader;
-  f = cambiar(f, '#include <color_fragment>', 'float granoUB = 0.0; float pesoGranoUB = 0.0;\n        #include <color_fragment>', 'terreno: variables');
+  f = cambiar(f, '#include <color_fragment>', 'float granoUB = 0.0; float pesoGranoUB = 0.0; vec2 pisadaUB = vec2(0.0);\n        #include <color_fragment>', 'terreno: variables');
   f = cambiar(f, 'diffuseColor.rgb = col;', `{
             // 4.28.0 (B, Ultra): el grano cercano. Tres escalas (de unos 40, 16 y 7 cm), que se apagan con la distancia y con el tamaño del
             // píxel (sin titilar): terrones y pozos (el relieve), piedritas claras en la tierra y el camino, hojitas en el piso del bosque
@@ -169,6 +169,22 @@ export function parcheTerreno(sh) {
             // el borde de los pisos (donde marcarPisos corta el pasto): tierra pisoteada y pasto corto, sin línea recta
             float bordePisoU = smoothstep(0.03, 0.3, est.b) * (1.0 - smoothstep(0.55, 0.95, est.b)) * (1.0 - nieve);
             col = mix(col, col * mix(vec3(0.8, 0.86, 0.74), vec3(0.94, 0.86, 0.72), vnoise(p * 1.3)), bordePisoU * 0.45);
+            // 4.29.0 (B, Ultra): las pisadas en el barro (la textura de huellas finas de ultra-vida.js: tuyas, de la gente y de los animales):
+            // tierra removida más oscura y húmeda, más con el suelo mojado; y el hundido de la pisada (en el barro y en la nieve) inclina la
+            // normal (la pendiente sale de la textura misma, con cuatro vecinos: con las derivadas de pantalla se veía en escalones)
+            {
+              vec2 uvHU = (vPosMundo.xz - uHuellasCentro) / uHuellasLado + 0.5;
+              float dentroHU = step(0.0, uvHU.x) * step(uvHU.x, 1.0) * step(0.0, uvHU.y) * step(uvHU.y, 1.0);
+              float marcaHU = texture2D(uHuellas, clamp(uvHU, 0.0, 1.0)).r * dentroHU;
+              float barroHU = clamp(0.55 + sendero + (1.0 - pasto) * 0.5, 0.0, 1.0) * (0.55 + 0.45 * uMojado) * (1.0 - nieve);
+              col = mix(col, col * vec3(0.34, 0.3, 0.26), marcaHU * barroHU * 0.9);
+              if (dentroHU > 0.5 && length(cameraPosition - vPosMundo) < 24.0) {
+                float tHU = 1.0 / 512.0;
+                float mxp = texture2D(uHuellas, clamp(uvHU + vec2(tHU, 0.0), 0.0, 1.0)).r, mxn = texture2D(uHuellas, clamp(uvHU - vec2(tHU, 0.0), 0.0, 1.0)).r;
+                float mzp = texture2D(uHuellas, clamp(uvHU + vec2(0.0, tHU), 0.0, 1.0)).r, mzn = texture2D(uHuellas, clamp(uvHU - vec2(0.0, tHU), 0.0, 1.0)).r;
+                pisadaUB = vec2(mxp - mxn, mzp - mzn) * dentroHU * (nieve * 1.0 + barroHU * 0.7) * (1.0 - smoothstep(14.0, 24.0, length(cameraPosition - vPosMundo)));
+              }
+            }
           }
           diffuseColor.rgb = col;`, 'terreno: grano');
   // el relieve del grano: la normal se inclina con la pendiente de la altura del grano (derivadas de pantalla, en la vista)
@@ -180,7 +196,9 @@ export function parcheTerreno(sh) {
           float detU = dot(dpxU, r1U);
           vec3 gradU = sign(detU) * (dhxU * r1U + dhyU * r2U);
           normal = normalize(abs(detU) * normal - gradU);
-        }`, 'terreno: relieve');
+        }
+        // 4.29.0 (B): el hundido de la pisada (la pared del lado de atrás mira hacia adelante y al revés)
+        if (dot(pisadaUB, pisadaUB) > 1e-6) normal = normalize(normal + (viewMatrix * vec4(pisadaUB.x, 0.0, pisadaUB.y, 0.0)).xyz * 1.3);`, 'terreno: relieve');
   sh.fragmentShader = f;
 }
 

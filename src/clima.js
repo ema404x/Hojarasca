@@ -5,6 +5,7 @@ import { clamp, lerp, smoothstep } from './ruido.js';
 import { registrarLuz } from './luces.js';
 import { conUltraC, inyectarHumoUltra } from './ultra-materiales.js';
 import { MAX_FOGATAS, lugarParaFogata, masCercano, fuegoEn } from './fogatas.js';
+import { RUMBO_VIENTO } from './bandera-viento.js';
 
 function puntosMaterial({ color, tam, aditivo = false, forma = 'redonda', opacidad = 1 }) {
   return new THREE.ShaderMaterial({
@@ -201,6 +202,10 @@ export function crearClima(escena, T, ajustes) {
   const luz = new THREE.Color(), luzSol = new THREE.Color();
 
   let inviernoAhora = 0;   // 3.8.7: para la tormenta (en la nevada no hay rayos)
+  // 4.29.0 (B): con Ultra (ultra-vida.js) el humo se dobla con el viento (en su rumbo, más con las ráfagas) y las luciérnagas de siempre
+  // dan lugar a las que titilan; apagado, todo como en la 4.28.0
+  let ultraB = false;
+  const RVX = RUMBO_VIENTO.x, RVZ = RUMBO_VIENTO.z;
   function actualizar(dt, cam, mundo) {
     const tt = U.uTiempo.value;
     inviernoAhora = Number(mundo?.invierno) || 0;
@@ -328,7 +333,7 @@ export function crearClima(escena, T, ajustes) {
     }
 
     // luciérnagas en noches de verano
-    luciernagas.visible = mundo.noche > 0.6 && mundo.otono < 0.5 && !invierno && precip < 0.3;
+    luciernagas.visible = mundo.noche > 0.6 && mundo.otono < 0.5 && !invierno && precip < 0.3 && !ultraB;
     if (luciernagas.visible) {
       const p = luciernagas.geometry.attributes.position.array, az = luciernagas.geometry.attributes.aAzar.array;
       luciernagas.material.uniforms.uOpacidad.value = (mundo.noche - 0.6) * 2.5;
@@ -370,9 +375,18 @@ export function crearClima(escena, T, ajustes) {
         // 3.6 (detalles): más fina (se abre menos) y nunca baja de la chimenea: con viento fuerte se
         // acuesta, pero sigue subiendo (antes bajaba hasta la altura de los ojos)
         const abre = 0.15 + v * v * 2.0;
+        if (ultraB) {
+          // 4.29.0 (B, Ultra): se dobla en el rumbo del viento, más con las ráfagas, y se acuesta (sube menos) cuando sopla fuerte
+          const vto = estado.viento * (1 + estado.rafaga * 2.2), dobla = (v * 1.1 + v * v * 7.5) * vto;
+          const ondeaA = Math.sin(v * 9 + i + tt * 0.5) * abre, ondeaB = Math.cos(v * 7 + i * 1.7 + tt * 0.4) * abre;
+          p[i * 3] = chim.x + RVX * dobla - RVZ * ondeaA + RVX * ondeaB * 0.4;
+          p[i * 3 + 1] = chim.y + Math.max(0.5 + 1.6 * v, 11 * v * (1 - 0.38 * v) * (1 - 0.42 * Math.min(vto, 1.2)) - v * v * vto * 2.5);
+          p[i * 3 + 2] = chim.z + RVZ * dobla + RVX * ondeaA + RVZ * ondeaB * 0.4;
+        } else {
         p[i * 3] = chim.x + (v * 1.2 + v * v * 5.5) * estado.viento + Math.sin(v * 9 + i) * abre;
         p[i * 3 + 1] = chim.y + Math.max(0.5 + 2.2 * v, 11 * v * (1 - 0.38 * v) - v * v * estado.viento * 2);
         p[i * 3 + 2] = chim.z + Math.cos(v * 7 + i * 1.7) * abre;
+        }
         vida[i] = v;
       }
       if (humo.visible) { humo.geometry.attributes.position.needsUpdate = true; humo.geometry.attributes.aVida.needsUpdate = true; }
@@ -389,7 +403,8 @@ export function crearClima(escena, T, ajustes) {
         luzFuego.position.set(fogata.pos.x, fogata.pos.y + 0.9, fogata.pos.z);
         const factorContenido = fogata.contenida ? 0.72 : 1;
         const factorLluvia = fogata.contenida ? 1 : (1 - estado.lluvia * 0.4);
-        luzFuego.intensity = (6 + Math.sin(tt * 13) * 1.2 + Math.sin(tt * 23.7) * 0.8) * brillo * factorContenido * factorLluvia;
+        // (4.29.0 (B): con Ultra la luz no titila con estos dos senos parejos: titila con el ruido de ultra-vida.js, al copiarse)
+        luzFuego.intensity = (6 + (ultraB ? 0 : Math.sin(tt * 13) * 1.2 + Math.sin(tt * 23.7) * 0.8)) * brillo * factorContenido * factorLluvia;
         brasas.color.setRGB(1, 0.35 + Math.sin(tt * 5) * 0.08, 0.1).multiplyScalar(0.3 + 0.7 * clamp((fogata.vida + 60) / 60, 0, 1));
         const p = fuego.geometry.attributes.position.array, vida = fuego.geometry.attributes.aVida.array;
         for (let i = 0; i < NF; i++) {
@@ -416,9 +431,17 @@ export function crearClima(escena, T, ajustes) {
           vidaHumoF[i] += dt * 0.2;
           if (vidaHumoF[i] > 1) vidaHumoF[i] -= 1;
           const v = vidaHumoF[i];
+          if (ultraB) {
+            // 4.29.0 (B, Ultra): el humo del fuego también se dobla con el viento
+            const vto = estado.viento * (1 + estado.rafaga * 2.2), dobla = (v * 1.4 + v * v * 5) * vto, ondea = Math.sin(v * 8 + i + tt * 0.6) * v;
+            ph[i * 3] = fogata.pos.x + RVX * dobla - RVZ * ondea;
+            ph[i * 3 + 1] = fogata.pos.y + 1 + v * 7 * (1 - 0.4 * Math.min(vto, 1.2));
+            ph[i * 3 + 2] = fogata.pos.z + RVZ * dobla + RVX * ondea + Math.cos(v * 6 + i) * v * 0.3;
+          } else {
           ph[i * 3] = fogata.pos.x + v * 3 * estado.viento + Math.sin(v * 8 + i) * v;
           ph[i * 3 + 1] = fogata.pos.y + 1 + v * 7;
           ph[i * 3 + 2] = fogata.pos.z + Math.cos(v * 6 + i) * v;
+          }
           vh[i] = v;
         }
         humoFuego.geometry.attributes.position.needsUpdate = true;
@@ -464,6 +487,8 @@ export function crearClima(escena, T, ajustes) {
 
   return {
     estado, actualizar, actualizarTormenta, relampagoLejano, encenderFogata, apagarFogata, usarPrograma,
+    // 4.29.0 (B): ver ultra-vida.js (con Ultra, las chispas redondas de siempre bajan: la llama de verdad arde en su lugar)
+    ponerUltraB: (v) => { ultraB = !!v; matFuego.uniforms.uOpacidad.value = ultraB ? 0.22 : 0.55; }, get ultraB() { return ultraB; },
     // 3.8.7: los cuatro fuegos, el más cercano (compatible con lo de antes: `clima.fogata`) y el que arde en un lugar
     fogatas, get fogata() { return fogataCercana(); },
     fuegoEn: (x, z, r) => { const i = fuegoEn(fogatas, x, z, r); return i >= 0 ? fogatas[i] : null; },

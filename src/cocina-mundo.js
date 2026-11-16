@@ -17,6 +17,7 @@ import { Constructor, matriz } from './geometria.js';
 import { CRUZ, BRASAS_PARRILLA, GRILLA, COCINA_LENA, HORNO_BOCA, ALACENA, centroCruz } from './planos-cocina.js';
 import { RECETA_PASOS, alacenaDe } from './cocina-pasos.js';
 import { registrarLuz } from './luces.js';
+import { anotarLlamaUltra } from './ultra-vida.js';
 
 const PI = Math.PI;
 const VER = 45;          // a cuántos metros se ve lo de las estaciones
@@ -355,7 +356,7 @@ export function crearCocinaMundo(ctx) {
       p.g.add(malla(geo('lenos', geoLenos), mat, [B.x, 0.0, B.z]));
       const llamas = malla(geo('llamas', geoLlamas), matFuego, [B.x, 0.05, B.z]);
       llamas.visible = fuego;
-      p.g.add(llamas); p.partes.llamas = llamas;
+      p.g.add(anotarLlamaUltra(llamas)); p.partes.llamas = llamas;   // (4.29.0 (B): con Ultra arde una llama de verdad en su lugar)
       p.partes.grande = c.paso <= 1;   // al prender, llamas altas; después, brasa
       if (rc.enCruz && c.paso >= rc.enCruz) {
         const tono = tonoDe(c);
@@ -376,7 +377,7 @@ export function crearCocinaMundo(ctx) {
       if (c.paso <= 1) {
         const llamas = malla(geo('llamas', geoLlamas), matFuego, [0, HORNO_BOCA.y - 0.13, HORNO_BOCA.z - 0.04], [0, 0, 0]);
         llamas.scale.setScalar(0.45);
-        p.g.add(llamas); p.partes.llamas = llamas; p.partes.chica = true;
+        p.g.add(anotarLlamaUltra(llamas)); p.partes.llamas = llamas; p.partes.chica = true;   // (4.29.0 (B))
       } else {
         p.g.add(malla(geo('tapaHorno', geoTapaHorno), mat, [0, HORNO_BOCA.y - 0.02, HORNO_BOCA.z + 0.03]));
         boca.visible = false;

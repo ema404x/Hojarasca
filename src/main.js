@@ -41,6 +41,7 @@ import { crearPuertas } from './puertas.js';
 import { generarVegetacion } from './vegetacion.js';
 import { crearPasto } from './pasto.js';
 import { crearUltraBosque } from './ultra-bosque.js';
+import { crearUltraVida } from './ultra-vida.js';
 import { crearColisiones } from './colisiones.js';
 import { crearEstructuras } from './estructuras.js';
 import { crearObjetos } from './objetos.js';
@@ -966,6 +967,7 @@ async function construir() {
   est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
+  ultraVida?.apagar(); ultraVida = crearUltraVida({ escena, clima, T });   // 4.29.0 (B): fuego, rastros y vida chica de Ultra (sólo arma algo con Ultra prendido)
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
   // 3.6.2: en el Relax, el mapa dibuja las calles y los edificios de la aldea (y ahí no pone bosque: el claro
   // llega hasta la escuela y el fondo de la calle de la Biblioteca, unos metros más allá de distanciaAldea)
@@ -11091,6 +11093,8 @@ let avisoMarca = false;
 const COLOR_RAYO = new THREE.Color('#cfe0ff');
 let cascada = null;
 let post = null;
+let ultraVida = null;   // 4.29.0 (B): ver ultra-vida.js
+const ctxUltraVida = { cam: null, js: null, gente: null, veg: null, obras: null, horas: 0, noche: 0, dia: 1, techos: null, huellas: null, fauna: null, bajoTecho: false };
 let ultraLuz = null;   // 4.28.0 (Ultra, A): la luz y el cielo del nivel Ultra (ultra-luz-mundo.js); sólo arma algo con Ultra prendido
 // 4.28.0 (Ultra, A): de dónde sale el aliento con frío: tu boca (la cámara) y la de los vecinos cercanos a la vista (sólo lo pide Ultra)
 function bocasUltra() {
@@ -11803,6 +11807,13 @@ function cuadroDelJuego(tRaf, manual) {
     diario.escarcha?.(U.uEscarcha.value);
   }
   try { huellas?.actualizar(dt, jugador.estado, U.uInvierno.value, clima.estado.lluvia); } catch (e) { fallaSistema('huellas', e); }
+  // 4.29.0 (B): fuego, rastros y vida chica de Ultra (con Ultra apagado no hace nada: no arma nada ni toca las huellas ni las luces)
+  if (ultraVida) {
+    const u = ctxUltraVida;
+    u.cam = cam; u.js = jugador.estado; u.gente = gente; u.veg = veg; u.obras = obras; u.horas = progreso.horas; u.noche = noche; u.dia = luzCielo ? luzCielo.dia : 1;
+    u.techos = ctxClima.techos || null; u.huellas = huellas; u.fauna = rastrosFauna; u.bajoTecho = bajoTecho;
+    try { ultraVida.revisarAjustes(ajustes, calidadActiva, dt, u); } catch (e) { fallaSistema('ultra de la vida chica', e); }
+  }
   perfilador.terminar('clima', tClima, medirRendimiento);
   // 4.0.1: en la pausa, el cuaderno o el mapa no se acumula nada (al volver, la fauna gastaba todo ese tiempo en un cuadro: un pudú corría 500 m)
   acumuladoFauna = (modo === 'jugando' || modo === 'inicio') ? acumuladoFauna + dt : 0;
@@ -12684,6 +12695,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
   if (HOJARASCA_DEBUG) window.__hojarasca.__ultraBosque = ultraBosque;   // 4.28.0 (B)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__ultraVida = () => ultraVida;   // 4.29.0 (B)
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
