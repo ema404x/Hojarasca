@@ -4645,6 +4645,7 @@ function soltarRanura(todo = false) {
   const js = jugador.estado;
   if (!r || js.enTren || js.enKayak || js.nadando) return;
   if (js.enCable || durmiendo || escenasMundo?.activa()) return;   // 4.25.2: ni colgado del cable, ni dormido, ni en una escena
+  if (charla.npc || charla.menu || panelDelHudAbierto() || panelFueraDelHudAbierto() || personalAbierto()) return;   // 4.29.1: con una charla, un puesto o cualquier panel abierto, V no tira nada
   const sueltos = { ramita: 'ramitas', pinon: 'pinon', calafate: 'calafate', frutilla: 'frutilla', pluma: 'pluma', canto: 'canto' };
   const clave = sueltos[r.id];
   const no = motivoParaNoTirar(progreso, r.id);
@@ -4667,7 +4668,6 @@ function soltarRanura(todo = false) {
   sonido.paso('hojarasca', 0.5);
   refrescarBarra(true);
   if (enMano) enMano.mostrar(ranuras[elegida]?.id);
-  if (enLasCargas()) puestoCargas.dibujar();   // 4.26.5: con el puesto de cargas abierto, tirar algo dejaba en el panel el «tenés 8» de antes
   guardar();
 }
 
@@ -12142,7 +12142,7 @@ function cuadroDelJuego(tRaf, manual) {
       if (anden) {
         const q = tren.proximoTrenA(anden);
         // 3.8.6: con la locomotora sola no hay coche de pasajeros: se sube a la cabina (E al lado de la locomotora)
-        if (tren.parado() && q && q.metros < 12) textoTren = tren.soloLocomotora?.() ? `${anden.nombre} · la locomotora está en el andén, sin coches · E al lado de la cabina para manejar` : `${anden.nombre} · el tren está en el andén · E para subir`;
+        if (tren.parado() && q && q.metros < 12) textoTren = tren.soloLocomotora?.() ? `${anden.nombre} · la locomotora está en el andén, sin coches · E al lado de la cabina para manejar` : `${anden.nombre} · el tren está en el andén${tren.puedeSubir(js) ? ' · E para subir' : ' · acercate a una puerta'}`;   // 4.29.1: «E para subir» sólo cuando la E realmente sube
         else if (q) textoTren = `${anden.nombre} · el próximo tren llega en unos ${Math.max(5, Math.round(q.segundos))} segundos`;
         else textoTren = '';
       } else textoTren = '';

@@ -367,7 +367,7 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
     grupo.add(m);
   }
   const anchoAlero = chica ? 3.2 : 4.2;
-  const alero = new THREE.Mesh(new THREE.BoxGeometry(W + 2.2, 0.16, anchoAlero), new THREE.MeshLambertMaterial({ color: 0x5a4a3e }));
+  const alero = new THREE.Mesh(new THREE.BoxGeometry(W + 2.2, 0.16, anchoAlero), new THREE.MeshLambertMaterial({ color: 0x5a4a3e, emissive: 0x241a12 }));   // 4.29.1: `emissive`: el bajo del alero (la normal hacia abajo no recibe luz) era negro puro; ahora es madera en sombra
   alero.position.set(0, 3.02, bordeAnden + 1.1);
   alero.rotation.x = -0.14;
   alero.castShadow = true;
