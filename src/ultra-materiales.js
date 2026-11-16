@@ -265,7 +265,61 @@ export const GLSL_GENTE_ULTRA = /* glsl */`
           brilloU = 0.1; potU = 16.0;
         }
       }
+      // 4.29.0: la ropa y el pelo mojados (lluvia, al salir del agua): más oscuros y con brillo; la piel, apenas
+      if (vMojadoG > 0.01) {
+        float mG = vMojadoG;
+        alb *= 1.0 - mG * (tela ? 0.5 : pelo ? 0.55 : (esPiel || cara) ? 0.1 : 0.0);
+        if (tela || pelo) { brilloU = max(brilloU, 0.3 * mG); potU = 9.0; }
+        else if (esPiel || cara) { brilloU = max(brilloU, 0.32 * mG); potU = 26.0; }
+      }
 `;
+
+// 4.29.0 (C): el pelo y la ropa que se mueven con el viento, y cuánto está mojada la persona. Lo de la persona va en un lugar libre de la
+// textura de huesos (el hueso 23 de su tramo: la persona usa menos de 23): ahí gente-cuerpo.js escribe cuánto está mojada, y como la textura ya
+// sube en cada cuadro, no hace falta un uniforme por persona (el material es de todos). La mano en primera persona no tiene huesos: trae el
+// mojado en el `aTela` de sus vértices (la tercera componente en 99 la marca como la mano: el rostro y los duendes usan esa componente para otra cosa). `aVientoU` (0 a 1,4) es cuánto se mueve cada vértice (0 en lo que está pegado al cuerpo): lo arma
+// gente-cuerpo.js según la pieza (pollera, poncho, flecos, bufanda, pelo largo) y la altura del vértice; el vuelo crece hacia el borde de abajo.
+export const GLSL_GENTE_VERT_PARS = /* glsl */`
+  #ifdef USE_SKINNING
+  attribute float aVientoU;
+  #endif
+  uniform float uTiempoG; uniform float uVientoG; uniform float uLluviaG; varying float vMojadoG;
+`;
+export const GLSL_GENTE_VERT = /* glsl */`
+  #ifdef USE_SKINNING
+    { int tamG = textureSize(boneTexture, 0).x, jG = (int(floor(skinIndex.x / 24.0)) * 24 + 23) * 4; vMojadoG = texelFetch(boneTexture, ivec2(jG % tamG, jG / tamG), 0).x; }   // (una sola lectura: el primer número del hueso 23)
+  #else
+    vMojadoG = aTela.z > 50.0 ? aTela.y : 0.0;
+  #endif
+  #ifdef USE_SKINNING
+  if (aVientoU > 0.001) {
+    vec3 pWG = (modelMatrix * vec4(transformed, 1.0)).xyz;
+    vec2 dirG = normalize(vec2(1.0, 0.35));
+    float olaG = pow(sin(dot(pWG.xz, dirG) * 0.035 - uTiempoG * 0.36) * 0.5 + 0.5, 3.0) * (0.55 + 0.45 * sin(dot(pWG.xz, vec2(-dirG.y, dirG.x)) * 0.021 + uTiempoG * 0.11));
+    float fuerzaG = clamp(uVientoG, 0.0, 1.6) * (1.0 + 0.9 * uLluviaG);
+    float aleteoG = sin(uTiempoG * 3.1 + pWG.x * 2.3 + pWG.z * 1.7 + transformed.y * 9.0) * 0.5 + sin(uTiempoG * 5.3 + pWG.z * 3.1 + transformed.x * 7.0) * 0.3;
+    float agG = min(aVientoU * (0.08 + 0.38 * olaG) * fuerzaG, 0.38);   // (metros: hasta ~38 cm en el borde de abajo, en la cresta de una ráfaga fuerte)
+    vec3 dWG = vec3(dirG.x, -0.12 * olaG, dirG.y) * agG * (1.0 + 0.3 * aleteoG) + vec3(-dirG.y, 0.0, dirG.x) * agG * 0.3 * aleteoG;
+    transformed += (dWG * mat3(modelMatrix)) / max(dot(modelMatrix[0].xyz, modelMatrix[0].xyz), 1e-3);   // (al espacio del objeto)
+  }
+  #endif
+`;
+
+// cuánto está mojado el jugador (la manga de la mano en primera persona): sube con la lluvia a cielo abierto y al nadar, y se seca de a poco
+export const estadoJugadorU = { mojado: 0 };
+export function ropaMojadaJugador(dt, { lluvia = 0, bajoTecho = false, nadando = false } = {}) {
+  const sube = nadando ? 1 : (lluvia > 0.25 && !bajoTecho ? 1 : 0);
+  const v = estadoJugadorU.mojado + (sube ? dt / (nadando ? 3 : 20) : -dt / 120);
+  estadoJugadorU.mojado = Math.min(1, Math.max(0, v));
+  return estadoJugadorU.mojado;
+}
+// para las personas: lo mismo, con su estado
+export function mojarPersona(est, dt, lluvia, adentro) {
+  const sube = lluvia > 0.25 && !adentro;
+  est.mojado = Math.min(1, Math.max(0, (est.mojado || 0) + (sube ? dt / 20 : -dt / 120)));
+  return est.mojado;
+}
+
 
 // ---------------------------------------------------------------- los vidrios (los de la aldea y los de las casas del valle: MeshBasic)
 // Lo que refleja una ventana: abajo el paisaje de enfrente (oscuro, tibio), arriba el cielo (del horizonte al cenit, con nubes suaves) y el
@@ -282,8 +336,13 @@ export const GLSL_VIDRIO_U_FRAG = /* glsl */`
     vec3 rU = reflect(-vdU, nU);
     float frU = 0.04 + 0.96 * pow(1.0 - clamp(dot(nU, vdU), 0.0, 1.0), 5.0);
     float nocheU = clamp(uNocheU * 1.5, 0.0, 1.0) * smoothstep(0.25, 0.8, diffuse.r);   // (de día siempre refleja; de noche, la ventana prendida no)
-    float cuantoU = clamp(0.18 + frU * 0.75, 0.0, 0.85) * (1.0 - nocheU);
-    outgoingLight = mix(outgoingLight, reflejoU(rU), cuantoU) + uSolColorU * solReflejoU(rU, 600.0) * 2.5 * (1.0 - nocheU);
+    float diaU = 1.0 - nocheU;
+    // (4.29.0: de día el vidrio deja ver el cuarto oscuro; arriba del horizonte refleja el cielo y abajo el paisaje, y una franja de brillo cruza el paño)
+    vec3 baseU = outgoingLight * mix(1.0, 0.42, diaU);
+    float cuantoU = clamp(0.3 + frU * 0.65, 0.0, 0.92) * diaU;
+    float lustreU = smoothstep(0.6, 0.95, sin(dot(vPWU, vec3(0.9, 1.7, 0.9)) * 1.1 + 0.7)) * 0.1 * diaU;
+    vec3 rVU = normalize(vec3(rU.x, rU.y * 3.5 + 0.12, rU.z));   // (la altura exagerada: el horizonte cae adentro del paño aunque se lo mire de lejos)
+    outgoingLight = mix(baseU, reflejoU(rVU), cuantoU) + vec3(lustreU) + uSolColorU * solReflejoU(rU, 600.0) * 2.5 * diaU;
   }
 `;
 export function inyectarVidrioU(sh, U) {
@@ -311,9 +370,13 @@ export function inyectarAldeaUltra(sh) {
     .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + GLSL_BRILLO_U);
 }
 // El agregado de Ultra al material de la gente (lo llama materialAtlas de gente-cuerpo.js).
-export function inyectarGenteUltra(sh) {
+export function inyectarGenteUltra(sh, U) {
+  if (U) Object.assign(sh.uniforms, { uTiempoG: U.uTiempo, uVientoG: U.uViento, uLluviaG: U.uLluvia });
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\n' + GLSL_GENTE_VERT_PARS)
+    .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + GLSL_GENTE_VERT);
   sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\n' + GLSL_ALDEA_ULTRA_COMUN)
+    .replace('#include <common>', '#include <common>\nvarying float vMojadoG;\n' + GLSL_ALDEA_ULTRA_COMUN)
     .replace(MARCA_GENTE_ULTRA, GLSL_GENTE_ULTRA + '\n' + MARCA_GENTE_ULTRA)
     .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GLSL_RELIEVE_U)
     .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + GLSL_BRILLO_U);
@@ -425,4 +488,16 @@ export function inyectarHumoUltra(semilla) {
       .replace('#include <fog_pars_fragment>', '#include <fog_pars_fragment>\n' + GLSL_HUMO_U_PARS)
       .replace(MARCA_HUMO_U, 'a *= hebrasU(gl_PointCoord - 0.5, vVida, ' + semilla + ');\n        ' + MARCA_HUMO_U);
   };
+}
+
+// 4.29.0 (C): el vapor de las ollas y las pavas (cocina-mundo.js): con Ultra las bocanadas chicas (las de poco peso: el vapor) son más grandes,
+// más blancas y se deshacen en hebras, así se lee como vapor y no como un humito gris. Las del humo grande (el asado, el caño) no cambian de tamaño.
+export function inyectarVaporUltra(sh) {
+  sh.vertexShader = sh.vertexShader
+    .replace('attribute float aVida; attribute float aPeso;', 'attribute float aVida; attribute float aPeso; varying float vChicaU;')
+    .replace('float chica = step(aPeso, 0.45);', 'float chica = step(aPeso, 0.45); vChicaU = chica;')
+    .replace('mix(1.0, 0.22, chica)', 'mix(1.0, 0.62, chica)');
+  sh.fragmentShader = sh.fragmentShader
+    .replace('varying float vVida; varying float vPeso;', 'varying float vVida; varying float vPeso; varying float vChicaU;' + GLSL_HUMO_U_PARS)
+    .replace('gl_FragColor = vec4(uColor * uLuz, a);', 'a *= mix(1.0, hebrasU(q, vVida, fract(vVida * 7.3) + vChicaU), vChicaU);\n        gl_FragColor = vec4(mix(uColor, vec3(0.94, 0.96, 0.98), vChicaU * 0.7) * uLuz, a * mix(1.0, 1.6, vChicaU));');
 }

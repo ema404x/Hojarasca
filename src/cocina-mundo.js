@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import { Constructor, matriz } from './geometria.js';
 import { CRUZ, BRASAS_PARRILLA, GRILLA, COCINA_LENA, HORNO_BOCA, ALACENA, centroCruz } from './planos-cocina.js';
+import { conUltraC, inyectarVaporUltra, ultraDetalle } from './ultra-materiales.js';
 import { RECETA_PASOS, alacenaDe } from './cocina-pasos.js';
 import { registrarLuz } from './luces.js';
 
@@ -274,6 +275,7 @@ export function crearCocinaMundo(ctx) {
         #include <fog_fragment>
       }`,
   });
+  conUltraC(matHumo, 'vapor', inyectarVaporUltra);   // 4.29.0 (C): con Ultra, el vapor de la olla y la pava: más grande, blanco y en hebras
   // el humo: una nube de puntos para todas las estaciones
   const geoH = new THREE.BufferGeometry();
   const posH = new Float32Array(NH * 3), vidaH = new Float32Array(NH), pesoH = new Float32Array(NH);
@@ -492,7 +494,9 @@ export function crearCocinaMundo(ctx) {
         const pausa = e.coccion.pausa;
         const emisores = e.tipo === 'parrilla' ? [[BRASAS_PARRILLA.x, 0.6, BRASAS_PARRILLA.z, Math.round(26 * e.humo.humo), 7, 0.16, 1]]
           : e.tipo === 'horno' ? [[0.16, 1.3, -0.18, 10, 4, 0.22, 0.7]]
-          : [[COCINA_LENA.caño.x, COCINA_LENA.plancha + 2.25, COCINA_LENA.caño.z, 8, 4, 0.22, 0.7], ...(p.partes.vapor && e.coccion.paso >= 2 ? [[p.partes.vapor.x, p.partes.vapor.y - 0.1, p.partes.vapor.z, 6, 0.7, 0.45, 0.4]] : [])];
+          : [[COCINA_LENA.caño.x, COCINA_LENA.plancha + 2.25, COCINA_LENA.caño.z, 8, 4, 0.22, 0.7], ...(p.partes.vapor && e.coccion.paso >= 2 ? [[p.partes.vapor.x, p.partes.vapor.y - 0.1, p.partes.vapor.z, ultraDetalle() ? 10 : 6, ultraDetalle() ? 1.1 : 0.7, 0.45, 0.4]] : []),
+            // 4.29.0 (C): con Ultra, la pava del fondo de la plancha también echa vapor por el pico mientras se cocina
+            ...(ultraDetalle() && !pausa ? [[0.115, COCINA_LENA.plancha + 0.2, -0.22, 5, 0.9, 0.5, 0.4]] : [])];
         for (const [lx, ly, lz, cuantas, sube, ritmo, peso] of emisores) {
           const sx = base.x + lx * Math.cos(r) + lz * Math.sin(r), sz = base.z - lx * Math.sin(r) + lz * Math.cos(r), sy = base.y + ly;
           const bajo = sube < 2;

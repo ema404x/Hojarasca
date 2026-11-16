@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { Constructor, matriz, troncoCurvo, abollar, h3 } from './geometria.js';
 import { materialVegetal, U } from './materiales.js';
-import { conUltraC, inyectarEstructuraUltra, conocerCieloUltraC } from './ultra-materiales.js';
+import { conUltraC, inyectarEstructuraUltra, conocerCieloUltraC, vidrioUltra } from './ultra-materiales.js';
 import { piezas } from './piezas.js';
 import { rng, lerp } from './ruido.js';
 import { LAGO } from './config.js';
@@ -503,7 +503,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   // del edificio quedaba fuera de un culling defectuoso, parecían placas negras
   // flotando. Mantener MeshBasic preserva el brillo nocturno controlado desde
   // main.js, pero DoubleSide hace coherente la lectura desde ambos lados.
-  const materialVidrio = (color) => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+  const materialVidrio = (color) => vidrioUltra(new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }), U);   // 4.29.0 (C): con Ultra, el vidrio refleja el cielo
 
   const montar = (c, pos, rotY) => {
     const m = new THREE.Mesh(c.geometria(), mat);

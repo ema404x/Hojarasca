@@ -124,8 +124,8 @@ async function comprobar() {
   ok('el tren pide la clave de la aldea en cada compilación (no la guarda de una vez)', /estructura\.customProgramCacheKey = \(\) => claveAldea\.call\(estructura\) \+ '\|tren-3\.7\.3'/.test(tren) && !/const clave = estructura\.customProgramCacheKey\(\);/.test(tren));
   ok('las estructuras del valle y las obras llevan Ultra', /conUltraC\(mat, 'estructura', inyectarEstructuraUltra\)/.test(leer('estructuras.js')) && /conUltraC\(mat, 'estructura', inyectarEstructuraUltra\)/.test(leer('construccion.js')));
   // (4.28.0: el reflejo de los vidrios quedó afuera: en la partida no se vio ninguna diferencia; el código queda en ultra-materiales.js sin enganchar)
-  ok('los vidrios no llevan Ultra (quedó afuera) y los charcos conocen el cielo', !/vidrioUltra\(/.test(leer('estructuras.js') + leer('aldea-mundo.js')) && /conocerCieloUltraC\(U\)/.test(leer('estructuras.js')) && /conocerCieloUltraC\(U\)/.test(leer('aldea-mundo.js')));
-  ok('las calles de ripio y el humo de las chimeneas llevan Ultra; el vapor de la olla quedó afuera (no se vio en ninguna captura)', leer('aldea-mundo.js').includes("conUltraC(m, 'ripio', inyectarRipioUltra)") && leer('clima.js').split("'humo', inyectarHumoUltra('vAzar')").length === 3 && !leer('cocina-mundo.js').includes('conUltraC'));
+  ok('los vidrios llevan Ultra (desde la 4.29.0: faltaba engancharlos) y los charcos conocen el cielo', /vidrioUltra\(/.test(leer('estructuras.js')) && /vidrioUltra\(/.test(leer('aldea-mundo.js')) && /conocerCieloUltraC\(U\)/.test(leer('estructuras.js')) && /conocerCieloUltraC\(U\)/.test(leer('aldea-mundo.js')));
+  ok('las calles de ripio, el humo de las chimeneas y (desde la 4.29.0) el vapor de la olla llevan Ultra', leer('aldea-mundo.js').includes("conUltraC(m, 'ripio', inyectarRipioUltra)") && leer('clima.js').split("'humo', inyectarHumoUltra('vAzar')").length === 3 && leer('cocina-mundo.js').includes("conUltraC(matHumo, 'vapor', inyectarVaporUltra)"));
   // (la pasada final de Ultra: el relieve se apaga con la distancia, y la nieve pegada, el musgo y los líquenes se ven de cerca)
   { const um = leer('ultra-materiales.js');
     ok('el relieve de la aldea y el de las estructuras se apagan entre 14 y 25 m (no se calculan más allá)', um.split('smoothstep(14.0, 25.0, length(vViewPosition))').length === 3 && um.includes('if (vivoU > 0.001)') );
@@ -157,7 +157,7 @@ if (process.argv.includes('--hijo')) {
     ['aldea-arquitectura.js', 'la aldea sin Ultra', "  conUltraC(mat, 'aldea', inyectarAldeaUltra);\n", ''],
     ['aldea-arquitectura.js', 'el bloque de color de la aldea cambió (la marca no está)', '      diffuseColor.rgb = alb;\n', '      diffuseColor.rgb = alb * 1.0;\n'],
     ['gente-cuerpo.js', 'la cara a 10 m también sin Ultra', 'dist < (ultraDetalle() ? CERCA_CARA_ULTRA : CERCA_CARA)', 'dist < CERCA_CARA_ULTRA'],
-    ['gente-cuerpo.js', 'la gente sin Ultra', "  conUltraC(MAT_ATLAS, 'gente', inyectarGenteUltra);\n", ''],
+    ['gente-cuerpo.js', 'la gente sin Ultra', "  conUltraC(MAT_ATLAS, 'gente', (sh) => inyectarGenteUltra(sh, U));", ''],   // (4.29.0: el enganche ahora le pasa los uniformes del juego)
     ['main.js', 'no se sincroniza en cada cuadro', "  sincronizarUltraC(ajustes);   // 4.28.0 (C): si Ultra se prendió o se apagó", '  // (sin)   // 4.28.0 (C): si Ultra se prendió o se apagó'],
     ['ultra-materiales.js', 'el charco de la aldea no se pinta', "    .replace('#include <opaque_fragment>', GLSL_CHARCO_ALDEA_U + '\\n#include <opaque_fragment>')", ''],
     ['ultra-materiales.js', 'la nieve pegada no entra', "    .replace(NIEVE_JUNTA_U, NIEVE_JUNTA_U + glslNieveU('nieveA'))", ''],

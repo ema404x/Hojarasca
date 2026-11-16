@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { SOMBRA_ULTRA, AO_ULTRA, NIEBLA_VOLUMEN, nieblaDeValle, mezclaCielo } from './ultra-luz.js';
 import { LAGO } from './config.js';
 import { crearAliento, frioDelAire, ALIENTO } from './ultra-aliento.js';
+import { crearCineUltra } from './ultra-cine-mundo.js';
 
 const NL = String.fromCharCode(10);
 
@@ -326,7 +327,8 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
       side: cielo.material.side, depthWrite: false, fog: false,
     });
     const aliento = crearAliento({ escena, renderer, camara });
-    partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0 };
+    const cine = crearCineUltra({ renderer, camara });   // 4.29.0 (C): la profundidad de campo de las cinemáticas
+    partes = { destino, rtAO, rtNiebla, bosque, matAO, matNiebla, matComponer, matCielo, cieloBase: cielo.material, luces: null, aliento, tUlt: 0, cine };
     cielo.malla.material = matCielo;
     cielo.sombraUltra(SOMBRA_ULTRA);
     cielo.ponerNieveUltra?.(true);   // la sombra de la nieve, celeste pálido (no el azul hondo de Alta)
@@ -338,6 +340,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
       quad.material = matAO; renderer.setRenderTarget(rtAO); renderer.compile(plano, camPlana);
       quad.material = matNiebla; renderer.setRenderTarget(rtNiebla); renderer.compile(plano, camPlana);
       quad.material = matComponer; renderer.setRenderTarget(null); renderer.compile(plano, camPlana);
+      cine.compilar(rtAO);
       renderer.setRenderTarget(destino); renderer.compile(cielo.malla, camara, escena);
     } catch { /* sin compile: se arman en el primer cuadro */ } finally { renderer.setRenderTarget(previo); }
     stats.armados++;
@@ -354,6 +357,7 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     p.destino.depthTexture?.dispose(); p.destino.dispose(); p.rtAO.dispose(); p.rtNiebla.dispose(); p.bosque.dispose();
     p.matAO.dispose(); p.matNiebla.dispose(); p.matComponer.dispose(); p.matCielo.dispose();
     p.aliento.desarmar();
+    p.cine.dispose();
     stats.desarmados++;
   }
 
@@ -428,6 +432,8 @@ export function crearUltraLuz({ renderer, escena, camara, cielo, post, T = null,
     if (mapa) p.matNiebla.uniforms.uSombraMat.value.copy(sol.shadow.matrix);
     pasada(p.matAO, p.rtAO);
     pasada(p.matNiebla, p.rtNiebla);
+    const desenfocada = p.cine.pasar(dst, pasada);   // 4.29.0 (C): en una cinemática, la escena con el fondo desenfocado (null fuera de ellas)
+    if (desenfocada) p.matComponer.uniforms.uColor.value = desenfocada;
     pasada(p.matComponer, null);
   }
 

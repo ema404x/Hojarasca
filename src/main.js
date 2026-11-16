@@ -361,7 +361,7 @@ import { existeEnJuego } from './tablon.js';
 // (4.17 C: la cantera y el puesto del paso, como lugares de la historia)
 import { genteCampoDe, PUESTO_PASO, CANTERA as CANTERA_HIST, PUESTO_PASO as PUESTO_PASO_HIST } from './gente-campo.js';
 import { avisoDe, hacerConE } from './interacciones.js';
-import { sincronizarUltraC } from './ultra-materiales.js';
+import { sincronizarUltraC, ropaMojadaJugador, ultraDetalle } from './ultra-materiales.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
@@ -11590,6 +11590,7 @@ function cuadroDelJuego(tRaf, manual) {
   const medirRendimiento = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   const tInicio = medirRendimiento ? performance.now() : 0;
   U.uTiempo.value += dt;
+  if (ultraDetalle()) ropaMojadaJugador(dt, { lluvia: U.uLluvia.value, bajoTecho, nadando: !!jugador?.estado?.nadando });   // 4.29.0 (C): la manga mojada del jugador (lluvia, al salir del agua)
 
   // estaciones con transición suave; en modo automático avanzan con los días
   const { oto, inv } = estacionObjetivo();

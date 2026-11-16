@@ -286,7 +286,7 @@ export function crearPisado() {
 // hojas (MOTAS_HOJAS) caen de unos 13 m dando vueltas y derivando con el viento, en una caja de 36 m: sólo bajo el bosque, más en otoño
 // y con viento, ninguna en invierno. Todo sale del tiempo y de las texturas del valle: nada por cuadro en la CPU.
 export const MOTAS_POLVO = 520;
-export const MOTAS_HOJAS = 0;   // (4.28.0: afuera al cerrar: las hojas que caen no se llegaron a ver en el juego; con 300 vuelven)
+export const MOTAS_HOJAS = 450;   // 4.29.0 (C): las hojas que caen vuelven (en la 4.28.0 salieron en 0 porque no se llegaron a ver): más, más grandes y más redondas
 export function crearMotas() {
   const n = MOTAS_POLVO + MOTAS_HOJAS;
   const semilla = new Float32Array(n * 4), clase = new Float32Array(n);
@@ -348,7 +348,7 @@ export function crearMotas() {
         vec4 mv = viewMatrix * vec4(xz.x, alto, xz.y, 1.0);
         gl_Position = projectionMatrix * mv;
         alfa *= 1.0 - smoothstep(caja * 0.32, caja * 0.5, length(xz - cameraPosition.xz));
-        gl_PointSize = clamp((polvo ? 0.034 : 0.085) * projectionMatrix[1][1] * uAltoPx * 0.5 / max(-mv.z, 0.2), polvo ? 1.5 : 2.0, 64.0);
+        gl_PointSize = clamp((polvo ? 0.034 : 0.26) * projectionMatrix[1][1] * uAltoPx * 0.5 / max(-mv.z, 0.2), polvo ? 1.5 : 4.0, 64.0);
         if (alfa < 0.004 || -mv.z < 0.3) gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
         vAlfa = clamp(alfa, 0.0, 1.0); vColorM = color; vClase = aClase;
       }`,
@@ -361,7 +361,7 @@ export function crearMotas() {
           gl_FragColor = vec4(vColorM * a, 0.0);   // (suma: el polvo brilla, no tapa)
         } else {
           vec2 q = mat2(cos(vGiro), -sin(vGiro), sin(vGiro), cos(vGiro)) * c;
-          q.y /= max(abs(vVuelta), 0.25) * 0.42;
+          q.y /= max(abs(vVuelta), 0.35) * 0.55;
           if (dot(q, q) > 0.2 || vAlfa < 0.5) discard;
           gl_FragColor = vec4(vColorM * (0.8 + 0.4 * (q.x + 0.5)), 1.0);
         }
