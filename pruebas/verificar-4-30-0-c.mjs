@@ -171,12 +171,12 @@ async function comprobar() {
   if (brillo) {
     const v = Array.from({ length: 400 }, (_, i) => brillo(i * 37));
     const min = Math.min(...v), max = Math.max(...v);
-    falla(min >= 0.7 && max <= 1 && max - min > 0.12, `las brasas titilan entre 0,7 y 1 (${min.toFixed(2)} a ${max.toFixed(2)})`);
+    falla(min >= 0.4 && max <= 1 && max - min > 0.35, `las brasas titilan entre 0,42 y 1, a ojo (${min.toFixed(2)} a ${max.toFixed(2)})`);
     // de un cuadro al siguiente (16 ms) no salta de golpe: es un fuego, no un parpadeo
     let salto = 0; for (let t = 0; t < 20000; t += 16) salto = Math.max(salto, Math.abs(brillo(t + 16) - brillo(t)));
     falla(salto < 0.05, `las brasas no parpadean de golpe (${salto.toFixed(3)} por cuadro)`);
   }
-  falla(/if \(materiales\.brasas\) materiales\.brasas\.color\.setScalar\(brilloBrasas\(ahora\)\);/.test(am), 'el pulso de las brasas se aplica al material cada cuadro (cerca de la aldea)');
+  falla(am.includes('if (materiales.brasas) { const bB = brilloBrasas(ahora); materiales.brasas.color.setRGB(0.55 + 0.45 * bB, bB, bB * bB); }'), 'el pulso de las brasas se aplica al material cada cuadro (cerca de la aldea), más rojas al bajar');
   falla(!/new THREE\.PointLight/.test(am.slice(am.indexOf('export function brilloBrasas'), am.indexOf('export function brilloBrasas') + 600)), 'ninguna luz nueva');
   // ---- 7. lo soltado con V (ramitas, piñones, cantos…) apoya en el tablón o el piso donde estás, y se guarda con su altura
   const ob = leer('objetos.js'), mn = leer('main.js'), gu = leer('guardado.js');
@@ -241,7 +241,7 @@ const MUTACIONES = [
   ['cinta-arroyo.js', 'la cinta con un borde por tramo otra vez', 'export const MITRA_MAX = 0.5;', 'export const MITRA_MAX = 0;'],
   ['gente.js', 'la gente de ruta sin rodeo', '        else g.__rodeo = rodeoEnRuta(g, etapa, dt, T, col);', ''],
   ['gente.js', 'el rodeo hacia adentro de lo que frena', '    if (Math.hypot(q.x - p.x, q.z - p.z) > 0.05) continue;', ''],
-  ['aldea-mundo.js', 'las brasas quietas', '  return Math.min(1, Math.max(0.7, 0.88 + 0.09 * lento + 0.03 * rapido));', '  return 1;'],
+  ['aldea-mundo.js', 'las brasas quietas', '  return Math.min(1, Math.max(0.42, 0.74 + 0.2 * lento + 0.045 * rapido));', '  return 1;'],
   ['aldea-mundo.js', 'las brasas que parpadean', 'rapido = Math.sin(ms / 53 + Math.sin(ms / 97) * 2.0)', 'rapido = (Math.floor(ms / 50) % 2) * 8'],
 ];
 let atrapadas = 0;

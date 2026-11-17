@@ -406,6 +406,31 @@ app.whenReady().then(async () => {
       }
     });
 
+    // las brasas de la fragua y del horno de noche: capturas seguidas y el brillo medio alrededor del fuego en cada una (¿titila a ojo?)
+    await seccion('brasas', async () => {
+      await N(`(() => { const A = H.__aldeaMundo(); const a = P.aldea; const L = { carpintero: 'carpinteria', panadera: 'panaderia', herrero: 'herreria', ceramista: 'ceramica', modista: 'costureria', pescador: 'pescaderia' }; const ks = Object.keys(L).filter((k) => A.estadoEdificio(L[k])); a.pobladores = ks.map((clave) => ({ clave, dia: 1 })); a.obras = {}; a.locales = Object.fromEntries(ks.map((k) => [L[k], 1])); a.descubierta = 1; a.llegando = null; A.actualizar(4, H.camara.position); return ks })()`);
+      for (const clave of (process.env.HUMO_BRASAS || 'herreria,panaderia').split(',')) {
+        let f = null;
+        for (let intento = 0; intento < 6 && !f; intento++) { if (intento) await N('N.tick(1.5)'); f = await N(`(() => { const A = H.__aldeaMundo(); const st = A.estadoEdificio('${clave}'); if (!st) return null; const s = st.sitio; J.ubicar(s.x + 3, s.z + 3, 0); for (let k = 0; k < 120; k++) H.__bucle(); const q = (A.fuegosUltra({ x: s.x, z: s.z }, 40, [], true) || []).find((o) => o.clave === '${clave}'); return q ? { x: q.x, y: q.y, z: q.z, rot: s.rot, cx: s.x, cz: s.z, adentro: !!q.adentro } : null })()`); }
+        console.log(`  ${clave}:`, JSON.stringify(f));
+        if (!f) continue;
+        // la cámara a 2,2 m del fuego hacia el centro del edificio (adentro, si el horno está adentro) y un poco al costado
+        const dcx = f.cx - f.x, dcz = f.cz - f.z, dl = Math.hypot(dcx, dcz) || 1, x = f.x + dcx / dl * 2.2 - dcz / dl * 0.6, z = f.z + dcz / dl * 2.2 + dcx / dl * 0.6;
+        await N(`N.camara(${x}, ${f.y + 0.55}, ${z}, ${Math.atan2(x - f.x, z - f.z)}, -0.22, 21.5)`);
+        await N(`(J.ubicar(${x}, ${z}, 0, ${f.y}), 1)`);
+        await N('N.tick(2)');
+        const brillos = [];
+        for (let k = 0; k < 3; k++) {
+          await foto(`b-${clave}-${ULTRA ? 'ultra' : 'alta'}-${k}`, 0.25 + k * 0.1);
+          brillos.push(await N(`(() => { const v = new H.THREE.Vector3(${f.x}, ${f.y}, ${f.z}).project(H.camara); H.__bucle(); const gl = H.renderer.getContext(), c = H.renderer.domElement; const px = Math.round((v.x * 0.5 + 0.5) * c.width), py = Math.round((v.y * 0.5 + 0.5) * c.height); const b = new Uint8Array(40 * 40 * 4); gl.readPixels(Math.max(0, px - 20), Math.max(0, py - 20), 40, 40, gl.RGBA, gl.UNSIGNED_BYTE, b); let s = 0; for (let i = 0; i < b.length; i += 4) s += b[i] * 0.3 + b[i + 1] * 0.55 + b[i + 2] * 0.15; return +(s / 1600).toFixed(1) })()`));
+        }
+        // el pulso del material, muestreado 30 veces en 1,5 s
+        const pulso = await N(`(async () => { const out = []; let m = null; H.escena.traverse((o) => { if (!m && o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.vertexColors && o.material.color && o.material.color.r < 0.999 && o.material.color.r >= 0.7) m = o.material; }); for (let i = 0; i < 30; i++) { H.__bucle(); if (m) out.push(+m.color.r.toFixed(3)); await new Promise((r) => setTimeout(r, 50)); } return out })()`);
+        console.log(`  ${clave}: brillo alrededor del fuego en 3 capturas ${brillos.join(' · ')} · color del material de las brasas ${pulso.length ? Math.min(...pulso) + ' a ' + Math.max(...pulso) : '(no encontrado)'}`);
+      }
+      await N('N.sinCamara()');
+    });
+
     // el refugio por dentro: correr hacia el centro desde 8 rumbos; dónde frena, por dónde pasa (la traza), la puerta y lo que choca cerca
     await seccion('refugio', async () => {
       const info = await N(`(() => { const L = T.lugares.refugio; const ps = (H.puertas && H.puertas.lista || []).filter((p) => Math.hypot(p.x - L.x, p.z - L.z) < 12).map((p) => ({ x: +p.x.toFixed(1), z: +p.z.toFixed(1), abierta: p.abierta, nombre: p.nombre })); return { x: L.x, z: L.z, y: L.y, rot: L.rot, puertas: ps } })()`);

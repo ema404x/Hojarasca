@@ -25,7 +25,7 @@ guardado nuevas: lo soltado con V guarda además su altura `y` (opcional) en la 
 ## Lo que quedó de la 4.29.2
 | Pedido | Qué se hizo |
 |---|---|
-| La luz de los hornos que titile con el brillo del material (sin luz nueva, mismos programas en Alta) | `aldea-mundo.js` `brilloBrasas`: el color del material de las brasas (hornos, fraguas, hogares de la aldea) titila de 0,7 a 1 con el mismo pulso que la luz de la fragua y un temblor chico (nunca salta de golpe de un cuadro al otro). Todas las calidades; ninguna luz ni programa nuevo. No se sacó una captura en movimiento (ver «No visto») |
+| La luz de los hornos que titile con el brillo del material (sin luz nueva, mismos programas en Alta) | `aldea-mundo.js` `brilloBrasas`: el color del material de las brasas (hornos, fraguas, hogares de la aldea) titila con el mismo pulso que la luz de la fragua y un temblor chico (nunca salta de golpe de un cuadro al otro). Todas las calidades; ninguna luz ni programa nuevo. **Visto de noche en la herrería**: con 0,7 a 1 (gris) no se notaba a ojo (`r18`: brillo 146 → 139 entre capturas); ahora de 0,42 a 1 y más roja al bajar (`setRGB(0,55 + 0,45·b, b, b²)`): `r19-herreria-alta-0..2` (141 · 130 · 144, de naranja hondo a amarillo) y con Ultra `r20` (193 · 182 · 191, con las llamas) |
 | Otro intento con las huellas en las lajas | **Hecho (Ultra).** El intento de la 4.29.2 no se veía porque las tomas no dejaban pisadas (la herramienta de capturas no tiene el paso `antes`: la textura de huellas quedaba vacía). Ahora `GLSL_ALDEA_ULTRA` lee las huellas finas en la laja y la piedra de la plaza: en seco, polvo claro y terroso del ripio; con lluvia, barro pardo y mate que corta el brillo de la laja mojada y el charco. Leídas sin derivadas (`pisadaLodU`): leídas con derivadas dentro del `if` del material, la placa avisaba «X3595 gradient instruction used in a loop» (visto en la consola en Ultra; ya no sale). Visto: `r9\l-seco-antes` / `l-seco-despues` (la fila de pisadas en el sendero de laja), con lluvia en r11 |
 | El borde irregular en el color del suelo y el relieve del ripio, sólo si cuestan < 0,5 ms en la plaza | **No se hicieron.** La 4.29.2 midió el desvío del color del suelo en ~2 ms en la plaza (el césped de la aldea no tiene matas que lo tapen: se pinta cada píxel) y también sacó el relieve del ripio por costo; en esta PC la plaza varía 3 a 5 ms entre corridas, así que no hay cómo probar que una variante cueste menos de 0,5 ms |
 
@@ -78,7 +78,6 @@ Dentro del ruido de esta PC (la cascada +0,4, el arroyo −1). La plaza no tiene
 dos veces) daba +1,1 ms en la cascada (r6): se dejó sólo la onda grande en dos fases.
 
 ## No visto a ojo
-- Las brasas titilando (las capturas son quietas: el pulso está probado en Node).
 - Las huellas en las lajas con lluvia, de cerca y en movimiento (sólo la captura de r11).
 - Lo soltado en un piso alto de una casa (se probó sobre el puente; es el mismo `alturaDePie`).
 - Los caminantes de la Aldea trabados un instante (Nene, Nélida): una sola vez cada uno en 2 h; no se buscó la causa.
@@ -86,7 +85,7 @@ dos veces) daba +1,1 ms en la cascada (r6): se dejó sólo la onda grande en dos
 ## Pruebas
 - Nueva: `pruebas/verificar-4-30-0-c.mjs` (en `verify:pasos`): 47 comprobaciones y 21 mutaciones (un proceso por copia), todas atrapadas.
 - Partida real: `pruebas/humo-4-30-0-c.cjs` (secciones `puentes`, `cascada`, `fisica`, `medir`, `soltar`, `lajas`, `refugio`, `zonas`,
-  `calidades`, `largo`, `ramon`; `HUMO_PARTES`, `HUMO_ULTRA`, `HTML`, `HUMO_CALIDADES`, `HUMO_MINUTOS`, `HUMO_ESTACION`, `HUMO_GENTE`, `HUMO_RASTRO`). No va en `verify:pasos` (Electron).
+  `calidades`, `largo`, `ramon`, `brasas`; `HUMO_PARTES`, `HUMO_ULTRA`, `HTML`, `HUMO_CALIDADES`, `HUMO_MINUTOS`, `HUMO_ESTACION`, `HUMO_GENTE`, `HUMO_RASTRO`). No va en `verify:pasos` (Electron).
 - Ajustadas a propósito: `verificar-estructuras-v3` (el piso del puente de la vía mide `tablero`), `verificar-3-8-3-aldea` (la bajada del
   sulky lee la rampa), `verificar-3-8-8-arroyo` (la cortina 1,72 y no 2,0), `verificar-4-12-1-agua` (tope de ruidos +2: las vetas en dos
   fases, condicionadas a donde corre), `verificar-4-29-2-b` (las lajas ahora sí leen las huellas).
