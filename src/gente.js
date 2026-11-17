@@ -519,7 +519,7 @@ function limitarCabeza(g) {
 // colgando, va de canto junto a la pierna, tomada del borde de arriba (`d` < 0: el centro, debajo del puño; `x` > 0: hacia afuera); anotando, inclinada hacia la cara,
 // con la hoja hacia arriba y corrida hacia el medio del pecho. La caña, casi derecha y tendida hacia el agua al pescar (con el tirón del brazo).
 // 4.30.0 (A): por dónde sale Ramón de su puesto hacia la leña (y vuelve): la puerta y la esquina de afuera (ver la ruta de Ramón en crearGente)
-export const PASO_RAMON = { quieto: 0.01, puntos: [[0.75, 5], [1.25, 5.25], [4, 2.5], [4, -1.25]] };
+export const PASO_RAMON = { quieto: 0.01, puntos: [[0.75, 5], [1.45, 5.25], [4, 2.5], [4, -1.25]] };
 export const EN_MANO = {
   planilla: { colgando: { a: 0, d: -0.11, x: 0.025, giro: Math.PI / 2 }, anotando: { a: 0.8, d: 0.1, x: -0.07, giro: 0 } },
   caña: { quieta: 0.3, pescando: 1.0, tiron: 0.5 },
