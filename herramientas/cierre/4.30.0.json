@@ -1,0 +1,32 @@
+{
+  "anterior": "4.29.2",
+  "fecha": "17-11-2026",
+  "titulo": "Cacería grande de bugs",
+  "cambios": [
+    "Ramas v4300-a (personajes y la Historia), v4300-b (el refugio, las casas y las mecánicas) y v4300-c (el mundo, la física y lo que quedó de la 4.29.2), juntadas. Detalle en CAMBIOS_4_30_0_A.md, _B.md y _C.md. 0 shaders nuevos fuera de Ultra.",
+    "",
+    "- Personajes: lo que la gente lleva en la mano (la planilla, la caña) quedaba colgado del codo; ahora va en el puño con su ángulo, y se guarda al hachar, regar, bailar o cruzar los brazos. El brazo que flotaba arriba del hombro con poncho (Ramón, y cualquiera en invierno) sale del hombro; con poncho ya no se cruzan los brazos. Vistos en el juego Fermín, el jefe, Herminia, Nélida, Rosa, Tito, Anselmo, la botera, la maestra, el telegrafista, la guardaparque y el pescador.",
+    "- Ramón ya no camina en el lugar contra el puesto: su ruta entre el banco y la leña sale y entra por la puerta.",
+    "- El espejo del refugio está adentro, contra la pared de la ventana, y se mueve con Shift+Y como los muebles; en partidas viejas pasa adentro solo una vez.",
+    "- La casa junto al molino se puede entrar: puerta que abre con E, escalones parejos e interior amueblado.",
+    "- Mochila: las 95 casillas probadas con V y E, guardando y cargando: nada se pierde ni se duplica. Las 18 puertas con hoja abren y se cruzan; la plata da justo al comprar y vender.",
+    "- Puentes: el puentecito Refugio–Aldea tenía una pared de 2,1 m de un lado y un salto del otro: ahora es una rampa. Los puentes de la trochita llegan al terraplén; las barandas frenan; lo tirado sobre un puente queda en el tablón.",
+    "- La cascada en Alta ya no se aplasta en rayas con la partida larga; la cortina nace al nivel del agua, gotas redondas y piedras a los costados. El arroyo sin rayas ni costuras.",
+    "- La física: 70 recorridos al azar sin nada raro; salto, nado, paredes y los cuatro puentes, bien. Partida de 2 h: la memoria se queda quieta.",
+    "- Las brasas de hornos y fraguas titilan de naranja hondo a amarillo (sin luz nueva); con Ultra, huellas en las lajas y sin el aviso de consola que salía.",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-30-0-a (26; 18 mutaciones), -b (593; 17 mutaciones) y -c (47; 21 mutaciones).",
+    "",
+    "## Anotado",
+    "- humo-banco (el recorrido de rendimiento) falla igual en la 4.29.2: la cámara no avanza con la ventana oculta.",
+    "- Sin ver a ojo: el martillo de Anselmo y el arco de Josefina en el Desafío, Graciela fuera del capítulo 4, el Puesto Alto por dentro, los locales de la aldea construidos, las brasas de la panadería.",
+    "- El borde irregular en el color del suelo y el relieve del ripio en Ultra quedan afuera (~2 ms en la plaza)."
+  ],
+  "release": "CACERÍA GRANDE DE BUGS (CAMBIOS_4_30_0_A/B/C.md) — lo que la gente lleva en la mano, el poncho, el espejo adentro del refugio, la casa del molino, los puentes, la cascada y el arroyo, la mochila y la física",
+  "seguir": "Cacería grande de bugs (CAMBIOS_4_30_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Steam y el inglés esperan.",
+  "leemeNovedades": [
+    "- Cacería de bugs: la gente lleva las cosas en la mano, el poncho no se atraviesa, el espejo está adentro del refugio y se mueve, la casa del molino se puede entrar, puentes, cascada y arroyo arreglados."
+  ],
+  "leemeMirar": [
+    "- Si ves alguien con algo pegado o atravesado, o un lugar donde te trabás o te caés."
+  ]
+}
