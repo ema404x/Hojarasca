@@ -18,10 +18,11 @@ const RETRATO_MAX = 60000;
 const PREFIJO_RETRATO = 'data:image/jpeg;base64,';
 export const retratoValido = (v) => typeof v === 'string' && v.length <= RETRATO_MAX && v.startsWith(PREFIJO_RETRATO) && v.length > PREFIJO_RETRATO.length && /^[A-Za-z0-9+/]+={0,2}$/.test(v.slice(PREFIJO_RETRATO.length));
 // `prologoVisto` (4.1, F4): si ya pasó por el prólogo de texto. Vale `true` salvo que una partida NUEVA lo deje pendiente (false) al crear a Bruno: las partidas viejas y el Desafío no lo ven.
-export const brunoDefecto = () => ({ ...genomaDefecto(), creado: false, retrato: '', espejoPuesto: false, prologoVisto: true });
+// `espejoAdentro` (4.30.0, B): el espejo de fábrica ya está adentro del refugio (o ya se revisó): las partidas de antes lo tenían afuera, a unos metros de la puerta, y se muda una vez.
+export const brunoDefecto = () => ({ ...genomaDefecto(), creado: false, retrato: '', espejoPuesto: false, espejoAdentro: false, prologoVisto: true });
 export function sanearBruno(d) {
   const x = d && typeof d === 'object' ? d : {};
-  return { ...sanearGenoma(x), creado: x.creado === true, retrato: retratoValido(x.retrato) ? x.retrato : '', espejoPuesto: x.espejoPuesto === true, prologoVisto: x.prologoVisto !== false };
+  return { ...sanearGenoma(x), creado: x.creado === true, retrato: retratoValido(x.retrato) ? x.retrato : '', espejoPuesto: x.espejoPuesto === true, espejoAdentro: x.espejoAdentro === true, prologoVisto: x.prologoVisto !== false };
 }
 
 // ¿Hay que mostrar el prólogo? Sólo en el Relax, con Bruno ya creado y el prólogo pendiente (lo dejó pendiente una partida nueva al crearlo).

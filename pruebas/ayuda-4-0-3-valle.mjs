@@ -14,7 +14,8 @@ export function cargarModulos(entradas) {
   const info = new Map(), orden = [], visto = new Set();
   const visitar = (f) => {
     f = path.resolve(f); if (visto.has(f)) return; visto.add(f);
-    const texto = fs.readFileSync(f, 'utf8');
+    // 4.30.0 (B): `globalThis.__cambiarFuente(archivo, texto)`, si está, cambia el texto antes de cargarlo (las mutaciones de verificar-4-30-0-b, un proceso por mutación)
+    const texto = typeof globalThis.__cambiarFuente === 'function' ? globalThis.__cambiarFuente(f, fs.readFileSync(f, 'utf8')) : fs.readFileSync(f, 'utf8');
     for (const m of texto.matchAll(/^import\s+(.+?)\s+from\s+['"](.+?)['"]\s*;\s*$/gm)) if (m[2] !== 'three') visitar(normalizar(f, m[2]));
     info.set(f, texto); orden.push(f);
   };

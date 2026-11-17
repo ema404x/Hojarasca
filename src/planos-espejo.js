@@ -6,6 +6,7 @@
 //   · no cuesta materiales (`pide` vacío);
 //   · siempre está en los planos (no hay un tope de cuántos se pueden armar);
 //   · cada refugio nuevo viene con uno armado (lo coloca main.js al crear a Bruno: ver `colocarEspejoDeFabrica`).
+// 4.30.0 (B): `entraEnRefugio`: va ADENTRO del refugio (el de fábrica, contra una pared) y se mueve adentro o afuera como cualquier mueble (ver construccion.js, revisarSitio).
 import * as THREE from 'three';
 import { AYUDAS_MUEBLES } from './planos-muebles.js';
 
@@ -14,7 +15,7 @@ const { caja, cil, MADERA, MADERA_OSCURA, TABLA_CLARA, BRONCE, VIDRIO } = AYUDAS
 export const PIEZAS_ESPEJO = [
   {
     id: 'espejo', nombre: 'Espejo de pie', pieza: true, radio: 0.55, ancho: 0.8, fondo: 0.5, alto: 2.05, separacion: 0.5,
-    categoria: 'mobiliario', soloRelax: true, apoyaEnPlataforma: true, confort: 1, alcanceE: 2.4, funciones: ['espejo'],
+    categoria: 'mobiliario', soloRelax: true, apoyaEnPlataforma: true, entraEnRefugio: true, confort: 1, alcanceE: 2.4, funciones: ['espejo'],
     texto: 'Un espejo grande con marco de madera, apoyado sobre dos patas. Con E te mirás y podés rehacer tu aspecto: la cara, el pelo, la barba y el físico. El carácter de Bruno no cambia. No cuesta nada y se puede armar todas las veces que quieras.',
     pide: {},
     fisica(h) { h.segmento(-0.3, 0, 0.3, 0, 0.12, 0, 0.62); },

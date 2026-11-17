@@ -81,7 +81,8 @@ function tablaEntre(c, a, b, grueso, alto, color) {
     matriz: matriz([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], [0, Math.atan2(-dz, dx), Math.atan2(dy, Math.hypot(dx, dz))]) });
 }
 
-export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
+// 4.30.0 (B): `puertas` (puertas.js): la casa del molino se entra (pedido del usuario): su puerta es una de verdad, que se abre con E
+export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1, puertas = null }) {
   if (!molino) return null;
   const rot = molino.rot || 0, cr = Math.cos(rot), sr = Math.sin(rot);
   const mundo = (lx, lz) => ({ x: molino.x + lx * cr + lz * sr, z: molino.z - lx * sr + lz * cr });
@@ -122,6 +123,7 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   // ============================================================ la malla estática: cercos, rocas, casa
   const c = new Constructor();
   const colisiones = [];   // { seg o círculo } en mundo
+  const plataformas = [];   // 4.30.0 (B): los pisos que se pisan (la casa, la galería y los escalones), en mundo
   const seg = (a, b, r, y0, y1) => {
     const A = mundo(a[0], a[1]), B = mundo(b[0], b[1]);
     colisiones.push({ seg: true, ax: A.x, az: A.z, bx: B.x, bz: B.z, r, alturaMin: y0, alturaMax: y1 });
@@ -248,16 +250,25 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
     zocalo(x0 + 0.25, x1 - 0.25, z1, z1 + G, F - bajo + 0.05);   // y el de la galería
     // paredes de tablas horizontales (hiladas que alternan el tono); el frente lleva puerta y dos ventanas
     const hiladas = Math.round(H / 0.34), hh = H / hiladas;
+    const VANO_MEDIO = 0.5, VANO_ALTO = 2.0;   // 4.30.0 (B): el vano de la puerta (1 m por 2 m, como la tabla que había)
     const pared = (xa, xb, za, zb, ang) => {
       const largo = Math.hypot(xb - xa, zb - za);
       for (let f = 0; f < hiladas; f++) c.agregar(new THREE.BoxGeometry(largo, hh * 0.97, 0.2), { color: f % 2 ? '#9a7752' : '#8c6a47', tipo: 0, variar: 0.08, matriz: matriz([(xa + xb) / 2, F + (f + 0.5) * hh, (za + zb) / 2], [0, ang, 0]) });
     };
-    pared(x0, x1, z0, z0, 0); pared(x0, x0, z0, z1, Math.PI / 2); pared(x1, x1, z0, z1, Math.PI / 2); pared(x0, x1, z1, z1, 0);
+    pared(x0, x1, z0, z0, 0); pared(x0, x0, z0, z1, Math.PI / 2); pared(x1, x1, z0, z1, Math.PI / 2);
+    // 4.30.0 (B): el frente, con el vano de la puerta de verdad (antes era una tabla oscura pegada sobre la pared entera: la casa no se entraba)
+    for (let f = 0; f < hiladas; f++) {
+      const ya = F + f * hh, yc = F + (f + 0.5) * hh, color = f % 2 ? '#9a7752' : '#8c6a47';
+      if (ya < F + VANO_ALTO) {
+        for (const [xa, xb] of [[x0, cx - VANO_MEDIO], [cx + VANO_MEDIO, x1]]) c.agregar(new THREE.BoxGeometry(xb - xa, hh * 0.97, 0.2), { color, tipo: 0, variar: 0.08, matriz: matriz([(xa + xb) / 2, yc, z1]) });
+      } else c.agregar(new THREE.BoxGeometry(x1 - x0, hh * 0.97, 0.2), { color, tipo: 0, variar: 0.08, matriz: matriz([(x0 + x1) / 2, yc, z1]) });
+    }
+    { const arriba = F + Math.ceil(VANO_ALTO / hh) * hh; if (arriba > F + VANO_ALTO + 0.01) c.agregar(new THREE.BoxGeometry(VANO_MEDIO * 2 + 0.1, arriba - F - VANO_ALTO, 0.2), { color: OSCURA, tipo: 0, matriz: matriz([cx, (F + VANO_ALTO + arriba) / 2, z1]) }); }
     // postes de esquina
     for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) c.agregar(new THREE.BoxGeometry(0.26, H + 0.05, 0.26), { color: OSCURA, tipo: 0, variar: 0.06, matriz: matriz([x, F + H / 2, z]) });
     // frente: puerta al centro y dos ventanas con postigos y alféizar
     const fz = z1 + 0.11;
-    c.agregar(new THREE.BoxGeometry(1.0, 2.0, 0.06), { color: '#3a2a1e', tipo: 0, matriz: matriz([cx, F + 1.0, fz]) });
+    // (4.30.0 (B): la hoja de la puerta es de puertas.js; sin ellas, el vano queda abierto)
     c.agregar(new THREE.BoxGeometry(1.2, 0.12, 0.12), { color: OSCURA, tipo: 0, matriz: matriz([cx, F + 2.05, fz + 0.02]) });
     for (const l of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.12, 2.0, 0.12), { color: OSCURA, tipo: 0, matriz: matriz([cx + l * 0.56, F + 1.0, fz + 0.02]) });
     for (const sx of [-1, 1]) {
@@ -333,10 +344,16 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
       }
     }
     // escalerita al medio, dos escalones hasta el suelo
+    // 4.30.0 (B): parejos (de 0,32 m como mucho), macizos hasta el suelo y que se pisan (antes eran dos tablas sueltas de adorno, y la segunda podía quedar colgando)
     const sFrente = rel(cx, gz1 + 0.5);
-    for (let k = 0; k < 2; k++) {
-      const yS = gF - 0.12 - k * Math.max(0.12, (gF - sFrente) / 2.2);
-      if (gF - sFrente > 0.1 || k === 0) c.agregar(new THREE.BoxGeometry(1.5, 0.12, 0.38), { color: '#7a5e42', tipo: 0, variar: 0.08, matriz: matriz([cx, yS - 0.02, gz1 + 0.12 + k * 0.38]) });
+    // (el suelo se mide al pie del último escalón, no al del primero: en la loma baja y el último quedaba a 0,4 m del pasto)
+    let nEsc = 1, dEsc = (gF - sFrente) / 2;
+    for (let n = 1; n <= 6; n++) { const pie = rel(cx, gz1 + n * 0.38 + 0.25); nEsc = n; dEsc = (gF - pie) / (n + 1); if (dEsc <= 0.28) break; }
+    for (let k = 0; k < nEsc; k++) {
+      const tope = gF - (k + 1) * dEsc, zc = gz1 + 0.19 + k * 0.38, pie = Math.min(rel(cx - 0.7, zc), rel(cx + 0.7, zc), rel(cx, zc)) - 0.12;
+      if (tope - pie > 0.02) c.agregar(new THREE.BoxGeometry(1.5, tope - pie, 0.38), { color: k % 2 ? '#7a5e42' : '#86684a', tipo: 0, variar: 0.08, matriz: matriz([cx, (tope + pie) / 2, zc]) });
+      const q = mundo(cx, zc);
+      plataformas.push({ x: q.x, z: q.z, ang: -rot, largo: 1.5, ancho: 0.38, alto: molino.y + tope, espesor: 0.12 });
     }
     // faroles colgados de la viga (dos), tonel con zunchos, macetero con flores y un banco
     const cilF = (r, h, pos, color) => c.agregar(new THREE.CylinderGeometry(r, r, h, 8), { color, tipo: 4, matriz: matriz(pos), variar: 0.04 });
@@ -364,11 +381,75 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
     }
     // física: las cuatro paredes (la casa es de adorno por dentro: no se entra) y el zócalo
     const yA = molino.y + bajo, yB = molino.y + F + H + 0.5;
-    seg([x0, z0], [x1, z0], 0.2, yA, yB); seg([x0, z0], [x0, z1], 0.2, yA, yB); seg([x1, z0], [x1, z1], 0.2, yA, yB); seg([x0, z1], [x1, z1], 0.2, yA, yB);
+    // 4.30.0 (B): ya se entra: el frente deja el vano de la puerta (la hoja choca mientras está cerrada: puertas.js)
+    seg([x0, z0], [x1, z0], 0.2, yA, yB); seg([x0, z0], [x0, z1], 0.2, yA, yB); seg([x1, z0], [x1, z1], 0.2, yA, yB); seg([x0, z1], [cx - VANO_MEDIO - 0.2, z1], 0.2, yA, yB); seg([cx + VANO_MEDIO + 0.2, z1], [x1, z1], 0.2, yA, yB);
     // 4.0.1: la galería también es de adorno (el zócalo de piedra sube hasta 1,7 m): su frente y sus dos lados son sólidos; antes se la atravesaba hasta la pared de la casa con la cámara adentro del bloque
-    seg([gx0 - 0.3, gz1], [gx1 + 0.3, gz1], 0.2, yA, yB); seg([x0, z1], [x0, gz1], 0.2, yA, yB); seg([x1, z1], [x1, gz1], 0.2, yA, yB);
+    // 4.30.0 (B): y la galería se abre en la escalerita (el hueco de la baranda)
+    seg([gx0 - 0.3, gz1], [cx - 0.75, gz1], 0.2, yA, yB); seg([cx + 0.75, gz1], [gx1 + 0.3, gz1], 0.2, yA, yB); seg([x0, z1], [x0, gz1], 0.2, yA, yB); seg([x1, z1], [x1, gz1], 0.2, yA, yB);
     colisiones.push({ x: mundo(x0 - 0.45, cz - 0.2).x, z: mundo(x0 - 0.45, cz - 0.2).z, r: 0.5, alturaMin: yA, alturaMax: yB + 1 });
-    return { F: molino.y + F, x0, x1, z0, z1, gz1 };
+    // ---- 4.30.0 (B): adentro (la casa se entra): piso de tablas, forro en las paredes, cielorraso, las ventanas por dentro y los muebles
+    {
+      const xi0 = x0 + 0.1, xi1 = x1 - 0.1, zi0 = z0 + 0.1, zi1 = z1 - 0.1, cara = 0.115;
+      for (let i = 0, n = Math.round((xi1 - xi0) / 0.3); i < n; i++) {
+        const w = (xi1 - xi0) / n;
+        c.agregar(new THREE.BoxGeometry(w * 0.97, 0.06, zi1 - zi0), { color: i % 3 ? '#8a6b4a' : '#7a5e42', tipo: 0, variar: 0.1, matriz: matriz([xi0 + (i + 0.5) * w, F - 0.03, (zi0 + zi1) / 2]) });
+      }
+      const FORRO = '#a5875f';
+      c.agregar(new THREE.BoxGeometry(x1 - x0 - 2 * cara, H, 0.03), { color: FORRO, tipo: 0, variar: 0.05, matriz: matriz([cx, F + H / 2, z0 + cara]) });
+      for (const xx of [x0 + cara, x1 - cara]) c.agregar(new THREE.BoxGeometry(0.03, H, z1 - z0 - 2 * cara), { color: FORRO, tipo: 0, variar: 0.05, matriz: matriz([xx, F + H / 2, cz]) });
+      for (const [xa, xb] of [[x0 + cara, cx - VANO_MEDIO], [cx + VANO_MEDIO, x1 - cara]]) c.agregar(new THREE.BoxGeometry(xb - xa, H, 0.03), { color: FORRO, tipo: 0, variar: 0.05, matriz: matriz([(xa + xb) / 2, F + H / 2, z1 - cara]) });
+      c.agregar(new THREE.BoxGeometry(VANO_MEDIO * 2, H - VANO_ALTO, 0.03), { color: FORRO, tipo: 0, variar: 0.05, matriz: matriz([cx, F + (VANO_ALTO + H) / 2, z1 - cara]) });
+      for (const l of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.1, VANO_ALTO, 0.24), { color: OSCURA, tipo: 0, matriz: matriz([cx + l * (VANO_MEDIO + 0.05), F + VANO_ALTO / 2, z1]) });   // las jambas, en el canto del vano
+      c.agregar(new THREE.BoxGeometry(x1 - x0 - 0.2, 0.05, z1 - z0 - 0.2), { color: '#7d6246', tipo: 0, variar: 0.06, matriz: matriz([cx, F + H - 0.02, cz]) });   // el cielorraso
+      for (let i = 1; i < 6; i++) c.agregar(new THREE.BoxGeometry(0.12, 0.1, z1 - z0 - 0.25), { color: OSCURA, tipo: 0, matriz: matriz([x0 + i * (x1 - x0) / 6, F + H - 0.09, cz]) });   // las vigas
+      // las ventanas, por dentro (los vidrios y los alféizares, donde están las de afuera)
+      for (const [x, z, ang, a] of [[cx - 2.6, z1 - cara - 0.02, 0, 0.9], [cx + 2.6, z1 - cara - 0.02, 0, 0.9], [x1 - cara - 0.02, cz, Math.PI / 2, 0.8], [x0 + cara + 0.02, cz + 0.6, Math.PI / 2, 0.8], [cx, z0 + cara + 0.02, 0, 0.8]]) {
+        c.agregar(new THREE.BoxGeometry(a, a, 0.02), { color: '#2a2f33', tipo: 4, matriz: matriz([x, F + 1.48, z], [0, ang, 0]) });
+        c.agregar(new THREE.BoxGeometry(a + 0.1, 0.05, 0.14), { color: OSCURA, tipo: 0, matriz: matriz([x, F + 1.48 - a / 2 - 0.02, z], [0, ang, 0]) });
+        c.agregar(new THREE.BoxGeometry(0.05, a, 0.03), { color: OSCURA, tipo: 0, matriz: matriz([x, F + 1.48, z], [0, ang, 0]) });
+      }
+      const caja = (dx, dy, dz, x, y, z, color, tipo = 0) => c.agregar(new THREE.BoxGeometry(dx, dy, dz), { color, tipo, variar: 0.08, matriz: matriz([x, y, z]) });
+      const yP = molino.y + F;
+      const segL = (a, b, r, alto) => seg(a, b, r, yP - 0.1, yP + alto);
+      // el hogar de piedra contra la pared del oeste, donde afuera sube la chimenea
+      { const hx = x0 + cara + 0.32, hz = cz - 0.2;
+        for (let y = 0; y < 1.1; y += 0.28) for (const oz of [-0.48, -0.16, 0.16, 0.48]) caja(0.62, 0.27, 0.31, hx, F + y + 0.14, hz + oz, PIEDRAS[Math.floor(azarFijo(y, oz, 7) * PIEDRAS.length)], 4);
+        caja(0.3, 0.55, 0.7, hx + 0.2, F + 0.38, hz, '#241d18', 4);
+        caja(0.8, 0.1, 1.45, hx + 0.08, F + 1.16, hz, OSCURA);
+        for (let i = 0; i < 3; i++) c.agregar(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6), { color: '#6b5238', tipo: 0, matriz: matriz([hx + 0.22, F + 0.16 + i * 0.05, hz - 0.15 + i * 0.15], [0, 0, Math.PI / 2]) });
+        segL([hx, hz - 0.6], [hx, hz + 0.6], 0.38, 1.25); }
+      // la cama, en el rincón del fondo al este
+      { const bx = x1 - cara - 1.05, bz = z0 + cara + 0.52;
+        caja(2.0, 0.3, 0.95, bx, F + 0.25, bz, OSCURA); caja(1.9, 0.14, 0.88, bx, F + 0.47, bz, '#c9bca4', 4); caja(1.3, 0.07, 0.92, bx + 0.3, F + 0.56, bz, '#3f5a7a', 0);
+        caja(0.36, 0.12, 0.6, bx - 0.72, F + 0.58, bz, '#e3d9c4', 4); caja(0.08, 0.95, 1.0, bx - 1.0, F + 0.47, bz, MADERA);
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(0.08, 0.12, 0.08, bx + sx * 0.92, F + 0.06, bz + sz * 0.42, OSCURA);
+        segL([bx - 0.85, bz], [bx + 0.85, bz], 0.5, 0.62); }
+      // la mesa con sus dos bancos, al medio
+      { const mx = cx + 0.4, mz = cz - 0.4;
+        caja(1.5, 0.07, 0.85, mx, F + 0.76, mz, TABLA);
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(0.07, 0.72, 0.07, mx + sx * 0.66, F + 0.36, mz + sz * 0.34, OSCURA);
+        for (const sz of [-1, 1]) { caja(1.3, 0.05, 0.28, mx, F + 0.45, mz + sz * 0.68, TABLA_CLARA); for (const sx of [-1, 1]) caja(0.06, 0.43, 0.22, mx + sx * 0.55, F + 0.21, mz + sz * 0.68, OSCURA); segL([mx - 0.55, mz + sz * 0.68], [mx + 0.55, mz + sz * 0.68], 0.16, 0.47); }
+        c.agregar(new THREE.CylinderGeometry(0.07, 0.09, 0.2, 8), { color: '#9a5a3e', tipo: 4, matriz: matriz([mx - 0.3, F + 0.9, mz]) });   // un jarro
+        segL([mx - 0.62, mz], [mx + 0.62, mz], 0.42, 0.8); }
+      // el estante con frascos contra la pared del fondo, del lado del hogar
+      { const ex = cx - 1.9, ez = z0 + cara + 0.19;
+        for (const sx of [-1, 1]) caja(0.05, 1.7, 0.34, ex + sx * 0.78, F + 0.85, ez, OSCURA);
+        for (const y of [0.3, 0.8, 1.3, 1.68]) caja(1.6, 0.04, 0.34, ex, F + y, ez, TABLA);
+        for (let i = 0; i < 9; i++) c.agregar(new THREE.CylinderGeometry(0.06, 0.06, 0.16, 7), { color: ['#b88a4a', '#8a3a2a', '#c9a94a', '#5a7a4a'][i % 4], tipo: 4, matriz: matriz([ex - 0.6 + (i % 5) * 0.3, F + (i < 5 ? 0.4 : 0.9), ez]) });
+        segL([ex - 0.8, ez], [ex + 0.8, ez], 0.2, 1.75); }
+      // un arcón junto a la puerta y la alfombra de la entrada
+      { const ax = x0 + cara + 0.75, az = z1 - cara - 0.35;
+        caja(1.0, 0.5, 0.5, ax, F + 0.25, az, '#6b4e33'); caja(1.04, 0.06, 0.54, ax, F + 0.52, az, OSCURA);
+        segL([ax - 0.4, az], [ax + 0.4, az], 0.28, 0.56); }
+      caja(1.6, 0.02, 1.0, cx + 0.3, F + 0.01, cz + 1.3, '#8a2f2a', 4);
+      // los pisos que se pisan: la casa y la galería (los escalones, arriba)
+      const pc = mundo(cx, cz), pg = mundo((gx0 + gx1) / 2, (z1 + gz1) / 2);
+      plataformas.push({ x: pc.x, z: pc.z, ang: -rot, largo: W, ancho: D, alto: molino.y + F, espesor: 0.1 });
+      plataformas.push({ x: pg.x, z: pg.z, ang: -rot, largo: gx1 - gx0, ancho: G, alto: molino.y + gF, espesor: 0.12 });
+      // la puerta de verdad (se abre hacia adentro: hacia afuera barría la galería)
+      if (puertas?.agregar) puertas.agregar({ sitio: { x: molino.x, z: molino.z, y: molino.y, piso: F }, rot, lx: cx, lz: z1, ancho: VANO_MEDIO * 2 - 0.02, alto: VANO_ALTO - 0.02, lado: 1, adentro: true, nombre: 'la puerta de la casa del molino' });
+    }
+    return { F: molino.y + F, x0, x1, z0, z1, gz1, ancho: W, fondo: D, alto: H, cx, cz };
   })();
 
   const geo = c.geometria();
@@ -379,6 +460,7 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   // la malla está en coordenadas del marco local del molino: se pone en su pose (los tulipanes y el agua ya van en mundo)
   malla.position.set(molino.x, molino.y, molino.z); malla.rotation.y = rot;
   for (const o of colisiones) col.agregar?.({ ...o, duenio: 'molino-paisaje' });
+  for (const p of plataformas) col.agregarPlataforma?.({ ...p, duenio: 'molino-paisaje' });   // 4.30.0 (B)
 
   // ============================================================ el agua: dos cintas que siguen el terreno
   const cinta = (lista, mapaV) => {
@@ -472,6 +554,9 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   };
   return {
     grupo, actualizar, aplicarCalidad, liberar, zonas, casa, reservado,
+    // 4.30.0 (B): el cuarto de la casa, para no dibujar el exterior desde adentro (la regla de los interiores del valle de la 4.26.0: interior-visible.js,
+    // interiorDeCaja). Sólo la puerta deja ver para afuera: las ventanas son cajas opacas (como las casas prefabricadas). Marco de la caja: +b es el frente.
+    interior: { id: 'casa-molino', ...mundo(casa.cx, casa.cz), y: casa.F, rot, ancho: casa.ancho, fondo: casa.fondo, alto: casa.alto + 0.2, frente: [[-0.6, casa.fondo / 2], [0, casa.fondo / 2], [0.6, casa.fondo / 2]] },
     huella: [[CASA.cx, CASA.cz + 1.2, 8], [(CAMPO.lx0 + CAMPO.lx1) / 2, (CAMPO.lz0 + CAMPO.lz1) / 2, 11], [8, 26.5, 15]].map(([lx, lz, radio]) => ({ ...mundo(lx, lz), radio, nombre: 'Molino (paisaje)' })),
     info: { tulipanes: siembra.total, instancias: () => tul.reduce((n, u) => n + u.malla.count, 0), triangulos: () => (geo.attributes.position.count / 3) | 0 },
     mallas: { obras: malla, agua: mAgua, espuma: mEspuma, tulipanes: tul.map((u) => u.malla) },
