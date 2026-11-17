@@ -185,6 +185,24 @@ async function comprobar() {
   falla(/objetos\.soltar\(r\.id, x, z, null, alturaDePie\(T, col, x, z, js\.pos\.y\)\)/.test(mn), 'main.js: V le pasa dónde apoya (el tablón, el piso)');
   falla(/Number\.isFinite\(s\.y\) \? \{ tipo: s\.tipo, x: s\.x, z: s\.z, y: s\.y \}/.test(gu) && /\{ tipo, x, z, y: yPie \}/.test(ob), 'la partida guarda la altura de lo soltado arriba de algo');
 
+  // ---- 8. la gente de ruta que se traba contra algo: rodea (antes caminaba en el lugar 12 s y aparecía del otro lado)
+  const gt2 = leer('gente.js');
+  const rodeo = funcionDe(gt2, 'rodeoEnRuta', { RODEO_S: 1.2, RODEO_M: 1.7 });
+  falla(!!rodeo, 'gente.js: rodeoEnRuta');
+  if (rodeo) {
+    // una pared ancha (x de 0,2 a 1,3; z de -2,5 a 2,5) entre la persona (0, 0) y su etapa (3, 0): el resolver empuja lo que cae en la pared
+    const colF = { resolver: (q) => { if (q.x > 0.2 && q.x < 1.3 && Math.abs(q.z) < 2.5) q.x = 0.19; }, paredEntre: () => false };
+    const Tf = { agua: () => null };
+    const g = { pos: { x: 0, z: 0, y: 0 }, velocidad: 0.65 }, etapa = { x: 3, z: 0 };
+    let p = null;
+    for (let i = 0; i < 100 && !p; i++) p = rodeo(g, etapa, 0.02, Tf, colF);
+    falla(!!p && Math.abs(p.z) >= 2.5 && !(p.x > 0.2 && p.x < 1.3 && Math.abs(p.z) < 2.5), `trabada contra algo, la persona de ruta busca un punto a un costado libre (${p && [p.x.toFixed(2), p.z.toFixed(2)]})`);
+    const g2 = { pos: { x: 0, z: 0, y: 0 }, velocidad: 0.65 }; let p2 = null;
+    for (let i = 0; i < 100; i++) { g2.pos.x += 0.013; p2 = p2 || rodeo(g2, etapa, 0.02, Tf, colF); }
+    falla(!p2, 'si avanza, no rodea');
+  }
+  falla(gt2.includes('else g.__rodeo = rodeoEnRuta(g, etapa, dt, T, col);') && gt2.includes('if (caminarHacia(g, dt, g.__rodeo, g.velocidad || 0.8, T, col, 0.35)) g.__rodeo = null;') && gt2.includes('else if (g.__rodeo.t > 4) { if (g.__lento) g.__lento.lado = -g.__rodeo.lado; g.__rodeo = null; }'), 'la gente de ruta usa el rodeo antes de aparecer en su etapa (y si un rodeo no llega, prueba del otro lado)');
+
   // ---- 6. (Ultra) las huellas en las lajas y la piedra de la plaza
   const UM = await import(pathToFileURL(archivo('ultra-materiales.js')).href);
   UM.conocerCieloUltraC(MAT.U);
@@ -221,6 +239,8 @@ const MUTACIONES = [
   ['guardado.js', 'la partida sin la altura de lo soltado', 'Number.isFinite(s.y) ? { tipo: s.tipo, x: s.x, z: s.z, y: s.y }', 'false ? { tipo: s.tipo, x: s.x, z: s.z, y: s.y }'],
   ['main.js', 'V otra vez rechaza arriba del puente', 'if (T.agua(x, z) && !col?.plataformaEn?.(x, z, js.pos.y + 0.3, 0.6)) {', 'if (T.agua(x, z)) {'],
   ['cinta-arroyo.js', 'la cinta con un borde por tramo otra vez', 'export const MITRA_MAX = 0.5;', 'export const MITRA_MAX = 0;'],
+  ['gente.js', 'la gente de ruta sin rodeo', '        else g.__rodeo = rodeoEnRuta(g, etapa, dt, T, col);', ''],
+  ['gente.js', 'el rodeo hacia adentro de lo que frena', '    if (Math.hypot(q.x - p.x, q.z - p.z) > 0.05) continue;', ''],
   ['aldea-mundo.js', 'las brasas quietas', '  return Math.min(1, Math.max(0.7, 0.88 + 0.09 * lento + 0.03 * rapido));', '  return 1;'],
   ['aldea-mundo.js', 'las brasas que parpadean', 'rapido = Math.sin(ms / 53 + Math.sin(ms / 97) * 2.0)', 'rapido = (Math.floor(ms / 50) % 2) * 8'],
 ];

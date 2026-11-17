@@ -56,7 +56,17 @@ guardado nuevas: lo soltado con V guarda además su altura `y` (opcional) en la 
   Ultra no corre en media): carga sin errores, el mapa (M) y la pausa (Esc) abren y cierran (`r3\q-*`, r11). Con Ultra, antes del arreglo de
   `pisadaLodU`, la consola mostraba el aviso X3595 (la 4.29.2 no lo tenía: medido con la 4.29.2 armada aparte, r7).
 - Anotado sin tocar: en las curvas de la vía los cajones de balasto (3,4 m) dejan escalones en el borde; es de forma, no se tocó.
-- La partida larga: ver abajo.
+- Invierno (r13): las zonas y la cascada con nieve, nada flotando ni atravesado; las mismas «raras» que en verano (sólo la torre).
+- La partida larga (2 h, Alta, minimizada; `largo.json`): de lugar en lugar a pie, midiendo cada minuto. Memoria JS 273 → 313 MB (sube al
+  principio y se queda: 326 entre los 22 y los 100 min y 307 al final); geometrías 958 → 1.269 y texturas 64 → 87, casi todo en la primera
+  vuelta por el valle (lo que se arma al llegar a cada lugar) y después plano (texturas 86-87 desde el minuto 73, geometrías +8 en la última
+  hora); los programas 103 → 106; el cuadro (CPU) 3,5 → 4,8 ms (picos sueltos de hasta 26 ms al llegar a un lugar). No crece sin techo.
+- **La gente trabada** (en la partida larga): Ramón, junto al puesto, caminaba en el lugar 12 s en dos de sus tres tramos de cada vuelta y
+  después aparecía del otro lado (la red de la 4.25.2). `gente.js` `rodeoEnRuta`: si en 1,2 s casi no se acercó, busca un punto a un
+  costado libre (1,7 a 4,4 m, del mismo lado mientras le sirva) y lo rodea. Visto (r14/r15): el tramo del medio ahora lo rodea; **el primero
+  no** (sale de detrás del mostrador del puesto y del otro lado no hay paso a un costado: haría falta un punto más en su ruta, que es de la zona
+  de A). Dos intentos: anotado. Sigue la red de los 12 s. Una vez cada uno, Ema (al pasar por ahí) y Nene y Nélida en la plaza, caminando en
+  el lugar un instante (no se repitió).
 
 ## Cuánto cuesta (ms por cuadro con `gl.finish`, ventana minimizada, mediana de 3 rondas, la misma PC)
 | | 4.29.2 (r5, r7) | 4.30.0 C (r8) |
@@ -71,12 +81,12 @@ dos veces) daba +1,1 ms en la cascada (r6): se dejó sólo la onda grande en dos
 - Las brasas titilando (las capturas son quietas: el pulso está probado en Node).
 - Las huellas en las lajas con lluvia, de cerca y en movimiento (sólo la captura de r11).
 - Lo soltado en un piso alto de una casa (se probó sobre el puente; es el mismo `alturaDePie`).
-- La partida larga: (se completa).
+- Los caminantes de la Aldea trabados un instante (Nene, Nélida): una sola vez cada uno en 2 h; no se buscó la causa.
 
 ## Pruebas
-- Nueva: `pruebas/verificar-4-30-0-c.mjs` (en `verify:pasos`): 43 comprobaciones y 19 mutaciones (un proceso por copia), todas atrapadas.
+- Nueva: `pruebas/verificar-4-30-0-c.mjs` (en `verify:pasos`): 47 comprobaciones y 21 mutaciones (un proceso por copia), todas atrapadas.
 - Partida real: `pruebas/humo-4-30-0-c.cjs` (secciones `puentes`, `cascada`, `fisica`, `medir`, `soltar`, `lajas`, `refugio`, `zonas`,
-  `calidades`, `largo`; `HUMO_PARTES`, `HUMO_ULTRA`, `HTML`, `HUMO_CALIDADES`, `HUMO_MINUTOS`). No va en `verify:pasos` (Electron).
+  `calidades`, `largo`, `ramon`; `HUMO_PARTES`, `HUMO_ULTRA`, `HTML`, `HUMO_CALIDADES`, `HUMO_MINUTOS`, `HUMO_ESTACION`, `HUMO_GENTE`, `HUMO_RASTRO`). No va en `verify:pasos` (Electron).
 - Ajustadas a propósito: `verificar-estructuras-v3` (el piso del puente de la vía mide `tablero`), `verificar-3-8-3-aldea` (la bajada del
   sulky lee la rampa), `verificar-3-8-8-arroyo` (la cortina 1,72 y no 2,0), `verificar-4-12-1-agua` (tope de ruidos +2: las vetas en dos
   fases, condicionadas a donde corre), `verificar-4-29-2-b` (las lajas ahora sí leen las huellas).
@@ -84,5 +94,5 @@ dos veces) daba +1,1 ms en la cascada (r6): se dejó sólo la onda grande en dos
   `-4-25-2-guardado`, `-4-26-5-c`, `-4-28-0-a/b/c`, `-4-29-0-a/b/c`, `-4-29-1-a/b`, `-4-29-2-a/b`, `-4-21-0-c`, `-4-22-0-c` y las que leen
   `soltarRanura`, `alturaDePie` o `soltados` (`3-5-4-ventana`, `3-6-1-aldea`, `3-6-2-juego`, `3-7-0-integracion`, `4-0-1-nucleo`,
   `4-10-4-aldea`, `4-12-2-carro-guardado`, `4-18-4-c`, `4-19-0-c`, `4-24-1-b`, `4-25-1-b`, `4-25-3-restantes`, `4-26-1-b`, `4-26-2-a`,
-  `4-26-4-a`, `mando`). No se corrió `npm run verify`.
-- Choque posible con B: `guardado.js` (una línea de `soltados`) y `main.js` `soltarRanura` (dos líneas), por «tirar con V».
+  `4-26-4-a`, `mando`) y las de la gente (`4-25-2-npc`, `3-6-gente`, `4-11-2-gente`, `4-10-1-npc`, `4-25-1-a`). No se corrió `npm run verify`.
+- Choque posible con B: `guardado.js` (una línea de `soltados`) y `main.js` `soltarRanura` (dos líneas), por «tirar con V»; con A: `gente.js` (el rodeo, en la rama de la gente de ruta de `actualizar`).

@@ -389,6 +389,23 @@ app.whenReady().then(async () => {
       await N("(H.ajustes.clima = 'despejado', H.clima.estado.lluvia = 0, H.clima.estado.objetivo = 'despejado', 1)");
     });
 
+    // la gente de ruta que camina en el lugar (en la partida larga: Ramón junto al puesto, varias veces): dónde, hacia qué etapa y qué la frena
+    await seccion('ramon', async () => {
+      const claves = (process.env.HUMO_GENTE || 'ramon,ema').split(',');
+      const info = await N(`(() => { const out = {}; for (const k of ${JSON.stringify(claves)}) { const g = H.gente.gente.find((q) => q.clave === k); if (!g) continue;
+        out[k] = { pos: [+g.pos.x.toFixed(1), +g.pos.z.toFixed(1)], ruta: (g.ruta || []).map((e) => { const q = { x: e.x, z: e.z, y: T.altura(e.x, e.z) }; col.resolver(q, 0.3, 1.6); return { x: +e.x.toFixed(2), z: +e.z.toFixed(2), empujado: +Math.hypot(q.x - e.x, q.z - e.z).toFixed(2), agua: !!T.agua(e.x, e.z) }; }) }; } return out })()`.replace('col.resolver', 'H.col.resolver'));
+      console.log('  gente:', JSON.stringify(info));
+      const k0 = Object.keys(info)[0]; if (!k0) return;
+      const g0 = info[k0].pos;
+      await N(`(J.ubicar(${g0[0] + 14}, ${g0[1] + 14}, 0), N.tick(0.5))`);
+      const traza = await N(`(async () => { const t = []; const t0 = performance.now(); while (performance.now() - t0 < 80000) { await N.tick(2); const o = {}; for (const k of ${JSON.stringify(claves)}) { const g = H.gente.gente.find((q) => q.clave === k); if (!g) continue; const e = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null; o[k] = [+g.pos.x.toFixed(2), +g.pos.z.toFixed(2), +(g.vel || 0).toFixed(2), g.etapa, e ? +Math.hypot(e.x - g.pos.x, e.z - g.pos.z).toFixed(2) : null, +(g.espera || 0).toFixed(1)]; } t.push(o); } return t })()`);
+      for (const k of claves) {
+        const s = traza.map((o) => o[k]).filter(Boolean);
+        const quieto = s.filter((q, i) => i > 0 && q[2] > 0.2 && Math.hypot(q[0] - s[i - 1][0], q[1] - s[i - 1][1]) < 0.1);
+        console.log(`  ${k}: ${s.length} muestras, caminando sin moverse ${quieto.length}`, JSON.stringify(s.slice(0, 40)));
+      }
+    });
+
     // el refugio por dentro: correr hacia el centro desde 8 rumbos; dónde frena, por dónde pasa (la traza), la puerta y lo que choca cerca
     await seccion('refugio', async () => {
       const info = await N(`(() => { const L = T.lugares.refugio; const ps = (H.puertas && H.puertas.lista || []).filter((p) => Math.hypot(p.x - L.x, p.z - L.z) < 12).map((p) => ({ x: +p.x.toFixed(1), z: +p.z.toFixed(1), abierta: p.abierta, nombre: p.nombre })); return { x: L.x, z: L.z, y: L.y, rot: L.rot, puertas: ps } })()`);
@@ -422,6 +439,10 @@ app.whenReady().then(async () => {
       const MIN = Number(process.env.HUMO_MINUTOS || 120);
       const lugares = await N(`(() => Object.entries(T.lugares).filter(([k, l]) => l && Number.isFinite(l.x)).map(([k, l]) => ({ k, x: l.x, z: l.z })))()`);
       const filas = [];
+      // HUMO_RASTRO=1: anota quién crea cada textura de la placa (y cuáles se borran) para saber de dónde salen las que crecen
+      if (process.env.HUMO_RASTRO === '1') await N(`(() => { const gl = H.renderer.getContext(); const vivas = window.__TEX = new Map(); const c0 = gl.createTexture.bind(gl), d0 = gl.deleteTexture.bind(gl);
+        gl.createTexture = () => { const t = c0(); vivas.set(t, { t: performance.now(), pila: (new Error().stack || '').split('\\n').slice(2, 9).map((l) => l.trim().replace(/\\(.*index\\.html/, '(').slice(0, 90)).join(' < ') }); return t; };
+        gl.deleteTexture = (t) => { vivas.delete(t); return d0(t); }; return 1 })()`);
       const t0 = Date.now();
       let i = 0;
       while (Date.now() - t0 < MIN * 60000) {
@@ -433,6 +454,11 @@ app.whenReady().then(async () => {
         filas.push(f);
         console.log('  ', JSON.stringify(f));
         fs.writeFileSync(path.join(salida, 'largo.json'), JSON.stringify(filas));
+      }
+      if (process.env.HUMO_RASTRO === '1') {
+        const r = await N(`(() => { const g = {}; for (const v of window.__TEX.values()) (g[v.pila] = g[v.pila] || []).push(Math.round(v.t / 60000)); return Object.entries(g).sort((a, b) => b[1].length - a[1].length).slice(0, 12).map(([p, ts]) => ({ n: ts.length, minutos: ts.slice(0, 12), pila: p })) })()`);
+        console.log('  texturas vivas creadas durante la partida, por quién:');
+        for (const q of r) console.log('   ', JSON.stringify(q));
       }
       const a = filas.slice(1, 4), b = filas.slice(-3);
       const med = (L, k) => L.reduce((s, f) => s + f[k], 0) / Math.max(1, L.length);
