@@ -134,7 +134,17 @@ const COMPROBAR = {
     const mate = /\? \[\[\[-l \* 0\.03, 0\.0, 0\], \[-l \* 0\.01, -0\.03, 0\], \[l \* 0\.002, -0\.14, 0\.0\], \[codoP\[0\], -0\.24, 0\.0\]/.test(cuerpo);
     let arma = false;
     try { const p = C.crearPersona({ poncho: true, ropa: '#6a5a4a' }, 'ramon', true, {}, {}); const q = C.crearPersona({ poncho: true }, 'nicanor', false, {}, { invierno: true }); arma = !!(p.g && q.g && p.mano && q.mano); } catch { arma = false; }
-    return [brazo && mate && arma, 'con poncho, el brazo (y el del mate) desde el hombro, y se arma'];
+    // y con poncho no cruza los brazos (ni cintura, juntas, delantal, atrás): los antebrazos atravesaban el poncho; la del gorro (un brazo arriba) sí
+    const pose = (nombre) => {
+      const p = C.crearPersona({ poncho: true }, 'nicanor', false, {}, { invierno: true });
+      const g = { ...p, pos: p.g.position, fase: 0, vel: 0, __quietud: nombre }, cam = { position: { x: 50, y: 1.6, z: 50 } };
+      let min = 0;
+      for (let i = 0; i < 60; i++) { for (const br of g.brazos) { br.rotation.x = 0; br.rotation.z = 0; } p.alPosar(g, 0.1, cam, false, false); for (const br of g.brazos) if (br.userData.codo) min = Math.min(min, br.userData.codo.rotation.x); }
+      return min;
+    };
+    const quietas = ['cruzados', 'cintura', 'juntas', 'atras'].map(pose), gorro = pose('gorro');
+    const sinCruzar = quietas.every((v) => v > -0.5) && gorro < -1.5;
+    return [brazo && mate && arma && sinCruzar, `con poncho, el brazo (y el del mate) desde el hombro, se arma, y no cruza los brazos (codo ${quietas.map((v) => v.toFixed(2))}; el gorro ${gorro.toFixed(2)})`];
   },
   // 4. el enganche en gente.js (texto: el bucle de la gente no corre en Node)
   enganche(_v, gente = GENTE) {
@@ -168,6 +178,7 @@ const MUT = [
   ['quietud', 'la tabla guardada cuenta como en la mano', (c) => c.replace("(g.planilla && g.planilla.visible !== false)", '(g.planilla)'), null],
   ['poncho', 'el brazo con poncho desde el codo', (c) => c.replace("? [[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [l * 0.006, -0.26, 0.004]", '? [[l * 0.006, -0.26, 0.004]').replace('[0.026, 0.034, 0.035, 0.038, 0.037, 0.034, 0.028]', '[0.038, 0.037, 0.034, 0.028]'), null],
   ['poncho', 'el brazo del mate con poncho desde el codo', (c) => c.replace('? [[[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [codoP[0], -0.24, 0.0]', '? [[[codoP[0], -0.24, 0.0]').replace('[0.026, 0.034, 0.035, 0.042, 0.045, 0.044, 0.042, 0.036]', '[0.042, 0.045, 0.044, 0.042, 0.036]'), null],
+  ['poncho', 'con poncho cruza los brazos', (c) => c.replace('const P = g.conPoncho && PONCHO_SIN_POSE.has(q.nombre) ? null : POSES[q.nombre];', 'const P = POSES[q.nombre];'), null],
   ['enganche', 'sin __tareaMano', null, (g) => g.replace('g.__tareaMano = !!(tarea', 'g.__tareaManoX = !!(tarea')],
   ['enganche', 'sin devolver la tabla después de la pose', null, (g) => g.replace('else if (!deja && g.__enManoDejado) { cosa.visible = true;', 'else if (!deja && g.__enManoDejado) {')],
 ];

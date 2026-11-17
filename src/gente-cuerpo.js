@@ -2377,6 +2377,9 @@ const POSES = {
   // 3.9.2: las manos juntas adelante, a la altura del delantal (la anfitriona de la casa de té recibiendo)
   juntas: { izq: { x: -0.3, yl: -1.25, zl: 0.12, codo: -1.45 }, der: { x: -0.3, yl: -1.25, zl: 0.12, codo: -1.45 } },
 };
+// 4.30.0 (A): con poncho, las poses que llevan las manos por delante o por detrás del cuerpo (cruzados, en la cintura, juntas, el delantal, atrás) no se hacen: el poncho
+// no se abre y los antebrazos lo atravesaban. Los brazos quedan quietos debajo del poncho, como se los tiene de verdad; las de un brazo arriba (la barba, el gorro) sí.
+export const PONCHO_SIN_POSE = new Set(['cruzados', 'cintura', 'juntas', 'delantal', 'atras']);
 function quietud(g, st, dt, andando, charlando) {
   const q = st.q || (st.q = { nombre: null, sig: null, w: 0, t: 2 + Math.random() * 4 });
   // 4.30.0 (A): con la planilla o la caña en la mano (a la vista), el brazo que la lleva no entra en la pose (como el del mate): la tabla o la caña atravesaban el pecho con
@@ -2392,7 +2395,7 @@ function quietud(g, st, dt, andando, charlando) {
     }
   } else q.sig = null;
   if (q.nombre !== q.sig) { q.w = Math.max(0, q.w - dt * 2.5); if (q.w === 0) q.nombre = q.sig; } else q.w = Math.min(1, q.w + dt * 2.5);
-  const P = POSES[q.nombre];
+  const P = g.conPoncho && PONCHO_SIN_POSE.has(q.nombre) ? null : POSES[q.nombre];   // 4.30.0 (A): ver PONCHO_SIN_POSE
   if (!P || q.w <= 0) return;
   const w = q.w * q.w * (3 - 2 * q.w);
   let defs = [P.izq || null, P.der || null];
