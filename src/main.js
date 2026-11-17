@@ -877,7 +877,7 @@ async function construir() {
     // 4.0: lo que rodea al molino (tulipanes, arroyo, cercos y casa); despeja árboles, matas y pasto de su huella
     if (e.molino) {
       try {
-        const mp = crearMolinoPaisaje({ T, escena, col, molino: e.molino, densidad: calidad.densidad ?? 1 });
+        const mp = crearMolinoPaisaje({ T, escena, col, molino: e.molino, densidad: calidad.densidad ?? 1, puertas });   // (4.30.0 (B): la casa del molino se entra, con su puerta)
         if (mp) {
           e.molinoPaisaje = mp;
           if (!esDesafio) T.reservaMolino = (x, z, radio) => mp.reservado(x, z, radio);   // 4.0.3 (I-1): no se funda encima (el Desafío sigue como estaba: ahí el campo es terreno de defensa)
@@ -1063,12 +1063,17 @@ async function construir() {
   manosSociales = crearManosSociales(camara, () => manoPropia?.grupo?.children?.[0] || null);
   // 3.8.6: adentro de un edificio fijo del valle no se arman piezas en el suelo (ver construccion.js)
   { const interiores = techosFijos(); T.interiorFijo = (x, z) => interiores.some((c) => Math.hypot(x - c.x, z - c.z) < c.r); }
+  // 4.30.0 (B): tu refugio, para los muebles que entran ahí (el espejo: `entraEnRefugio` en construccion.js): entre la cara de adentro de sus troncos y con sus ejes. Sólo el Relax.
+  T.dentroRefugioPropio = (x, z) => enMiRefugio(x, z, 0.16);
+  T.ejesRefugio = (x, z) => (enMiRefugio(x, z, 0) ? T.lugares.refugio.rot || 0 : null);
+  T.pisoRefugio = () => pisoDelRefugio(T.lugares.refugio);
   obras = crearConstruccion(T, escena, col, veg, puertas, asiento);
   // 2.4.1: las obras de un plano que esta versión no conoce (una partida de la otra PC,
   // con una versión más nueva) no se arman, pero tampoco se pierden: vuelven al guardar.
   obrasAjenas = (progreso.obras || []).filter((d) => d && !PLANO[d.plano]);
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
+  mudarEspejoAdentro();   // 4.30.0 (B): el espejo de fábrica de las partidas de antes, adentro del refugio
   revivirFogatas();   // 3.8.7: los fuegos que ardían al guardar, cada uno con su obra
   desalojarCarpa();   // 3.6.2
   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
@@ -1543,6 +1548,13 @@ function dentroDelRefugio(p) {
   const dx = p.x - r.x, dz = p.z - r.z, c = Math.cos(r.rot || 0), s = Math.sin(r.rot || 0);
   const lx = dx * c - dz * s, lz = dx * s + dz * c;
   return Math.abs(lx) < d.W / 2 && Math.abs(lz) < d.D / 2 && (!Number.isFinite(p.y) || Math.abs(p.y - (r.y ?? p.y)) < (d.H || 3));
+}
+// 4.30.0 (B): ¿(x, z) cae entre las paredes del refugio, a `margen` metros del eje de los troncos? (el piso, sin mirar la altura; en el Desafío, nunca)
+function enMiRefugio(x, z, margen = 0) {
+  const r = T.lugares?.refugio, d = r?.dimensiones;
+  if (esDesafio || !r || !d) return false;
+  const dx = x - r.x, dz = z - r.z, c = Math.cos(r.rot || 0), s = Math.sin(r.rot || 0);
+  return Math.abs(dx * c - dz * s) < d.W / 2 - margen && Math.abs(dx * s + dz * c) < d.D / 2 - margen;
 }
 function dormir(opRincon = null) {
   if (durmiendo) return;
@@ -3763,6 +3775,16 @@ function crearABruno(modo, alTerminar) {
     else nota('Bruno', 'No se pudo abrir la pantalla ahora. Probá de nuevo en un rato.');
   }
 }
+// 4.30.0 (B): el espejo de fábrica va ADENTRO del refugio (pedido del usuario: estaba afuera, a unos metros de la puerta), contra una pared libre y mirando al
+// cuarto; se saca y se pone en otro lado como cualquier mueble (Shift+Y), también adentro del refugio. Lugares en el marco del refugio (x a lo ancho, +z
+// sale por la puerta) y el giro del espejo (su frente es −z): la pared de la ventana del costado (entre el hogar y la ventana), la de la derecha (entre la
+// cama y el cuadro) y la del fondo (entre el estante y la cama). Si ninguno sirve, afuera como antes.
+const ESPEJO_EN_REFUGIO = [{ lx: -3.07, lz: -1.25, giro: -Math.PI / 2 }, { lx: 3.07, lz: -0.75, giro: Math.PI / 2 }, { lx: 0.65, lz: -2.32, giro: Math.PI }];   // (2 cm de la cara de los troncos)
+function lugaresDelEspejo(ref) {
+  const c = Math.cos(ref.rot || 0), s = Math.sin(ref.rot || 0);
+  return ESPEJO_EN_REFUGIO.map((l) => ({ x: ref.x + l.lx * c + l.lz * s, z: ref.z - l.lx * s + l.lz * c, rot: (ref.rot || 0) + l.giro }));
+}
+const pisoDelRefugio = (ref) => (Number.isFinite(ref.y) ? ref.y : T.altura(ref.x, ref.z)) + 0.37;
 // 4.1: el espejo de fábrica: al crear a Bruno, cada refugio nuevo trae un espejo armado (gratis) cerca de la puerta, así nadie se queda sin poder rehacer su aspecto.
 // Se prueban lugares alrededor del refugio hasta que uno sirva; si ninguno sirve, queda el botón de respaldo del panel de Bruno. Una sola vez por partida (si después lo
 // desmontás, no vuelve solo: el plano es gratis y siempre está).
@@ -3776,6 +3798,13 @@ function colocarEspejoDeFabrica() {
     const previo = obras.plano;
     try {
       obras.elegir(PLANO.espejo);
+      for (const l of lugaresDelEspejo(ref)) {   // 4.30.0 (B): adentro, primero
+        if (puesto) break;
+        obras.fijarRotacion?.(l.rot);
+        const r = obras.fundar(l.x, l.z, l.rot, pisoDelRefugio(ref));
+        if (r.ok) { obras.avanzar(r.obra, {}); progreso.obras = obras.obras.map((o) => o.datos); puesto = true; }
+      }
+      if (!puesto) obras.elegir(PLANO.espejo);   // (el giro vuelve a ser el de la vuelta de afuera)
       for (const d of [3.4, 4.2, 2.8, 5, 6]) for (let k = 0; k < 12 && !puesto; k++) {
         const a = (ref.rot || 0) + (k / 12) * Math.PI * 2;
         const r = obras.fundar(ref.x + Math.sin(a) * d, ref.z + Math.cos(a) * d, a + Math.PI);
@@ -3784,7 +3813,36 @@ function colocarEspejoDeFabrica() {
     } catch (err) { console.warn('Bruno · espejo de fábrica:', err); }
     finally { try { obras.elegir(previo); } catch { /* nada */ } }
   }
-  if (puesto) cambiarPersonal(sBruno, { espejoPuesto: true });
+  if (puesto) cambiarPersonal(sBruno, { espejoPuesto: true, espejoAdentro: true });
+}
+// 4.30.0 (B): las partidas de antes tienen el espejo de fábrica afuera, a unos metros de la puerta: se muda adentro una vez, al cargar. Sólo el que quedó
+// donde lo puso el juego (a menos de 6,5 m del refugio y afuera); si lo llevaste a otro lado, o ya hay uno adentro, no se toca. Si adentro no entra (lo
+// ocupa algo tuyo), queda donde estaba y se vuelve a probar en la próxima carga.
+function mudarEspejoAdentro() {
+  const b = progreso.personal?.bruno, ref = T.lugares?.refugio;
+  if (esDesafio || !obras || !PLANO.espejo || !ref || !b || b.espejoPuesto !== true || b.espejoAdentro === true || obras.editando) return false;
+  const espejos = obras.obras.filter((o) => o.plano?.id === 'espejo' && o.datos.etapas >= o.plano.etapas.length);
+  const marcar = () => { b.espejoAdentro = true; return true; };
+  if (espejos.some((o) => enMiRefugio(o.datos.x, o.datos.z, 0))) return marcar();
+  const afuera = espejos.find((o) => Math.hypot(o.datos.x - ref.x, o.datos.z - ref.z) < 6.5);
+  if (!afuera) return marcar();
+  const previo = obras.plano;
+  let movido = false;
+  try {
+    obras.elegir(PLANO.espejo);
+    const e = obras.iniciarEdicionCerca({ x: afuera.datos.x, z: afuera.datos.z, y: afuera.datos.y }, 0.4);
+    if (e.ok && e.obra === afuera) {
+      for (const l of lugaresDelEspejo(ref)) {
+        obras.fijarRotacion(l.rot);
+        if (obras.confirmarEdicion(l.x, l.z, l.rot, pisoDelRefugio(ref)).ok) { movido = true; break; }
+      }
+      if (!movido) obras.cancelarEdicion();
+    } else if (e.ok) obras.cancelarEdicion();
+  } catch (err) { console.warn('Bruno · mudar el espejo:', err); try { if (obras.editando) obras.cancelarEdicion(); } catch { /* nada */ } }
+  finally { try { obras.elegir(previo); } catch { /* nada */ } }
+  if (!movido) return false;
+  progreso.obras = obras.obras.map((o) => o.datos);
+  return marcar();
 }
 // ¿Hay que crear a Bruno antes de entrar? Siempre, salvo en depuración (las pruebas de humo no pasan por la pantalla; con `&creador=1` sí).
 const sinCreadorDeBruno = () => HOJARASCA_DEBUG && new URLSearchParams(location.search).get('creador') !== '1';
@@ -11248,6 +11306,8 @@ function interiorDelValle(cam) {
     const c = cajaCacheada(l, l.x, l.z, l.rot, clave, () => cajaDeLugar(clave, l));
     if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle;
   }
+  const casaMolino = est?.molinoPaisaje?.interior;   // 4.30.0 (B): la casa del molino, que ahora se entra
+  if (casaMolino && interiorDeCaja(cam, casaMolino, salidaValle)) return salidaValle;
   if (!obras?.obrasCerca) return null;
   const cerca = obras.obrasCerca(cam, 8, obrasInterior), editando = obras.editando;
   for (let i = 0; i < cerca.length; i++) {
@@ -11278,6 +11338,7 @@ function apagarExterior() {
     const o = hijos[i];
     if (!o.visible) continue;
     const nombre = o.name;
+    if (nombre === 'molino-paisaje' && it.id === 'casa-molino') { for (const h of o.children) if (h.name !== 'molino-paisaje-obras') ocultar(h); continue; }   // 4.30.0 (B): adentro de la casa del molino, la casa (es la misma malla que los cercos) queda
     if (o.isInstancedMesh ? (nombre === '' || nombre === 'impostores') : (nombre === 'terreno' || nombre === 'terreno-aldea' || nombre === 'sotobosque' || nombre === 'sombras-de-contacto' || nombre === 'molino-paisaje' || nombre === 'tren' || nombre === 'sombras-arboles')) ocultar(o);   // (4.24.0: las siluetas que dan sombra, fundidas por especie en un grupo)
   }
   // 4.26.0 (C): en el valle el terreno queda (una sola llamada): entre las tablas del piso de las casas y de las cabañas se ve el suelo de abajo
@@ -12671,7 +12732,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
       secciones: () => secciones().map((s) => s.id), datos: () => progreso.personal, mundo: mundoPersonal,
       abrir: (origen = 'pausa') => abrirPersonal(origen), cerrar: cerrarPersonal, abierto: personalAbierto, desdeElJuego: personalizarDesdeElJuego,
       cambiar: (id, parcial) => { const s = secciones().find((x) => x.id === id); return s ? cambiarPersonal(s, parcial) : null; },
-      usarObra: (o) => usarObra24(o), obras: () => obras, hayEspejo: () => hayEspejoArmado(), colocarEspejo: colocarEspejoDeFabrica,
+      usarObra: (o) => usarObra24(o), obras: () => obras, hayEspejo: () => hayEspejoArmado(), colocarEspejo: colocarEspejoDeFabrica, mudarEspejo: mudarEspejoAdentro,
       aplicar: aplicarPersonal, cuerpo: () => cuerpoJugador, mano: () => manoPropia, bandera: () => banderaMundo, texturaBandera,
     },
   });

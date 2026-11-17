@@ -1166,6 +1166,10 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     // anclen a paredes reales y no a offsets hardcodeados que pueden flotar.
     ref.dimensiones = { W, D, H };
     ref.paredFondoInteriorZ = -D / 2 + radio + 0.035;
+    // 4.30.0 (B): los muebles fijos de adentro (en el marco del refugio: centro, largo en x y ancho en z), para que un mueble tuyo puesto adentro (el espejo) no se encaje
+    // en ellos: sus choques son sólo los cantos (la mesa, a la altura de la tabla) y un espejo en el medio de la mesa no tocaba ninguno
+    ref.muebles = [{ lx: MESA.x, lz: MESA.z, largo: 1.8, ancho: 0.9 }, { lx: 2.2, lz: -D / 2 + 0.75, largo: 2.1, ancho: 1.0 }, { lx: CHIM_REF.x, lz: CHIM_REF.z, largo: 1.5, ancho: 0.7 },
+      { lx: -1.2, lz: -D / 2 + 0.2, largo: 2.4, ancho: 0.34 }, { lx: -W / 2 + 0.85, lz: 1.21, largo: 1.0, ancho: 0.62 }];
     ref.fogon = aMundo(ref, rot, 3.2, D / 2 + 5);
     ref.fogon.y = T.altura(ref.fogon.x, ref.fogon.z);
     ref.techo = { W: W + 1, D: D + 1.5, rot };

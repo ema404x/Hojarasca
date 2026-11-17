@@ -101,7 +101,8 @@ ok(tiene(main, 'function colocarEspejoDeFabrica()') && tiene(main, "if (modo ===
 ok(tiene(main, '!sBruno || !obras || esDesafio || progreso.personal?.bruno?.espejoPuesto || !PLANO.espejo'), 'sólo en el Relax, una sola vez por partida y si el plano existe');
 ok(tiene(main, 'progreso.obras = obras.obras.map((o) => o.datos); puesto = true;'), 'el espejo se agrega a lo que se guarda (si no, no sobrevive a recargar)');
 ok(tiene(main, 'finally { try { obras.elegir(previo); } catch'), 'se devuelve el plano que estaba elegido (no se pisa lo que el jugador tenía en la mano)');
-ok(tiene(main, 'if (puesto) cambiarPersonal(sBruno, { espejoPuesto: true });'), 'sólo se marca como puesto si hay un espejo');
+ok(tiene(main, 'if (puesto) cambiarPersonal(sBruno, { espejoPuesto: true, espejoAdentro: true });'),   // (4.30.0 (B): ajustada a propósito: el de fábrica nace adentro del refugio)
+'sólo se marca como puesto si hay un espejo');
 ok(tiene(main, 'hayEspejo: () => hayEspejoArmado(),'), 'el panel de Bruno puede preguntar si hay espejo');
 for (const n of ['src/planos-espejo.js']) {
   const t = leer(n);

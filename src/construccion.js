@@ -2686,6 +2686,12 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   }
 
   function resolverSnap(x, z, plano, rot, ignorarObra = null) {
+    // 4.30.0 (B): adentro de tu refugio, un mueble que entra ahí (el espejo) gira a escuadra con sus paredes (los pasos de 45° son del mundo y el
+    // refugio está girado: quedaba torcido contra la pared)
+    if (plano?.entraEnRefugio && typeof T.ejesRefugio === 'function') {
+      const r0 = T.ejesRefugio(x, z);
+      if (Number.isFinite(r0)) return { x, z, rot: r0 + Math.round((rot - r0) / (Math.PI / 2)) * (Math.PI / 2), snap: null };
+    }
     const cfg = plano?.snap;
     if (!snapActivo || !cfg) return { x, z, rot, snap: null };
     let mejor = null;
@@ -2917,6 +2923,52 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   // 4.10.3 (G-2): ¿hay algo del mundo (la pared, el cerco o el mostrador de un edificio del valle) adentro de la huella de la pieza? No cuentan los
   // árboles y rocas (van aparte), ni lo que armaste vos (eso lo mira C9), ni lo que está por debajo del piso de la pieza.
   let vegChoques = null, vegChoquesN = -1;
+  // 4.30.0 (B): ¿algún choque del mundo (un mueble del refugio, su pared, un adorno de Personalizar) toca la huella ENTERA de un mueble chico? A diferencia
+  // de edificioDelMundoEnHuella (que mira si un choque cae adentro de la huella achicada), acá cuenta el radio del choque y el segmento que la cruza: el
+  // canto de la mesa del refugio pasa por afuera de la huella de un espejo puesto en su medio, y lo dejaba encajado en la mesa. Lo tuyo no cuenta (la
+  // revisión de piezas va aparte), ni la vegetación, ni lo que queda por debajo del piso o por encima del mueble.
+  // 4.30.0 (B): ¿la huella del mueble se mete en uno de los muebles fijos del refugio (estructuras.js, `ref.muebles`)? Por puntos de las dos huellas
+  function encimaDeMueblesDelRefugio(x, z, plano, rot) {
+    const ref = T.lugares?.refugio, lista = ref?.muebles;
+    if (!ref || !Array.isArray(lista)) return false;
+    const rr = ref.rot || 0, cr = Math.cos(rr), sr = Math.sin(rr), hw = (plano.ancho || 0.8) / 2, hd = (plano.fondo || 0.5) / 2;
+    const aRef = (q) => { const dx = q.x - ref.x, dz = q.z - ref.z; return { a: dx * cr - dz * sr, b: dx * sr + dz * cr }; };
+    const mios = [];
+    for (const u of [-1, -0.5, 0, 0.5, 1]) for (const v of [-1, 0, 1]) mios.push(aRef(mundoDesdeLocal(x, z, rot, u * hw, v * hd)));
+    const centro = aRef({ x, z }), cm = Math.cos(rot - rr), sm = Math.sin(rot - rr);
+    const enMio = (a, b) => { const da = a - centro.a, db = b - centro.b; return Math.abs(da * cm - db * sm) < hw && Math.abs(da * sm + db * cm) < hd; };
+    for (const m of lista) {
+      const ma = m.largo / 2 + 0.02, mb = m.ancho / 2 + 0.02;
+      if (mios.some((p) => Math.abs(p.a - m.lx) < ma && Math.abs(p.b - m.lz) < mb)) return true;
+      for (const u of [-1, 0, 1]) for (const v of [-1, 0, 1]) if (enMio(m.lx + u * ma, m.lz + v * mb)) return true;
+    }
+    return false;
+  }
+
+  function muebleEnHuella(x, z, plano, rot, base) {
+    if (typeof col.cercanos !== 'function') return false;
+    const hw = (plano.ancho || 0.8) / 2, hd = (plano.fondo || 0.5) / 2, alto = plano.alto || 2;
+    const lv = veg?.colisiones;
+    if (Array.isArray(lv) && (!vegChoques || vegChoquesN !== lv.length)) { vegChoques = new Set(lv); vegChoquesN = lv.length; }
+    const c = Math.cos(rot), sn = Math.sin(rot);
+    const dist = (px, pz) => { const dx = px - x, dz = pz - z, a = Math.abs(dx * c - dz * sn) - hw, b = Math.abs(dx * sn + dz * c) - hd; return Math.hypot(Math.max(a, 0), Math.max(b, 0)); };
+    const vistos = new Set();
+    for (const lx of [-hw, 0, hw]) for (const lz of [-hd, 0, hd]) {
+      const q = mundoDesdeLocal(x, z, rot, lx, lz);
+      for (const o of col.cercanos(q.x, q.z)) {
+        if (vistos.has(o)) continue;
+        vistos.add(o);
+        if ((o.duenio && !o.duenio.deco) || o.despejado || o.apagado || o.dinamico || vegChoques?.has(o)) continue;
+        if ((Number.isFinite(o.alturaMax) && o.alturaMax <= base + 0.1) || (Number.isFinite(o.alturaMin) && o.alturaMin >= base + alto)) continue;
+        const r = Math.max(0, (o.r || 0) - 0.02);
+        if (!o.seg) { if (dist(o.x, o.z) < r) return true; continue; }
+        const largo = Math.hypot(o.bx - o.ax, o.bz - o.az), n = Math.min(80, Math.max(1, Math.ceil(largo / 0.08)));
+        for (let i = 0; i <= n; i++) if (dist(o.ax + (o.bx - o.ax) * i / n, o.az + (o.bz - o.az) * i / n) < r) return true;
+      }
+    }
+    return false;
+  }
+
   function edificioDelMundoEnHuella(x, z, plano, rot, base) {
     const hw = (plano.ancho || plano.radio * 1.5) / 2 - 0.15, hd = (plano.fondo || plano.radio * 1.5) / 2 - 0.15;
     if (!(hw > 0.1 && hd > 0.1)) return false;
@@ -2978,6 +3030,24 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
     if (plano.requiereHuecoEscalera && !huecoEscaleraValido(x, z, rot, base, ignorarObra))
       return { ok: false, motivo: 'Necesita encastrarse con un entrepiso con hueco de escalera' };
     const muestras = muestrasHuella(x, z, plano, rot);
+
+    // 4.30.0 (B): un mueble de los que entran en tu refugio (`entraEnRefugio`: el espejo de pie) se arma y se mueve sobre su piso, entre sus cuatro
+    // paredes, aunque el refugio sea un edificio fijo del valle (la regla de la 3.8.6 sigue para todo lo demás). Se apoya en el piso del refugio (el
+    // terreno de abajo queda a menos de 12 cm de las tablas: no contaba como «sobre un piso» y salía «Adentro de un edificio del valle»). No pisa los
+    // muebles del refugio (la mesa, la cama, el hogar, el estante, la leña: `ref.muebles` y sus choques), ni los adornos de Personalizar, ni otra pieza tuya. Con
+    // las esquinas de verdad del mueble: las muestras de la huella son de 0,9 m como mínimo y lo dejaban a 20 cm de la pared.
+    if (pieza && plano.entraEnRefugio && typeof T.dentroRefugioPropio === 'function' && typeof T.pisoRefugio === 'function') {
+      const esquinas = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]].map(([a, b]) => mundoDesdeLocal(x, z, rot, a * (plano.ancho || 0.8) / 2, b * (plano.fondo || 0.5) / 2));
+      if (esquinas.every((q) => T.dentroRefugioPropio(q.x, q.z))) {
+        const piso = T.pisoRefugio();
+        if (muebleEnHuella(x, z, plano, rot, piso) || encimaDeMueblesDelRefugio(x, z, plano, rot)) return { ok: false, motivo: 'Choca con un mueble del refugio' };
+        for (const o of obras) {
+          if (o === ignorarObra || o.datos.etapas <= 0 || !o.plano.pieza) continue;
+          if (solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0)) return { ok: false, motivo: 'Se superpone con otra pieza' };
+        }
+        return { ok: true, base: piso, sobrePlataforma: true };
+      }
+    }
 
     // 2.4: el embarcadero se mide por sus dos puntas, no por su centro
     if (plano.sobreAgua) {
@@ -3158,6 +3228,13 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
 
   // R/rueda giran en pasos de 45° (o el paso propio del plano). La rotación
   // queda fijada: mirar hacia otro lado ya no hace girar toda la construcción.
+  // 4.30.0 (B): fija el giro del plano elegido (el espejo de fábrica, que se pone mirando al cuarto); el siguiente R sigue desde acá
+  function fijarRotacion(rot) {
+    if (!planoElegido || !Number.isFinite(rot)) return rotacionFantasma || 0;
+    rotacionFantasma = rot;
+    return rot;
+  }
+
   function girar(direccion = 1) {
     if (!planoElegido) return 0;
     const paso = planoElegido.rotPaso || Math.PI / 4;
@@ -4360,7 +4437,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null, asi
   }
 
   return { repintar, pintarCasa, restilizarJardin, casas: (desde = null) => agruparCasas(obras, desde),
-    recuperaDeObra, elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, piezaADesmontar: (pos, radio = 4.5) => (edicion ? null : piezaCerca(pos, radio)), deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
+    recuperaDeObra, elegir, girar, fijarRotacion, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, piezaADesmontar: (pos, radio = 4.5) => (edicion ? null : piezaCerca(pos, radio)), deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
     destruir, portonAbierto, reemplazarPlano, obrasCerca: (pos, radio, salida = []) => obrasCerca(pos, radio, salida),
     cancelarMarcada, obraCerca, tieneFuncionCerca, rehacer, sincronizar, dentro, estadoModulo, estadoModuloCerca, habitacionModular, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
     get plano() { return planoElegido; }, get rotacion() { return rotacionFantasma || 0; }, get estadoSitio() { return ultimoEstado; },

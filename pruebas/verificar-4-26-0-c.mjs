@@ -177,7 +177,7 @@ const fuenteMain = leer('src/main.js');
   ok(mal.length === 0, `main.js: interiorDelValle con el código de verdad (${mal.join(' | ') || 'sin fallas'})`);
   const mus = [
     ['sin-desafio', '  if (desafio) return null;\n  for (let i = 0; i < LUGARES_CERRADOS.length', '  for (let i = 0; i < LUGARES_CERRADOS.length'],
-    ['sin-lugares', 'if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle;\n  }\n  if (!obras', 'if (false) return salidaValle;\n  }\n  if (!obras'],
+    ['sin-lugares', 'if (c && interiorDeCaja(cam, c, salidaValle)) return salidaValle;\n  }\n  const casaMolino', 'if (false) return salidaValle;\n  }\n  const casaMolino'],   // (4.30.0 (B): ajustada a propósito: después del bucle va la casa del molino)
     ['sin-casas', "const c = cajaCacheada(o, d.x, d.z, d.rot, P.id,", "const c = null && cajaCacheada(o, d.x, d.z, d.rot, P.id,"],
     // (sacar el `CASAS_CERRADAS.has` de main.js no cambia nada: cajaDeCasa también lo mira, y esa la prueba la mutación «casa-cualquiera»)
     ['casa-sin-altura', 'y: Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z),', 'y: 0,'],

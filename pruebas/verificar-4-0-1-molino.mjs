@@ -73,7 +73,10 @@ assert.ok(cruce < 0.5, `donde cruza el sendero el agua está a ras del suelo (${
       col.resolver(t, 0.35, 1.65);
       if (Math.hypot(t.x - q.x, t.z - q.z) > 0.04) { corte = lz; break; }
     }
-    assert.ok(corte !== null && corte > frente - 0.8, `la galería frena a quien camina de frente (lx ${lx}): se frenó en lz ${corte}, el frente está en ${frente.toFixed(1)}`);
+    // 4.30.0 (B): ajustada a propósito: la casa se entra, así que por el eje (lx −10,2: la escalerita y la puerta, abierta en esta prueba sin puertas.js)
+    // el cuerpo pasa la galería y la pared del frente y se frena recién adentro, en los muebles; por los costados la baranda sigue frenando
+    if (lx === -10.2) assert.ok(corte !== null && corte < c.z1 - 0.3, `por la escalerita y la puerta se entra a la casa (lx ${lx}): se frenó en lz ${corte}, la pared del frente está en ${c.z1.toFixed(1)}`);
+    else assert.ok(corte !== null && corte > frente - 0.8, `la galería frena a quien camina de frente (lx ${lx}): se frenó en lz ${corte}, el frente está en ${frente.toFixed(1)}`);
   }
 }
 // 4) los bancos de niebla de valle (zona C, hallazgo 4) no cortan cabaña, galpón ni faro; los de siempre no se mueven
