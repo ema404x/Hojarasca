@@ -1712,6 +1712,8 @@ export function crearAldeaMundo(ctx) {
     // los emisores (para las partículas: el humo del horno va con las chimeneas; las chispas de la
     // fragua quedan expuestas para la fase de mecánicas)
     b.emisores = ['chispas', 'humo', 'vapor'].filter((k) => d[k]).map((k) => ({ tipo: k, edificio: b.id, ...aMundoEn(s, d[k].lx, d[k].lz), y: s.y + d[k].ly }));
+    // 4.29.2 (B): dónde arde el fuego de los hornos y las fraguas (sólo lo lee Ultra, ver `fuegosUltra`)
+    b.fuegos = d.etapa >= 3 && d.extra?.fuegos ? d.extra.fuegos.map((f) => ({ ...aMundoEn(s, f.lx, f.lz), y: s.y + f.ly, alto: f.alto, ancho: f.ancho, tipo: f.tipo, adentro: !!f.adentro })) : null;
     b.acometida = d.extra?.acometida ? { ...aMundoEn(s, d.extra.acometida.lx, d.extra.acometida.lz), y: s.y + d.extra.acometida.ly } : null;
     // 3.6 (detalles): el cable del poste a la casa aparece cuando abre el local (antes esperaba a que
     // se rehiciera la luz de las ventanas en el suelo, que va con el planificador)
@@ -2344,6 +2346,21 @@ export function crearAldeaMundo(ctx) {
     // 3.6 (pulido): para la fase de mecánicas: lo que se mueve y lo que echa humo o chispas
     animables: (id = null) => [...edificios.values()].filter((b) => !id || b.id === id).flatMap((b) => b.animables || []),
     emisores: () => [...edificios.values()].flatMap((b) => b.emisores || []),
+    // 4.29.2 (B, sólo Ultra: lo llama ultra-vida.js): los fuegos de los hornos y las fraguas a menos de `radio` m de la cámara (los de adentro, sólo
+    // si se ve el interior del edificio); la luz de la fragua de la herrería va con el suyo (para que titile como un fuego)
+    fuegosUltra: (cam, radio = 32, out = [], todos = false) => {
+      out.length = 0;
+      if (!cam || distAldea(cam.x, cam.z) > 260) return out;
+      for (const b of edificios.values()) {
+        if (!b.fuegos) continue;
+        for (const f of b.fuegos) {
+          if (Math.abs(f.x - cam.x) > radio || Math.abs(f.z - cam.z) > radio || Math.hypot(f.x - cam.x, f.z - cam.z) > radio) continue;
+          if (f.adentro && !todos && !b.interior?.visible) continue;   // (`todos`: también los de adentro que no se ven, para las capturas)
+          out.push({ x: f.x, y: f.y, z: f.z, alto: f.alto, ancho: f.ancho, tipo: f.tipo, luz: f.tipo === 'fragua' && b.luz?.clase === 'fragua' ? b.luz.luz : null, clave: b.id });
+        }
+      }
+      return out;
+    },
     // 3.6 (mecánicas): gancho mínimo (ver puntosDeEdificio y animableEnSitio)
     puntosEdificio: (id) => puntosDeEdificio(id), animablesEstacion: () => estacionHecha?.animables || [],
     centro, accesorios, emparejado: () => emparejado, aMundo: (lx, lz) => aMundo(lx, lz), fabrica: () => fabrica.stats,

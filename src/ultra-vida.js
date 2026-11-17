@@ -11,6 +11,9 @@
 //   · vida chica: luciérnagas que se prenden y se apagan en las noches de verano, en los prados y los bordes del bosque (en lugar de las de
 //     siempre, que brillan parejo en todos lados); telarañas con rocío a la mañana en los arbustos y los cercos; bandadas de pájaros en el
 //     suelo que se espantan cuando pasás cerca.
+// 4.29.2: también arden los hornos de barro (la panadería, la cerámica) y las fraguas (la herrería, el taller del tren) de la aldea, con las mismas
+// llamas y chispas (aldea-mundo.js `fuegosUltra`, sólo cerca), y la luz de la fragua titila como un fuego. Las huellas finas también se ven en el
+// ripio de la aldea (ultra-materiales.js).
 // Programas de Ultra: las llamas, los puntos (chispas, gotas, salpicaduras, luciérnagas y pájaros: uno solo) y las telarañas; y el suelo
 // (ultra-bosque.js) suma el barro pisado a su parche.
 import * as THREE from 'three';
@@ -466,6 +469,12 @@ export function titilarFuego(t, semilla) {
   return Math.min(1.35, Math.max(0.6, 0.45 + lento * 0.6 + rapido * 0.35 + (golpe > 0.75 ? -(golpe - 0.75) * 1.2 : golpe * 0.15)));
 }
 export function titilarVela(t, semilla) { return 1 + 0.14 * (ruido1(t * 5.7 + semilla) * 0.7 + ruido1(t * 13.9 + semilla * 2.3) * 0.3 - 0.5); }
+// 4.29.2: el fuego de un horno de barro o de una fragua de la aldea (lo que devuelve `aldeaMundo.fuegosUltra`) como lo dibujan las llamas: en el
+// horno, lenguas bajas que lamen la boca y pocas chispas; en la fragua, el fuego avivado de las brasas, más alto, con chispas que suben a la campana
+export function fuegoAldea(a, semilla) {
+  const horno = a.tipo === 'horno';
+  return { x: a.x, y: a.y, z: a.z, alto: a.alto, ancho: a.ancho, brillo: horno ? 0.85 : 1, semilla, chispas: horno ? 1.5 : 6, sube: horno ? 0.7 : 1.4 };
+}
 export function esLuzTibia(c) { return !!c && c.r > 0.2 && c.r >= c.g && c.r > c.b * 1.45; }
 
 const TIPOS_ARBUSTO = new Set(['chilco', 'notro', 'maqui', 'chaura', 'calafate', 'michay', 'mosqueta', 'zarza', 'neneo']);
@@ -508,7 +517,7 @@ export function crearUltraVida({ escena, clima, T }) {
   // las telarañas
   let acumTelas = 99, telasCx = 1e9, telasCz = 1e9;
   const listaTelas = [];
-  const info = { fuegos: 0, chispas: 0, gotitas: 0, impactos: 0, luciernagas: 0, pajaros: 'nada', telas: 0, huellas: 0, espantadas: 0 };
+  const info = { fuegosAldea: 0, fuegos: 0, chispas: 0, gotitas: 0, impactos: 0, luciernagas: 0, pajaros: 'nada', telas: 0, huellas: 0, espantadas: 0 };
 
   function prender(ctx) {
     activo = true;
@@ -562,7 +571,7 @@ export function crearUltraVida({ escena, clima, T }) {
   }
 
   // -------------------------------------------------------------- el fuego
-  function juntarFuegos() {
+  function juntarFuegos(ctx) {
     fuegos.length = 0;
     const fogatas = clima?.fogatas || [];
     for (let i = 0; i < fogatas.length; i++) {
@@ -588,7 +597,22 @@ export function crearUltraVida({ escena, clima, T }) {
       const e = m.matrixWorld.elements, esc = Math.hypot(e[4], e[5], e[6]);
       fuegos.push({ x: e[12], y: e[13], z: e[14], alto: a.alto * esc * 1.25, ancho: a.alto * esc * 0.9, brillo: 1, semilla: 5.3 + i * 0.37, chispas: a.alto * esc > 0.4 ? 7 : 2, sube: a.alto * esc > 0.4 ? 1.6 : 0.5 });
     }
+    // 4.29.2: los hornos de barro (la panadería, la cerámica) y las fraguas (la herrería, el taller del tren) de la aldea, cerca de la cámara
+    aldeaFuegos(ctx);
     info.fuegos = fuegos.length;
+  }
+  const listaAldea = [];
+  function aldeaFuegos(ctx) {
+    info.fuegosAldea = 0;
+    const lista = ctx?.aldea?.fuegosUltra ? ctx.aldea.fuegosUltra(ctx.cam, 32, listaAldea) : null;
+    if (!lista) return;
+    for (let i = 0; i < lista.length && fuegos.length < MAX_LLAMAS; i++) {
+      const a = lista[i], semilla = 7.1 + hash2(Math.round(a.x * 10), Math.round(a.z * 10)) * 5;
+      // la luz de la fragua titila como un fuego (no como una vela)
+      if (a.luz && !lucesFuego.has(a.luz)) lucesFuego.set(a.luz, semilla * 3.7);
+      fuegos.push(fuegoAldea(a, semilla));
+      info.fuegosAldea++;
+    }
   }
   function devolverCono(m) {
     if (m.userData.capasUltraVida !== undefined) { m.layers.mask = m.userData.capasUltraVida; delete m.userData.capasUltraVida; }
@@ -925,7 +949,7 @@ export function crearUltraVida({ escena, clima, T }) {
     const luzR = amb.r * 2.2 + sol.r * 0.35, luzG = amb.g * 2.2 + sol.g * 0.35, luzB = amb.b * 2.2 + sol.b * 0.35;
     // las huellas de Alta en pausa: las finas las reemplazan
     if (ctx.huellas && huellasAlta !== ctx.huellas) { huellasAlta?.reponer?.(); huellasAlta = ctx.huellas; huellasAlta.pausar?.(true); }
-    juntarFuegos();
+    juntarFuegos(ctx);
     llamas.poner(fuegos);
     moverChispas(dt);
     huellasYPasos(dt, ctx, mojado, invierno, nevando);
