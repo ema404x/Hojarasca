@@ -25,7 +25,7 @@ Todo detrás de `esUltra` y de la calidad que corre (como `ultra-vida.js`); con 
 
 ## Rendimiento
 Bucle real de la partida, ventana visible y sin freno, 3 rondas de 60 cuadros (Alta y Ultra alternados en la misma partida), la rama y la
-4.29.1 (`git archive`) medidas una detrás de la otra (`hx4292\m-rama`, `m-base`); ms de placa, en negrita la mediana:
+4.29.1 (`git archive`) medidas una detrás de la otra (`hx\b4292\m-rama`, `m-base`); ms de placa, en negrita la mediana:
 | | Alta rama | Ultra rama | Alta 4.29.1 | Ultra 4.29.1 | lo de B |
 |---|---|---|---|---|---|
 | Plaza de día (05) | 26,0 · 26,8 · 30,8 | 34,8 · 38,4 · 39,0 → **38,4** | 28,9 · 29,6 · 30,1 | 38,1 · 39,5 · 38,0 → **38,1** | +0,3 (ruido) |
