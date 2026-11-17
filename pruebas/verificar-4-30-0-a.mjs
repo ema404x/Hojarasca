@@ -2,7 +2,8 @@
 //  1. `mano` (donde se cuelga la planilla, la caña, la copa, el arco o el martillo) es el PUÑO, no el codo: la planilla de Ercilia y de Josefina (el «anotador» que vio el
 //     usuario) quedaba pegada al antebrazo, a 1 cm del codo, y la caña de Nicanor salía de la cintura hacia atrás.
 //  2. `orientarEnMano` (gente.js) deja la tabla y la caña con el ángulo que les toca respecto del cuerpo, sea cual sea el del hombro (sus tres giros) y el del codo.
-//  3. La quietud (gente-cuerpo.js) no mete el brazo que lleva la planilla o la caña en la pose (los brazos cruzados con la caña atravesando el pecho) y no corre
+//  3. Con poncho los brazos nacen en el hombro (el antebrazo salía flotando del poncho al saludar).
+//  4. La quietud (gente-cuerpo.js) no mete el brazo que lleva la planilla o la caña en la pose (los brazos cruzados con la caña atravesando el pecho) y no corre
 //     mientras anota o pesca (`__tareaMano`); en una pose de la aldea (hachar, regar, bailar) la tabla o la caña se guardan y vuelven al terminar.
 // Personas de verdad (gente-cuerpo.js en una VM con el three local) y la función real de gente.js. Mutaciones: cada una se arma como otro texto en la VM y
 // tiene que hacer fallar su comprobación.
@@ -126,6 +127,15 @@ const COMPROBAR = {
     const r = sinNada.der < -1.5 && conTabla.der > -0.5 && conTabla.izq < -1.5 && guardada.der < -1.5 && anotando.der > -0.5 && anotando.izq > -0.5;
     return [r, `cruzados: sin nada ${sinNada.der.toFixed(2)}, con la tabla der ${conTabla.der.toFixed(2)} izq ${conTabla.izq.toFixed(2)}, tabla guardada ${guardada.der.toFixed(2)}, anotando ${anotando.der.toFixed(2)}/${anotando.izq.toFixed(2)}`];
   },
+  // 5. con poncho, los dos brazos nacen en el hombro (antes en el codo: al saludar el antebrazo salía flotando del poncho). Las personas se arman fundidas en una
+  // sola malla con piel: se mira el armado de la figura (texto) y que siga armando a alguien de poncho sin romperse
+  poncho({ C }, cuerpo = CUERPO) {
+    const brazo = /\? \[\[-l \* 0\.03, 0\.0, 0\], \[-l \* 0\.01, -0\.03, 0\], \[l \* 0\.002, -0\.14, 0\.0\], \[l \* 0\.006, -0\.26, 0\.004\]/.test(cuerpo);
+    const mate = /\? \[\[\[-l \* 0\.03, 0\.0, 0\], \[-l \* 0\.01, -0\.03, 0\], \[l \* 0\.002, -0\.14, 0\.0\], \[codoP\[0\], -0\.24, 0\.0\]/.test(cuerpo);
+    let arma = false;
+    try { const p = C.crearPersona({ poncho: true, ropa: '#6a5a4a' }, 'ramon', true, {}, {}); const q = C.crearPersona({ poncho: true }, 'nicanor', false, {}, { invierno: true }); arma = !!(p.g && q.g && p.mano && q.mano); } catch { arma = false; }
+    return [brazo && mate && arma, 'con poncho, el brazo (y el del mate) desde el hombro, y se arma'];
+  },
   // 4. el enganche en gente.js (texto: el bucle de la gente no corre en Node)
   enganche(_v, gente = GENTE) {
     const r = /g\.__tareaMano = !!\(tarea && \(\(tarea\.anotando && g\.planilla\) \|\| \(tarea\.pescando && g\.caña\)\)\);/.test(gente)
@@ -156,6 +166,8 @@ const MUT = [
   ['quietud', 'la quietud con el brazo de la tabla', (c) => c.replace('if (!d || b.userData.muneca || (enMano && s === 1)) return;', 'if (!d || b.userData.muneca) return;'), null],
   ['quietud', 'quietud anotando', (c) => c.replace(' && !g.__tareaMano) {', ') {'), null],
   ['quietud', 'la tabla guardada cuenta como en la mano', (c) => c.replace("(g.planilla && g.planilla.visible !== false)", '(g.planilla)'), null],
+  ['poncho', 'el brazo con poncho desde el codo', (c) => c.replace("? [[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [l * 0.006, -0.26, 0.004]", '? [[l * 0.006, -0.26, 0.004]').replace('[0.026, 0.034, 0.035, 0.038, 0.037, 0.034, 0.028]', '[0.038, 0.037, 0.034, 0.028]'), null],
+  ['poncho', 'el brazo del mate con poncho desde el codo', (c) => c.replace('? [[[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [codoP[0], -0.24, 0.0]', '? [[[codoP[0], -0.24, 0.0]').replace('[0.026, 0.034, 0.035, 0.042, 0.045, 0.044, 0.042, 0.036]', '[0.042, 0.045, 0.044, 0.042, 0.036]'), null],
   ['enganche', 'sin __tareaMano', null, (g) => g.replace('g.__tareaMano = !!(tarea', 'g.__tareaManoX = !!(tarea')],
   ['enganche', 'sin devolver la tabla después de la pose', null, (g) => g.replace('else if (!deja && g.__enManoDejado) { cosa.visible = true;', 'else if (!deja && g.__enManoDejado) {')],
 ];
@@ -164,7 +176,7 @@ for (const [cual, nombre, mc, mg] of MUT) {
   const c = mc ? mc(CUERPO) : CUERPO, g = mg ? mg(GENTE) : GENTE;
   assert.ok(c !== CUERPO || g !== GENTE, `la mutación «${nombre}» no cambió nada`);
   let r;
-  try { r = cual === 'enganche' ? COMPROBAR.enganche(null, g)[0] : COMPROBAR[cual](armar(c, g))[0]; } catch { r = false; }
+  try { r = cual === 'enganche' ? COMPROBAR.enganche(null, g)[0] : cual === 'poncho' ? COMPROBAR.poncho(armar(c, g), c)[0] : COMPROBAR[cual](armar(c, g))[0]; } catch { r = false; }
   ok(!r, `mutación «${nombre}»: su comprobación tiene que fallar`);
   mut++;
 }

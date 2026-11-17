@@ -1693,7 +1693,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       const en = (t) => [codoP[0] + D.x * t, codoP[1] + D.y * t, codoP[2] + D.z * t];
       const W = en(0.25);
       const brazo = conPoncho
-        ? [[[codoP[0], -0.24, 0.0], codoP, en(0.06), en(0.15), W], [0.042, 0.045, 0.044, 0.042, 0.036]]
+        ? [[[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [codoP[0], -0.24, 0.0], codoP, en(0.06), en(0.15), W], [0.026, 0.034, 0.035, 0.042, 0.045, 0.044, 0.042, 0.036]]   // (4.30.0 (A): desde el hombro, ver abajo)
         : [[[-l * 0.035, 0.012, 0], [-l * 0.012, -0.02, 0], [l * 0.002, -0.1, 0.0], [codoP[0], -0.235, 0.0], codoP, en(0.05), en(0.14), W],
           [0.032, 0.046 * kb, 0.043 * kb, 0.038 * kb, 0.036 * kb, 0.036 * kb, 0.033 * kb, 0.028]];
       if (remango) { arremangar(piv, brazo[0], brazo[1], 3, manga, colPiel, 14, 10, telaManga); piv.add(piel(bola(colPiel, [0.022, 0.022, 0.022], W, null, [8, 6]))); }
@@ -1725,15 +1725,17 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       piv.add(muneca); piv.userData.muneca = muneca;
     } else {
       const W = [l * 0.012, -0.49, 0.03];
+      // 4.30.0 (A): con poncho, el brazo entero desde el hombro (antes nacía en el codo, debajo del poncho): al saludar, señalar o cruzar los brazos el antebrazo
+      // salía del poncho flotando, sin brazo (Ramón, y en invierno todos). Arriba, más fino: quieto queda adentro del poncho y levantado sale por el costado
       const pts = conPoncho
-        ? [[l * 0.006, -0.26, 0.004], [l * 0.008, -0.32, 0.01], [l * 0.01, -0.42, 0.02], W]
+        ? [[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [l * 0.006, -0.26, 0.004], [l * 0.008, -0.32, 0.01], [l * 0.01, -0.42, 0.02], W]
         : [[-l * 0.035, 0.012, 0], [-l * 0.012, -0.02, 0], [0, -0.06, 0], [l * 0.002, -0.14, 0.0], [l * 0.004, -0.25, 0.004], [l * 0.006, -0.29, 0.008], [l * 0.008, -0.37, 0.018], W];
       // (3.9.2: `R.mangaAbullonada`: la manga de la blusa fruncida en el hombro, más ancha arriba y que se va juntando hacia el puño)
       const bullon = R.mangaAbullonada && !conPoncho ? [1, 1.06, 1.1, 1.09, 1.04, 1.02, 1.02, 1] : null;   // (el hombro apenas: más, asomaba sobre el tirante del jumper)
-      const rad = (conPoncho ? [0.038, 0.037, 0.034, 0.028] : [0.032, 0.046 * kb, 0.045 * kb, 0.041 * kb, 0.035 * kb, 0.034 * kb, 0.034 * kb, 0.027]).map((r, i) => r * (bullon ? bullon[i] : 1));
+      const rad = (conPoncho ? [0.026, 0.034, 0.035, 0.038, 0.037, 0.034, 0.028] : [0.032, 0.046 * kb, 0.045 * kb, 0.041 * kb, 0.035 * kb, 0.034 * kb, 0.034 * kb, 0.027]).map((r, i) => r * (bullon ? bullon[i] : 1));
       const colManga = manga;
       if (remango) { if (R.sinMangas) piv.add(piel(huso(colPiel, pts, rad, 14, 10))); else arremangar(piv, pts, rad, 4, manga, colPiel, 14, 10, telaManga); const Wm = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z]; codo.add(piel(bola(colPiel, [0.023 * kb, 0.03, 0.02 * kb], [Wm[0], Wm[1] + 0.006, Wm[2]], null, [8, 6]))); }
-      else piv.add(rol(pintarPieza(huso(colManga, pts, rad, conPoncho ? 10 : 14, 10), arrugaManga), 'manga', conPoncho ? 10 : 14, 10));
+      else piv.add(rol(pintarPieza(huso(colManga, pts, rad, conPoncho ? 12 : 14, 10), arrugaManga), 'manga', conPoncho ? 12 : 14, 10));
       // el puño y la mano, en el codo (así el antebrazo dobla)
       const Wc = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z];
       if (!remango) {
