@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import { U, REGISTRO_ULTRA_B, GLSL_COMUN } from './materiales.js';
 import { esUltra } from './ultra.js';
+import { parcheSueloUltra, parchePastoBordeU, parcheAnilloBordeU } from './ultra-suelo.js';
 
 export const CLAVE_ULTRA_B = 'ultra-b-4.28.0';
 
@@ -135,12 +136,12 @@ export function parchePasto(sh) {
     }
     gl_FragColor = vec4(gradoEstilo(colUB), 1.0);`, 'pasto: gotas');
   sh.fragmentShader = fr;
-  sh.vertexShader = v;
+  sh.vertexShader = parchePastoBordeU(v);   // 4.29.2 (A): el borde de los pisos, corrido como el suelo (ultra-suelo.js)
 }
 
 // Las flores y los helechos del pasto: sólo el borde blando de los pisos (el mismo corte quebrado)
 export function parcheAnillo(sh) {
-  sh.vertexShader = cambiar(sh.vertexShader, '(1.0 - step(0.4, est.b))', '(1.0 - step(0.4 - 0.16 * vnoise(b * 1.7), est.b))', 'anillo: corte');
+  sh.vertexShader = parcheAnilloBordeU(cambiar(sh.vertexShader, '(1.0 - step(0.4, est.b))', '(1.0 - step(0.4 - 0.16 * vnoise(b * 1.7), est.b))', 'anillo: corte'));   // 4.29.2 (A): + el desvío
 }
 
 // El suelo (materialTerreno): el grano de menos de 4 m con relieve y el borde pisoteado de los pisos
@@ -199,7 +200,7 @@ export function parcheTerreno(sh) {
         }
         // 4.29.0 (B): el hundido de la pisada (la pared del lado de atrás mira hacia adelante y al revés)
         if (dot(pisadaUB, pisadaUB) > 1e-6) normal = normalize(normal + (viewMatrix * vec4(pisadaUB.x, 0.0, pisadaUB.y, 0.0)).xyz * 1.3);`, 'terreno: relieve');
-  sh.fragmentShader = f;
+  sh.fragmentShader = parcheSueloUltra(f);   // 4.29.2 (A): el grano de cerca y el borde de los pisos (ultra-suelo.js)
 }
 
 // ---------------------------------------------------------------- poner y sacar Ultra de un material

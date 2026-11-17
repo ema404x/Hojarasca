@@ -501,7 +501,8 @@ export function crearCascada(T, escena, U) {
     espuma.material.uniforms.uOp.value = 0.62 + Math.sin(U.uTiempo.value * 2.0) * 0.08;
     return s;
   }
-  return { actualizar, pos: { x: s.x, y: s.abajo, z: s.z }, salto: s };
+  // 4.29.2 (A): `partes`: sólo referencias, para el nivel de efectos opcional (ver main.js); apagado, nadie las usa
+  return { actualizar, pos: { x: s.x, y: s.abajo, z: s.z }, salto: s, partes: { grupo, cortina, espuma, nube, matNube, gotas, pie: { x: px, z: pz }, dx, dz, nx, nz, R } };
 }
 
 export function crearAgua(T, escena) {

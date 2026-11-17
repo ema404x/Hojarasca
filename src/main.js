@@ -41,6 +41,8 @@ import { crearPuertas } from './puertas.js';
 import { generarVegetacion } from './vegetacion.js';
 import { crearPasto } from './pasto.js';
 import { crearUltraBosque } from './ultra-bosque.js';
+import { crearUltraCascada } from './ultra-cascada.js';
+import { esUltra } from './ultra.js';
 import { crearUltraVida } from './ultra-vida.js';
 import { crearColisiones } from './colisiones.js';
 import { crearEstructuras } from './estructuras.js';
@@ -790,6 +792,7 @@ async function construir() {
   ajustarAguaNueva(calidad.post);   // 4.0: reflejo de la orilla y espuma nuevos, sólo media y alta
   agua = await paso('Llenando el lago', 30, () => crearAgua(T, escena));
   cascada = crearCascada(T, escena, U);
+  ultraCascada = crearUltraCascada(cascada, { renderer, camara, escena });   // 4.29.2 (A): sólo hace algo con Ultra prendido (ver ultra-cascada.js)
   cielo = await paso('Pintando el cielo', 36, async () => { await esperarTexturas('montana'); return crearCielo(escena, calidad); });
   constelaciones = crearConstelaciones(escena);
   fugaces = crearFugaces(escena);
@@ -11092,6 +11095,7 @@ diario.cargarHoy(progreso.diarioHoy, progreso.dia);   // 3.8.4: lo de hoy, si se
 let avisoMarca = false;
 const COLOR_RAYO = new THREE.Color('#cfe0ff');
 let cascada = null;
+let ultraCascada = null;   // 4.29.2 (A): la cascada del nivel Ultra (ultra-cascada.js)
 let post = null;
 let ultraVida = null;   // 4.29.0 (B): ver ultra-vida.js
 const ctxUltraVida = { cam: null, js: null, gente: null, veg: null, obras: null, horas: 0, noche: 0, dia: 1, techos: null, huellas: null, fauna: null, bajoTecho: false };
@@ -11683,6 +11687,7 @@ function cuadroDelJuego(tRaf, manual) {
   obras?.actualizarAmbiente?.(noche);
 
   if (cascada) cascada.actualizar(dt, cam);
+  try { ultraCascada?.actualizar(esUltra(ajustes) && calidadActiva === 'alta', dt, U.uViento.value); } catch (e) { fallaSistema('ultra de la cascada', e); }   // 4.29.2 (A)
   actualizarBanderas(dt);   // 3.8.8: las banderas se orientan al viento (el flameo es del vertex shader)
   // la bruma, las partículas y las aves solo deciden visibilidad y centro:
   // con cinco veces por segundo alcanza, y el movimiento lo hace el shader
@@ -12698,6 +12703,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
   if (HOJARASCA_DEBUG) window.__hojarasca.__ultraBosque = ultraBosque;   // 4.28.0 (B)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__ultraCascada = () => ultraCascada;   // 4.29.2 (A)
   if (HOJARASCA_DEBUG) window.__hojarasca.__ultraLuz = () => ultraLuz;   // 4.29.0 (A)
   if (HOJARASCA_DEBUG) window.__hojarasca.__ultraVida = () => ultraVida;   // 4.29.0 (B)
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
