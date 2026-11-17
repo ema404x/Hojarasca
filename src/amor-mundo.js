@@ -584,7 +584,7 @@ export function crearAmorMundo(ctx) {
     if (si && !npc.__copa && !npc.muneca) {
       geoDeCopa = geoDeCopa || geoCopa();
       const m = new THREE.Mesh(geoDeCopa, mat);
-      m.position.set(0, -0.09, 0.03);
+      m.position.set(0, -0.05, 0.02);   // 4.30.0 (A): centrada en el puño (`mano` ya es el puño: antes era el codo y la copa flotaba junto al antebrazo)
       npc.mano.add(m); npc.__copa = m; copas.add(npc);
     }
     if (npc.__copa) npc.__copa.visible = !!si;

@@ -514,6 +514,39 @@ function limitarCabeza(g) {
   const r = g.cabeza.rotation;
   r.set(topeCabeza(r.x, 0.8), topeCabeza(r.y, 1.2), topeCabeza(r.z, 0.5));
 }
+// 4.30.0 (A): la planilla y la caña van en el puño (gente-cuerpo.js: `mano` es el puño, en el codo) y quedan con el ángulo que les toca respecto del CUERPO, sea cual
+// sea el del brazo (el hombro con sus tres giros y el codo: se deshace con la inversa de los dos). Cada ángulo `a` se mide desde la vertical hacia adelante. La tabla,
+// colgando, va de canto junto a la pierna, tomada del borde de arriba (`d` < 0: el centro, debajo del puño; `x` > 0: hacia afuera); anotando, inclinada hacia la cara,
+// con la hoja hacia arriba y corrida hacia el medio del pecho. La caña, casi derecha y tendida hacia el agua al pescar (con el tirón del brazo).
+export const EN_MANO = {
+  planilla: { colgando: { a: 0, d: -0.11, x: 0.025, giro: Math.PI / 2 }, anotando: { a: 0.8, d: 0.1, x: -0.07, giro: 0 } },
+  caña: { quieta: 0.3, pescando: 1.0, tiron: 0.5 },
+  // anotando: el brazo de la tabla un poco adelante y el codo bien doblado (la tabla a la altura del pecho, no estirada a la distancia de un brazo)
+  anotar: { brazo: -0.55, codo: -1.3, otroCodo: -1.15 },
+};
+const _qManoInv = new THREE.Quaternion(), _qObjeto = new THREE.Quaternion(), _eObjeto = new THREE.Euler(), _vObjeto = new THREE.Vector3();
+export function orientarEnMano(g, anotando, pescando) {
+  const b = g.brazos?.[1];
+  if (!b) return;
+  const cd = b.userData?.codo;
+  _qManoInv.copy(b.quaternion);
+  if (cd) _qManoInv.multiply(cd.quaternion);
+  _qManoInv.invert();
+  const p = g.planilla;
+  if (p) {
+    const q = anotando ? EN_MANO.planilla.anotando : EN_MANO.planilla.colgando;
+    _qObjeto.setFromEuler(_eObjeto.set(q.a, q.giro, 0));
+    p.quaternion.copy(_qManoInv).multiply(_qObjeto);
+    _vObjeto.set(0, q.d, 0).applyQuaternion(_qObjeto);
+    _vObjeto.x += q.x;
+    p.position.copy(_vObjeto.applyQuaternion(_qManoInv));
+  }
+  const c = g.caña;
+  if (c) {
+    const a = pescando ? EN_MANO.caña.pescando + EN_MANO.caña.tiron * ((Number(b.rotation.x) || 0) + 0.75) : EN_MANO.caña.quieta;
+    c.quaternion.copy(_qManoInv).multiply(_qObjeto.setFromEuler(_eObjeto.set(a, 0, 0)));
+  }
+}
 // 3.7.1 (mundo): los gestos del amor (los pide amor-mundo.js en `g.gestoAmor`): de la mano o del brazo con vos (el brazo de
 // tu lado: `lado` es el índice en `brazos`; el 1 es el izquierdo de ella) y el bebé en brazos (`acunar`). Van al final, también caminando.
 function gestoAmor(g) {
@@ -1014,11 +1047,14 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
   function darMate(npc) {
     npc.mate = npc.mateVisible || null;
   }
+  // 4.30.0 (A): las dos se arman derechas (el mango en el puño, a lo largo de +y) y el ángulo con el mundo lo pone `orientarEnMano` en cada pose
   function darCaña(npc) {
     const caña = new THREE.Group();
-    const vara = palo(lam('#5a4530'), 0.012, 2.1, [0, 0.95, 0], [0.35, 0, 0]);
+    const vara = palo(lam('#5a4530'), 0.012, 2.1, [0, 0.95, 0], [0, 0, 0]);
     caña.add(vara);
-    caña.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8), lam('#4e4a44')));
+    const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8), lam('#4e4a44'));
+    reel.position.set(0, 0.1, 0.03); reel.rotation.set(0, 0, Math.PI / 2);   // (el reel, un palmo arriba del puño)
+    caña.add(reel);
     compactar(caña, { todo: true });
     npc.mano.add(caña);
     npc.caña = caña;
@@ -1026,12 +1062,13 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
   function darPlanilla(npc) {
     const tabla = new THREE.Group();
     tabla.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.02), lam('#8a6b4a')));
-    tabla.add(new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.26, 0.012), lam('#efe7d4')));
+    // 4.30.0 (A): la hoja asoma de un lado de la tabla (antes quedaba entera adentro de la madera) y arriba lleva el broche
+    const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.26, 0.004), lam('#efe7d4')); hoja.position.set(0, -0.01, -0.012); tabla.add(hoja);
+    const broche = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.025, 0.014), lam('#6f6f68')); broche.position.set(0, 0.13, -0.012); tabla.add(broche);
     compactar(tabla, { todo: true });
-    tabla.rotation.set(-1.1, 0, 0);
-    tabla.position.set(0, -0.02, 0.1);
     npc.mano.add(tabla);
     npc.planilla = tabla;
+    orientarEnMano(npc, false, false);
   }
 
   // Si por alguna razón faltara su lugar, el personaje igual aparece cerca del refugio
@@ -1277,6 +1314,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         // gestos según lo que esté haciendo
         const quieto = !andando && !charlando;
         const tarea = quieto && g.espera > 0 && etapa ? etapa : null;
+        g.__tareaMano = !!(tarea && ((tarea.anotando && g.planilla) || (tarea.pescando && g.caña)));   // 4.30.0 (A): anotando o pescando, la quietud (gente-cuerpo.js) no le cruza los brazos
         let bIzq = 0, bDer = 0, giroMate = 0, inclinaMate = 0;
         if (charlando) { bIzq = Math.sin(g.fase * 3.5) * 0.25; bDer = -bIzq * 0.7; }
         else if (andando) { bIzq = Math.sin(g.paso + Math.PI) * 0.3; bDer = Math.sin(g.paso) * 0.3; }
@@ -1294,7 +1332,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           const k = suave(0.8, 0.84, ciclo) * (1 - suave(0.97, 1, ciclo));
           bDer = -0.75 + k * (-0.5 + Math.sin(g.fase * 9) * 0.35);
         } else if (g.planilla && tarea && tarea.anotando) {
-          bDer = -1.2; bIzq = -0.5 + Math.sin(g.fase * 3) * 0.06;
+          bDer = EN_MANO.anotar.brazo; bIzq = -0.5 + Math.sin(g.fase * 3) * 0.06;   // (4.30.0 (A): ver EN_MANO.anotar: con la tabla en el puño, a la altura del pecho)
           g.cabeza.rotation.x += 0.22;
         } else if (g.caña) bDer = -0.7;
         g.brazos[0].rotation.x = bIzq;
@@ -1308,6 +1346,13 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           const deja = !!g.pose && !andando && MANOS_OCUPADAS.has(g.pose);
           if (deja && g.mate.visible !== false) { g.mate.visible = false; g.__mateDejado = true; }
           else if (!deja && g.__mateDejado) { g.mate.visible = true; g.__mateDejado = false; }
+        }
+        // 4.30.0 (A): y la planilla o la caña, mientras hace una pose de la aldea (hachar en la obra, regar, bailar, sentarse a leer): el brazo de la pose se llevaba la
+        // tabla o la caña por el aire. `__enManoDejado`: lo guardó esto (lo que guardó una escena o el Desafío no se toca)
+        if (g.planilla || g.caña) {
+          const deja = !!g.pose && !andando, cosa = g.planilla || g.caña;
+          if (deja && cosa.visible !== false) { cosa.visible = false; g.__enManoDejado = true; }
+          else if (!deja && g.__enManoDejado) { cosa.visible = true; g.__enManoDejado = false; }
         }
         if (g.g.rotation.x !== 0 && (g.pose !== 'dormir' || andando)) g.g.rotation.x = 0;   // 3.7.1 (mundo): se levantó
         if (g.pose && !andando) posar(g, charlando);   // 3.6 (vida)
@@ -1327,6 +1372,11 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         if (g.animSocial) animarSocial(g, dt);   // 3.7.4: el abrazo, la risa, chocar los cinco, la discusión, el baile lento...
         if (g.pose === 'dormir' && !andando) for (const pp of g.cabeza.userData?.parpados || []) pp.rotation.x = 0.95;   // (y dormida, con los ojos cerrados)
         limitarCabeza(g);   // 3.7.2
+        if (g.planilla || g.caña) {   // 4.30.0 (A): lo que lleva en la mano, con el ángulo que le toca (y anotando, el codo bien doblado: la tabla a la altura del pecho)
+          const anota = !!(tarea && tarea.anotando && g.planilla) && !charlando;
+          if (anota) { const c1 = g.brazos[1].userData.codo, c0 = g.brazos[0].userData.codo; if (c1) c1.rotation.x = EN_MANO.anotar.codo; if (c0) c0.rotation.x = EN_MANO.anotar.otroCodo; }
+          orientarEnMano(g, anota, !!(tarea && tarea.pescando && g.caña) && !charlando);
+        }
       }
     }
   }

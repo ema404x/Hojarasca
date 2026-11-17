@@ -1743,6 +1743,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
         codo.add(fino(bola('#d8d0c0', [0.004, 0.004, 0.003], [Wc[0] + l * 0.03, Wc[1] + 0.004, Wc[2] + 0.004])));
       }
       manoCon5(codo, Wc, l);
+      codo.userData.puno = [Wc[0] - l * 0.002, Wc[1] - 0.06, Wc[2] + 0.004];   // 4.30.0 (A): el puño (donde la mano cierra), en el espacio del codo: ahí va lo que se lleva en la mano
       piv.add(codo);
     }
     const ante = new THREE.Group(); ante.position.set(0, -0.28, 0);
@@ -2376,8 +2377,11 @@ const POSES = {
 };
 function quietud(g, st, dt, andando, charlando) {
   const q = st.q || (st.q = { nombre: null, sig: null, w: 0, t: 2 + Math.random() * 4 });
+  // 4.30.0 (A): con la planilla o la caña en la mano (a la vista), el brazo que la lleva no entra en la pose (como el del mate): la tabla o la caña atravesaban el pecho con
+  // los brazos cruzados; y anotando o pescando (`__tareaMano`, gente.js) no hay quietud: Nicanor cruzaba los brazos con la caña tendida al agua
+  const enMano = !!((g.planilla && g.planilla.visible !== false) || (g.caña && g.caña.visible !== false));
   if (g.__quietud !== undefined) q.sig = g.__quietud;
-  else if (!andando && !charlando && !g.pose && !g.mate?.visible) {
+  else if (!andando && !charlando && !g.pose && !g.mate?.visible && !g.__tareaMano) {
     q.t -= dt;
     if (q.t <= 0) {
       const lista = g.posesM || [];
@@ -2393,11 +2397,11 @@ function quietud(g, st, dt, andando, charlando) {
   if (P.uno) {
     const lado = P.der ? 1 : 0, def = P.der || P.izq;
     defs = [null, null];
-    defs[g.brazos[lado].userData.muneca ? 1 - lado : lado] = def;
+    defs[g.brazos[lado].userData.muneca || (enMano && lado === 1) ? 1 - lado : lado] = def;
   }
   g.brazos.forEach((b, s) => {
     const d = defs[s];
-    if (!d || b.userData.muneca) return;
+    if (!d || b.userData.muneca || (enMano && s === 1)) return;
     const l = s ? 1 : -1;
     if (b.userData.z0 === undefined) b.userData.z0 = b.rotation.z;
     b.rotation.order = 'XZY';
@@ -2625,7 +2629,8 @@ function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
     Object.defineProperty(mateVisible, 'visible', { configurable: true, get: () => est.mate, set: (v) => { est.mate = !!v; est.rango(); } });
   }
   // lo que se lleva en la mano (la caña, la planilla, el arco) va en el antebrazo
-  if (brazos[1].userData.codo) { const a = brazos[1].userData.ante; brazos[1].userData.codo.add(a); a.position.set(0, -0.01, 0); mano = a; }
+  // 4.30.0 (A): en el puño, no en el codo: el grupo quedaba a 1 cm del codo y la planilla de Ercilia o Josefina (y la caña de Nicanor) colgaban pegadas al antebrazo
+  if (brazos[1].userData.codo) { const cd = brazos[1].userData.codo, a = brazos[1].userData.ante, P = cd.userData.puno || [0, -0.27, 0.03]; cd.add(a); a.position.set(P[0], P[1], P[2]); mano = a; }
   est.malla = malla;
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible, alPosar: alPosar(est), posesM: A.poses || ['cintura', 'cruzados', 'atras'], cara: cabeza.userData.rostro || null, conPoncho: f.conPoncho, edad: A.edad };
   r.soltar = () => soltarPersona(r);
