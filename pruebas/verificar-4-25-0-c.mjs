@@ -132,7 +132,8 @@ async function revisar(E, { completo = false } = {}) {
     chequear(mallas.filter((o) => o.isSkinnedMesh).length === 1 && mallas.length === 2 + (p.bandeja ? 1 : 0) && p.cara && !p.cara.visible, `${clave}: una malla con piel y la cara aparte (0 llamadas nuevas)`);
     chequear(tri - t0 <= 1000, `${clave}: a lo sumo +1000 triángulos (hay ${tri - t0})`);
     chequear(tri - t0 >= 250, `${clave}: el detalle nuevo está (+${tri - t0})`);
-    chequear(sin - s0 <= 120 && sin - s0 >= -260, `${clave}: lo que se dibuja de lejos casi no cambia (${sin - s0})`);
+    // 4.30.0 (A): el brazo del poncho nace en el hombro y suma 152 triángulos de lejos a los de poncho: tope de 120 a 160
+    chequear(sin - s0 <= 160 && sin - s0 >= -260, `${clave}: lo que se dibuja de lejos casi no cambia (${sin - s0})`);
     chequear(piel.userData.indicesSinFino > 0 && piel.userData.indicesSinFino < piel.userData.indices, `${clave}: lejos se dibuja sin lo fino`);
     chequear(Number(p.cara.morphTargetInfluences.length) === 2, `${clave}: la cara con sus gestos`);
     stats.push({ clave, tri: tri - t0, sin: sin - s0 });
