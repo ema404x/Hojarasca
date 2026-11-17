@@ -1,5 +1,7 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 23-10-2026, 4.8.0)
 
+> **ÚLTIMO (17-11-2026, notebook): VERSIÓN 4.30.0 en `main`, etiqueta `v4.30.0`** — Cacería grande de bugs (CAMBIOS_4_30_0_A/B/C.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Steam y el inglés esperan.
+
 > **ÚLTIMO (17-11-2026, notebook): VERSIÓN 4.29.2 en `main`, etiqueta `v4.29.2`** — Lo que quedó afuera de Ultra (CAMBIOS_4_29_2_A/B.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Steam y el inglés esperan.
 
 > **ÚLTIMO (16-11-2026, notebook): VERSIÓN 4.29.1 en `main`, etiqueta `v4.29.1`** — Ultra medido y el pueblo (CAMBIOS_4_29_1_A/B.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Steam y el inglés esperan.

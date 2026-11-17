@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.30.0 (sobre main = 4.29.2): CACERÍA GRANDE DE BUGS (CAMBIOS_4_30_0_A/B/C.md) — lo que la gente lleva en la mano, el poncho, el espejo adentro del refugio, la casa del molino, los puentes, la cascada y el arroyo, la mochila y la física
 - 4.29.2 (sobre main = 4.29.1): LO QUE QUEDÓ AFUERA DE ULTRA (CAMBIOS_4_29_2_A/B.md) — grano del suelo de cerca, bordes de pasto irregulares, la cascada, fuego en hornos y fraguas y huellas en el ripio
 - 4.29.1 (sobre main = 4.29.0): ULTRA MEDIDO Y EL PUEBLO (CAMBIOS_4_29_1_A/B.md) — Ultra un poco más liviano, V que no tira con un panel abierto, el aviso de la trochita, el cartel del banco, el alero del andén y el suelo de la Aldea
 - 4.29.0 (sobre main = 4.28.0): ULTRA EN LOS DETALLES (CAMBIOS_4_29_0_A/B/C.md) — el lago que refleja, nubes con sombra, la Vía Láctea, relámpagos, fuego vivo, huellas, luciérnagas, ropa y pelo con viento y cinemáticas con fondo desenfocado
