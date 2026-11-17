@@ -59,6 +59,12 @@ export const ALAMO_LOD = 70, ALAMO_BANDA = 10;
 // el horno o la leña del costado, los materiales de la obra y el frente hasta la vereda
 export const PASO_PARCHE = 1;   // 4.29.1: metros entre nodos del suelo fino de la aldea en Media y Alta (ver parcheSuelo)
 export const PASO_PARCHE_BAJA = 2;   // Baja y Muy baja: el de antes (sin triángulos de más)
+// 4.30.0 (C): el brillo de las brasas (el color del material de los hornos y las fraguas, de 0,7 a 1): dos senos lentos (el mismo pulso
+// que la luz de la fragua) y un temblor rápido chico, como un fuego vivo y no una vela
+export function brilloBrasas(ms) {
+  const lento = Math.sin(ms / 170) * Math.sin(ms / 410), rapido = Math.sin(ms / 53 + Math.sin(ms / 97) * 2.0);
+  return Math.min(1, Math.max(0.7, 0.88 + 0.09 * lento + 0.03 * rapido));
+}
 export const MARGEN_EMPAREJAR = { lado: 2.2, atras: 2.1, frente: 3.2 };
 
 // ---------------------------------------------------------------- el terreno (puro)
@@ -2224,6 +2230,9 @@ export function crearAldeaMundo(ctx) {
     }
     lucesApagadas = false;
     const ahora = performance.now(), titila = 1.6 + 0.25 * Math.sin(ahora / 170) * Math.sin(ahora / 410);
+    // 4.30.0 (C): las brasas de los hornos y las fraguas titilan con el mismo pulso que la luz de la fragua (sólo el color del material:
+    // ninguna luz ni programa nuevo, en todas las calidades)
+    if (materiales.brasas) materiales.brasas.color.setScalar(brilloBrasas(ahora));
     for (const q of luces) {
       const dx = cam.x - q.x, dz = cam.z - q.z, d2 = dx * dx + dz * dz;
       // (los postes de luz cuelgan la lámpara a 5 m: necesitan más que un farol de 3 m)

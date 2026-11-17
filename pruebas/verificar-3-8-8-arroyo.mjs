@@ -119,7 +119,7 @@ const rio = Tv.rio, sa = Tv.saltoAgua;
   const a = leer('src/agua.js');
   ok(a.includes("import { construirCintaArroyo } from './cinta-arroyo.js';") && a.includes('construirCintaArroyo(T.rio, T.saltoAgua ? T.saltoAgua.i : -1)'), 'agua.js arma el arroyo con la cinta nueva');
   ok(!/i === T\.saltoAgua\.i \+ 1/.test(a), 'ya no se saltea el tramo de la poza');
-  ok(/W0 = s\.ancho \* 2\.0/.test(a) && a.includes('Math.sqrt(f)') && !a.includes('PlaneGeometry(anchoCortina'), 'la cortina cubre el labio y es curva (caída libre), no un plano');
+  ok(/W0 = s\.ancho \* 1\.72/.test(a) && a.includes('Math.sqrt(f)') && !a.includes('PlaneGeometry(anchoCortina'), 'la cortina cubre el labio y es curva (caída libre), no un plano');   // (4.30.0 C: 1,72 y no 2,0: de 2,0 los costados se metían en las orillas; el labio lo tapan las rocas de los lados)
   ok(a.includes('function rocasDelSalto') && a.includes('grupo.add(rocasDelSalto(T, s))'), 'el salto lleva sus rocas');
   for (const f of ['src/agua.js', 'src/cinta-arroyo.js']) for (const m of leer(f).matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(m[0]), `import en una línea: ${m[0]}`);
   for (const m of leer('src/cinta-arroyo.js').matchAll(/^export\s+(?:const|let|function|class)\s+([^\s(=]+)/gm)) ok(!/ñ/i.test(m[1]), `exportado sin ñ: ${m[1]}`);

@@ -26,7 +26,7 @@ const { UAGUA } = await import(urlDe(SRC, 'materiales.js'));
 const { CALIDADES } = await import(urlDe(SRC, 'config.js'));
 
 // los topes de llamadas a `vnoise` en main() del fragment shader (4.12.0, sin esto: baja 6 siempre y 11 en total; media/alta 10 y 15)
-const TOPE = { siempre: 2, totalBaja: 14, totalNueva: 18 };
+const TOPE = { siempre: 2, totalBaja: 16, totalNueva: 20 };   // 4.30.0 (C): +2 en los dos: las vetas del arroyo en dos fases (sólo donde corre: condicionadas; antes reloj × corriente hacía rayas)
 
 async function revisar({ aguaUrl, cieloUrl, etiqueta = 'código' }) {
   let total = 0;

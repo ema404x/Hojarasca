@@ -23,7 +23,7 @@ import { crearMatasHuerta } from './huerta-malla.js';
 import { RES, N } from './config.js';
 import { LUGARES_RINCONES, lugarEnMundo, puntoDeLugar, ubicarDuendes, PISO_ALDEA_RINCONES, adornosDelEstante, RINCONES, CULTIVOS_COMUNITARIA, CULTIVOS_CHICOS } from './rincones.js';
 import { CANCHA, PELOTA } from './futbol.js';
-import { CAMINO, trazarCamino, recorrido, enCamino, farolesDelCamino, puentesDelCamino } from './sulky.js';
+import { CAMINO, trazarCamino, recorrido, enCamino, farolesDelCamino, puentesDelCamino, alturaPuente } from './sulky.js';
 import { CASA_PROPIA, loteEnMundo } from './casa-propia.js';
 import { marcoAldea, EDIFICIOS_ALDEA } from './aldea.js';
 
@@ -641,17 +641,25 @@ export function crearRinconesMundo(ctx) {
     pintarCamino(false);
     // el puentecito (con su piso para caminar)
     for (const b of est.puentes) {
-      const g = malla(modeloPuente(b.largo)); g.position.set(b.x, b.alto, b.z); g.rotation.y = b.ang;
+      // 4.30.0 (C): el tablero en rampa de orilla a orilla (sulky.js): la malla inclinada y el piso en tramos de medio metro, cada uno a la
+      // altura del tablero en su centro (escalones de pocos centímetros: se camina como una cuesta)
+      const y0 = Number.isFinite(b.y0) ? b.y0 : b.alto, y1 = Number.isFinite(b.y1) ? b.y1 : b.alto;
+      const g = malla(modeloPuente(b.largo)); g.position.set(b.x, (y0 + y1) / 2, b.z); g.rotation.set(-Math.atan2(y1 - y0, b.largo), b.ang, 0, 'YXZ');
       raiz.add(g); (piezas.puentes ??= []).push(g);
-      ctx.col?.agregarPlataforma?.({ x: b.x, z: b.z, ang: -b.ang + PI / 2, largo: b.largo, ancho: 2.0, alto: b.alto + 0.035, duenio: 'rincones:puente' });
+      const tramos = Math.max(1, Math.ceil(b.largo / 0.5)), lt = b.largo / tramos;
+      for (let k = 0; k < tramos; k++) {
+        const s = -b.largo / 2 + (k + 0.5) * lt, cx = b.x + Math.sin(b.ang) * s, cz = b.z + Math.cos(b.ang) * s;
+        ctx.col?.agregarPlataforma?.({ x: cx, z: cz, ang: -b.ang + PI / 2, largo: lt + 0.02, ancho: 2.0, alto: alturaPuente(b, cx, cz) + 0.035, duenio: 'rincones:puente' });
+      }
       for (const sx of [-1, 1]) {
         const a = { x: b.x + Math.cos(b.ang) * sx * 1.05 - Math.sin(b.ang) * b.largo / 2, z: b.z - Math.sin(b.ang) * sx * 1.05 - Math.cos(b.ang) * b.largo / 2 };
         const c2 = { x: b.x + Math.cos(b.ang) * sx * 1.05 + Math.sin(b.ang) * b.largo / 2, z: b.z - Math.sin(b.ang) * sx * 1.05 + Math.cos(b.ang) * b.largo / 2 };
-        ctx.col?.agregar?.({ seg: true, ax: a.x, az: a.z, bx: c2.x, bz: c2.z, r: 0.08, alturaMin: b.alto - 0.5, alturaMax: b.alto + 1.1, duenio: 'rincones:puente' });
+        ctx.col?.agregar?.({ seg: true, ax: a.x, az: a.z, bx: c2.x, bz: c2.z, r: 0.08, alturaMin: Math.min(y0, y1) - 0.5, alturaMax: Math.max(y0, y1) + 1.1, duenio: 'rincones:puente' });
       }
     }
     // los faroles (aparecen con la minga)
-    est.faroles = farolesDelCamino(est.camino).filter((f) => !T.agua?.(f.x, f.z));
+    // (4.30.0 C: tampoco al lado del puentecito, ahora más largo: quedaban colgando sobre la barranca)
+    est.faroles = farolesDelCamino(est.camino).filter((f) => !T.agua?.(f.x, f.z) && !est.puentes.some((b) => Math.hypot(f.x - b.x, f.z - b.z) < b.largo / 2 + 1));
     const n = Math.max(1, est.faroles.length);
     const postes = new THREE.InstancedMesh(modeloFarol(), MAT_FAUNA, n), vidrios = new THREE.InstancedMesh(modeloVidrioFarol(), vidrioFarol, n);
     const M4 = new THREE.Matrix4(), q = new THREE.Quaternion();
@@ -707,9 +715,10 @@ export function crearRinconesMundo(ctx) {
     const y = alturaEn(pose.x, pose.z);
     // la inclinación: lo que sube el camino entre las ruedas y el caballo
     const ad = { x: pose.x + Math.sin(pose.rumbo) * 1.4, z: pose.z + Math.cos(pose.rumbo) * 1.4 };
-    const pitch = -Math.atan2(alturaEn(ad.x, ad.z) - y, 1.4) * 0.8;
     const enPuente = est.puentes.find((b) => Math.hypot(pose.x - b.x, pose.z - b.z) < b.largo / 2 + 0.3);
-    sulky.g.position.set(pose.x, enPuente ? Math.max(y, enPuente.alto + 0.035) : y, pose.z);
+    // (4.30.0 C: sobre el puentecito, la inclinación de la rampa y no la del cauce de abajo)
+    const pitch = enPuente ? -Math.atan2(alturaPuente(enPuente, ad.x, ad.z) - alturaPuente(enPuente, pose.x, pose.z), 1.4) * 0.8 : -Math.atan2(alturaEn(ad.x, ad.z) - y, 1.4) * 0.8;
+    sulky.g.position.set(pose.x, enPuente ? Math.max(y, alturaPuente(enPuente, pose.x, pose.z) + 0.035) : y, pose.z);   // (4.30.0 C: el tablero en rampa)
     sulky.g.rotation.set(pitch, pose.rumbo, 0, 'YXZ');
     sulky.giro += ((pose.v || 0) * dt) / 0.62;
     for (const r of sulky.ruedas) r.rotation.x = sulky.giro;

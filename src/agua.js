@@ -39,13 +39,25 @@ function materialAgua(nuevo = false) {
       varying vec3 vPos; varying vec2 vFlujo; varying vec2 vCauce;
       // 4.12.1: el mismo fbm de nubes del cielo (cielo.js): el lago espeja las nubes de verdad, no un degradado
       float fbmNubes(vec2 p) { float s = 0.0, a = 0.54; for (int i = 0; i < 3; i++) { s += a * vnoise(p); p = p * 2.02 + 3.1; a *= 0.5; } return s * 1.08; }
-      float ondas(vec2 p, float detalle) {
-        vec2 f = vFlujo * uTiempo;
-        float a = vnoise(p * 0.35 - f * 0.35 + uTiempo * 0.05);
+      float ondasF(vec2 p, float detalle, float a) {
         // 3.5: las octavas finas entran de a poco (antes con un corte: a ~80 m y a ~130 m se veía
         // una línea recta en el agua, más clara de un lado, sobre todo con el sol bajo)
-        float b = detalle > 0.01 ? mix(a, vnoise(p * 1.1 + vec2(uTiempo * 0.23, -uTiempo * 0.17) - f), smoothstep(0.01, 0.2, detalle)) : a;
-        float c = detalle > 0.25 ? mix(b, vnoise(p * 3.2 - vec2(uTiempo * 0.4, uTiempo * 0.31) - f * 2.0), smoothstep(0.25, 0.85, detalle)) : b;
+        float b = detalle > 0.01 ? mix(a, vnoise(p * 1.1 + vec2(uTiempo * 0.23, -uTiempo * 0.17)), smoothstep(0.01, 0.2, detalle)) : a;
+        float c = detalle > 0.25 ? mix(b, vnoise(p * 3.2 - vec2(uTiempo * 0.4, uTiempo * 0.31)), smoothstep(0.25, 0.85, detalle)) : b;
+        return a * 0.5 + b * 0.35 + c * 0.15 * (0.5 + uViento);
+      }
+      float ondas(vec2 p, float detalle) {
+        // 4.30.0 (C): el arroyo arrastra la onda grande en dos fases que se turnan (cada una vuelve a cero cada ~14 s mientras la otra
+        // manda); las finas ya no se arrastran (se mueven con el viento, como en el lago). Antes el arrastre era corriente × reloj: la
+        // corriente cambia de un vértice al otro, y con el reloj grande (la partida larga) el dibujo se estiraba en rayas y se cortaba en
+        // costuras rectas entre tramo y tramo. Así el arrastre queda acotado, con una sola lectura de ruido de más. El lago no corre.
+        float a;
+        if (dot(vFlujo, vFlujo) < 1e-6) a = vnoise(p * 0.35 + uTiempo * 0.05);
+        else {
+          float fa = fract(uTiempo * 0.07), fb = fract(uTiempo * 0.07 + 0.5);
+          a = mix(vnoise(p * 0.35 - vFlujo * (fa * 14.0) * 0.35 + uTiempo * 0.05), vnoise(p * 0.35 - (vFlujo * (fb * 14.0) + vec2(7.3, 3.1)) * 0.35 + uTiempo * 0.05), abs(fa * 2.0 - 1.0));
+        }
+        float base = ondasF(p, detalle, a);
         float gotas = 0.0;
         if (uLluvia > 0.01 && detalle > 0.3) {
           vec2 celda = floor(p * 1.5); vec2 lf = fract(p * 1.5) - 0.5;
@@ -60,7 +72,7 @@ function materialAgua(nuevo = false) {
           float anillos = sin(dj * 7.0 - uTiempo * 5.5) * 0.5 + 0.5;
           estela = anillos * smoothstep(3.4, 0.25, dj) * smoothstep(0.0, 0.4, dj);
         }
-        return a * 0.5 + b * 0.35 + c * 0.15 * (0.5 + uViento) + gotas * 0.35 + estela * 0.5;
+        return base + gotas * 0.35 + estela * 0.5;
       }
       void main() {
         float fondo = texture2D(uAlturas, uvTerreno(vPos.xz)).r;
@@ -84,8 +96,11 @@ function materialAgua(nuevo = false) {
           vec2 dirF352 = vFlujo / max(length(vFlujo), 1e-3);
           // (a lo largo: metros río abajo; a lo ancho: metros desde el centro del cauce)
           vec2 fl352 = vCauce;
-          float tf352 = uTiempo * (0.9 + length(vFlujo) * 1.3);
-          vetas352 = vnoise(vec2(fl352.x * 0.4 - tf352 * 0.8, fl352.y * 1.7)) * 0.6 + vnoise(vec2(fl352.x * 1.2 - tf352 * 1.5, fl352.y * 4.2 + 3.0)) * 0.4;
+          // 4.30.0 (C): las vetas también en dos fases (antes reloj × corriente: con el reloj grande, rayas de través)
+          float vel352 = 0.9 + length(vFlujo) * 1.3, fa352 = fract(uTiempo * 0.07), fb352 = fract(uTiempo * 0.07 + 0.5);
+          float tfa352 = fa352 * 14.0 * vel352, tfb352 = fb352 * 14.0 * vel352 + 5.7;
+          vetas352 = mix(vnoise(vec2(fl352.x * 0.4 - tfa352 * 0.8, fl352.y * 1.7)) * 0.6 + vnoise(vec2(fl352.x * 1.2 - tfa352 * 1.5, fl352.y * 4.2 + 3.0)) * 0.4,
+            vnoise(vec2(fl352.x * 0.4 - tfb352 * 0.8, fl352.y * 1.7)) * 0.6 + vnoise(vec2(fl352.x * 1.2 - tfb352 * 1.5, fl352.y * 4.2 + 3.0)) * 0.4, abs(fa352 * 2.0 - 1.0));
           float ola352 = vnoise(fl352 * vec2(0.55, 0.8) + 9.0);
           rapido352 = smoothstep(0.55, 0.85, ola352 * 0.55 + vetas352 * 0.45) * corre352;
           N = normalize(N + vec3(-dirF352.y, 0.0, dirF352.x) * (vetas352 - 0.5) * 0.9 * corre352 + vec3(dirF352.x, 0.0, dirF352.y) * (ola352 - 0.5) * 0.6 * corre352);
@@ -178,7 +193,7 @@ function materialAgua(nuevo = false) {
         agua = mix(agua, srgb(vec3(0.20, 0.19, 0.14)), (1.0 - smoothstep(0.0, 0.16, prof)) * 0.55);
         // cáusticas: la luz que atraviesa las ondas y dibuja la red sobre el fondo
         if (detalle > 0.2 && prof < 3.2) {
-          vec2 q = vPos.xz * 1.35 - vFlujo * uTiempo * 0.5;
+          vec2 q = vPos.xz * 1.35;   // 4.30.0 (C): sin el arrastre de la corriente (era corriente × reloj: rayas con la partida larga); la red se mueve igual
           float c1 = vnoise(q + vec2(uTiempo * 0.21, -uTiempo * 0.13));
           float c2 = vnoise(q * 1.7 - vec2(uTiempo * 0.17, uTiempo * 0.23));
           float red = pow(max(0.0, 1.0 - abs(c1 - c2) * 3.4), 3.0);
@@ -316,6 +331,9 @@ function rocasDelSalto(T, s) {
   for (const lado of [-1, 1]) {
     poner(-1.2, lado * (s.ancho + 0.3), 1.0); poner(0.2, lado * (s.ancho + 1.0), 1.35); poner(-3.0, lado * (s.ancho + 0.7), 0.85);
     poner(1.4, lado * (s.ancho + 1.9), 1.2); poner(2.6, lado * (s.ancho + 0.8), 0.95); poner(0.7, lado * (s.ancho * 0.8), 0.55, 0.1);
+    // 4.30.0 (C): dos piedras grandes contra la pared del escalón a cada lado de la caída: de costado se veía la pared del terreno, lisa y
+    // oscura, con el borde de la cortina cortado contra ella
+    poner(1.0, lado * (s.ancho * 0.95), 1.45, 0.15); poner(1.9, lado * (s.ancho * 1.08), 1.15, 0.35);
   }
   // en el pie: rocas medio hundidas en la poza y al borde
   for (let k = 0; k < 9; k++) poner(2.6 + hashC(k + 1) * 6.0, (hashC(k + 20) - 0.5) * 2 * (s.ancho * 0.95), 0.55 + hashC(k + 40) * 0.8, -0.7);
@@ -371,14 +389,14 @@ export function crearCascada(T, escena, U) {
   const ancho = s.ancho * 1.45;
   const luzU = { uAmbiente: U.uAmbiente, uSolColor: U.uSolColor, uSolDir: U.uSolDir, uTiempo: U.uTiempo };
   // ---- la cortina: una malla curva (nu × nv) desde el labio hasta la poza
-  const NU = 36, NV = 20, W0 = s.ancho * 2.0, DESV = 1.7;
+  const NU = 36, NV = 20, W0 = s.ancho * 1.72, DESV = 1.7;   // 4.30.0 (C): 1,72 (era 2,0): los costados de la cortina se metían en las orillas y de costado se veía su borde de abajo cortado en el aire
   const alto = s.arriba - s.abajo, pie = s.abajo + 0.1;
   const pos = [], uv = [], ind = [];
   for (let j = 0; j <= NV; j++) {
     const f = j / NV;
     // en caída libre la distancia al labio crece con la raíz de lo caído; y la lámina se ensancha un poco al caer
-    const d = 0.12 + DESV * Math.sqrt(f), y = s.arriba + 0.12 - f * (s.arriba + 0.12 - pie);
-    const ancha = W0 * (1 + 0.14 * f);
+    const d = 0.12 + DESV * Math.sqrt(f), y = s.arriba - 0.05 - f * (s.arriba - 0.05 - pie);   // 4.30.0 (C): nace al nivel del agua de arriba (s - 0,08 en la cinta); antes 20 cm más arriba: en el labio la cortina flotaba sobre el agua
+    const ancha = W0 * (1 + 0.08 * f);   // (4.30.0: se abre menos al caer, por lo mismo)
     for (let i = 0; i <= NU; i++) {
       const u = i / NU, lat = (u - 0.5) * ancha;
       // hilos: la lámina se abolla un poco más hacia afuera en cada hilo, más abajo
@@ -402,10 +420,12 @@ export function crearCascada(T, escena, U) {
       ${GLSL_RUIDO_C}
       void main(){
         float f = vUv.y, y = f * uAlto;
-        // el agua acelera al caer: los hilos corren más rápido abajo
-        float fase = uTiempo * (3.2 + f * 5.5) * 1.6;
-        float fino = vC(vec2(vUv.x * 80.0, y * 0.32 + fase * 0.5)) * 0.5 + vC(vec2(vUv.x * 38.0 + 5.0, y * 0.2 + fase * 0.4)) * 0.5;
-        float grueso = vC(vec2(vUv.x * 14.0 + 2.0, y * 0.09 + fase * 0.3));
+        // el agua acelera al caer: los hilos corren más rápido abajo. 4.30.0 (C): el dibujo corre parejo en el tiempo de vuelo (crece con
+        // la raíz de lo caído) y BAJA. Antes la fase era reloj × velocidad según la altura: con la partida larga (el reloj grande) la fase
+        // cambiaba de golpe de una fila a la otra y los hilos se aplastaban en rayas horizontales (y el dibujo subía).
+        float vuelo = sqrt(f + 0.02) * uAlto;
+        float fino = vC(vec2(vUv.x * 80.0, vuelo * 0.5 - uTiempo * 2.4)) * 0.5 + vC(vec2(vUv.x * 38.0 + 5.0, vuelo * 0.32 - uTiempo * 1.7)) * 0.5;
+        float grueso = vC(vec2(vUv.x * 14.0 + 2.0, vuelo * 0.14 - uTiempo * 0.8));
         float hilos = clamp(fino * 0.7 + grueso * 0.5, 0.0, 1.0);
         float espuma = smoothstep(0.42, 0.85, hilos) * (0.25 + 0.75 * smoothstep(0.0, 0.85, f));
         // arriba, agua lisa y casi clara; abajo, aireada y blanca; al pie, nube de espuma
@@ -467,7 +487,11 @@ export function crearCascada(T, escena, U) {
   const gotasGeo = new THREE.BufferGeometry();
   const arr = new Float32Array(M * 3);
   gotasGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const gotas = new THREE.Points(gotasGeo, new THREE.PointsMaterial({ color: 0xe6f2f4, size: 0.1, transparent: true, opacity: 0.6, depthWrite: false }));
+  // 4.30.0 (C): las gotas eran cuadraditos blancos (PointsMaterial sin textura): ahora son motas redondas y blandas con el material de
+  // la bruma de acá arriba (el mismo programa: ninguno más), chicas y un poco más opacas que la nube
+  gotasGeo.setAttribute('aTam', new THREE.BufferAttribute(new Float32Array(M).map((_, i) => 0.05 + hashC(i + 900) * 0.05), 1));
+  gotasGeo.setAttribute('aAlfa', new THREE.BufferAttribute(new Float32Array(M).fill(0.55), 1));
+  const gotas = new THREE.Points(gotasGeo, matNube);
   gotas.frustumCulled = false;
   grupo.add(gotas);
   grupo.add(rocasDelSalto(T, s));

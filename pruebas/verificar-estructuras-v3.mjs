@@ -34,7 +34,7 @@ assert.ok(!estructuras.includes('alto: 0.14 - i * 0.2'), 'quedó la progresión 
 assert.ok(estructuras.includes('Los pasamanos de la escalinata también frenan'), 'la baranda de la escalera volvió a ser solo visual');
 
 // 5) Los puentes deben tener piso orientado con el tablero y barandas activas al nivel de los pies.
-assert.ok(trochita.includes('ang: Math.PI / 2 - ang, largo: luz + 4'), 'el piso físico del puente ferroviario volvió a girarse 90°');
+assert.ok(trochita.includes('ang: Math.PI / 2 - ang, largo: tablero'), 'el piso físico del puente ferroviario volvió a girarse 90°');
 assert.ok(trochita.includes('alturaMin: alto - 0.28, alturaMax: alto + 1.10'), 'la baranda ferroviaria no incluye el nivel del tablero');
 assert.ok(estructuras.includes('alturaMin: p.alto - 0.08'), 'la baranda del puente peatonal no incluye el nivel del tablero');
 

@@ -182,7 +182,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
     ok(texto(true, 'Empezar la cita con Ayelén') === 'Empezar la cita con Ayelén' && texto(true, null) === 'Hablar con Ayelén', 'main: a caballo, el aviso de la cita es el mismo que hace la E');
   }
   ok(m.includes('else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);'), 'main: R no te sienta arriba del zaino');
-  ok(j.includes('const lado = puente ? 0.55 : 1.25;') && j.includes('if (puente) js.pos.y = Math.max(js.pos.y, puente.alto + 0.04);'), 'sulky: en el puentecito te bajás sobre el tablero, no al arroyo');
+  ok(j.includes('const lado = puente ? 0.55 : 1.25;') && j.includes('if (puente) js.pos.y = Math.max(js.pos.y, alturaPuente(puente, js.pos.x, js.pos.z) + 0.04);')   /* 4.30.0 (C): el tablero en rampa */, 'sulky: en el puentecito te bajás sobre el tablero, no al arroyo');
   ok(j.includes("paraGuardar: () => {") && m.includes('if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();'), 'sulky: guardando arriba, el sulky queda donde ibas');
   sinCR('src/vecindad-juego.js');
 }

@@ -17,7 +17,7 @@
 //   caballo() → { x, z, yaw } (donde espera), dejarCaballo(x, z, yaw), sonido, fundido(fn) }
 import { RINCONES, LUGARES_RINCONES, lugarEnMundo, sanearRincones, encontrarDuende, encontrado, textoDuende, duendesEncontrados, pistaDuende, tallaEnLaPlaza, textoAtril, dejarCuaderno, leyeronCuaderno, MANUALIDADES, MAESTROS, puedeAprender, aprender, tallerArmado, manualidadesDeHoy, hacerManualidad, adornosDelEstante, estadoCantero, textoCanteroRincon, trabajarCantero, cosechaDe, ingredienteDe, sembrarVecinos, horaDeHuerta, horaDeTiteres, funcionHoy, darFuncion, textoFuerte, trabajarFuerte, fuerteTerminado, hijosParaAcampar, puedeAcampar, acampar, anotarGol, empezarPartido, horaDePartido, elegirJugadores, JUGADORES_POTRERO, amistadDelPicado, PICADO } from './rincones.js';
 import { CANCHA, PATADA, pelotaNueva, sacar, patear, pasoPelota, pensarJugador, patadaDe, alAlcance, saqueDespues } from './futbol.js';
-import { SULKY, tieneSulky, pedirSulky, caminoArreglado, hacerMinga, objetivoSulky, andarSulky, enCamino, masCercano } from './sulky.js';
+import { SULKY, tieneSulky, pedirSulky, caminoArreglado, hacerMinga, objetivoSulky, andarSulky, enCamino, masCercano, alturaPuente } from './sulky.js';
 import { CASA_PROPIA, etapaCasa, casaTerminada, pedirLote, aportarCasa, textoCasa, adentroDeCasa, loteEnMundo } from './casa-propia.js';
 import { DUENDES } from './rincones-cuaderno.js';
 import { tratoDeEfectos } from './carga.js';
@@ -285,7 +285,7 @@ export function crearRinconesJuego(ctx) {
     const puente = (ctx.mundo?.puentes?.() || []).find((b) => Math.hypot(p.x - b.x, p.z - b.z) < b.largo / 2 + 0.3);
     const lado = puente ? 0.55 : 1.25;
     js.pos.x = p.x - sx * lado; js.pos.z = p.z - sz * lado;
-    if (puente) js.pos.y = Math.max(js.pos.y, puente.alto + 0.04);
+    if (puente) js.pos.y = Math.max(js.pos.y, alturaPuente(puente, js.pos.x, js.pos.z) + 0.04);   // (4.30.0 C: el tablero en rampa)
     js.velocidadActual = 0;
     const s = sk();
     if (llegada || p.s <= 0.5 || p.s >= C.largo - 0.5) { s.donde = p.s > C.largo / 2 ? 'aldea' : 'refugio'; delete s.s; }
@@ -307,7 +307,7 @@ export function crearRinconesJuego(ctx) {
     const res = andarSulky(viaje, dt, objetivo, C.largo);
     const p = poseSulky(), a = asiento(p);
     const enPuente = (ctx.mundo?.puentes?.() || []).find((b) => Math.hypot(p.x - b.x, p.z - b.z) < b.largo / 2 + 0.3);
-    const y = Math.max(ctx.altura(a.x, a.z), enPuente ? enPuente.alto : -Infinity);
+    const y = Math.max(ctx.altura(a.x, a.z), enPuente ? alturaPuente(enPuente, a.x, a.z) : -Infinity);
     js.pos.set(a.x, y + 0.42, a.z);
     js.velocidadActual = res.v;
     if (res.llego) bajarSulky(true);

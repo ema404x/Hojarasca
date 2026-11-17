@@ -104,21 +104,50 @@ export function trazarCamino(T, desde, hasta, { evitar = [], bosque = null, paso
 }
 // Los puentecitos: donde el camino cruza agua, uno de orilla a orilla (con medio metro de más de cada lado):
 // [{ x, z, ang (el rumbo del camino), largo, alto (la altura del tablero), s0, s1 }]
+// 4.30.0 (C): el tablero va en rampa de orilla a orilla (`y0` en la punta de `a`, `y1` en la de `b`; `alto` es la más alta, como antes).
+// Antes era plano a la altura de la orilla MÁS ALTA: donde el arroyo baja en escalón (el puentecito junto al refugio, 2,1 m entre las dos
+// orillas) del lado bajo quedaba una pared de 2 m que no se podía subir (se pasaba por abajo, al agua) y del lado alto un salto al vacío.
+// Si la rampa no le deja al agua 35 cm, la punta baja se corre camino afuera (hasta 6 puntos) y, si igual no alcanza, se levanta.
 export function puentesDelCamino(R, T) {
   const salida = [];
   const P = R.puntos;
+  const nivel = (q) => { const w = T.agua?.(q.x, q.z); return w ? (Number.isFinite(w.nivel) ? w.nivel : T.altura(q.x, q.z)) : -Infinity; };
   let i = 0;
   while (i < P.length) {
     if (!T.agua?.(P[i].x, P[i].z)) { i++; continue; }
     let j = i;
     while (j + 1 < P.length && T.agua?.(P[j + 1].x, P[j + 1].z)) j++;
-    const a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, j + 1)];
-    const ang = Math.atan2(b.x - a.x, b.z - a.z), largo = Math.hypot(b.x - a.x, b.z - a.z) + 1.2;
-    const alto = Math.max(T.altura(a.x, a.z), T.altura(b.x, b.z)) + 0.25;
-    salida.push({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, ang, largo, alto, s0: R.s[Math.max(0, i - 1)], s1: R.s[Math.min(P.length - 1, j + 1)] });
+    let ia = Math.max(0, i - 1), ib = Math.min(P.length - 1, j + 1);
+    const armar = () => {
+      const a = P[ia], b = P[ib], L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const ya = T.altura(a.x, a.z) + 0.12, yb = T.altura(b.x, b.z) + 0.12;
+      let falta = 0;
+      for (let k = i; k <= j; k++) {
+        const q = P[k], t = Math.max(0, Math.min(1, ((q.x - a.x) * (b.x - a.x) + (q.z - a.z) * (b.z - a.z)) / (L * L)));
+        falta = Math.max(falta, nivel(q) + 0.35 - (ya + (yb - ya) * t));
+      }
+      return { a, b, L, ya, yb, falta };
+    };
+    let r = armar();
+    for (let n = 0; n < 6 && r.falta > 0.01; n++) {
+      if (r.ya < r.yb && ia > 0) ia--; else if (ib < P.length - 1) ib++; else if (ia > 0) ia--; else break;
+      r = armar();
+    }
+    const { a, b, L } = r, sube = Math.max(0, r.falta);
+    const y0 = r.ya + sube, y1 = r.yb + sube, extra = 0.6;
+    // la rampa sigue derecha 60 cm más allá de cada punta (el largo de siempre), con la misma pendiente
+    const pend = (y1 - y0) / L;
+    const ang = Math.atan2(b.x - a.x, b.z - a.z), largo = L + 2 * extra;
+    salida.push({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, ang, largo, y0: y0 - pend * extra, y1: y1 + pend * extra, alto: Math.max(y0, y1), s0: R.s[ia], s1: R.s[ib] });
     i = j + 1;
   }
   return salida;
+}
+// 4.30.0 (C): la altura del tablero de un puentecito (de `puentesDelCamino`) en (x, z): sobre su eje, entre `y0` y `y1`
+export function alturaPuente(b, x, z) {
+  if (!Number.isFinite(b?.y0) || !Number.isFinite(b?.y1)) return b?.alto ?? -Infinity;
+  const t = ((x - b.x) * Math.sin(b.ang) + (z - b.z) * Math.cos(b.ang)) / (b.largo || 1) + 0.5;
+  return b.y0 + (b.y1 - b.y0) * Math.max(0, Math.min(1, t));
 }
 // Chaikin: corta las esquinas (las puntas quedan)
 export function suavizar(puntos, veces = 2) {
