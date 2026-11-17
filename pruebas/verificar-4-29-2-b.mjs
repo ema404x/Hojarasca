@@ -107,10 +107,10 @@ async function comprobar(archVida, archMat, archArq) {
     falla(color.includes(M.MARCA_HUELLAS_RIPIO) && iH > iDecl && iDecl > 0 && iPasto > iH && iNieve > iPasto, 'el ripio de Ultra: la pisada después de lo apisonado y antes del pasto y de la nieve (que la toma como barro)');
     falla(f.includes(M.GLSL_HUELLAS_U_PARS) && sh.uniforms.uHuellasU === U.uHuellas && sh.uniforms.uHuellasCentroU === U.uHuellasCentro && sh.uniforms.uHuellasLadoU === U.uHuellasLado, 'el ripio de Ultra lee la textura de huellas (la de ultra-vida.js con Ultra)');
     falla(!alta.includes('huellaU') && !am.includes('uHuellasU'), 'el ripio de Alta no cambia');
-    // las lajas: probadas en el juego y no se veían claro: quedaron afuera; el material de la aldea de Ultra no lee las huellas
+    // las lajas: en la 4.29.2 no se veían claro y quedaron afuera; 4.30.0 (C): otro intento, más marcado (ver verificar-4-30-0-c.mjs): ahora sí
     const shA = { uniforms: {}, vertexShader: '', fragmentShader: ['#include <common>', 'void main() {', M.MARCA_ALDEA_ULTRA, '#include <normal_fragment_maps>', '#include <lights_fragment_end>', '#include <opaque_fragment>', '}'].join('\n') };
     M.inyectarAldeaUltra(shA);
-    falla(!shA.fragmentShader.includes('huellaU') && !shA.uniforms.uHuellasU, 'las lajas (el material de la aldea) sin huellas: no se veían');
+    falla(shA.fragmentShader.includes('pisadaLodU(vPosMundoVeg.xz)') && shA.uniforms.uHuellasU === U.uHuellas, 'las lajas (el material de la aldea de Ultra) leen las huellas (4.30.0)');
   }
   return { mal };
 }
@@ -162,7 +162,7 @@ const mutaciones = [
   ['v', 'el horno echa chispas como la fragua', "chispas: horno ? 1.5 : 6, sube: horno ? 0.7 : 1.4", 'chispas: 6, sube: 1.4'],
   ['v', 'la aldea consultada con Ultra apagado', '    if (!activo || !ctx.cam) return;\n', '    if (!activo || !ctx.cam) { ctx.aldea?.fuegosUltra?.(ctx.cam, 32, []); return; }\n'],
   ['m', 'el ripio sin huellas', '    .replace(MARCA_HUELLAS_RIPIO, GLSL_HUELLAS_RIPIO_U + MARCA_HUELLAS_RIPIO)\n', '\n'],
-  ['m', 'las huellas en las lajas (que no se veían)', 'export function inyectarAldeaUltra(sh) {\n  uniformesCielo(sh);\n', 'export function inyectarAldeaUltra(sh) {\n  uniformesCielo(sh); uniformesHuellas(sh);\n'],
+  ['m', 'las lajas sin las huellas (4.30.0)', '  uniformesCielo(sh); uniformesHuellas(sh);   // (4.30.0 C: las huellas en las lajas)', '  uniformesCielo(sh);'],
   ['m', 'las huellas sin su textura', '  Object.assign(sh.uniforms, { uHuellasU: U.uHuellas, uHuellasCentroU: U.uHuellasCentro, uHuellasLadoU: U.uHuellasLado });\n', '\n'],
   ['m', 'la marca del ripio no está en el ripio', "export const MARCA_HUELLAS_RIPIO = '    // el pasto ralo: matas entre las piedras';", "export const MARCA_HUELLAS_RIPIO = '    // las matas del pasto';"],
   ['a', 'sin el fuego del horno', "  (K.extra.fuegos ??= []).push({ lx: fu[0], ly: fu[1], lz: fu[2], alto: 0.27, ancho: 0.3, tipo: 'horno' });\n", '\n'],

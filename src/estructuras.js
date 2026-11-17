@@ -1346,7 +1346,8 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const lx = sx * (p.largo / 2 + 0.18), lz = sz * (ancho / 2 - 0.1);
       const basePuente = { x: p.x, z: p.z, y: p.alto - 0.06 };
       const sueloP = sueloLocal(basePuente, -p.ang, lx, lz);
-      c.agregar(new THREE.IcosahedronGeometry(0.34, 0), { color: '#716e68', tipo: 4, variar: 0.15,
+      // 4.30.0 (C): (detalle 1: con 0 eran icosaedros de 20 caras, facetados de cerca en la cabecera)
+      c.agregar(new THREE.IcosahedronGeometry(0.34, 1), { color: '#716e68', tipo: 4, variar: 0.15,
         matriz: matriz([lx, sueloP + 0.18, lz], [0.2, sx * sz, 0.1], [1.25, 0.7, 1]) });
     }
     montar(c, [p.x, p.alto - 0.06, p.z], -p.ang);

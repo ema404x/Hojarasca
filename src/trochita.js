@@ -101,6 +101,19 @@ function construirVia(T, escena, mat) {
 }
 
 // ---------------------------------------------------------------- puentes de la vía
+// 4.30.0 (C): el largo del tablero de un puente de la vía: de cada lado, hasta donde el terreno ya está a menos de 0,45 m bajo el tablero (el
+// terraplén), con 1 m de apoyo; nunca menos que luz + 4 (lo de antes) ni más que luz + 28. Simétrico: la punta que entra en el terraplén
+// queda tapada por la tierra.
+export function largoTableroRiel(T, x, z, ang, alto, luz) {
+  const sx = Math.sin(ang), sz = Math.cos(ang);
+  let medio = luz / 2 + 2;
+  for (const lado of [-1, 1]) {
+    let ultimo = luz / 2 + 2;
+    for (let d = luz / 2 + 2; d <= luz / 2 + 14; d += 0.5) if (T.altura(x + sx * d * lado, z + sz * d * lado) < alto - 0.65) ultimo = d + 1;
+    medio = Math.max(medio, ultimo);
+  }
+  return Math.min(luz + 28, medio * 2);
+}
 function construirPuentes(T, escena, mat, col) {
   const riel = T.riel;
   for (const p of T.puentesRiel) {
@@ -108,21 +121,25 @@ function construirPuentes(T, escena, mat, col) {
     const ang = Math.atan2(b.x - a.x, b.z - a.z);
     const alto = riel[p.i].h;
     const luz = p.luz;
+    // 4.30.0 (C): el terreno no se toca hasta luz / 2 + 6 del centro (terreno.js) y la quebrada sigue unos metros más: el tablero de
+    // luz + 4 dejaba la vía colgada en el aire 2 a 5 m de cada lado (la vía y el balasto flotando, y a pie te caías 4 m antes del
+    // puente). Ahora el tablero sigue de cada lado hasta donde el terraplén ya llega a la vía (como mucho luz / 2 + 14).
+    const tablero = largoTableroRiel(T, p.x, p.z, ang, alto, luz);
     const c = new Constructor();
     // tablero
-    c.agregar(new THREE.BoxGeometry(2.9, 0.3, luz + 4), { color: MADERA_OSCURA, tipo: 4, variar: 0.1, matriz: matriz([0, -0.35, 0]) });
+    c.agregar(new THREE.BoxGeometry(2.9, 0.3, tablero), { color: MADERA_OSCURA, tipo: 4, variar: 0.1, matriz: matriz([0, -0.35, 0]) });
     for (const lado of [-1, 1]) {
-      c.agregar(new THREE.BoxGeometry(0.22, 0.55, luz + 4), { color: MADERA, tipo: 4, matriz: matriz([lado * 1.3, -0.05, 0]) });
+      c.agregar(new THREE.BoxGeometry(0.22, 0.55, tablero), { color: MADERA, tipo: 4, matriz: matriz([lado * 1.3, -0.05, 0]) });
       // baranda
-      for (let z = -luz / 2 - 1.5; z <= luz / 2 + 1.5; z += 2.2) {
+      for (let z = -tablero / 2 + 0.5; z <= tablero / 2 - 0.5; z += 2.2) {
         c.agregar(new THREE.BoxGeometry(0.12, 1.0, 0.12), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([lado * 1.45, 0.45, z]) });
       }
-      c.agregar(new THREE.BoxGeometry(0.1, 0.1, luz + 4), { color: MADERA, tipo: 0, matriz: matriz([lado * 1.45, 0.92, 0]) });
+      c.agregar(new THREE.BoxGeometry(0.1, 0.1, tablero), { color: MADERA, tipo: 0, matriz: matriz([lado * 1.45, 0.92, 0]) });
     }
     // caballetes: cada pila baja hasta el terreno
-    const pilas = Math.max(2, Math.round(luz / 6));
+    const pilas = Math.max(2, Math.round((tablero - 2) / 6));
     for (let k = 0; k <= pilas; k++) {
-      const z = -luz / 2 + (luz / pilas) * k;
+      const z = -(tablero - 2) / 2 + ((tablero - 2) / pilas) * k;
       const wx = p.x + Math.sin(ang) * z, wz = p.z + Math.cos(ang) * z;
       const suelo = T.altura(wx, wz);
       const h = alto - 0.5 - suelo;
@@ -132,10 +149,10 @@ function construirPuentes(T, escena, mat, col) {
       }
       c.agregar(new THREE.BoxGeometry(2.9, 0.16, 0.16), { color: MADERA, tipo: 0, matriz: matriz([0, -0.5 - h * 0.55, z]) });
       if (k > 0) {
-        const zAnt = z - luz / pilas;
+        const tramo = (tablero - 2) / pilas, zAnt = z - tramo;
         for (const lado of [-1, 1]) {
-          const largo = Math.hypot(luz / pilas, h * 0.5);
-          c.agregar(new THREE.BoxGeometry(0.1, largo, 0.1), { color: MADERA, tipo: 0, matriz: matriz([lado * 1.15, -0.5 - h * 0.55, (z + zAnt) / 2], [Math.atan2(luz / pilas, h * 0.5) * lado * 0 + Math.PI / 2 - Math.atan2(h * 0.5, luz / pilas), 0, 0]) });
+          const largo = Math.hypot(tramo, h * 0.5);
+          c.agregar(new THREE.BoxGeometry(0.1, largo, 0.1), { color: MADERA, tipo: 0, matriz: matriz([lado * 1.15, -0.5 - h * 0.55, (z + zAnt) / 2], [Math.PI / 2 - Math.atan2(h * 0.5, tramo), 0, 0]) });
         }
       }
     }
@@ -147,16 +164,16 @@ function construirPuentes(T, escena, mat, col) {
     // barandas: no se puede caminar por fuera del tablero
     for (const lado of [-1, 1]) {
       const nx = Math.cos(ang) * lado * 1.45, nz = -Math.sin(ang) * lado * 1.45;
-      col.agregar({ seg: true, ax: p.x + nx - Math.sin(ang) * luz / 2, az: p.z + nz - Math.cos(ang) * luz / 2,
-        bx: p.x + nx + Math.sin(ang) * luz / 2, bz: p.z + nz + Math.cos(ang) * luz / 2, r: 0.10,
+      col.agregar({ seg: true, ax: p.x + nx - Math.sin(ang) * tablero / 2, az: p.z + nz - Math.cos(ang) * tablero / 2,
+        bx: p.x + nx + Math.sin(ang) * tablero / 2, bz: p.z + nz + Math.cos(ang) * tablero / 2, r: 0.10,
         alturaMin: alto - 0.28, alturaMax: alto + 1.10 });
     }
     // El tablero es largo sobre el eje Z local del mesh. En la convención de
     // colisiones `largo` vive sobre X local, por eso el ángulo correcto es
     // PI/2 - ang. Antes se usaba ang + PI/2: en puentes diagonales la
     // plataforma quedaba girada 90° y aparecía suelo invisible a los costados.
-    col.agregarPlataforma({ x: p.x, z: p.z, ang: Math.PI / 2 - ang, largo: luz + 4, ancho: 2.6, alto: alto - 0.2, espesor: 0.18 });
-    p.ang = ang; p.alto = alto;
+    col.agregarPlataforma({ x: p.x, z: p.z, ang: Math.PI / 2 - ang, largo: tablero, ancho: 2.6, alto: alto - 0.2, espesor: 0.18 });
+    p.ang = ang; p.alto = alto; p.tablero = tablero;
   }
 }
 

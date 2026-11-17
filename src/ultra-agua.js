@@ -74,25 +74,27 @@ const AGUA_ARROYO = `
         if (corre352 > 0.01) {
           vec2 flU = vCauce;
           float velU = length(vFlujo);
-          float tfU = uTiempo * (0.9 + velU * 1.3);
+          // 4.30.0 (C): lo que baja con el agua corre en dos fases que se turnan (antes reloj × corriente: con el reloj grande, rayas)
+          float faU = fract(uTiempo * 0.07), fbU = fract(uTiempo * 0.07 + 0.5), wU = abs(faU * 2.0 - 1.0);
+          float tfaU = faU * 14.0 * (0.9 + velU * 1.3), tfbU = fbU * 14.0 * (0.9 + velU * 1.3) + 3.3;
           float bajadaU = smoothstep(2.2, 3.0, velU);
           // donde rompe: las olas paradas sobre las piedras del fondo (las mismas del agua de siempre) y las bajadas
           float rompeU = smoothstep(0.5, 0.78, vnoise(flU * vec2(0.55, 0.8) + 9.0));
           float cantU = corre352 * (0.3 + 0.7 * max(rompeU, bajadaU));
           // madejas de espuma estiradas a lo largo de la corriente, que bajan con el agua
-          float madejaU = vnoise(vec2(flU.x * 1.1 - tfU * 1.6, flU.y * 3.2)) * 0.6 + vnoise(vec2(flU.x * 3.4 - tfU * 2.8, flU.y * 8.5 + 4.0)) * 0.4;
+          #define MADEJA_U(t) (vnoise(vec2(flU.x * 1.1 - (t) * 1.6, flU.y * 3.2)) * 0.6 + vnoise(vec2(flU.x * 3.4 - (t) * 2.8, flU.y * 8.5 + 4.0)) * 0.4)
+          float madejaU = mix(MADEJA_U(tfaU), MADEJA_U(tfbU), wU);
           espumaU = smoothstep(0.56 - 0.3 * cantU, 0.86, madejaU) * cantU;
           // burbujas sueltas que pasan
-          vec2 cbU = vec2(flU.x * 5.0 - tfU * 4.0, flU.y * 8.0);
-          vec2 ibU = floor(cbU);
-          espumaU = clamp(espumaU + step(0.8, hash12(ibU)) * smoothstep(0.34, 0.1, length(fract(cbU) - 0.5)) * cantU * 0.7, 0.0, 1.0);
+          #define BURBUJA_U(t) (step(0.8, hash12(floor(vec2(flU.x * 5.0 - (t) * 4.0, flU.y * 8.0)))) * smoothstep(0.34, 0.1, length(fract(vec2(flU.x * 5.0 - (t) * 4.0, flU.y * 8.0)) - 0.5)))
+          espumaU = clamp(espumaU + mix(BURBUJA_U(tfaU), BURBUJA_U(tfbU), wU) * cantU * 0.7, 0.0, 1.0);
           vec3 blancoU = uAmbiente * 2.7 + uSolColor * max(uSolDir.y, 0.0) * 1.0 + uHorizonte * 0.12;
           col = mix(col, blancoU, espumaU * 0.85);
           // chispas: el sol en el agua batida titila rápido (cada celda a su ritmo)
-          vec2 cgU = vec2(flU.x * 6.0 - tfU * 2.5, flU.y * 6.5);
-          vec2 igU = floor(cgU);
-          float hgU = hash12(igU + 3.7);
-          float chispaU = step(0.86, hgU) * pow(max(0.0, sin(uTiempo * (8.0 + hgU * 13.0) + hgU * 60.0)), 8.0) * smoothstep(0.38, 0.04, length(fract(cgU) - 0.5));
+          #define CHISPA_U(t, hg, cg) (step(0.86, hg) * pow(max(0.0, sin(uTiempo * (8.0 + hg * 13.0) + hg * 60.0)), 8.0) * smoothstep(0.38, 0.04, length(fract(cg) - 0.5)))
+          vec2 cgaU = vec2(flU.x * 6.0 - tfaU * 2.5, flU.y * 6.5), cgbU = vec2(flU.x * 6.0 - tfbU * 2.5, flU.y * 6.5);
+          float hgaU = hash12(floor(cgaU) + 3.7), hgbU = hash12(floor(cgbU) + 3.7);
+          float chispaU = mix(CHISPA_U(tfaU, hgaU, cgaU), CHISPA_U(tfbU, hgbU, cgbU), wU);
           col += (uSolColor * 2.6 + uHorizonte * 0.4) * chispaU * corre352 * (0.45 + rompeU + bajadaU) * smoothstep(-0.02, 0.2, uSolDir.y) * (1.0 - uLluvia * 0.7) * (0.3 + 0.7 * detalle);
         }
 `;

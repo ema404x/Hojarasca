@@ -936,10 +936,36 @@ export function trabadoEnRuta(g, etapa, dJugador, dt) {
   t.t += dt;
   return t.t > TRABA_RUTA_S;
 }
+// 4.30.0 (C): antes de llegar a eso, el rodeo. Ramón (de ruta, junto al puesto) caminaba en el lugar contra el mostrador 12 s en dos de sus
+// tres tramos, cada vuelta, y después aparecía del otro lado. Si en RODEO_S segundos casi no se acercó, prueba un punto a un costado
+// (RODEO_M metros o más, del mismo lado mientras le sirva) que no esté adentro de nada ni en el agua, va hasta ahí y sigue
+export const RODEO_S = 1.2, RODEO_M = 1.7;
+export function rodeoEnRuta(g, etapa, dt, T, col) {
+  const falta = Math.hypot(etapa.x - g.pos.x, etapa.z - g.pos.z);
+  let r = g.__lento;
+  if (!r || r.etapa !== etapa) r = g.__lento = { etapa, falta, t: 0, lado: r ? r.lado : 1 };
+  if (falta < r.falta - 0.05) { r.falta = falta; r.t = 0; return null; }
+  r.t += dt;
+  if (r.t < RODEO_S) return null;
+  r.t = 0; r.falta = falta;
+  const ux = (etapa.x - g.pos.x) / (falta || 1), uz = (etapa.z - g.pos.z) / (falta || 1);
+  for (const lado of [r.lado, -r.lado]) for (const m of [RODEO_M, RODEO_M * 1.8, RODEO_M * 2.6]) {
+    const p = { x: g.pos.x - uz * lado * m + ux * 0.8, z: g.pos.z + ux * lado * m + uz * 0.8, y: g.pos.y };
+    if (T.agua?.(p.x, p.z)) continue;
+    const q = { x: p.x, z: p.z, y: p.y };
+    col.resolver?.(q, 0.3, 1.6);
+    if (Math.hypot(q.x - p.x, q.z - p.z) > 0.05) continue;
+    if (col.paredEntre?.(g.pos.x, g.pos.z, p.x, p.z, g.pos.y + 0.3, g.pos.y + 1.4)) continue;
+    r.lado = lado;   // (sigue rodeando del mismo lado; si ese rodeo no llega, la próxima prueba el otro)
+    return { x: p.x, z: p.z, t: 0, lado };
+  }
+  r.lado = -r.lado;
+  return null;
+}
 export function ubicarEnEtapa(g, etapa, T, col) {
   g.pos.x = etapa.x; g.pos.z = etapa.z;
   g.pos.y = Number.isFinite(etapa.y) ? etapa.y : alturaDePie(T, col, etapa.x, etapa.z, g.pos.y);
-  g.vel = 0; g.__trabaRuta = null;
+  g.vel = 0; g.__trabaRuta = null; g.__rodeo = null; g.__lento = null;
 }
 
 // Sobre qué se para: si hay un entablado o un muelle debajo, ahí; si no, el suelo
@@ -1249,10 +1275,16 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           g.vel = 0;
           if (etapa.mirar) g.rumboObjetivo = Math.atan2(etapa.mirar.x - g.pos.x, etapa.mirar.z - g.pos.z);
           if (g.espera <= 0) { g.etapa = (g.etapa + 1) % g.ruta.length; etapa = g.ruta[g.etapa]; }
+        } else if (g.__rodeo) {
+          // 4.30.0 (C): rodeando lo que lo frenaba (ver rodeoEnRuta)
+          g.__rodeo.t += dt;
+          if (caminarHacia(g, dt, g.__rodeo, g.velocidad || 0.8, T, col, 0.35)) g.__rodeo = null;
+          else if (g.__rodeo.t > 4) { if (g.__lento) g.__lento.lado = -g.__rodeo.lado; g.__rodeo = null; }
         } else if (caminarHacia(g, dt, etapa, g.velocidad || 0.8, T, col)) {
           g.espera = etapa.quieto || 8;
-          g.__trabaRuta = null;
+          g.__trabaRuta = null; g.__lento = null;
         } else if (trabadoEnRuta(g, etapa, d, dt)) ubicarEnEtapa(g, etapa, T, col);
+        else g.__rodeo = rodeoEnRuta(g, etapa, dt, T, col);
       } else {
         g.vel = 0;
         // (3.6: sentado o en lo suyo, con vos cerca no se da vuelta: sólo si le hablás)

@@ -4712,9 +4712,9 @@ function soltarRanura(todo = false) {
   const no = motivoParaNoTirar(progreso, r.id);
   if (no) { nota(no.titulo, no.texto); return; }
   const x = js.pos.x - Math.sin(js.yaw) * 1.3, z = js.pos.z - Math.cos(js.yaw) * 1.3;
-  if (T.agua(x, z)) { nota('Ahí no', 'Se te va con el agua'); return; }
+  if (T.agua(x, z) && !col?.plataformaEn?.(x, z, js.pos.y + 0.3, 0.6)) { nota('Ahí no', 'Se te va con el agua'); return; }   // (4.30.0 C: arriba de un puente o un muelle, sí: cae en el tablón)
   if (Math.abs(x) > LIMITE || Math.abs(z) > LIMITE || col?.paredEntre?.(js.pos.x, js.pos.z, x, z, js.pos.y + 0.5)) { nota('No se pudo dejar', 'Probá en un lugar más despejado'); return; }
-  if (clave && !todo && objetos.soltar(r.id, x, z)) {
+  if (clave && !todo && objetos.soltar(r.id, x, z, null, alturaDePie(T, col, x, z, js.pos.y))) {   // (4.30.0 C: apoya en el tablón o el piso donde estás)
     if (clave === 'ramitas') progreso.ramitas = Math.max(0, progreso.ramitas - 1);
     else if (progreso.entradas[clave]) progreso.entradas[clave].cantidad = Math.max(0, (progreso.entradas[clave].cantidad || 0) - 1);
   } else {

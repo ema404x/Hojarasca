@@ -8,6 +8,7 @@
 const SEMI_EXTRA = 1.2;   // lo que la cinta se abre más allá del ancho del cauce (el terreno la recorta)
 const PIE_SALTO = 0.6;   // el agua de la poza empieza a esta distancia del labio: justo después del corte del terreno (la cortina cae sobre ella)
 const PASO_ABANICO = 0.35;   // radianes por triángulo del abanico de una vuelta
+export const MITRA_MAX = 0.5;   // 4.30.0 (C): hasta esta vuelta (rad) los dos tramos comparten el borde (sin cuña doble ni costura)
 
 // `rio`: [{ x, z, s, w }]. `saltoI`: el índice del salto de agua (el tramo del escalón no se dibuja: lo hace la cortina) o -1.
 // Devuelve { pos, flujo, cauce, ind } (arreglos planos).
@@ -31,15 +32,27 @@ export function construirCintaArroyo(rio, saltoI = -1) {
   };
   const dirs = new Array(n).fill(null);
   for (let i = 0; i < n - 1; i++) if (i !== saltoI) dirs[i] = dirDe(i);
+  // 4.30.0 (C): en las vueltas suaves (menos de MITRA_MAX) los dos tramos comparten el borde: la normal y la corriente del punto son el
+  // promedio de las de los dos tramos (y el ancho se corrige por el ángulo). Antes cada tramo tenía su normal y su corriente: en cada
+  // unión quedaba una cuña de agua doble (más oscura) o un salto del dibujo, y se veía una costura recta de orilla a orilla
+  const giroEn = (i) => { const d0 = dirs[i - 1], d1 = dirs[i]; return d0 && d1 ? Math.atan2(d0[0] * d1[1] - d0[1] * d1[0], d0[0] * d1[0] + d0[1] * d1[1]) : null; };
+  const mitra = (i) => { if (i <= 0 || i >= n - 1) return null; const g = giroEn(i); return g !== null && Math.abs(g) < MITRA_MAX ? g : null; };
+  // el borde del tramo `d` en el punto i: [nx, nz, escala del ancho, fx, fz] (la corriente sin la velocidad)
+  const borde = (i, d) => {
+    const g = mitra(i);
+    if (g === null) return [-d[1], d[0], 1, d[0], d[1]];
+    const d0 = dirs[i - 1], d1 = dirs[i], mx = d0[0] + d1[0], mz = d0[1] + d1[1], l = Math.hypot(mx, mz) || 1;
+    return [-mz / l, mx / l, 1 / Math.max(0.85, Math.cos(g / 2)), mx / l, mz / l];
+  };
   for (let i = 0; i < n - 1; i++) {
     const d = dirs[i];
     if (!d) continue;
-    const nx = -d[1], nz = d[0];
-    const wa = semi(i), wb = semi(i + 1), va = velDe(i), vb = velDe(i + 1);
-    const a1 = vert(rio[i].x + nx * wa, alto(i), rio[i].z + nz * wa, d[0] * va, d[1] * va, largoA[i], wa);
-    const a2 = vert(rio[i].x - nx * wa, alto(i), rio[i].z - nz * wa, d[0] * va, d[1] * va, largoA[i], -wa);
-    const b1 = vert(rio[i + 1].x + nx * wb, alto(i + 1), rio[i + 1].z + nz * wb, d[0] * vb, d[1] * vb, largoA[i + 1], wb);
-    const b2 = vert(rio[i + 1].x - nx * wb, alto(i + 1), rio[i + 1].z - nz * wb, d[0] * vb, d[1] * vb, largoA[i + 1], -wb);
+    const [nax, naz, ea, fax, faz] = borde(i, d), [nbx, nbz, eb, fbx, fbz] = borde(i + 1, d);
+    const wa = semi(i) * ea, wb = semi(i + 1) * eb, va = velDe(i), vb = velDe(i + 1);
+    const a1 = vert(rio[i].x + nax * wa, alto(i), rio[i].z + naz * wa, fax * va, faz * va, largoA[i], semi(i));
+    const a2 = vert(rio[i].x - nax * wa, alto(i), rio[i].z - naz * wa, fax * va, faz * va, largoA[i], -semi(i));
+    const b1 = vert(rio[i + 1].x + nbx * wb, alto(i + 1), rio[i + 1].z + nbz * wb, fbx * vb, fbz * vb, largoA[i + 1], semi(i + 1));
+    const b2 = vert(rio[i + 1].x - nbx * wb, alto(i + 1), rio[i + 1].z - nbz * wb, fbx * vb, fbz * vb, largoA[i + 1], -semi(i + 1));
     tri(a1, b1, a2); tri(a2, b1, b2);
   }
   // la poza al pie del salto: desde la base de la cortina (a `PIE_SALTO` m aguas abajo del labio) hasta el primer punto de abajo, a su
@@ -58,12 +71,13 @@ export function construirCintaArroyo(rio, saltoI = -1) {
       tri(a1, b1, a2); tri(a2, b1, b2);
     }
   }
-  // las vueltas: en el punto i, entre el tramo i-1 y el i, el abanico del lado de afuera
+  // las vueltas: en el punto i, entre el tramo i-1 y el i, el abanico del lado de afuera (4.30.0: sólo en las vueltas cerradas; las suaves
+  // ya comparten el borde)
   for (let i = 1; i < n - 1; i++) {
     const d0 = dirs[i - 1], d1 = dirs[i];
     if (!d0 || !d1) continue;
     const giro = Math.atan2(d0[0] * d1[1] - d0[1] * d1[0], d0[0] * d1[0] + d0[1] * d1[1]);   // + = el cauce gira hacia el lado de la normal (-dz, dx)
-    if (Math.abs(giro) < 0.02) continue;
+    if (Math.abs(giro) < 0.02 || mitra(i) !== null) continue;
     const lado = giro > 0 ? -1 : 1;   // el lado de afuera: el contrario al que gira
     const w = semi(i), v = velDe(i);
     const a0 = Math.atan2(lado * d0[0], -lado * d0[1]);   // el ángulo (en x, z) de la normal de afuera del tramo anterior

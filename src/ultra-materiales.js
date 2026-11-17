@@ -214,6 +214,18 @@ export const GLSL_ALDEA_ULTRA = /* glsl */`
           // charcos en lo plano de afuera (la laja y la piedra de la plaza y las veredas): ver GLSL_CHARCO_ALDEA_U
           if (horiz > 0.5 && ((tipo > 4.5 && tipo < 5.5) || tipo > 8.5)) charcoU = uMojadoVeg * smoothstep(0.6, 0.75, nA(pL.xz * 0.7 + 5.0) * 0.75 + nA(pL.xz * 4.0) * 0.25) * (1.0 - uInvierno);
           alb *= 1.0 - charcoU * 0.5;
+          // 4.30.0 (C): las huellas en las lajas y la piedra de la plaza (otro intento después de la 4.29.2, más marcadas): en seco, el polvo
+          // del ripio que traen los zapatos (claro y terroso, con grano); con lluvia, la pisada mojada (oscura y con brillo)
+          if (horiz > 0.5 && ((tipo > 4.5 && tipo < 5.5) || tipo > 8.5)) {
+            float pisaU = pisadaLodU(vPosMundoVeg.xz) * (1.0 - clamp((length(vViewPosition) - 14.0) / 8.0, 0.0, 1.0));   // (se apaga de 14 a 22 m)
+            if (pisaU > 0.001) {
+              float secoPU = 1.0 - clamp(uMojadoVeg * 1.6, 0.0, 1.0);
+              alb = mix(alb, vec3(0.6, 0.51, 0.38) * (0.8 + 0.4 * nA(pL.xz * 31.0)), pisaU * 0.6 * secoPU * (1.0 - uInvierno));
+              // (mojado: barro de la suela, pardo y mate, que corta el brillo de la laja mojada y el charco)
+              alb = mix(alb, vec3(0.2, 0.15, 0.1), pisaU * 0.6 * (1.0 - secoPU));
+              brilloU *= 1.0 - pisaU * 0.85 * (1.0 - secoPU); charcoU *= 1.0 - pisaU * 0.9;
+            }
+          }
         }
       }
 `;
@@ -359,9 +371,9 @@ export const vidrioUltra = (mat, U) => { conocerCieloUltraC(U); return conUltraC
 
 // El agregado de Ultra al material de la aldea (lo llama prepararMaterialAldea, ya con el detalle de la 3.6 puesto).
 export function inyectarAldeaUltra(sh) {
-  uniformesCielo(sh);
+  uniformesCielo(sh); uniformesHuellas(sh);   // (4.30.0 C: las huellas en las lajas)
   sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\n' + GLSL_ALDEA_ULTRA_COMUN + GLSL_RUIDO_U + GLSL_CIELO_U)
+    .replace('#include <common>', '#include <common>\n' + GLSL_ALDEA_ULTRA_COMUN + GLSL_RUIDO_U + GLSL_CIELO_U + GLSL_HUELLAS_U_PARS + GLSL_HUELLAS_LOD_U)
     .replace(NIEVE_JUNTA_U, NIEVE_JUNTA_U + glslNieveU('nieveA'))
     .replace(NIEVE_PINTA_U, NIEVE_PINTA_U + GLSL_NIEVE_BRILLO_U)
     .replace('#include <opaque_fragment>', GLSL_CHARCO_ALDEA_U + '\n#include <opaque_fragment>')
@@ -463,6 +475,20 @@ export const GLSL_HUELLAS_U_PARS = /* glsl */`
   float pisadaU(vec2 xz) {
     float d = 0.028;
     float m = (huellaU(xz) * 2.0 + huellaU(xz + vec2(d, d)) + huellaU(xz + vec2(-d, d)) + huellaU(xz + vec2(d, -d)) + huellaU(xz + vec2(-d, -d))) / 6.0;
+    return smoothstep(0.12, 0.7, m);
+  }
+`;
+// 4.30.0 (C): la misma pisada leída sin derivadas (nivel 0: la textura no tiene mipmaps): en el material de la aldea se lee dentro de un
+// `if` por tipo de superficie y el compilador de la placa avisaba «gradient instruction used in a loop with varying iteration» (X3595)
+export const GLSL_HUELLAS_LOD_U = /* glsl */`
+  float huellaLodU(vec2 xz) {
+    vec2 uvH = (xz - uHuellasCentroU) / uHuellasLadoU + 0.5;
+    if (uvH.x <= 0.0 || uvH.y <= 0.0 || uvH.x >= 1.0 || uvH.y >= 1.0) return 0.0;
+    return textureLod(uHuellasU, uvH, 0.0).r;
+  }
+  float pisadaLodU(vec2 xz) {
+    float d = 0.028;
+    float m = (huellaLodU(xz) * 2.0 + huellaLodU(xz + vec2(d, d)) + huellaLodU(xz + vec2(-d, d)) + huellaLodU(xz + vec2(d, -d)) + huellaLodU(xz + vec2(-d, -d))) / 6.0;
     return smoothstep(0.12, 0.7, m);
   }
 `;

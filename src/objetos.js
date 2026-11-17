@@ -536,12 +536,15 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
 
   // Dejar algo de vuelta en el suelo: se reusa un hueco de los ya tomados,
   // así no hace falta agrandar la malla instanciada.
-  function soltar(id, x, z, guardado = null) {
+  // 4.30.0 (C): `yPie`: dónde apoya (el tablón de un puente, el piso de arriba): antes iba siempre al terreno y lo soltado arriba de un
+  // puente o en un piso alto caía abajo (atravesaba el tablero); se guarda con la partida
+  function soltar(id, x, z, guardado = null, yPie = null) {
     const tipo = id === 'ramita' ? 'ramita' : id;
     // 2.6.1: Object.hasOwn: un id como "constructor" encontraba una función y tiraba
     const im = Object.hasOwn(mallas, tipo) ? mallas[tipo] : null;
     if (!im) return false;
-    const y = T.altura(x, z);
+    const yG = guardado ? guardado.y : yPie;
+    const y = Number.isFinite(yG) ? Math.max(T.altura(x, z), yG) : T.altura(x, z);
     // 3.8.4: va a un hueco propio (uno de lo soltado antes, ya levantado, o uno reservado) y queda anotado en la partida;
     // sin huecos, como antes: se reusa uno de los que juntaste (ése, al recargar, vuelve a su lugar de siempre)
     // 3.8.6: con la lista de lo soltado llena (64), lo nuevo no entra a la lista (antes salía lo más viejo, que seguía en
@@ -554,7 +557,7 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       items.push(candidato);
     }
     if (candidato) {
-      candidato.suelto = guardado || { tipo, x, z };
+      candidato.suelto = guardado || (Number.isFinite(yPie) && yPie > T.altura(x, z) + 0.05 ? { tipo, x, z, y: yPie } : { tipo, x, z });
       if (!guardado) { progreso.soltados.push(candidato.suelto); if (progreso.soltados.length > SOLTADOS_TOPE) progreso.soltados.shift(); }
     } else candidato = items.find((it) => it.tipo === tipo && it.tomado);
     if (candidato && !candidato.esSuelto) {
