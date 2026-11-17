@@ -6,7 +6,9 @@
 //   2. la casa del molino se entra: por la escalerita, la galería y la puerta (que choca cerrada y se abre), con piso que se pisa, muebles que frenan
 //      y la caja de los interiores del valle (interior-visible.js) que reconoce el adentro;
 //   3. la mochila: cada casilla de la barra (95 cosas distintas) se tira con V (de a una y entera) y vuelve con E igual, pasando por guardar y
-//      cargar el bulto: nada se pierde ni se duplica.
+//      cargar el bulto: nada se pierde ni se duplica;
+//   4. la plata: la billetera cuenta justo con cobros y pagos al azar y guardar y cargar en el medio, y comprar y vender en el mismo puesto de la
+//      trochita nunca deja plata.
 // Con mutaciones de verdad (un proceso por mutación: `--mutacion=<id>`).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -35,6 +37,8 @@ const MUTACIONES = {
   'sin-pisos': ['src/molino-paisaje.js', "for (const p of plataformas) col.agregarPlataforma?.({ ...p, duenio: 'molino-paisaje' });", ''],
   'sin-puerta': ['src/molino-paisaje.js', 'if (puertas?.agregar) puertas.agregar({', 'if (false) puertas.agregar({'],
   'sin-muebles-casa': ['src/molino-paisaje.js', 'const segL = (a, b, r, alto) => seg(a, b, r, yP - 0.1, yP + alto);', 'const segL = () => {};'],
+  'cobrar-de-mas': ['src/economia.js', 'const e = progreso.economia, antes = entero(e.pesos), despues = Math.min(MAX_PESOS, antes + n), entra = despues - antes;', 'const e = progreso.economia, antes = entero(e.pesos), despues = Math.min(MAX_PESOS, antes + n + (n > 4000 ? 1 : 0)), entra = despues - antes;'],
+  'venta-cara': ['src/comercio.js', 'const compra = Math.max(venta + 1, Math.ceil(v * (1 + COMERCIO.margen)', 'const compra = Math.max(1, Math.floor(0.9 * v * (1 - COMERCIO.margen)'],
   'tirar-pierde': ['src/tirar.js', 'if (k === \'ramitas\') progreso.ramitas = entero(progreso.ramitas) + q;\n      else if (k === \'material\') { if (!progreso.materiales || typeof progreso.materiales !== \'object\') progreso.materiales = {}; progreso.materiales[carga.id] = entero(progreso.materiales[carga.id]) + q; }',
     'if (k === \'ramitas\') progreso.ramitas = entero(progreso.ramitas) + q;\n      else if (k === \'material\') { if (!progreso.materiales || typeof progreso.materiales !== \'object\') progreso.materiales = {}; progreso.materiales[carga.id] = entero(progreso.materiales[carga.id]) + q - 1; }'],
 };
@@ -115,6 +119,46 @@ const ok = (c, t) => { pasos++; assert.ok(c, t); };
   }
   assert.deepEqual(noSe.sort(), ['camara', ...M.COSAS_HISTORIA_MOCHILA.map((c) => c.id)].sort(), 'sólo la cámara y lo de la Historia no se tiran');
   ok(vueltas >= 180, `${vueltas} idas y vueltas por el suelo`);
+}
+
+// ---------------------------------------------------------------- 4. la plata: no se duplica ni se pierde
+{
+  const tmpE = path.join(raiz, 'src', `__economia-4-30-0-b-${process.pid}.js`), tmpC = path.join(raiz, 'src', `__comercio-4-30-0-b-${process.pid}.js`);
+  fs.writeFileSync(tmpE, fuente('src/economia.js')); fs.writeFileSync(tmpC, fuente('src/comercio.js'));
+  let EC, CO;
+  try { EC = await import(pathToFileURL(tmpE).href); CO = await import(pathToFileURL(tmpC).href); } finally { fs.rmSync(tmpE, { force: true }); fs.rmSync(tmpC, { force: true }); }
+  // la billetera: mil movimientos al azar (cobrar y pagar, montos raros), con guardar y cargar en el medio
+  let semilla = 4300;
+  const azar = () => { semilla = (Math.imul(semilla, 1103515245) + 12345) >>> 0; return semilla / 4294967296; };
+  const p = { modo: 'relax', dia: 4, economia: EC.economiaNueva() };
+  let esperado = 0, malos = 0;
+  for (let i = 0; i < 1000; i++) {
+    const monto = [Math.floor(azar() * 5000), -3, 0, 2.7, '12', NaN][i % 6 === 5 ? 1 + Math.floor(azar() * 5) : 0];
+    const n = Math.max(0, Math.floor(Number(monto) || 0));
+    if (azar() < 0.55) { const r = EC.cobrar(p, monto, 'prueba'); if (n > 0) esperado += n; if (r.ok !== (n > 0)) malos++; }
+    else { const r = EC.pagar(p, monto, 'prueba'); if (n > 0 && esperado >= n) { esperado -= n; if (!r.ok) malos++; } else if (r.ok && n > 0) malos++; }
+    if (EC.pesosDe(p) !== esperado || p.economia.pesos < 0) malos++;
+    if (i % 97 === 0) p.economia = EC.sanearEconomia(JSON.parse(JSON.stringify(p.economia)));
+  }
+  ok(malos === 0 && EC.pesosDe(p) === esperado, `la billetera cuenta justo en 1000 movimientos con guardar y cargar en el medio (${EC.pesosDe(p)} = ${esperado})`);
+  ok(p.economia.ganado - p.economia.gastado === EC.pesosDe(p), 'lo ganado menos lo gastado es lo que hay');
+  ok(!EC.pagar(p, EC.pesosDe(p) + 1).ok && EC.pesosDe(p) === esperado, 'pagar de más no deja la billetera en negativo ni la toca');
+  ok(EC.pesosDe({ modo: 'desafio', economia: { pesos: 500 } }) === 0 && !EC.cobrar({ modo: 'desafio', economia: EC.economiaNueva() }, 100).ok, 'en el Desafío no hay pesos');
+  // los puestos de la trochita: comprar un lote y venderlo en el mismo puesto siempre pierde (no hay plata gratis en un mostrador)
+  const nombres = [...new Set(['Estación del Valle', 'Parada del Mallín', 'Parada Alta', 'Apeadero del Lago', 'Un pueblo cualquiera', 'Otro más'])];
+  let vueltas = 0, ganancias = 0;
+  for (const nom of nombres) for (const bien of CO.bienesDe(nom)) for (const t of CO.TEMPORADAS) for (const factor of [0.5, 1, 1.7]) for (const dia of [1, 9, 33]) {
+    const c = CO.comercioNuevo();
+    let caja = 1e9;
+    const ini = caja;
+    for (let k = 0; k < 6; k++) {
+      const a = CO.comprar(c, nom, bien, dia, t, caja, factor); if (!a.ok) break; caja -= a.precio;
+      const b = CO.vender(c, nom, bien, dia, t, a.cantidad, factor); if (!b.ok) break; caja += b.precio;
+      vueltas++;
+    }
+    if (caja >= ini) ganancias++;
+  }
+  ok(vueltas > 1000 && ganancias === 0, `comprar y vender en el mismo puesto nunca deja plata (${vueltas} vueltas, ${ganancias} con ganancia)`);
 }
 
 // ---------------------------------------------------------------- 1 y 2. el valle de verdad
