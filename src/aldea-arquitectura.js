@@ -2085,6 +2085,9 @@ function hornoBarro(K, x, z, giro = 0) {
   const b = F.p(0, 0, 0.9);
   K.luz(b[0], 0.95, b[2], { color: 0xff8a3a, radio: 4, intensidad: 0.7, clase: 'fuego', cuarto: 'afuera' });
   K.extra.humo = { lx: F.p(0, 0, -0.25)[0], ly: 1.6, lz: F.p(0, 0, -0.25)[2] };
+  // 4.29.2 (B): dónde arde el fuego (sólo lo lee Ultra: ultra-vida.js pone ahí las llamas y las chispas; con Ultra apagado nadie lo mira)
+  const fu = F.p(0, 0.77, 0.83);
+  (K.extra.fuegos ??= []).push({ lx: fu[0], ly: fu[1], lz: fu[2], alto: 0.27, ancho: 0.3, tipo: 'horno' });
 }
 function colmena(K, x, z, giro = 0, color = '#e2dccb') {
   const F = marcoLocal(x, z, giro), c = K.ext;
@@ -2575,6 +2578,7 @@ function herreria(K) {
   K.mueble(xf, zf, 1.1, 1.3, 0.85);
   K.luz(xf + 0.4, PISO + 1.1, zf, { color: 0xff6a20, radio: 6, intensidad: 1.3, clase: 'fragua', cuarto: 'local' });
   K.trabajo('fragua', xf + 1.05, zf, -Math.PI / 2);
+  (K.extra.fuegos ??= []).push({ lx: xf + 0.05, ly: PISO + 0.87, lz: zf, alto: 0.5, ancho: 0.44, tipo: 'fragua', adentro: true });   // 4.29.2 (B): sólo Ultra
   // el fuelle
   const Ff = marcoLocal(xf, zf + 0.95, 0, PISO);
   cj(K.int, Ff, 0, 0.66, 0, 0.5, 0.06, 0.7, '#4a3020'); cj(K.int, Ff, 0, 0.33, 0, 0.06, 0.6, 0.06, '#3a2a1a');
@@ -5289,7 +5293,7 @@ function cerrar(K, extra = {}) {
     techo: K.techo, pisos: K.pisos, carteles: K.carteles,
     extra: { campana: K.extra.campana ?? null, bandera: K.extra.bandera ?? null, alamos: K.extra.alamos ?? null, cables: K.extra.cables ?? null,
       acometida: K.extra.acometida ?? null, dibujos: K.extra.dibujos ?? null, mapaValle: K.extra.mapaValle ?? null, abejas: K.extra.abejas ?? null,
-      corral: K.extra.corral ?? null, ventanal: K.extra.ventanal ?? null, torreta: K.extra.torreta ?? null },
+      corral: K.extra.corral ?? null, ventanal: K.extra.ventanal ?? null, torreta: K.extra.torreta ?? null, fuegos: K.extra.fuegos ?? null },
     medidas: {
       triangulos: { exterior: Object.values(exterior).reduce((s, g) => s + tris(g), 0), interior: Object.values(interior).reduce((s, g) => s + tris(g), 0) },
       dibujos: { exterior: Object.values(exterior).filter(Boolean).length, interior: Object.values(interior).filter(Boolean).length },
@@ -5992,6 +5996,7 @@ export function armarTallerTren(opciones = {}) {
     caja(I, [fx + 0.75, F0 + 0.65, fz + 0.1], [0.5, 0.26, 0.45], '#6a4a30', { sup: SUP.tosca + AD, rz: 0.2 });
     K.mueble(fx, fz, 1.0, 0.9, 0.9);
     K.extra.chispas = { lx: fx, ly: F0 + 0.95, lz: fz };
+    (K.extra.fuegos ??= []).push({ lx: fx, ly: F0 + 0.9, lz: fz, alto: 0.42, ancho: 0.5, tipo: 'fragua', adentro: true });   // 4.29.2 (B): sólo Ultra
     K.chimenea = { lx: fx, ly: CU + 1.05, lz: fz };
     K.luz(fx, F0 + 1.2, fz + 0.6, { color: 0xff8a3a, radio: 5, intensidad: 0.9, clase: 'fuego', cuarto: 'local' });
     // el yunque, entre la fragua y Martín

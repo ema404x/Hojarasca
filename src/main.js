@@ -11819,7 +11819,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (ultraVida) {
     const u = ctxUltraVida;
     u.cam = cam; u.js = jugador.estado; u.gente = gente; u.veg = veg; u.obras = obras; u.horas = progreso.horas; u.noche = noche; u.dia = luzCielo ? luzCielo.dia : 1;
-    u.techos = ctxClima.techos || null; u.huellas = huellas; u.fauna = rastrosFauna; u.bajoTecho = bajoTecho;
+    u.techos = ctxClima.techos || null; u.huellas = huellas; u.fauna = rastrosFauna; u.bajoTecho = bajoTecho; u.aldea = aldeaMundo;   // (4.29.2: los hornos y las fraguas de la aldea)
     try { ultraVida.revisarAjustes(ajustes, calidadActiva, dt, u); } catch (e) { fallaSistema('ultra de la vida chica', e); }
   }
   perfilador.terminar('clima', tClima, medirRendimiento);

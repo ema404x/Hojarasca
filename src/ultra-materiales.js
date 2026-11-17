@@ -448,6 +448,46 @@ export function inyectarEstructuraUltra(sh) {
     .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GLSL_RELIEVE_U);
 }
 
+// ---------------------------------------------------------------- 4.29.2 (B): las huellas en el ripio de la aldea
+// La misma textura de huellas finas de ultra-vida.js (tus pisadas, las de la gente cercana y las de los animales, que se borran solas en unos
+// minutos; U.uHuellas, que con Ultra apunta a esa textura). En el ripio, la piedra corrida: en la pisada se ve la tierra apisonada (más oscura
+// y pareja) y alrededor la grava que se amontona (más clara); en la nieve, barro como las otras. (Las lajas de la plaza no: probado, no se veía.)
+export const GLSL_HUELLAS_U_PARS = /* glsl */`
+  uniform sampler2D uHuellasU; uniform vec2 uHuellasCentroU; uniform float uHuellasLadoU;
+  float huellaU(vec2 xz) {
+    vec2 uvH = (xz - uHuellasCentroU) / uHuellasLadoU + 0.5;
+    if (uvH.x <= 0.0 || uvH.y <= 0.0 || uvH.x >= 1.0 || uvH.y >= 1.0) return 0.0;
+    return texture2D(uHuellasU, uvH).r;
+  }
+  // (la pisada suavizada: la textura tiene 4,7 cm por texel y de cerca se veía en escalones; cinco lecturas y el borde redondeado)
+  float pisadaU(vec2 xz) {
+    float d = 0.028;
+    float m = (huellaU(xz) * 2.0 + huellaU(xz + vec2(d, d)) + huellaU(xz + vec2(-d, d)) + huellaU(xz + vec2(d, -d)) + huellaU(xz + vec2(-d, -d))) / 6.0;
+    return smoothstep(0.12, 0.7, m);
+  }
+`;
+function uniformesHuellas(sh) {
+  const U = cielo.U; if (!U) return;
+  Object.assign(sh.uniforms, { uHuellasU: U.uHuellas, uHuellasCentroU: U.uHuellasCentro, uHuellasLadoU: U.uHuellasLado });
+}
+export const MARCA_HUELLAS_RIPIO = '    // el pasto ralo: matas entre las piedras';
+export const GLSL_HUELLAS_RIPIO_U = /* glsl */`
+    {
+      float cercaHR = 1.0 - smoothstep(16.0, 24.0, length(cameraPosition - vMundoR));
+      if (cercaHR > 0.0) {
+        float tHR = 0.12;   // (metros: el anillo de grava corrida alrededor de la pisada)
+        float mHR = pisadaU(vMundoR.xz);
+        float aHR = max(max(huellaU(vMundoR.xz + vec2(tHR, 0.0)), huellaU(vMundoR.xz - vec2(tHR, 0.0))), max(huellaU(vMundoR.xz + vec2(0.0, tHR)), huellaU(vMundoR.xz - vec2(0.0, tHR))));
+        float bordeHR = smoothstep(0.1, 0.6, aHR - mHR) * cercaHR;
+        mHR *= cercaHR;
+        float lumHR = dot(col, vec3(0.3, 0.55, 0.15));
+        col = mix(col, vec3(lumHR) * vec3(0.95, 0.84, 0.7) * 0.42, mHR * 0.85);
+        col *= 1.0 + bordeHR * 0.45;
+        huella = max(huella, mHR * 0.8);   // (en la nieve, barro)
+      }
+    }
+`;
+
 // ---------------------------------------------------------------- las calles y la plaza de ripio de la aldea (materialRipio de aldea-mundo.js)
 // Con lluvia, más charcos (los baches se llenan antes) y cada uno devuelve el cielo y el paisaje con los anillos de las gotas, y el sol.
 export const CHARCO_RIPIO_ALTA = 'charcoR = uMojadoR * smoothstep(0.6, 0.82,';
@@ -462,9 +502,10 @@ export const GLSL_CHARCO_RIPIO_U = /* glsl */`
   }
 `;
 export function inyectarRipioUltra(sh) {
-  uniformesCielo(sh);
+  uniformesCielo(sh); uniformesHuellas(sh);
   sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\n' + GLSL_CIELO_U)
+    .replace('#include <common>', '#include <common>\n' + GLSL_CIELO_U + GLSL_HUELLAS_U_PARS)
+    .replace(MARCA_HUELLAS_RIPIO, GLSL_HUELLAS_RIPIO_U + MARCA_HUELLAS_RIPIO)
     .replace(CHARCO_RIPIO_ALTA, 'charcoR = uMojadoR * smoothstep(0.34, 0.58,')
     .replace('#include <opaque_fragment>', GLSL_CHARCO_RIPIO_U + '\n#include <opaque_fragment>');
 }
