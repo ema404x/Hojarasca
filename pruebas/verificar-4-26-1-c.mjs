@@ -260,7 +260,8 @@ const GRUPOS = {
 
 // ---------------------------------------------------------------- la gente en una VM (como verificar-4-25-0-c)
 // los triángulos de cada uno con el código de la 4.26.0 (medidos con --tris sobre gente-cuerpo.js y gente-ropa.js de la 4.26.0)
-const TRIS_4260 = { ema: 16218, tobias: 14147, ramon: 14539, fermin: 13226, nicanor: 13848, ercilia: 15422 };
+// 4.30.0 (A): los de poncho suman triángulos (el brazo del poncho nace en el hombro)
+const TRIS_4260 = { ema: 16218, tobias: 14147, ramon: 14579, fermin: 13306, nicanor: 13848, ercilia: 15422 };
 const SIN_CAPAS = [
   ['costuras(c, p); rodillera(c, p, -0.41);', 'costuras(c, p);'],
   ['costuras(c, p); rodillera(c, p, -0.04); });', 'costuras(c, p); });'],
