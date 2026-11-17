@@ -1,0 +1,31 @@
+{
+  "anterior": "4.29.1",
+  "fecha": "17-11-2026",
+  "titulo": "Lo que quedó afuera de Ultra",
+  "cambios": [
+    "Ramas v4292-a (suelo y cascada) y v4292-b (fuego y huellas), juntadas. Detalle en CAMBIOS_4_29_2_A.md y _B.md. Todo detrás de Ultra: con Ultra apagado, mismos programas de shader que la 4.29.1.",
+    "",
+    "- El suelo de cerca (a menos de ~3 m) tiene grano fino: césped, tierra, estepa y piso del bosque; las piedras de cerca son grava.",
+    "- Donde lo pisado toca el pasto, el pasto y las flores se cortan en una franja irregular en vez de una línea recta.",
+    "- La cascada cae de verdad: hilos, espuma, poza con remolinos, neblina, rocío y chispas.",
+    "- Los hornos de la panadería y la cerámica y las fraguas de la herrería y del taller del tren con llamas y chispas; la luz de la fragua de la herrería titila.",
+    "- Huellas suaves en el ripio (piedra corrida) que se borran.",
+    "- Rendimiento: Ultra contra Alta en la misma proporción que la 4.29.1 en la plaza y el bosque (B +0,3 ms); la cascada suma ~1,5–2 ms donde se ve (29,4 ms).",
+    "- Verificación: npm run verify de corrido; pruebas nuevas verificar-4-29-2-a (12 mutaciones) y -b (12 mutaciones).",
+    "",
+    "## Afuera",
+    "- El borde irregular en el color del suelo y el relieve de las piedras del ripio (costaban ~2 ms en la plaza).",
+    "- Huellas en las lajas (no se veían claro) y la luz que titila en los hornos (cambiaría los programas de Alta).",
+    "- Vecinos mojados: ningún vecino pisa agua.",
+    "- La cortina de la cascada en Alta sigue con los hilos aplastados en rayas (arreglado sólo en Ultra)."
+  ],
+  "release": "LO QUE QUEDÓ AFUERA DE ULTRA (CAMBIOS_4_29_2_A/B.md) — grano del suelo de cerca, bordes de pasto irregulares, la cascada, fuego en hornos y fraguas y huellas en el ripio",
+  "seguir": "Lo que quedó afuera de Ultra (CAMBIOS_4_29_2_A/B.md). Main se comparte con la otra PC: antes de trabajar, `git fetch`. Shaders nuevos sólo detrás de `esUltra`. Steam y el inglés esperan.",
+  "leemeNovedades": [
+    "- Con Ultra: el suelo con grano de cerca, el pasto que no se corta en línea recta, la cascada nueva y fuego en los hornos y las fraguas de la aldea."
+  ],
+  "leemeMirar": [
+    "- La cascada y la herrería de noche, con Ultra.",
+    "- Si Ultra se siente pesado en la plaza."
+  ]
+}
