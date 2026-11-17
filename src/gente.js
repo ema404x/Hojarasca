@@ -518,6 +518,8 @@ function limitarCabeza(g) {
 // sea el del brazo (el hombro con sus tres giros y el codo: se deshace con la inversa de los dos). Cada ángulo `a` se mide desde la vertical hacia adelante. La tabla,
 // colgando, va de canto junto a la pierna, tomada del borde de arriba (`d` < 0: el centro, debajo del puño; `x` > 0: hacia afuera); anotando, inclinada hacia la cara,
 // con la hoja hacia arriba y corrida hacia el medio del pecho. La caña, casi derecha y tendida hacia el agua al pescar (con el tirón del brazo).
+// 4.30.0 (A): por dónde sale Ramón de su puesto hacia la leña (y vuelve): la puerta y la esquina de afuera (ver la ruta de Ramón en crearGente)
+export const PASO_RAMON = { quieto: 0.01, puntos: [[0.75, 5], [1.25, 5.25], [4, 2.5], [4, -1.25]] };
 export const EN_MANO = {
   planilla: { colgando: { a: 0, d: -0.11, x: 0.025, giro: Math.PI / 2 }, anotando: { a: 0.8, d: 0.1, x: -0.07, giro: 0 } },
   caña: { quieta: 0.3, pescando: 1.0, tiron: 0.5 },
@@ -1083,9 +1085,16 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     const { p, mira } = puesto(L.puesto, L.puesto && L.puesto.rot, 1.55, 2.62, [5.5, 6.5]);
     const base = L.puesto || L.refugio;
     const rot = base.rot ?? 0;
+    // 4.30.0 (A): el banco y la puerta quedan adentro del puesto y la leña afuera, del otro lado: de un tramo a otro caminaba en línea recta contra la pared
+    // (12 s en el lugar y después aparecía del otro lado). Ahora sale y entra por la puerta: los puntos de paso (`PASO_RAMON`, en el espacio del puesto,
+    // sacados del mapa de choques del puesto en la partida real) con una espera mínima
+    const paso = (q) => ({ ...ubicarJunto(base, rot, q[0], q[1]), quieto: PASO_RAMON.quieto });
+    const ida = PASO_RAMON.puntos.map(paso), vuelta = PASO_RAMON.puntos.slice().reverse().map(paso);
     const ruta = [
       { ...ubicarJunto(base, rot, 1.55, 2.62), quieto: 14, mirar: base },
+      ...(L.puesto ? ida : []),
       { ...ubicarJunto(base, rot, 3.4, -1.6), quieto: 9 },
+      ...(L.puesto ? vuelta : []),
       { ...ubicarJunto(base, rot, -0.65, 3.18), quieto: 11, mirar: { x: base.x + (base.x - p.x) * 4, z: base.z + (base.z - p.z) * 4 } },
     ];
     const npc = agregar('ramon', { ropa: '#9a8b6c', abrigo: '#6b4a3a', poncho: true, gorro: 'boina', barba: '#c8c4bc' }, p, mira, { ruta, velocidad: 0.65, conMate: true });

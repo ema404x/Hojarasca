@@ -146,6 +146,17 @@ const COMPROBAR = {
     const sinCruzar = quietas.every((v) => v > -0.5) && gorro < -1.5;
     return [brazo && mate && arma && sinCruzar, `con poncho, el brazo (y el del mate) desde el hombro, se arma, y no cruza los brazos (codo ${quietas.map((v) => v.toFixed(2))}; el gorro ${gorro.toFixed(2)})`];
   },
+  // 6. Ramón sale y entra de su puesto por la puerta: los puntos de paso entre el banco (adentro) y la leña (afuera), a la ida y al revés a la vuelta (el recorrido
+  // se vio en la partida real: dos vueltas sin trabarse ni saltar; acá, que la ruta los tenga en orden)
+  ramon(_v, gente = GENTE) {
+    const m = gente.match(/export const PASO_RAMON = \{ quieto: ([\d.]+), puntos: (\[\[.*?\]\]) \};/);
+    const pts = m ? JSON.parse(m[2]) : [];
+    const ruta = /\{ \.\.\.ubicarJunto\(base, rot, 1\.55, 2\.62\), quieto: 14, mirar: base \},\n\s*\.\.\.\(L\.puesto \? ida : \[\]\),\n\s*\{ \.\.\.ubicarJunto\(base, rot, 3\.4, -1\.6\), quieto: 9 \},\n\s*\.\.\.\(L\.puesto \? vuelta : \[\]\),\n\s*\{ \.\.\.ubicarJunto\(base, rot, -0\.65, 3\.18\)/.test(gente);
+    const idaVuelta = /const ida = PASO_RAMON\.puntos\.map\(paso\), vuelta = PASO_RAMON\.puntos\.slice\(\)\.reverse\(\)\.map\(paso\);/.test(gente);
+    // la espera en cada punto de paso, mínima (con 0, `quieto || 8` lo dejaba 8 s parado en la puerta)
+    const r = !!m && Number(m[1]) > 0 && Number(m[1]) < 0.2 && pts.length >= 3 && Math.hypot(pts[0][0] - 0.75, pts[0][1] - 5) < 0.6 && ruta && idaVuelta;
+    return [r, `Ramón: ${pts.length} puntos de paso por la puerta, a la ida y a la vuelta`];
+  },
   // 4. el enganche en gente.js (texto: el bucle de la gente no corre en Node)
   enganche(_v, gente = GENTE) {
     const r = /g\.__tareaMano = !!\(tarea && \(\(tarea\.anotando && g\.planilla\) \|\| \(tarea\.pescando && g\.caña\)\)\);/.test(gente)
@@ -179,6 +190,9 @@ const MUT = [
   ['poncho', 'el brazo con poncho desde el codo', (c) => c.replace("? [[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [l * 0.006, -0.26, 0.004]", '? [[l * 0.006, -0.26, 0.004]').replace('[0.026, 0.034, 0.035, 0.038, 0.037, 0.034, 0.028]', '[0.038, 0.037, 0.034, 0.028]'), null],
   ['poncho', 'el brazo del mate con poncho desde el codo', (c) => c.replace('? [[[-l * 0.03, 0.0, 0], [-l * 0.01, -0.03, 0], [l * 0.002, -0.14, 0.0], [codoP[0], -0.24, 0.0]', '? [[[codoP[0], -0.24, 0.0]').replace('[0.026, 0.034, 0.035, 0.042, 0.045, 0.044, 0.042, 0.036]', '[0.042, 0.045, 0.044, 0.042, 0.036]'), null],
   ['poncho', 'con poncho cruza los brazos', (c) => c.replace('const P = g.conPoncho && PONCHO_SIN_POSE.has(q.nombre) ? null : POSES[q.nombre];', 'const P = POSES[q.nombre];'), null],
+  ['ramon', 'Ramón sin los puntos de ida', null, (g) => g.replace('...(L.puesto ? ida : []),', '')],
+  ['ramon', 'Ramón sin dar vuelta los de la vuelta', null, (g) => g.replace('vuelta = PASO_RAMON.puntos.slice().reverse().map(paso)', 'vuelta = PASO_RAMON.puntos.map(paso)')],
+  ['ramon', 'Ramón con espera 0 en la puerta', null, (g) => g.replace('export const PASO_RAMON = { quieto: 0.01,', 'export const PASO_RAMON = { quieto: 0,')],
   ['enganche', 'sin __tareaMano', null, (g) => g.replace('g.__tareaMano = !!(tarea', 'g.__tareaManoX = !!(tarea')],
   ['enganche', 'sin devolver la tabla después de la pose', null, (g) => g.replace('else if (!deja && g.__enManoDejado) { cosa.visible = true;', 'else if (!deja && g.__enManoDejado) {')],
 ];
@@ -187,7 +201,7 @@ for (const [cual, nombre, mc, mg] of MUT) {
   const c = mc ? mc(CUERPO) : CUERPO, g = mg ? mg(GENTE) : GENTE;
   assert.ok(c !== CUERPO || g !== GENTE, `la mutación «${nombre}» no cambió nada`);
   let r;
-  try { r = cual === 'enganche' ? COMPROBAR.enganche(null, g)[0] : cual === 'poncho' ? COMPROBAR.poncho(armar(c, g), c)[0] : COMPROBAR[cual](armar(c, g))[0]; } catch { r = false; }
+  try { r = cual === 'enganche' ? COMPROBAR.enganche(null, g)[0] : cual === 'ramon' ? COMPROBAR.ramon(null, g)[0] : cual === 'poncho' ? COMPROBAR.poncho(armar(c, g), c)[0] : COMPROBAR[cual](armar(c, g))[0]; } catch { r = false; }
   ok(!r, `mutación «${nombre}»: su comprobación tiene que fallar`);
   mut++;
 }
