@@ -37,9 +37,14 @@ const MUTACIONES = {
   'sin-sacudir': ['src/pueblo-detalles-juego.js', "if (ed && previo === null && clima === 'nieve' && !g.enEscena)", 'if (false)'],
   'perro-sin-caricia': ['src/pueblo-detalles-juego.js', 'if (!ctx.animales?.()?.acariciar?.(perro.id, PUEBLO.perro.extra, js.pos)) return;', ''],
   'taparse-parado': ['src/pueblo-detalles-pose.js', "if (id === 'taparse' && !andando) id = null;", ''],
-  'pueblo-despues-de-puerta': ['src/interacciones.js', "  { id: 'pueblo', ...delModulo('pueblo', (c) => aMano(c) && !c.js.sentado) },\n", ''],
+  'pueblo-despues-de-puerta': ['src/interacciones.js', "    id: 'pueblo', ...delModulo('pueblo', () => true),", "    id: 'pueblo-no', ...delModulo('pueblo', () => true),"],
+  'perro-no-gana-al-banco': ['src/interacciones.js', "return a && (!c.objetivo || a.tipo === 'perro') ? a : null;", "return a && !c.objetivo ? a : null;"],
   'sin-luz-por-casa': ['src/aldea-mundo.js', 'encendido * 1.5 * q.fuerza * fe)', 'encendido * 1.5 * q.fuerza)'],
   'humo-sin-filtro': ['src/aldea-mundo.js', 'const todas = [...conGente,', 'const todas = [...chimeneas,'],
+  'sin-escalon': ['src/aldea-arquitectura.js', "K.asiento('el escalón del mástil', 0, 0.25, ZM + 0.86, 0);", ''],
+  'sin-buzon': ['src/aldea-arquitectura.js', '  if (P.buzon) N.buzon = copia(P.buzon);', ''],
+  'boletin-de-hoy': ['src/pueblo-detalles.js', 'const hoy = Math.max(1, entero(dia, 1)), ayer = hoy - 1;', 'const hoy = Math.max(1, entero(dia, 1)), ayer = hoy;'],
+  'aljibe-sin-tocar': ['src/aldea-mecanicas-mundo.js', "if (e.tipo === 'aljibe' && yaHoy(m, 'aljibe', dia())) return 'Mojarte las manos en el aljibe';", ''],
   'halos-de-todas': ['src/aldea-mundo.js', 'for (const v of sinLuz(b) ? [] : d.ventanas || [])', 'for (const v of d.ventanas || [])'],
 };
 
@@ -75,6 +80,7 @@ if (MUT) {
   process.on('exit', () => { try { fs.rmSync(SRC, { recursive: true, force: true }); } catch { /* nada */ } });
 }
 const fuente = (f) => fs.readFileSync(path.join(SRC, path.basename(f)), 'utf8');
+if (MUT) { const [f, a, b] = MUTACIONES[MUT]; const abs = path.join(raiz, f); globalThis.__cambiarFuente = (archivo, texto) => (path.resolve(archivo) === path.resolve(abs) ? texto.replace(a, b) : texto); }
 const importar = (n) => import(pathToFileURL(path.join(SRC, n)).href);
 const PD = await importar('pueblo-detalles.js');
 const { crearPuebloDetalles } = await importar('pueblo-detalles-juego.js');
@@ -154,6 +160,29 @@ const igual = (a, b, t) => { pasos++; assert.equal(a, b, t); };
   ok(/Cerrado/.test(PD.lecturaCartel('herreria', 'Herrería', { abierto: false }).partes[0]), 'cerrado, dice cerrado');
   ok(/Menú/.test(PD.lecturaCartel('cantina', 'La Cantina', { dia: 2 }).partes[1]), 'la cantina tiene menú del día');
   ok(/canteros/.test(PD.lecturaCartel('plaza', 'Plaza de los Duendes').partes[0]), 'los carteles fijos dicen lo suyo');
+  // el boletín del buzón: lo de ayer
+  const bol = PD.boletinDeAyer(5, { pobladores: [{ clave: 'panadera', dia: 4 }, { clave: 'herrero', dia: 5 }], locales: { panaderia: 4, herreria: 5 } });
+  ok(bol.partes.some((t) => /Llegó a la aldea Rosa/.test(t)) && bol.partes.some((t) => /Abrió la panadería/.test(t)), `el boletín cuenta lo de ayer (${bol.partes.join(' | ')})`);
+  ok(!bol.partes.some((t) => /herrería|Anselmo/.test(t)), 'y no lo de hoy');
+  ok(/Primer boletín/.test(PD.boletinDeAyer(1).partes[0]) && /Benigno/.test(bol.partes[bol.partes.length - 1]), 'el primer día no hay ayer; siempre firma Benigno');
+  ok(/hubo fiesta|demorado|helada|cosecha|obra|cumplió|tranquilo/.test(PD.boletinDeAyer(7).partes.join(' ')), 'con los eventos y cumpleaños del día anterior');
+  // el aljibe: el trago del día y, después, el agua se toca
+  const MC = await importar('aldea-mecanicas.js');
+  const mm = { usos: {} };
+  ok(MC.sacarAgua(mm, 3).efectos.length === 1 && /manos/.test(MC.sacarAgua(mm, 3).sub), 'el aljibe: el trago, y después te mojás las manos');
+  ok(fuente('aldea-mecanicas-mundo.js').includes("if (e.tipo === 'aljibe' && yaHoy(m, 'aljibe', dia())) return 'Mojarte las manos en el aljibe';"), 'el aviso, después del trago: mojarte las manos');
+  // los escalones del mástil y el buzón, en la plaza y la estafeta de verdad
+  {
+    const { cargarModulos } = await import('./ayuda-4-0-3-valle.mjs');
+    const { M } = cargarModulos(['aldea-arquitectura.js']);
+    const AA = M.aldea_arquitectura;
+    const pl = AA.armarEdificio('plaza', 4).puntos;
+    const esc = (pl.asientos || []).filter((q) => q.nombre === 'el escalón del mástil');
+    ok(esc.length === 2 && esc.every((q) => Math.abs(q.ly - 0.25) < 0.01), `dos lugares para sentarse en el escalón del mástil, a 25 cm (${esc.length})`);
+    ok((pl.asientos || []).findIndex((q) => q.nombre === 'el escalón del mástil') >= (pl.asientos || []).filter((q) => q.nombre !== 'el escalón del mástil').length, 'al final de la lista (los asientos de antes no cambian de número)');
+    const es = AA.armarEdificio('estafeta', 4).puntos;
+    ok(!!es.nombrados?.buzon && es.nombrados.buzon.ly > 1, `el buzón de la estafeta, con su lugar (${JSON.stringify(es.nombrados?.buzon)})`);
+  }
   // el guardado
   const s = PD.sanearPueblo({ apagadas: { 'casa-nelida': 3, plaza: 2, 'estacion-aldea': 1, nada: 4, biblioteca: 99, 'casa-abuela': 'x', constructor: 1, __proto__: { x: 1 } } }, 10);
   ok(JSON.stringify(s) === JSON.stringify({ apagadas: { 'casa-nelida': 3 } }), `saneado: sólo edificios con llave y días posibles (${JSON.stringify(s)})`);
@@ -176,6 +205,10 @@ const igual = (a, b, t) => { pasos++; assert.equal(a, b, t); };
   igual(IX.hacerConE(sinNada), 'pueblo', 'la E golpea'); ok(hechos.includes('golpe') && hechos.includes('limpiar pueblo') && !hechos.includes('abrir'), 'y no abre');
   const sentado = new Proxy({ ...c, js: { ...c.js, sentado: true } }, { get: (o, k) => (k in o ? o[k] : () => null) });
   ok(IX.hacerConE(sentado) !== 'pueblo', 'sentado, no');
+  const banco = { tipo: 'sentarse', texto: 'Sentarte en el banco', s: {} };
+  const conBanco = (tipo) => new Proxy({ ...c, objetivo: banco, accion: (n) => (n === 'pueblo' ? { tipo, texto: 'X', hacer: () => {} } : null) }, { get: (o, k) => (k in o ? o[k] : () => null) });
+  igual(IX.queHariaE(conBanco('perro')), 'pueblo', 'con el perro adelante, aunque mires un banco: acariciarlo');
+  ok(IX.queHariaE(conBanco('golpe')) !== 'pueblo', 'lo demás, mirando un banco, no (te sentás)');
 }
 
 // ---------------------------------------------------------------- 3. el módulo, en un mundo de mentira
@@ -195,7 +228,7 @@ const igual = (a, b, t) => { pasos++; assert.equal(a, b, t); };
   const puertas = { cerca: (p, r = 3.2) => (Math.hypot(p.x - puerta.x, p.z - puerta.z) < r ? puerta : null) };
   let adentroDe = (pos) => (pos.z < -2 && pos.z > -8 && Math.abs(pos.x) < 3 ? { id: 'casa-nelida' } : null);
   const carteles = { panaderia: [{ x: 10, y: 3, z: -6, texto: 'Panadería' }] };
-  const AM = { puntosEdificio: (id) => (id === 'escuela' ? { sitio: { x: 20, y: 0, z: 20 } } : carteles[id] ? { carteles: carteles[id] } : null), adentro: (pos) => adentroDe(pos), bajoCubierta: () => null };
+  const AM = { puntosEdificio: (id) => (id === 'escuela' ? { sitio: { x: 20, y: 0, z: 20 } } : id === 'estafeta' ? { nombrados: { buzon: { x: -20, y: 1.25, z: 0 } } } : carteles[id] ? { carteles: carteles[id] } : null), adentro: (pos) => adentroDe(pos), bajoCubierta: () => null };
   let perroAcariciado = null;
   const animales = { perroCerca: (p) => (Math.hypot(p.x - 0, p.z - 1.2) < 1.7 ? { id: 'chola', nombre: 'Chola', x: 0, y: 0, z: 1.2 } : null), acariciar: (id) => { perroAcariciado = id; return true; } };
   let amb = { lluvia: 0, invierno: 0 };
@@ -268,6 +301,11 @@ const igual = (a, b, t) => { pasos++; assert.equal(a, b, t); };
   igual(P.accion(js)?.texto, 'Leer el cartel', 'mirando el cartel: leerlo');
   P.accion(js).hacer(); ok(leidas.length === 1 && leidas[0].quien === 'Panadería' && /horno/.test(leidas[0].partes.join(' ')), 'se lee con lo del día');
   mirarA(10, -6, -0.4); ok(P.accion(js)?.texto !== 'Leer el cartel', 'mirando el suelo, no');
+  // el buzón de la estafeta: mirándolo, el boletín
+  js.pos.x = -20; js.pos.z = 1.5; cam.position.y = 1.6; mirarA(-20, 0, Math.atan2(1.25 - 1.6, 1.5));
+  igual(P.accion(js)?.texto, 'Leer el boletín del buzón', 'frente al buzón: leer el boletín');
+  P.accion(js).hacer(); ok(leidas[leidas.length - 1]?.quien === 'El boletín de la estafeta' && /Benigno/.test(leidas[leidas.length - 1].partes.join(' ')), 'se lee lo de ayer');
+  mirarA(-20, 10); ok(P.accion(js)?.texto !== 'Leer el boletín del buzón', 'de espaldas, no');
   // el perro: adelante, a menos de 1,7 m
   js.pos.x = 0; js.pos.z = 0.2; mirarA(0, 1.2, -0.4);
   igual(P.accion(js)?.texto, 'Acariciar a Chola', 'con la Chola adelante: acariciarla');

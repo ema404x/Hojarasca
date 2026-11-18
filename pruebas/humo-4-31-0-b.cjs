@@ -17,7 +17,7 @@ app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 14 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 14 * 60 * 1000).unref?.();
-const PARTES = (process.env.HUMO_PARTES || 'saludo,choque,lluvia,frio,nieve,golpe,llave,ventanas,cartel,perro,campanita,campana,medida').split(',');
+const PARTES = (process.env.HUMO_PARTES || 'saludo,choque,lluvia,frio,nieve,golpe,llave,ventanas,cartel,perro,campanita,campana,escalon,aljibe,buzon,medida').split(',');
 const parte = (p) => PARTES.includes(p);
 const CALIDAD = process.env.HUMO_CALIDAD || 'media';
 
@@ -31,7 +31,7 @@ const PAGINA = String.raw`(() => {
   N.tick = async (seg = 0.5) => { const t0 = performance.now(); while (performance.now() - t0 < seg * 1000) { if (N.lluvia !== null) { H.clima.estado.lluvia = N.lluvia; H.clima.estado.objetivo = N.lluvia > 0.3 ? 'lluvia' : 'despejado'; } H.__bucle(); await dormir(14); } return 1; };
   N.tarjeta = () => { const v = document.getElementById('valle-tarjeta'); return !!v && !v.classList.contains('oculto'); };
   N.aldeaEntera = () => { const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return 0; const a = P.aldea;
-    const L = { carpintero: 'carpinteria', veterinaria: 'veterinaria', panadera: 'panaderia', herbolaria: 'herboristeria', herrero: 'herreria', modista: 'costureria', pescador: 'pescaderia', botera: 'varadero', maestra: 'escuela', pintora: 'taller-arte', enfermera: 'puesto-sanitario', andinista: 'refugio-andinista', ceramista: 'ceramica', tejedora: 'hilanderia' };
+    const L = { carpintero: 'carpinteria', veterinaria: 'veterinaria', panadera: 'panaderia', herbolaria: 'herboristeria', herrero: 'herreria', modista: 'costureria', pescador: 'pescaderia', botera: 'varadero', maestra: 'escuela', pintora: 'taller-arte', enfermera: 'puesto-sanitario', andinista: 'refugio-andinista', ceramista: 'ceramica', tejedora: 'hilanderia', telegrafista: 'estafeta' };
     const ks = Object.keys(L).filter((k) => A.estadoEdificio(L[k]));
     a.pobladores = ks.map((clave) => ({ clave, dia: 1 })); a.obras = {}; a.locales = Object.fromEntries(ks.map((k) => [L[k], 1])); a.descubierta = 1; a.llegando = null;
     A.actualizar(4, H.camara.position); return ks.length; };
@@ -308,6 +308,53 @@ app.whenReady().then(async () => {
       await foto('12-escuela');
       const i = await N('N.info()');
       verifica(i.campanas > c0, `a las 8:30 suena la campana de la escuela (${i.ultimaCampana}, día de la semana ${await N('P.dia % 7')})`);
+    });
+    // ---------------------------------------------------------------- el escalón del mástil, el aljibe y el buzón
+    await seccion('escalon', async () => {
+      await N('N.hora(11)');
+      const q = await N('(() => { const pe = H.__aldeaMundo().puntosEdificio("plaza"); const l = pe.asientos.filter((a) => a.nombre === "el escalón del mástil"); return l.length ? { ...l[0], n: l.length } : null })()');
+      verifica(!!q, `la plaza tiene el escalón del mástil para sentarse (${q && q.n})`);
+      if (!q) return;
+      await N(`N.despejar({ x: ${q.x}, z: ${q.z} }, 3)`);
+      await N(`N.mirar({ x: ${q.x} + Math.sin(${q.mira}) * 1.3, z: ${q.z} + Math.cos(${q.mira}) * 1.3 }, { x: ${q.x}, z: ${q.z} }, -0.55)`); await N('N.tick(0.5)');
+      const av = await N('N.aviso()');
+      verifica(/escalón del mástil/.test(av), `mirando el escalón: «${av}»`);
+      await foto('13-escalon-antes');
+      await N('N.E()'); await N('N.tick(0.8)');
+      verifica(await N('!!H.jugador.estado.sentado'), 'sentado en el escalón');
+      await N('(() => { H.jugador.estado.pitch = -0.05; return 1 })()'); await N('N.tick(0.3)'); await foto('13-escalon-sentado');
+      await N('(() => { H.jugador.sentarse && H.jugador.sentarse(false); H.jugador.estado.sentado = false; return 1 })()');
+    });
+    await seccion('aljibe', async () => {
+      const q = await N('(() => { const pe = H.__aldeaMundo().puntosEdificio("plaza"); return pe.nombrados.aljibe })()');
+      await N(`N.despejar({ x: ${q.x}, z: ${q.z} }, 3)`);
+      await N(`N.mirar({ x: ${q.x} + Math.sin(${q.mira}) * 1.2, z: ${q.z} + Math.cos(${q.mira}) * 1.2 }, { x: ${q.x}, z: ${q.z} }, -0.35)`); await N('N.tick(0.4)');
+      const a1 = await N('N.aviso()'); await N('N.E()'); await N('N.tick(0.6)');
+      const a2 = await N('N.aviso()');
+      if (!/Mojarte/.test(a2)) { await N('N.E()'); await N('N.tick(0.6)'); }
+      const a3 = await N('N.aviso()');
+      await foto('14-aljibe');
+      verifica(/aljibe/.test(a1) && /Mojarte las manos/.test(a3), `el aljibe: «${a1}» y después «${a3}»`);
+      await N('N.E()'); await N('N.tick(0.5)');
+      verifica(/Agua fresca del aljibe/.test(await N('H.__avisos().slice(-2).join(" | ")')), 'te mojás las manos (la nota del agua)');
+    });
+    await seccion('buzon', async () => {
+      const q = await N('(() => { const pe = H.__aldeaMundo().puntosEdificio("estafeta"); return pe && pe.nombrados.buzon })()');
+      verifica(!!q, 'la estafeta tiene el buzón');
+      if (!q) return;
+      await N(`N.despejar({ x: ${q.x}, z: ${q.z} }, 3)`);
+      const s = await N('H.__aldeaMundo().estadoEdificio("estafeta").sitio');
+      // de frente al buzón, del lado de la calle
+      await N(`(() => { const ux = ${q.x} - ${s.x}, uz = ${q.z} - ${s.z}, l = Math.hypot(ux, uz); const de = { x: ${q.x} + ux / l * 1.3, z: ${q.z} + uz / l * 1.3 }; N.mirarY(de, { x: ${q.x}, z: ${q.z} }, ${q.y}); return 1 })()`); await N('N.tick(0.4)');
+      let av = await N('N.aviso()');
+      if (!/boletín/.test(av)) { await N(`(() => { const ux = ${q.x} - ${s.x}, uz = ${q.z} - ${s.z}, l = Math.hypot(ux, uz); const de = { x: ${q.x} + uz / l * 1.3, z: ${q.z} - ux / l * 1.3 }; N.mirarY(de, { x: ${q.x}, z: ${q.z} }, ${q.y}); return 1 })()`); await N('N.tick(0.4)'); av = await N('N.aviso()'); }
+      verifica(/boletín/.test(av), `frente al buzón: «${av}»`);
+      await foto('15-buzon');
+      await N('N.E()'); await N('N.tick(0.6)');
+      const t = await N('(document.getElementById("charla") || {}).textContent || ""');
+      verifica(/boletín|Benigno|Ayer/.test(t), `se lee: «${t.slice(0, 160)}»`);
+      await foto('15-buzon-leido');
+      for (let k = 0; k < 6; k++) { await N('N.E()'); await N('N.tick(0.3)'); }
     });
     // ---------------------------------------------------------------- lo que cuesta
     await seccion('medida', async () => {

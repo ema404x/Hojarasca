@@ -7,10 +7,13 @@
 //   · los carteles de los locales se leen (abierto o cerrado, y lo del día: el pan, el pescado, el menú);
 //   · los perros de la aldea se dejan acariciar y te siguen un rato más;
 //   · el humo de las chimeneas y la luz de las ventanas, sólo donde hay alguien (y despierto);
+//   · el boletín pegado en el buzón de la estafeta: lo que pasó ayer en el valle;
 //   · la llave de la luz junto a la puerta: la apagás y el que está adentro se queja (y la vuelve a prender); si no hay nadie,
 //     queda apagada hasta que vuelva el dueño. Eso se guarda (`progreso.puebloDetalles`).
 // Módulo puro (sin three ni DOM): se prueba en Node. Nada religioso (la campana es la de la escuela).
 import { EDIFICIOS_ALDEA, esEdificioAldea, rutinaAldea, diaSemanaDe, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, esPobladorAldea, localAbierto } from './aldea.js';
+import { eventoDelDia } from './aldea-viva.js';
+import { eventosDelDia, nombreDe } from './aldea-vida.js';
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const entero = (v, d = 0) => (Number.isFinite(Number(v)) ? Math.floor(Number(v)) : d);
@@ -188,6 +191,26 @@ export function lecturaCartel(edificio, texto, { abierto = null, dia = 1 } = {})
   else if (abierto === false) partes[0] += ' Cerrado: vuelva más tarde.';
   if (Object.hasOwn(DEL_DIA, edificio)) { const d = DEL_DIA[edificio]; partes.push(`${d.que}: ${elegir(d.lista, entero(dia, 1))}.`); }
   return { titulo, partes };
+}
+
+// ---------------------------------------------------------------- el boletín del buzón
+// Lo que pasó ayer en el valle, pegado en el buzón de la estafeta (lo escribe Benigno, el telegrafista): lo que movió los precios, los
+// cumpleaños, quién llegó a la aldea y qué local abrió. `dia`: hoy. Devuelve { titulo, partes } (para leerlo como una charla).
+const AYER_EVENTO = { 'tren-demorado': 'el tren llegó demorado', fiesta: 'hubo fiesta en el pueblo', helada: 'cayó una helada fuerte', cosecha: 'hubo buena cosecha', obra: 'se armó una obra grande' };
+export function boletinDeAyer(dia, aldea = null) {
+  const hoy = Math.max(1, entero(dia, 1)), ayer = hoy - 1;
+  const titulo = 'El boletín de la estafeta';
+  if (ayer < 1) return { titulo, partes: ['«Primer boletín. Todavía no pasó nada: el valle recién se despierta». Firma Benigno, de la estafeta.'] };
+  const a = objeto(aldea) ? aldea : {};
+  const partes = [];
+  const ev = eventoDelDia(ayer);
+  if (ev) partes.push(`Ayer ${Object.hasOwn(AYER_EVENTO, ev.id) ? AYER_EVENTO[ev.id] : ev.titulo.toLowerCase()}. ${ev.texto}`);
+  for (const e of eventosDelDia(ayer, { aldea: a })) if (e.tipo === 'cumple') partes.push(`Ayer cumplió años ${e.nombre}. ¡Que sean muchos más!`);
+  for (const q of Array.isArray(a.pobladores) ? a.pobladores : []) if (q && entero(q.dia, 0) === ayer && esPobladorAldea(q.clave)) partes.push(`Llegó a la aldea ${nombreDe(q.clave) || 'alguien nuevo'}: pasen a saludar.`);
+  for (const [id, d] of Object.entries(objeto(a.locales) ? a.locales : {})) if (entero(d, 0) === ayer && esEdificioAldea(id)) partes.push(`Abrió ${EDIFICIOS_ALDEA[id].nombre.replace(/^La /, 'la ').replace(/^El /, 'el ')}.`);
+  if (!partes.length) partes.push('Ayer fue un día tranquilo en el valle: nada para contar, que también es una noticia.');
+  partes.push('Firma Benigno, de la estafeta.');
+  return { titulo, partes: partes.slice(0, 6) };
 }
 
 // ---------------------------------------------------------------- los perros

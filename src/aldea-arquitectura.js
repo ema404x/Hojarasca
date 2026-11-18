@@ -2811,6 +2811,7 @@ function estafeta(K) {
   cilindro(K.ext, [-1.9, GALERIA_PISO + 1.25, g.zP - 0.3], 0.18, 0.18, 0.5, '#b8322a', { tipo: 4, lados: 10 });
   bulto(K.ext, [-1.9, GALERIA_PISO + 1.5, g.zP - 0.3], 0.18, '#b8322a', { detalle: 1, suave: true, esc: [1, 0.5, 1] });
   K.circulo(-1.9, g.zP - 0.3, 0.2, GALERIA_PISO, GALERIA_PISO + 1.6);
+  K.punto('buzon', -1.9, g.zP - 0.3, 0, GALERIA_PISO + 1.25);   // 4.31.0 (B): el buzón, para leer el boletín pegado (pueblo-detalles.js)
   cartelGaleria(K, 'Correo', 0.8, 1.0, 0.3);
 }
 
@@ -3416,6 +3417,10 @@ function plaza(K) {
   for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.15, -0.2, D / 2 + 0.6], [5.4 + l * 1.15, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.15, D / 2 + 0.6, 0.08, 0, 1.6); }
   K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
   K.punto('musico', 1.3, 1.25, Math.PI * 0.75, 0.05);
+  // 4.31.0 (B): el escalón de abajo de la base del mástil (25 cm) se usa de asiento: del lado de la estación y del costado sin el reloj (al final,
+  // para no cambiar el número de los asientos de antes)
+  K.asiento('el escalón del mástil', 0, 0.25, ZM + 0.86, 0);
+  K.asiento('el escalón del mástil', -0.86, 0.25, ZM, -Math.PI / 2);
   K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [7.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));   // (4.30.1 (B): el de atrás a la derecha, lejos del retablo: ver ALAMOS_PLAZA en aldea-mundo.js)
 }
 
@@ -4876,6 +4881,7 @@ function nombrar(K) {
   P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
   P.estufas.forEach((a, i) => { N[i ? 'estufa-' + (i + 1) : 'estufa'] = copia(a); });
   for (const k of ['aljibe', 'pizarron', 'dibujos', 'camilla', 'casillas', 'mapa-valle', 'pista-baile', 'colmenas', 'sierra', 'redes', 'campana-anden', 'horario-trenes', 'almanaque']) if (P[k]) N[k] = copia(P[k]);
+  if (P.buzon) N.buzon = copia(P.buzon);   // 4.31.0 (B)
   // 3.7.0 (loma): los lugares de los oficios nuevos
   for (const k of ['cuarto-oscuro', 'corral', 'mapa-cumbres', 'cartas-cielo', 'espejo', 'escalinata', 'escalera', 'escalera-arriba']) if (P[k]) N[k] = copia(P[k]);
   if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };

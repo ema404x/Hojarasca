@@ -11,7 +11,7 @@
 //   puertas(), animales(), sonido, ambiente() → { lluvia, invierno }, dentroDe(pos) → id del edificio (o null), distanciaAldea(x, z),
 //   hablandoCon() → figura, burbuja(npc, icono, renglon), voz(npc, texto), anim(npc, id), leer({ quien, que, partes, id }),
 //   decir(texto), nota(t, sub), guardar(), nombreDe(k) }
-import { PUEBLO, saludoPara, leToca, quejaChoque, animQueja, loChocaste, climaDeGente, gestoDeClima, ocupacion, luzDeEdificio, hayHumo, respuestaPuerta, seGolpea, quejaLuz, tieneLlave, CAMPANITA, bienvenida, campanaEscuela, lecturaCartel, mimoPerro, sanearPueblo, cambiarLuz, volvieron } from './pueblo-detalles.js';
+import { PUEBLO, saludoPara, leToca, quejaChoque, animQueja, loChocaste, climaDeGente, gestoDeClima, ocupacion, luzDeEdificio, hayHumo, respuestaPuerta, seGolpea, quejaLuz, tieneLlave, CAMPANITA, bienvenida, campanaEscuela, lecturaCartel, boletinDeAyer, mimoPerro, sanearPueblo, cambiarLuz, volvieron } from './pueblo-detalles.js';
 import { DUR_SACUDIR } from './pueblo-detalles-pose.js';
 import { EDIFICIOS_ALDEA } from './aldea.js';
 import { nombreCortoDe } from './aldea-vida.js';
@@ -203,6 +203,16 @@ export function crearPuebloDetalles(ctx) {
       } };
     }
     const AM = ctx.aldeaMundo?.();
+    // el buzón de la estafeta (mirándolo, a menos de 2,2 m): el boletín con lo que pasó ayer
+    const bz = AM?.puntosEdificio?.('estafeta')?.nombrados?.buzon;
+    if (bz) {
+      const m = mirando(o, bz);
+      if (m.dh < 2.2 && m.cos > 0.9) return { tipo: 'buzon', texto: 'Leer el boletín del buzón', hacer: () => {
+        const l = boletinDeAyer(p.dia, p.aldea);
+        info.boletines = (info.boletines || 0) + 1;
+        ctx.leer?.({ quien: l.titulo, que: 'Pegado en el buzón', partes: l.partes, id: 'boletin-estafeta', despedida: 'Listo.' });
+      } };
+    }
     // el cartel que mirás (de frente, hasta 5 m)
     let mejor = null;
     for (const id of Object.keys(EDIFICIOS_ALDEA)) {
