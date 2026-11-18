@@ -392,7 +392,8 @@ export function crearNaturalezaJuego(ctx) {
         const m = t.mata, y0 = T.altura(m.x, m.z), cae = loQueCae(m.tipo, amb);
         veg.sacudirMata?.(m, 1, js.pos);
         roce({ x: m.x, y: y0 + 0.7, z: m.z }, 1);
-        mundo.hojas(m.x, y0, m.z, cae.hojas, { radio: 0.5 + (m.esc || 1) * 0.3, alto: 0.6 + (m.esc || 1) * 0.5 });
+        { const dx = js.pos.x - m.x, dz = js.pos.z - m.z, dd = Math.hypot(dx, dz) || 1;   // (del lado tuyo de la mata: las de atrás las tapaba la mata misma)
+          mundo.hojas(m.x + (dx / dd) * 0.45, y0 + 0.5, m.z + (dz / dd) * 0.45, cae.hojas, { radio: 0.35 + (m.esc || 1) * 0.2, alto: 1.0 + (m.esc || 1) * 0.5 }); }
         if (cae.nieve) mundo.nieve(m.x, y0 + 0.6, m.z, cae.nieve, 0.7);
         if (cae.pajaros && Math.random() < 0.45) { mundo.pajaros(m.x, y0 + 0.5, m.z, 1 + Math.floor(Math.random() * 3), js.pos.x, js.pos.z); sonido.ave?.({ x: m.x, y: y0 + 1, z: m.z }); }
         if (cae.fruto && m.frutoDia !== dia && Math.random() < 0.7 && ctx.cabeJuntar(cae.fruto, 1)) {
@@ -436,7 +437,9 @@ export function crearNaturalezaJuego(ctx) {
     const sup = superficiePaso(js.superficie, { distRiel: T.distRiel[k], enCalle: (js.superficie === 'tierra' || js.superficie === 'hojarasca' || js.superficie === 'pasto') && enCalle(js.pos.x, js.pos.z) });
     if (js.superficie === 'agua' && !js.nadando) {
       const ag = T.agua(js.pos.x, js.pos.z);
-      if (ag) mundo.salpicar(js.pos.x, ag.nivel, js.pos.z, js.corriendo ? 9 : 4, js.corriendo ? 0.9 : 0.5);
+      // (el pie que entra va un poco adelante de los ojos: debajo de la cámara no se veía nada)
+      const v = Math.hypot(js.vel?.x || 0, js.vel?.z || 0) || 1, ax = js.pos.x + ((js.vel?.x || 0) / v) * 0.7, az = js.pos.z + ((js.vel?.z || 0) / v) * 0.7;
+      if (ag) mundo.salpicar(ax, ag.nivel, az, js.corriendo ? 18 : 10, js.corriendo ? 1 : 0.6);
     }
     if (crujeRama(js.superficie, T.bosque[k], Math.random())) sonido.chasquido?.({ x: js.pos.x, y: js.pos.y, z: js.pos.z });
     return sup;

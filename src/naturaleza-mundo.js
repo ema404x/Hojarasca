@@ -10,7 +10,8 @@ import { materialVegetal } from './materiales.js';
 function geoHoja() {
   const c = new Constructor();
   // (una hoja que cae se ve contra el verde de la mata: más grande y más amarilla que las de la copa)
-  c.agregar(lamina(0.13, 0.08, 0.25, 2), { color: '#9a9437', tipo: 3, variar: 0.3 });
+  // (4.31.0: con 0,13 m y verde amarillento no se distinguían contra la mata: 0,2 m y del color de la hoja seca, que es la que se suelta)
+  c.agregar(lamina(0.26, 0.15, 0.25, 2), { color: '#d0952f', tipo: 4, variar: 0.3 });
   return c.geometria();
 }
 function geoPetalo() {
@@ -20,7 +21,7 @@ function geoPetalo() {
 }
 function geoGota() {
   const c = new Constructor();
-  c.agregar(new THREE.IcosahedronGeometry(0.022, 0), { color: '#dfe9ee', tipo: 4, variar: 0.05, matriz: matriz([0, 0, 0], [0, 0, 0], [1, 1.5, 1]) });
+  c.agregar(new THREE.IcosahedronGeometry(0.016, 1), { color: '#ffffff', tipo: 4, variar: 0, matriz: matriz([0, 0, 0], [0, 0, 0], [1, 1.8, 1]) });
   return c.geometria();
 }
 function geoCopo() {

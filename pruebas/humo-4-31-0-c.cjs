@@ -24,7 +24,7 @@ const PAGINA = String.raw`(() => {
   const N = window.__N = {};
   const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
   H.ajustes.limiteFps = 'libre';
-  N.nat = () => H.__naturaleza();
+  N.nat = () => (H.__naturaleza ? H.__naturaleza() : null);
   N.programas = () => H.renderer.info.programs.length;
   N.tick = async (seg = 0.5) => { const t0 = performance.now(); while (performance.now() - t0 < seg * 1000) { H.__bucle(); await dormir(14); } return 1; };
   N.abajo = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, key: code, bubbles: true, cancelable: true }));
@@ -107,6 +107,7 @@ app.whenReady().then(async () => {
       ok(h >= 6, `al sacudirlo caen hojas (${h} sueltas)`);
       await foto('arbusto-1-sacude', 0.15);
       await foto('arbusto-2-hojas', 0.35);
+      await foto('arbusto-2b-hojas', 0.4);
       await foto('arbusto-3-despues', 8);
       const soto = await N(`({ veces: H.veg.statsSoto.veces - ${soto0}, ms: H.veg.statsSoto.ms })`);
       console.log(`  el bloque del sotobosque se rehizo ${soto.veces} veces (último: ${soto.ms.toFixed(2)} ms)`);
@@ -278,15 +279,21 @@ app.whenReady().then(async () => {
     });
 
     await seccion('salpica', async () => {
-      const b = await N(`(() => { for (let x = -440; x < 440; x += 1.5) for (let z = -440; z < 440; z += 1.5) { const a = T.agua(x, z); if (a && !a.lago && a.prof > 0.1 && a.prof < 0.6 && T.agua(x + 3, z) && N.lejosAldea(x, z)) return { x, z }; } return null; })()`);
+      const b = await N(`(() => { for (let x = -440; x < 440; x += 1.5) for (let z = -440; z < 440; z += 1.5) { const a = T.agua(x, z); if (a && !a.lago && a.prof > 0.1 && a.prof < 0.45 && T.agua(x + 1.5, z) && T.agua(x + 3, z) && Math.abs(x) < 440 && Math.abs(z) < 440) return { x, z }; } return null; })()`);
       ok(!!b, 'hay un arroyo bajo');
       if (!b) return;
-      await N(`N.pararseMirando(${b.x}, ${b.z}, ${b.x + 3}, ${b.z}, -0.6)`);
+      await N(`N.pararseMirando(${b.x}, ${b.z}, ${b.x + 3}, ${b.z}, -0.55)`);
       const sup = await N('J.estado.superficie + (J.estado.nadando ? " (nadando)" : "")');
       console.log('  superficie:', sup, await N(`JSON.stringify(T.agua(J.estado.pos.x, J.estado.pos.z)) + ' pos ' + J.estado.pos.x.toFixed(2) + ',' + J.estado.pos.y.toFixed(2) + ',' + J.estado.pos.z.toFixed(2) + ' rio ' + ${b.x} + ',' + ${b.z}`));
-      await N(`(N.abajo('KeyW'), N.abajo('ShiftLeft'), N.tick(0.45))`);
+      await N(`(N.abajo('KeyW'), N.tick(0.5))`);
       const n = await N('nat.mundo.pools.gota.im.count + nat.mundo.activas()');
+      await N('(J.estado.pitch = -0.55, 1)');
       await foto('salpica-1');
+      await N('(J.estado.pitch = -0.55, 1)');
+      await foto('salpica-2', 0.12);
+      await N('(J.estado.pitch = -0.55, 1)');
+      await foto('salpica-3', 0.12);
+      console.log('  ojos sobre el agua:', await N('(H.camara.position.y - (T.agua(J.estado.pos.x, J.estado.pos.z)?.nivel ?? T.altura(J.estado.pos.x, J.estado.pos.z))).toFixed(2)'));
       await N('N.soltarTodo()');
       ok(n > 0, `al correr por el arroyo salpica (${n})`);
     });
@@ -327,6 +334,14 @@ app.whenReady().then(async () => {
       if (!m) { console.log('  (no hay mariposas a la vista ahora: queda la prueba en Node)'); return; }
       await N(`(J.ubicar(${m.x + 1}, ${m.z}, 0), N.tick(0.3))`);
       ok(await N(`H.bichos._debug.mariposas[${m.i}].huye > 0`), 'la mariposa que tenés encima se va');
+    });
+
+    await seccion('progs', async () => {
+      const b = await N(`(() => { for (let x = -440; x < 440; x += 1.5) for (let z = -440; z < 440; z += 1.5) { const a = T.agua(x, z); if (a && !a.lago && a.prof > 0.08 && a.prof < 0.3 && T.agua(x + 3, z) && T.agua(x + 1.5, z)?.prof < 0.35 && N.lejosAldea(x, z)) return { x, z }; } return null; })()`);
+      console.log('  programas antes:', await N('N.programas()'));
+      if (b) { await N(`(N.pararseMirando(${b.x}, ${b.z}, ${b.x + 3}, ${b.z}, -0.38), N.abajo('KeyW'), N.abajo('ShiftLeft'), N.tick(1.5))`); await N('N.soltarTodo()'); console.log('  programas en el arroyo:', await N('N.programas()'), JSON.stringify(b)); }
+      await N(`(J.ubicar(${40.33 + 30 * Math.sin(2.99)}, ${-339.14 + 30 * Math.cos(2.99)}, 0.7), N.tick(2))`);
+      console.log('  programas en la plaza:', await N('N.programas()'));
     });
 
     await seccion('medir', async () => {

@@ -44,9 +44,9 @@ va a `tomados` (la clave de siempre). El pasto arrancado y el mojado no se guard
 - Medido en partida real (`humo-4-31-0-c.cjs`, «medir», caminando 4 s; notebook, sólo como referencia): `naturalezaJuego.actualizar`
   en la **plaza** 0,05 ms de promedio (p95 0,2) con **0 mallas** dibujando; en el **bosque** 0,08 ms (p95 0,2) con 2 mallas (piedritas/piñas
   y leña). El bloque del sotobosque al sacudir: 0,1 a 0,6 ms, dos veces por sacudida.
-- Programas: 103 al empezar y 103 después de sacudir, tocar el agua, el sapito, mojarse, la flor y el árbol. Sube a 104 al entrar a la
-  zona del arroyo y al ir a la plaza (pasa igual sin tocar nada de esto: es del lugar, no de estas mallas; las gotas ya se habían dibujado
-  en el lago sin sumar ninguno).
+- Programas: 103 al empezar y 103 después de sacudir, tocar el agua, el sapito, mojarse, la flor y el árbol. Sube a 104 en el arroyo
+  (x −287, z −266) y queda en 104 en la plaza. **Medido igual en main 4.30.1** (worktree temporal de origin/main, ya borrado), en el mismo
+  lugar: 103 → 104 en el arroyo, 104 en la plaza. No es de esta parte.
 
 ## Pruebas
 - `pruebas/verificar-4-31-0-c.mjs` (en `verify:pasos`): reglas, lo visual con three, el juego con un mundo de mentira, la tabla de la E,
@@ -57,8 +57,10 @@ va a `tomados` (la clave de siempre). El pasto arrancado y el mojado no se guard
 Partida real con capturas (`pruebas/salidas/humo-4-31-0-c/`): el aviso de cada E (chilco, arrayán, sapito, tocar el agua, leña, amancay,
 pasto), las ondas del sapito y de tocar el agua, la leña antes y después (2 ramitas, la pila se va), el amancay que desaparece, las gotas
 al salir del lago, la rana que salta, la piedrita que rueda 1,6 m, el ripio en la calle de la aldea y la vía, la mariposa que se va.
-**No se ve bien en las capturas quietas**: las hojas que caen de la mata y del árbol (se comprobó por cuenta: 8 a 16 sueltas, y se ven
-algunas, chicas) y la salpicadura del arroyo (52 gotas contadas; la cámara quedó a ras del agua). El crujido de ramitas y los sonidos no se oyen
+Ajuste después de mirarlas: las hojas que caen eran chicas y verdes contra la mata; ahora miden 0,26 m, son del color de la hoja seca
+(tipo 4: no las tiñe la estación), caen 24 (32 en otoño) desde arriba de la mata y del lado tuyo: se ven claro en `arbusto-2-hojas.jpg`.
+La salpicadura salía debajo de la cámara: ahora sale 0,7 m adelante del pie, 10 gotas caminando y 18 corriendo, más chicas y blancas;
+vista caminando por el arroyo con la cámara a la altura de siempre (`salpica-1..3.jpg`; se ven grisáceas por la luz del Lambert). El crujido de ramitas y los sonidos no se oyen
 en la prueba (Electron mudo). El roce al pasar entre matas se probó en Node, no en la partida.
 
 ## Pruebas viejas

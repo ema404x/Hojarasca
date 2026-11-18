@@ -194,7 +194,7 @@ export function cadaGota(m) { return m < NATURALEZA.umbralGoteo ? Infinity : 0.0
 export function loQueCae(tipo, { invierno = 0, otono = 0 } = {}) {
   const nieve = invierno > 0.5;
   const fruto = tipo === 'calafate' && !nieve ? 'calafate' : null;
-  return { hojas: nieve ? 4 : otono > 0.5 ? 14 : 8, nieve: nieve ? 22 : 0, fruto, pajaros: !nieve };
+  return { hojas: nieve ? 8 : otono > 0.5 ? 32 : 24, nieve: nieve ? 22 : 0, fruto, pajaros: !nieve };
 }
 
 // ---------------------------------------------------------------- qué hace la E (la primera que aplica)
