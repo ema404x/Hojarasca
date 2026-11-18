@@ -2640,6 +2640,11 @@ function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible, alPosar: alPosar(est), posesM: A.poses || ['cintura', 'cruzados', 'atras'], cara: cabeza.userData.rostro || null, conPoncho: f.conPoncho, edad: A.edad };
   r.soltar = () => soltarPersona(r);
   r.conPollera = !!(A.R && A.R.pollera);   // 4.30.1 (B): parada en la ladera, la pierna de arriba dobla menos (gente.js): la rodilla no asoma por la pollera
+  // 4.30.1 (B): y caminando, el paso de pollera: con el paso de siempre (la cadera ±0,5 rad y la rodilla hasta 0,85) la rodilla de adelante y la
+  // pantorrilla de atrás salían hasta 20 cm por la tela (medido con la piel, pruebas/verificar-4-30-1-b.mjs). Con pollera el paso es más corto
+  // (la cadera, a la mitad; la rodilla, a la mitad) y un poco más seguido; con la pollera hasta el tobillo (el chamal, la larga, la de tango),
+  // más corto todavía. `cadera` y `rodilla` multiplican el paso de gente.js; `cadencia`, lo rápido que va
+  r.pasoPollera = !(A.R && A.R.pollera) ? null : A.R.chamal || A.R.polleraLarga || A.R.curvas ? { cadera: 0.34, rodilla: 0.32, cadencia: 1.4 } : { cadera: 0.5, rodilla: 0.5, cadencia: 1.25 };
   r.pasoCorto = A.R && A.R.curvas ? 0.72 : 1;   // 4.0.2: la falda ceñida con tajo (Dalia) abre menos el paso al bailar: con el paso entero parecía un pantalón ancho
   r.alzado = A.R && A.R.tacos ? 0.06 : 0;   // (4.0.5: 0,06 en vez de 0,069: con el zapato girado PITCH_TACO la punta y el taco apoyan juntos 9 mm más arriba) 3.9.1: cuánto sube todo el cuerpo con los tacos (ver gente.js): el taco y la punta quedan en el piso
   r.brazosAfuera = A.cuerpo && A.cuerpo.cadera > 1.1 ? 0.1 : 0;   // 3.9.1: con la cadera ancha, los brazos cuelgan un poco más abiertos

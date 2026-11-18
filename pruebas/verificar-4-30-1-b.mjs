@@ -4,7 +4,8 @@
 //   2. ningún árbol pegado a lo construido: los álamos de alrededor de la plaza (ALAMOS_PLAZA), los de adentro y los del plano (álamos, frutales,
 //      arbustos) quedan lejos del retablo y de tu talla; los frutales de los patios, con la copa fuera de las otras casas; nada en la calle;
 //   3. las de pollera, paradas en la ladera, doblan la pierna de arriba como las de poncho (`conPollera`, de gente-cuerpo.js a gente.js, también
-//      al cambiarse de ropa).
+//      al cambiarse de ropa);
+//   4. con la piel de verdad: nada de la pierna sale por la pollera, ni parada en la ladera ni en todo el ciclo del paso (`pasoPollera`).
 // Con mutaciones de verdad (un proceso por mutación: `--mutacion=<id>`).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -32,7 +33,11 @@ const MUTACIONES = {
   'copa-chica': ['src/aldea-mundo.js', 'export const COPA_FRUTAL = 2.1;', 'export const COPA_FRUTAL = 0.6;'],
   'pollera-tope': ['src/gente.js', '|| g.conPoncho || g.conPollera ? 0.035 : 0.07;', '|| g.conPoncho ? 0.035 : 0.07;'],
   'sin-conPollera': ['src/gente-cuerpo.js', 'r.conPollera = !!(A.R && A.R.pollera);', 'r.conPollera = false;'],
-  'vestir-sin-pollera': ['src/gente.js', 'conPoncho: m.conPoncho, conPollera: m.conPollera, soltar', 'conPoncho: m.conPoncho, soltar'],
+  'vestir-sin-pollera': ['src/gente.js', 'conPoncho: m.conPoncho, conPollera: m.conPollera, pasoPollera', 'conPoncho: m.conPoncho, pasoPollera'],
+  'vestir-sin-paso': ['src/gente.js', 'conPollera: m.conPollera, pasoPollera: m.pasoPollera, soltar', 'conPollera: m.conPollera, soltar'],
+  'paso-largo': ['src/gente-cuerpo.js', '{ cadera: 0.5, rodilla: 0.5, cadencia: 1.25 }', '{ cadera: 1, rodilla: 1, cadencia: 1 }'],
+  'paso-largo-tobillo': ['src/gente-cuerpo.js', '{ cadera: 0.34, rodilla: 0.32, cadencia: 1.4 }', '{ cadera: 0.5, rodilla: 0.5, cadencia: 1.25 }'],
+  'sin-pasoPollera': ['src/gente.js', 'p2.rotation.x = andando ? Math.sin(f) * 0.5 * (pp ? pp.cadera : 1) : -alza;', 'p2.rotation.x = andando ? Math.sin(f) * 0.5 * (pp ? pp.cadera / pp.cadera : 1) : -alza;'],
 };
 
 // ---------------------------------------------------------------- el padre: corre la prueba y cada mutación en su proceso
@@ -64,7 +69,7 @@ if (MUT) {
 }
 const fuente = (f) => (globalThis.__cambiarFuente ? globalThis.__cambiarFuente(path.join(raiz, f), leer(f)) : leer(f));
 const { cargarModulos } = await import('./ayuda-4-0-3-valle.mjs');
-const { THREE, M } = cargarModulos(['rincones-mundo.js', 'rincones.js', 'aldea.js', 'aldea-mundo.js']);
+const { THREE, M } = cargarModulos(['rincones-mundo.js', 'rincones.js', 'aldea.js', 'aldea-mundo.js', 'gente-cuerpo.js']);
 const RM = M.rincones_mundo, R = M.rincones, A = M.aldea, AM = M.aldea_mundo;
 let pasos = 0;
 const ok = (c, t) => { pasos++; assert.ok(c, t); };
@@ -169,11 +174,69 @@ const ok = (c, t) => { pasos++; assert.ok(c, t); };
   const conPollera = (R) => expresion(cuerpo, 'r.conPollera = ', { A: { R } });
   ok(conPollera({ pollera: true, chamal: true }) === true && conPollera({ pollera: true, curvas: true }) === true, 'gente-cuerpo.js marca a las de pollera (también el chamal y la falda ceñida)');
   ok(conPollera({ chaleco: true }) === false && conPollera(undefined) === false, 'y a los de pantalón, no');
-  ok(enUnaLinea(gente, ['Object.assign(npc,', 'conPoncho: m.conPoncho', 'conPollera: m.conPollera']) || enUnaLinea(gente, ['conPoncho: m.conPoncho', 'conPollera: m.conPollera', 'soltar: m.soltar']), 'al cambiarse de ropa (vestir), la marca pasa a la figura nueva');
+  ok(enUnaLinea(gente, ['conPoncho: m.conPoncho', 'conPollera: m.conPollera', 'pasoPollera: m.pasoPollera', 'soltar: m.soltar']), 'al cambiarse de ropa (vestir), la marca y el paso pasan a la figura nueva');
   // y quién la tiene: todas las de pollera del juego (gente-ropa.js)
   const ropa = fuente('src/gente-ropa.js');
   const conLaPollera = [...ropa.matchAll(/^\s+R: \{[^\n]*\bpollera: true/gm)].length;
   ok(conLaPollera >= 15, `las de pollera o vestido del juego (${conLaPollera} fichas) llevan \`pollera: true\` y con eso la marca`);
+}
+
+// ---------------------------------------------------------------- 4. con la piel: nada de la pierna sale por la pollera, parada en la ladera ni caminando
+// Cada una de pollera se arma de verdad (gente-cuerpo.js), se le ponen las poses de gente.js (las expresiones mismas: la ladera con su `tope` y el
+// paso con `pasoPollera`) y se mueven los vértices con la piel (los huesos y los pesos de la malla). Un vértice de la canilla, la bota o el pie que
+// queda más arriba del ruedo y más afuera que la pollera a su altura y de su lado (en 48 gajos alrededor del cuerpo) es uno que asoma.
+{
+  const gente = fuente('src/gente.js');
+  const tope = (g) => expresion(gente, 'const tope = ', { g, R_PONCHO: new Set(['ramon']) });
+  const cadera = (f, pp) => expresion(gente, 'p2.rotation.x = ', { andando: true, f, pp, alza: 0 }, 'pp.cadera');
+  const rodilla = (f, pp) => expresion(gente, 'if (rod) rod.rotation.x = ', { andando: true, f, pp, alza: 0 }, 'pp.rodilla');
+  const GC = M.gente_cuerpo, NB = 48, ropa = fuente('src/gente-ropa.js');
+  const claves = [];
+  { let k = null; for (const l of ropa.split('\n')) { const m = /^  '?([a-z][a-z-]*)'?: \{\s*$/.exec(l); if (m) k = m[1]; else if (k && /^    R: \{.*\bpollera: true/.test(l) && !claves.includes(k)) claves.push(k); } }
+  ok(claves.length >= 14 && claves.includes('aldea-nena') && claves.includes('aldea-abuela'), `las de pollera para medir (${claves.length}: ${claves.join(', ')})`);
+  const v = new THREE.Vector3(), t = new THREE.Vector3(), inv = new THREE.Matrix4();
+  for (const k of claves) {
+    const r = GC.crearPersona({}, k, false, {}, {});
+    let malla = null; r.g.traverse((o) => { if (o.skeleton && o.skeleton.huesos) malla = o; });
+    const sk = malla.skeleton, geo = malla.geometry, P = geo.attributes.position, SI = geo.attributes.skinIndex, SW = geo.attributes.skinWeight, VI = geo.attributes.aVientoU, H = sk.huesos, base = sk.base;
+    const deLaPierna = new Set(r.patas.flatMap((p) => [H.indexOf(p.userData.rodilla), H.indexOf(p.userData.rodilla.userData.tobillo)]));
+    const dom = (i) => { let b = -1, w = 0; for (let c = 0; c < 4; c++) if (SW.getComponent(i, c) > w) { w = SW.getComponent(i, c); b = SI.getComponent(i, c) - base; } return b; };
+    const pierna = [], tela = [];
+    for (let i = 0; i < P.count; i++) { if (deLaPierna.has(dom(i))) pierna.push(i); else if (VI.getX(i) > 0 && P.getY(i) > 0.05 && P.getY(i) < 0.95) tela.push(i); }
+    ok(pierna.length > 100 && tela.length > 100, `${k}: piernas (${pierna.length} vértices) y pollera (${tela.length})`);
+    const mats = H.map(() => new THREE.Matrix4());
+    const piel = (i) => { const a = new THREE.Vector3(); v.fromBufferAttribute(P, i); for (let c = 0; c < 4; c++) { const w = SW.getComponent(i, c); if (w) a.addScaledVector(t.copy(v).applyMatrix4(mats[SI.getComponent(i, c) - base]), w); } return a; };
+    const gajo = (q) => Math.floor((Math.atan2(q.x, q.z) / (2 * Math.PI) + 1) * NB) % NB;
+    // cuánto asoma lo que más asoma (en cm) con la pose `poner`
+    const asoma = (poner) => {
+      for (const p of r.patas) { p.rotation.set(0, 0, 0); p.userData.rodilla.rotation.set(0, 0, 0); }
+      r.torso.rotation.set(0, 0, 0);
+      poner();
+      r.g.updateMatrixWorld(true); inv.copy(malla.matrixWorld).invert();
+      H.forEach((h, i) => mats[i].multiplyMatrices(inv, h.matrixWorld).multiply(sk.inversas[i]));
+      const gajos = Array.from({ length: NB }, () => []);
+      for (const i of tela) { const q = piel(i); gajos[gajo(q)].push(q); }
+      const ruedo = gajos.map((l) => Math.min(...l.map((q) => q.y)));
+      let peor = 0;
+      for (const i of pierna) {
+        const q = piel(i), b = gajo(q), vec = [b, (b + 1) % NB, (b + NB - 1) % NB];
+        if (q.y < Math.max(...vec.map((c) => ruedo[c])) + 0.015) continue;
+        let rp = 0; for (const c of vec) for (const s of gajos[c]) if (Math.abs(s.y - q.y) < 0.03) rp = Math.max(rp, Math.hypot(s.x, s.z));
+        if (rp) peor = Math.max(peor, Math.hypot(q.x, q.z) - rp);
+      }
+      return Math.max(0, peor * 100);
+    };
+    const g = { clave: k, conPollera: r.conPollera, conPoncho: r.conPoncho, pasoPollera: r.pasoPollera };
+    const a = Math.sqrt(tope(g) / 0.41);
+    const ladera = asoma(() => { r.patas[0].rotation.x = -a; r.patas[0].userData.rodilla.rotation.x = 0.03 + a * 2; r.patas[1].userData.rodilla.rotation.x = 0.03; });
+    ok(ladera <= 0.5, `${k}, parada en la ladera (la pierna de arriba sube ${(tope(g) * 100).toFixed(1)} cm): no asoma nada (${ladera.toFixed(1)} cm)`);
+    let paso = 0, fPeor = 0;
+    for (let f = 0; f < 2 * Math.PI; f += Math.PI / 16) {
+      const c = asoma(() => { r.patas.forEach((p, i) => { const ff = f + i * Math.PI; p.rotation.x = cadera(ff, g.pasoPollera); p.userData.rodilla.rotation.x = rodilla(ff, g.pasoPollera); }); r.torso.rotation.x = 0.035; r.torso.rotation.y = Math.sin(f) * 0.06; });
+      if (c > paso) { paso = c; fPeor = f; }
+    }
+    ok(paso <= 0.5, `${k}, caminando (todo el paso, de a 11,25°): no asoma nada (lo peor: ${paso.toFixed(1)} cm en ${(fPeor * 180 / Math.PI).toFixed(0)}°)`);
+  }
 }
 
 console.log(`OK 4.30.1 (B) · ${pasos} verificaciones · el retablo de tablas y a escala, ningún árbol pegado a lo construido, las de pollera en la ladera`);

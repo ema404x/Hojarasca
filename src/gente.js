@@ -1304,7 +1304,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
 
       // RC23: locomoción/rutina siguen continuas, pero huesos y gestos de NPCs
       // lejanos se recalculan a menor frecuencia. Cerca o charlando = tiempo real.
-      g.paso += dt * (2.6 + g.vel * 5);
+      g.paso += dt * (2.6 + g.vel * 5) * (g.pasoPollera?.cadencia || 1);   // (4.30.1 (B): con pollera, el paso corto va más seguido)
       g.__poseAcum = (g.__poseAcum || 0) + dt;
       const pasoPose = (charlando || d < 38 || g.enEscena) ? (charlando || g.enEscena || d < POSE_ENTERA_M ? 0 : PASO_POSE_MEDIA) : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
       const actualizarPose = pasoPose === 0 || g.__poseAcum >= pasoPose;
@@ -1341,9 +1341,10 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           const f = g.paso + i * Math.PI;
           p2.position.y = 0.82 - g.baja + alz;
           const alza = Math.sqrt(Math.max(0, i ? alza1 : alza0) / 0.41);
-          p2.rotation.x = andando ? Math.sin(f) * 0.5 : -alza;
+          const pp = g.pasoPollera;   // 4.30.1 (B): con pollera, el paso corto (gente-cuerpo.js): la rodilla y la pantorrilla no salen por la tela
+          p2.rotation.x = andando ? Math.sin(f) * 0.5 * (pp ? pp.cadera : 1) : -alza;
           const rod = p2.userData.rodilla;
-          if (rod) rod.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 : 0.03 + alza * 2;
+          if (rod) rod.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 * (pp ? pp.rodilla : 1) : 0.03 + alza * 2;
         });
         g.torso.rotation.y = andando ? Math.sin(g.paso) * 0.06 : 0;
         g.torso.rotation.z = andando ? Math.cos(g.paso) * 0.022 : Math.sin(g.fase * 0.45) * 0.012;
@@ -1544,7 +1545,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     const mateVisto = npc.mateVisible ? npc.mateVisible.visible : true;
     const bandejaAntes = npc.bandeja ? npc.bandeja.estado() : null;   // 3.9: la bandeja de la moza pasa a la ropa nueva con sus vasos
     Object.assign(npc, { cabeza: m.cabeza, torso: m.torso, patas: m.patas, brazos: m.brazos, mano: m.mano, muneca: m.muneca, mateVisible: m.mateVisible,
-      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, conPollera: m.conPollera, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
+      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, conPollera: m.conPollera, pasoPollera: m.pasoPollera, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
     if (npc.mate) { npc.mate = m.mateVisible; if (npc.mate) npc.mate.visible = mateVisto; }
     if (bandejaAntes && m.bandeja) { m.bandeja.vasos(bandejaAntes.vasos); m.bandeja.visible(bandejaAntes.visible); }
     g.updateMatrixWorld(true);

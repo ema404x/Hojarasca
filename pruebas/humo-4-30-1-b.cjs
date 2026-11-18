@@ -156,6 +156,20 @@ app.whenReady().then(async () => {
       for (const k of [0, 1]) { await N(vista(7.6, -0.3, 5.1, -0.35)); await N('N.tick(' + (0.8 + k * 0.41) + ')'); await foto('3-polleras-caminando-frente-' + k); }
       await N('N.soltar()');
     });
+    // caminando de verdad por la ladera de atrás del retablo, con la cámara al costado siguiéndola: Lucía (pollera a la rodilla) y la abuela
+    // (chamal hasta el tobillo); capturas seguidas, una cada 0,13 s (un paso entero son unas ocho)
+    await seccion('caminar', async () => {
+      for (const k of ['aldea-nena', 'aldea-abuela']) {
+        await N(`(() => { const g = N.quien('${k}'), a = N.plaza(-6, -10.5), b = N.plaza(12, -10.5); N.fijos = []; N.trabar(g);
+          g.pos.set(a.x, H.T.altura(a.x, a.z), a.z); g.camino = [{ x: b.x, z: b.z }]; g.ruta = null; g.velocidad = 0.9; g.sinFrenar = true; g.g.visible = true; N.__anda = { g, a, b }; return 1 })()`);
+        const sigue = `(() => { const { g, a, b } = N.__anda, ux = (b.x - a.x) / Math.hypot(b.x - a.x, b.z - a.z), uz = (b.z - a.z) / Math.hypot(b.x - a.x, b.z - a.z);
+          if (!g.camino || !g.camino.length) g.camino = [{ x: b.x, z: b.z }];
+          return N.mirar({ x: g.pos.x + uz * 2.6 + ux * 0.8, z: g.pos.z - ux * 2.6 + uz * 0.8 }, { x: g.pos.x, z: g.pos.z }, -0.32) })()`;
+        await N(sigue); await N('N.tick(2.5)');
+        for (let i = 0; i < 10; i++) { await N(sigue); await N('N.tick(0.13)'); await foto(`4-caminar-${k}-${i}`); }
+        await N(`(() => { const g = N.__anda.g; N.fijos = [{ g, x: g.pos.x, z: g.pos.z, mira: 0 }]; return N.soltar() })()`);
+      }
+    });
     console.log('  programas:', prog0, '→', await N('N.programas()'));
   } catch (err) {
     console.log('ERROR:', err && err.stack || err);

@@ -19,16 +19,21 @@ Rama `v4301-b` (desde main = 4.30.0). Los tres puntos de la captura del usuario 
 - **Ahora:** `conPollera` (gente-cuerpo.js, de `R.pollera`: las 15 fichas de pollera, chamal y vestido) y en gente.js las de pollera usan el tope de 3,5 cm; `vestir` lo pasa a la figura nueva al cambiar de ropa.
 - **Visto:** las 14 de pollera de la aldea paradas en fila sobre la ladera de 0,57 de pendiente de atrás del retablo (13 cm de pie a pie): antes, a Lucía de frente se le ve la mancha en la rodilla; después, nada. De perfil, ninguna asoma.
 
+### 4. Las de pollera caminando (pedido del coordinador, de paso)
+- **Medido con la piel en Node** (cada una armada con gente-cuerpo.js, las poses de gente.js y los vértices movidos con los huesos y los pesos de la malla): con el paso de siempre (cadera ±0,5 rad, rodilla hasta 0,85) a **las 15 de pollera** les salía la rodilla de adelante o la pantorrilla de atrás por la tela: de 19 a 22 cm las de pollera a la rodilla y hasta 34–38 las de pollera hasta el tobillo (la abuela, la tejedora, la anfitriona, Dalia). Que la pollera siga más a la pierna casi no cambia nada (probado: 0,4 y 0,6 más de peso abajo).
+- **Ahora:** `pasoPollera` (gente-cuerpo.js) y gente.js lo usa al caminar: con pollera el paso va a la mitad (cadera y rodilla) y un 25 % más seguido; con chamal, pollera larga o la falda de tango, cadera ×0,34, rodilla ×0,32 y un 40 % más seguido. `vestir` lo pasa a la figura nueva. Medido: 0 cm (≤ 0,5) en todo el ciclo para las 15, y en la ladera también.
+- **Visto:** Lucía y la abuela caminando por la ladera de atrás del retablo, con la cámara al costado siguiéndolas, 10 capturas seguidas cada una (`4-caminar-*`): antes, el paso largo empuja la rodilla y la bota de atrás contra la tela; después, las piernas quedan adentro. El paso corto no se ve arrastrado a esa distancia; de muy cerca y en pendiente fuerte no se miró el patinar de los pies.
+
 ## Capturas (mismas vistas; antes = main 4.30.0, después = esta rama)
-`pruebas/salidas/humo-4-30-1-b/antes|despues/` (copiadas en `%TEMP%\hx\b4301\`): `1-captura-usuario`, `1-captura-cerca` y `1-captura-niebla` (el lugar de la captura del usuario), `2-retablo-*` (frente desde los bancos, de cerca, costado, atrás, los álamos), `3-polleras-*` (frente a Lucía, perfil de abajo y de arriba, tres cuartos, caminando).
+`pruebas/salidas/humo-4-30-1-b/antes|despues/` (copiadas en `%TEMP%\hx\b4301\`): `1-captura-usuario`, `1-captura-cerca` y `1-captura-niebla` (el lugar de la captura del usuario), `2-retablo-*` (frente desde los bancos, de cerca, costado, atrás, los álamos), `3-polleras-*` (frente a Lucía, perfil de abajo y de arriba, tres cuartos), `4-caminar-*` (Lucía y la abuela caminando, cámara siguiéndolas).
 
 ## No se vio a ojo / anotado
-- Las de pollera **caminando** (cadera ±0,5 rad): las capturas no muestran bien el paso (sin cambios ahí; no se vio que asome nada, pero tampoco se pudo mirar de cerca).
+- Con el paso más corto los pies pueden patinar un poco contra el suelo a la velocidad de siempre (la cadencia sube 25–40 %, no el doble): no se midió.
 - El farol que «asoma arriba» del retablo en la captura del usuario es un farol de la plaza que queda detrás, alineado con esa vista: no está pegado al retablo (2,9 m).
 - El caballo metido en el árbol es de A (sigue en las capturas de esta rama).
 
 ## Pruebas
-- Nueva `pruebas/verificar-4-30-1-b.mjs` (en `verify:pasos`): retablo (alto 2,2–2,5, ancho ≤ 1,7, tablas con junta atrás/adelante/costados, cortinas coloradas, telón azul, mira a la plaza), ningún árbol a menos de 2 m del retablo o de la talla, frutales con la copa fuera de las otras casas, nada en la calle, `conPollera` y el tope. 235 verificaciones, **14 mutaciones detectadas**.
+- Nueva `pruebas/verificar-4-30-1-b.mjs` (en `verify:pasos`): retablo (alto 2,2–2,5, ancho ≤ 1,7, tablas con junta atrás/adelante/costados, cortinas coloradas, telón azul, mira a la plaza), ningún árbol a menos de 2 m del retablo o de la talla, frutales con la copa fuera de las otras casas, nada en la calle, `conPollera` y el tope, y con la piel de verdad las 15 de pollera en la ladera y en todo el ciclo del paso. 281 verificaciones, **18 mutaciones detectadas**.
 - Humo `pruebas/humo-4-30-1-b.cjs` + `herramientas/correr-humo-4-30-1-b.ps1` (candado, minimizado, perfil propio).
-- Viejas que leen lo tocado: las 99 `verificar-*` del gate que leen rincones-mundo, aldea-mundo, aldea-arquitectura, gente o gente-cuerpo (entre ellas 3-7-5-rincones, 4-0-3-cuerpos, 3-6-mundo, 3-7-0-integracion, las de triángulos de la gente): **99 en verde, ninguna ajustada**.
+- Viejas que leen lo tocado: las 99 `verificar-*` del gate que leen rincones-mundo, aldea-mundo, aldea-arquitectura, gente o gente-cuerpo (entre ellas 3-7-5-rincones, 4-0-3-cuerpos, 3-6-mundo, 3-7-0-integracion, las de triángulos de la gente): **99 en verde, ninguna ajustada**; después del paso de pollera, de nuevo las 76 que leen gente o gente-cuerpo: en verde (4-28-0-c falló una vez por la carpeta temporal de sus mutaciones y pasó sola).
 - Sin claves nuevas de guardado.
