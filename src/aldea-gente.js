@@ -1723,6 +1723,7 @@ export function crearAldeaGente(ctx) {
     actualizar, charla, revisarLlegada, revisarObras, obraCerca, avisoObra, aportarObra, dibujarCuaderno, llamar,
     apurar: () => { acum = Math.max(acum, 0.5); },   // 3.7.1 (mundo): que lo del amor (la cita, el casamiento) se note en el próximo cuadro
     citar, figura, dibujarVecinos: (ficha, el) => fichaVecinos(progreso(), ficha, el),   // 3.6 (vida)
+    destinoDe: (k) => personas.get(k)?.destino || null,   // 4.31.0 (B): dónde está ahora cada uno (para la luz y el humo de su casa: pueblo-detalles.js)
     // 3.8.7: el camino por la aldea (las puertas, las calles y las vueltas del predio) de un punto del mundo a otro, para el
     // que te viene a buscar (social-juego.js): iba derecho y desde adentro de un local cruzaba la pared
     caminoA: (desde, hasta, cerca = 0.6) => {

@@ -148,6 +148,17 @@ export const INTERACCIONES = [
   { id: 'acopio', cuando: (c, enE) => aMano(c) && c.cerca('acopio', enE), aviso: (c) => c.textoAcopio(), hacer: (c) => c.usarAcopio() },
   // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
   { id: 'desafio-cerca', sigueE: true, cuando: (c) => c.desafio && !c.js.enTren && !c.objetivo, sigue: true, aviso: (c) => c.avisoDesafioCerca(), hacer: (c) => c.usarDesafioCerca() },
+  // 4.31.0 (B): en la aldea: acariciar al perro de adelante, leer el cartel que mirás, la llave de la luz junto a la puerta (mirándola) y
+  // golpear la puerta cerrada de una casa (ver pueblo-detalles-juego.js). Antes que la puerta: golpear le gana a abrir hasta que golpeaste
+  // (el perro también mirando un asiento: en los patios los perros andan entre los bancos de las galerías)
+  {
+    id: 'pueblo', ...delModulo('pueblo', () => true),
+    cuando: (c, enE) => {
+      if (!libre(c.js) || c.js.montado || c.js.sentado || (c.objetivo && !soloSentarse(c))) return null;
+      const a = c.accion('pueblo', enE);
+      return a && (!c.objetivo || a.tipo === 'perro') ? a : null;
+    },
+  },
   // la puerta, sólo si no estás mirando algo para juntar (3.6 (mecánicas): sentado, no)
   { id: 'puerta', cuando: (c) => aMano(c) && !c.js.sentado && c.puertaCerca(), aviso: (c, p) => `${p.objetivo > 0.5 ? 'Cerrar' : 'Abrir'} ${p.nombre}`, hacer: (c, p) => c.accionarPuerta(p) },
   // el perro: dejar el rastro que sigue o pedirle uno

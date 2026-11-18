@@ -20,6 +20,7 @@ import { LIBRO_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js'
 import { vozDe, planBalbuceo } from './social-voz.js';
 // 3.8.8: la hora y el día para todos
 import { partesReloj, partesAlmanaque } from './reloj-almanaque.js';
+import { yaHoy } from './aldea-mecanicas.js';
 import { CERCA_GESTOS, LEJOS_MECANICAS, RADIO_ESTUFA, MECANICAS, AVISOS_MECANICAS, avisoPrestado, elegirMecanica, sanearMecanicas, izadaA, sacarAgua, libroParaLeer, textoPrestamo, pedirPrestado, devolverLibro, cuentoEscuchado, pizarronDelDia, dibujosDeLosChicos, horarioTrenes, descansarEnCamilla, faltanDelValle, hayBaile, melodiaDelBaile, GESTOS_OFICIO, trabajando, asientoValido, nombreAsiento, hayMurmullo, hayPerros, hayAbejas, cieloDelTelescopio, cartasDelCielo, mapaDeLasCumbres, espejoDeLaCosturera } from './aldea-mecanicas.js';
 import { orientarBandera } from './bandera-viento.js';
 
@@ -449,6 +450,7 @@ export function crearMecanicasAldea(ctx) {
   function textoDe(e, m) {
     if (e.tipo === 'libro-prestado') return avisoPrestado(LIBRO_ALDEA[m.prestado.id]);
     if (e.tipo === 'prestamo') return textoPrestamo(m, dia());
+    if (e.tipo === 'aljibe' && yaHoy(m, 'aljibe', dia())) return 'Mojarte las manos en el aljibe';   // 4.31.0 (B): el trago ya lo tomaste: el agua se toca
     return AVISOS_MECANICAS[e.tipo];
   }
   function hacer(e) {

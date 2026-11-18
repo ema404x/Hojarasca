@@ -1033,6 +1033,8 @@ function avisarFalla(que, err) {
   try { globalThis.window?.hojarasca?.reportarError?.(mensaje); } catch { /* sin Electron */ }
 }
 // ctx: { T, escena, veg, calidad, progreso(), brilloVentana(mat, f, dia), alCambiar(qué) }
+// (4.31.0 (B): y, si están, `luzEdificio(id)` → 0 a 1, la luz de cada edificio según quién está en casa, y `humoEdificio(id)` → si echa
+// humo su chimenea: ver pueblo-detalles.js)
 export function crearAldeaMundo(ctx) {
   const { T, escena } = ctx;
   const parada = PARADA_ALDEA;
@@ -1048,6 +1050,8 @@ export function crearAldeaMundo(ctx) {
   const cola = [];                 // lo armado que espera montarse (de a uno por cuadro)
   const luces = [];                // { luz, clase, x, y, z, intensidad, color }
   let chimeneas = [];
+  // 4.31.0 (B): ¿el edificio está sin nadie despierto? (sus ventanas no echan halo ni luz al suelo; ver ventanasPorCasa)
+  const sinLuz = (b) => !!ctx.luzEdificio && b.id !== 'plaza' && Number(ctx.luzEdificio(b.id)) < 0.5;
   let materiales = null, semillas = null, alamos = null, estacionHecha = null, calles = null;
   let pedidosIniciales = null;
   let tallerOp = null;   // 3.7.3: lo del terreno para el taller ferroviario (ver opcionesTaller)
@@ -1746,13 +1750,15 @@ export function crearAldeaMundo(ctx) {
     // la luz de adentro (la fragua, si hay; si no, la del local)
     const spec = d.luces.find((l) => l.clase === 'fragua') || d.luces.find((l) => l.clase === 'interior' && l.cuarto === 'local') || d.luces.find((l) => l.clase === 'interior');
     if (spec && b.datos.etapa >= 3) b.luz = nuevaLuz(m, s, spec, spec.clase === 'fragua' ? 'fragua' : 'interior');
+    if (b.luz) b.luz.edificio = b.id;   // 4.31.0 (B): la luz de adentro sigue a quién está en casa (ver actualizarLuces)
     // 3.7.3: el taller ferroviario, además, la del cuarto de Martín (el tabique la tapa de la del galpón)
     const spec2 = b.id === 'taller-tren' ? d.luces.find((l) => l.clase === 'interior' && l.cuarto === 'vivienda') : null;
     if (spec2) b.luz2 = nuevaLuz(m, s, spec2, 'interior');
+    if (b.luz2) b.luz2.edificio = b.id;
     // techo, planta y chimeneas en el mundo
     b.techo = d.techo && d.etapa >= 3 ? { ...d.techo } : null;
     cubiertasHechas = null; versionCubiertas++;   // 3.6.2 (visual)
-    b.chim = d.etapa >= 4 ? [...(d.chimeneas || []), ...(d.humo ? [d.humo] : [])].map((c) => ({ ...aMundoEn(s, c.lx, c.lz), y: s.y + c.ly })) : [];
+    b.chim = d.etapa >= 4 ? [...(d.chimeneas || []), ...(d.humo ? [d.humo] : [])].map((c) => ({ ...aMundoEn(s, c.lx, c.lz), y: s.y + c.ly, edificio: b.id })) : [];   // (4.31.0 (B): con su edificio)
     b.pisos = (d.pisos || []).map((q) => { const w = aMundoEn(s, q.lx, q.lz); return { x: w.x, z: w.z, ang: -(s.rot + (q.giro || 0)), largo: q.largo, ancho: q.ancho, alto: alturaEn(w.x, w.z) }; });
     // desde los cimientos, la planta entera (entre los tablones de una obra no asoma el pasto)
     if (d.etapa >= 1 && b.id !== 'plaza') b.pisos.push({ x: s.x, z: s.z, ang: -s.rot, largo: b.ancho, ancho: b.fondo, alto: s.y });
@@ -1993,6 +1999,7 @@ export function crearAldeaMundo(ctx) {
     b.puntosMundo = {
       id, version: b.montada, etapa: b.datos.etapa, sitio: { ...s }, nombrados,
       asientos: (P.asientos || []).map((q) => ({ ...enMundo(s, q), nombre: q.nombre })),
+      carteles: (b.datos.carteles || []).map((c) => ({ ...enMundo(s, c), texto: c.texto })),   // 4.31.0 (B): los carteles, para leerlos
       extra: { abejas: ab ? { ...enMundo(s, ab), radio: ab.radio } : null },
     };
     return b.puntosMundo;
@@ -2117,7 +2124,7 @@ export function crearAldeaMundo(ctx) {
     };
     for (const b of edificios.values()) {
       const d = b.datos;
-      if (!d || d.etapa < 3 || !d.ventanas?.length) continue;
+      if (!d || d.etapa < 3 || !d.ventanas?.length || sinLuz(b)) continue;   // (4.31.0 (B): ni la de una casa sin nadie despierto)
       for (const v of d.ventanas) {
         if (v.ly > 2.6 || !(Math.hypot(v.nx, v.nz) > 0.5)) continue;
         // en el marco del edificio: de la pared para afuera, abriéndose
@@ -2161,7 +2168,7 @@ export function crearAldeaMundo(ctx) {
     for (const b of edificios.values()) {
       const d = b.datos;
       if (!d || d.etapa < 3) continue;
-      for (const v of d.ventanas || []) {
+      for (const v of sinLuz(b) ? [] : d.ventanas || []) {   // (4.31.0 (B): los halos, sólo de las ventanas con alguien despierto)
         if (!(Math.hypot(v.nx, v.nz) > 0.5)) continue;
         const w = aMundoEn(b.sitio, v.lx + v.nx * 0.2, v.lz + v.nz * 0.2);
         halos.push({ pos: [w.x, b.sitio.y + v.ly, w.z], radio: Math.min(2.1, Math.max(1.15, Math.max(v.ancho, v.alto) * 0.85 + 0.5)), fluctua: 0.04, soloNoche: true });
@@ -2225,9 +2232,50 @@ export function crearAldeaMundo(ctx) {
     }
     lodAlamos(cam);
   }
+  // 4.31.0 (B): las ventanas de cada edificio, según quién está en casa (`ctx.luzEdificio`). Los vidrios de toda la aldea son un
+  // material (su color lo pone brilloVentana: el reflejo de día y el calor de adentro de noche); acá se oscurece, de noche, el color
+  // por vértice de los vidrios de cada edificio (su tramo en la pieza fundida de la manzana, o su malla suelta). Sin programas ni
+  // dibujos nuevos: se reescribe el tramo sólo cuando cambia (en pasos de 1/20) y se mira cada medio segundo.
+  const PASOS_VENTANA = 20;
+  let relojVentanas = 0, firmaLuces = '';
+  // (los halos de las ventanas y su luz en el suelo, que son una malla para toda la aldea, se rehacen sólo de noche y cuando cambia qué casas
+  // tienen a alguien despierto: alguien que se acuesta, alguien que vuelve; `sinLuz`, arriba)
+  function tramoVidrios(b) {
+    const r = b.enFusion?.vidrios, malla = r ? manzanas.get(b.manzana)?.fusion?.mallas?.vidrios : null;
+    if (malla && r) return { geo: malla.geometry, desde: r.desde, cuenta: r.cuenta };
+    const suelta = b.suelto?.children.find((k) => k.isMesh && k.material === materiales.vidrios);
+    return suelta ? { geo: suelta.geometry, desde: 0, cuenta: suelta.geometry.attributes.position.count } : null;
+  }
+  function ventanasPorCasa(encendido) {
+    const t = performance.now();
+    if (t - relojVentanas < 500) return;
+    relojVentanas = t;
+    for (const b of edificios.values()) {
+      if (!b.montada || !b.datos || b.id === 'plaza') continue;
+      const f = Math.max(0, Math.min(1, Number(ctx.luzEdificio(b.id)) || 0));
+      const paso = Math.round((1 - encendido * (1 - Math.max(0.05, f)) * 0.95) * PASOS_VENTANA) / PASOS_VENTANA;
+      const tr = tramoVidrios(b);
+      if (!tr) continue;
+      if (b.__ventana === paso && b.__ventanaGeo === tr.geo) continue;
+      const col = tr.geo.attributes.color;
+      if (!col) continue;
+      const base = tr.geo.userData.colorBase ??= col.array.slice();
+      const a = col.array, o = tr.desde * col.itemSize, n = tr.cuenta * col.itemSize;
+      for (let i = o; i < o + n; i++) a[i] = base[i] * paso;
+      col.addUpdateRange?.(o, n);
+      col.needsUpdate = true;
+      b.__ventana = paso; b.__ventanaGeo = tr.geo;
+    }
+    if (encendido > 0.02) {
+      let firma = '';
+      for (const b of edificios.values()) if (b.datos && b.datos.etapa >= 3 && !sinLuz(b)) firma += b.id + ',';
+      if (firma !== firmaLuces) { firmaLuces = firma; if (calles) calles.sucio = true; }
+    }
+  }
   // Las ventanas, los faroles y la luz de adentro (cada cuadro, después de las del valle).
   function actualizarLuces(cam, encendido, dia, relleno, colorInterior) {
     if (materiales && ctx.brilloVentana) ctx.brilloVentana(materiales.vidrios, encendido, dia);
+    if (ctx.luzEdificio) ventanasPorCasa(encendido);   // 4.31.0 (B)
     luzNoche.actualizar({ enc: encendido, pleno: !!ctx.calidad?.post, tiempo: performance.now() / 1000, cerca: distAldea(cam.x, cam.z) < 230 });   // 4.0 (prototipo)
     if (calles?.charcos) {
       const k = encendido * 0.26;
@@ -2252,7 +2300,8 @@ export function crearAldeaMundo(ctx) {
       if (q.clase === 'farol') q.luz.intensity = d2 < 8100 ? encendido * (q.alto > 4 ? 15 : 6) * q.intensidad * (1 - suave01((Math.sqrt(d2) - 70) / 20)) : 0;
       else if (q.clase === 'fragua') q.luz.intensity = d2 < 900 ? titila * (1 - suave01((Math.sqrt(d2) - 22) / 8)) : 0;
       else {
-        q.luz.intensity = d2 < 324 ? (relleno * 0.7 * q.intensidad + encendido * 1.5 * q.fuerza) * (1 - suave01((Math.sqrt(d2) - 13) / 5)) : 0;
+        const fe = q.edificio && ctx.luzEdificio ? ctx.luzEdificio(q.edificio) : 1;   // 4.31.0 (B): de noche, sólo con alguien en casa
+        q.luz.intensity = d2 < 324 ? (relleno * 0.7 * q.intensidad + encendido * 1.5 * q.fuerza * fe) * (1 - suave01((Math.sqrt(d2) - 13) / 5)) : 0;
         if (q.luz.intensity > 0) q.luz.color.copy(colorInterior).lerp(q.color, Math.min(1, 0.35 + encendido));
       }
     }
@@ -2332,7 +2381,9 @@ export function crearAldeaMundo(ctx) {
     if (chimCache.lista && chimCache.base === base && ahora - chimCache.t < 1000) return chimCache.lista;
     // (3.6 (optimizar): con la distancia al cuadrado: el mismo orden, sin raíces)
     const d2 = (c) => (c.x - cam.x) * (c.x - cam.x) + (c.z - cam.z) * (c.z - cam.z);
-    const todas = [...chimeneas, ...base.filter((c) => c && d2(c) < 67600)];
+    // 4.31.0 (B): sólo las de los edificios con alguien adentro (ver pueblo-detalles.js `hayHumo`)
+    const conGente = ctx.humoEdificio ? chimeneas.filter((c) => !c.edificio || ctx.humoEdificio(c.edificio)) : chimeneas;
+    const todas = [...conGente, ...base.filter((c) => c && d2(c) < 67600)];
     todas.sort((a, b) => d2(a) - d2(b));
     chimCache.lista = todas.slice(0, 8); chimCache.t = ahora; chimCache.base = base;
     return chimCache.lista;
@@ -2357,7 +2408,7 @@ export function crearAldeaMundo(ctx) {
     const b = edificios.get(id);
     if (!b) return null;
     return { id, pedida: b.pedida, montada: b.montada, enFusion: !!b.enFusion, suelto: !!b.suelto, interior: !!b.interior, interiorVisible: !!b.interior?.visible,
-      puertas: b.puertas.map((p) => ({ nombre: p.nombre, clave: p.estructuraClave, x: p.x, z: p.z })), tris: b.datos ? b.datos.medidas.triangulos : null, techo: !!b.techo, sitio: { ...b.sitio } };
+      puertas: b.puertas.map((p) => ({ nombre: p.nombre, clave: p.estructuraClave, x: p.x, z: p.z })), tris: b.datos ? b.datos.medidas.triangulos : null, techo: !!b.techo, sitio: { ...b.sitio }, ventana: b.__ventana ?? null };   // (4.31.0 (B): `ventana`: cuánto brillan sus vidrios, ver ventanasPorCasa)
   }
   return {
     emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, lugarBanco, lugarCantina, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,

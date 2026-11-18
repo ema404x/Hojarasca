@@ -146,7 +146,8 @@ export const banderaEnMovimiento = (hora) => { const f = izadaA(hora); return f 
 // que te deja un rato descansado (como un pedazo de pan), una vez por día. Después, sólo el trago.
 export const ALJIBE = { descanso: 1 };
 export function sacarAgua(m, dia) {
-  if (yaHoy(m, 'aljibe', dia)) return { titulo: 'Agua fresca del aljibe', sub: 'Un trago, nada más: hoy ya te refrescaste', efectos: [] };
+  // (4.31.0 (B): después del trago del día, el agua se toca: te mojás las manos y la cara)
+  if (yaHoy(m, 'aljibe', dia)) return { titulo: 'Agua fresca del aljibe', sub: 'Te mojás las manos y la cara (hoy ya tomaste): el agua del balde está helada', efectos: [] };
   usarHoy(m, 'aljibe', dia);
   return { titulo: 'Agua fresca del aljibe', sub: 'Subís el balde de la roldana y tomás un trago helado: caminás un rato más liviano', efectos: [{ campo: 'descansado', valor: ALJIBE.descanso }] };
 }

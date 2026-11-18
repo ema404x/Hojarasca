@@ -11,6 +11,8 @@ import { crearPersona, soltarPersona } from './gente-cuerpo.js';
 import { armarPersonaDeAPoco } from './gente-cuerpo.js';
 import { pintarAtlasDespues, completarAtlas, atlasListo } from './gente-atlas.js';
 import { animarSocial, volverDeAnim } from './social-anim.js';
+// 4.31.0 (B): taparse de la lluvia, frotarse las manos, sacudirse la nieve
+import { posarDetalle } from './pueblo-detalles-pose.js';
 
 // ---------------------------------------------------------------- historias
 export const HISTORIAS = [
@@ -1456,6 +1458,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // 3.7.0 (gente-cuerpo.js): codos, pies, la mirada, los gestos y la quietud
         if (g.gestoAmor) gestoAmor(g);   // 3.7.1 (mundo): de la mano, del brazo, el bebé en brazos
         if (g.animSocial) animarSocial(g, dt);   // 3.7.4: el abrazo, la risa, chocar los cinco, la discusión, el baile lento...
+        if (g.__detalle || g.__sacude || g.__pesoDetalle) posarDetalle(g, andando);   // 4.31.0 (B): ver pueblo-detalles-pose.js
         if (g.pose === 'dormir' && !andando) for (const pp of g.cabeza.userData?.parpados || []) pp.rotation.x = 0.95;   // (y dormida, con los ojos cerrados)
         limitarCabeza(g);   // 3.7.2
         if (g.planilla || g.caña) {   // 4.30.0 (A): lo que lleva en la mano, con el ángulo que le toca (y anotando, el codo bien doblado: la tabla a la altura del pecho)

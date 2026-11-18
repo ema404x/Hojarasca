@@ -110,6 +110,8 @@ import { armarTren, aplicarMejoras } from './tren.js';
 import { TREN, FURGON, manejoDe, agarreDe, silbatoDelTren, sanearViaje, puedeMatear, fraseMate, pasajerosDelDia, charlaDelViaje, empezarViaje, puedeSiesta, anotarSiesta } from './tren-viaje.js';
 // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
 import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
+// 4.31.0 (B): el pueblo y la gente, al detalle
+import { crearPuebloDetalles } from './pueblo-detalles-juego.js';
 import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 // 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
@@ -699,6 +701,7 @@ let modos = null;   // 3.1: el desafío del día (ver modos-juego.js)
 const MARGEN_SIN_OBRAS = 6, AVISO_SIN_OBRAS = 'En la Aldea de los Duendes no: los lotes son para los que llegan';
 let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-mundo.js; sólo en el Relax)
 let mecanicasAldea = null;   // 3.6 (mecánicas): ver aldea-mecanicas-mundo.js (sólo en el Relax)
+let puebloDetalles = null;   // 4.31.0 (B): ver pueblo-detalles-juego.js (sólo en el Relax)
 let animalesAldea = null;   // 3.7.0: los perros, los caballos y las gallinas de la aldea y tu cachorro (sólo en el Relax)
 const sonido = new Sonido();
 // 3.8.5: en el Relax los duendes son leyenda: no se ríen ni suena su piano
@@ -815,7 +818,8 @@ async function construir() {
   let sorteoAldea = null;
   asiento = calidad.post ? crearAsiento(escena, { altura: (x, z) => T.altura(x, z), lejos: () => Math.min(260, calidad.lejos + 20) }) : null;   // 4.12.1
   if (!esDesafio) {
-    aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, asiento, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
+    aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, asiento, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos(),
+      luzEdificio: (id) => (puebloDetalles ? puebloDetalles.luz(id) : 1), humoEdificio: (id) => (puebloDetalles ? puebloDetalles.humo(id) : true) });   // 4.31.0 (B): según quién está en casa
     // 3.7.0: los animales de la aldea (y tu cachorro, en el refugio)
     animalesAldea = crearAnimalesAldea({ T, escena, progreso: () => progreso, jugador: () => jugador?.estado || null, refugio: () => T.lugares.refugio || null, distanciaAldea: (x, z) => distanciaAldea(x, z),
       col: () => col, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y) });   // 3.7.0 (integración): chocan y pisan los pisos
@@ -6777,6 +6781,18 @@ function armarOficiosYAldea(esDesafio) {
     duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
     ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),   // (3.7.0 (integración): y lo nublado, para el telescopio)
   });
+  // 4.31.0 (B): el pueblo y la gente, al detalle (saludos, quejas, la puerta, la luz, los carteles, los perros, la campanita: ver pueblo-detalles-juego.js)
+  try {
+    if (aldeaMundo) puebloDetalles = crearPuebloDetalles({
+      progreso: () => progreso, desafio: () => !!desafio, jugador: () => jugador?.estado || null, camara: () => camara, gente: () => gente?.gente || [],
+      aldeaGente: () => aldeaGente, aldeaMundo: () => aldeaMundo, puertas: () => puertas, animales: () => animalesAldea, sonido,
+      ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0 }), distanciaAldea: (x, z) => distanciaAldea(x, z),
+      dentroDe: (pos) => aldeaMundo?.adentro?.(pos)?.id || ([['almacen', est?.almacen], ['casa-te', est?.casaTe]].find(([, a]) => a && Number.isFinite(a.ancho) && Math.abs((pos.x - a.x) * Math.cos(a.rot) - (pos.z - a.z) * Math.sin(a.rot)) < a.ancho / 2 && Math.abs((pos.x - a.x) * Math.sin(a.rot) + (pos.z - a.z) * Math.cos(a.rot)) < a.fondo / 2)?.[0] || null),
+      hablandoCon: () => charla.npc, burbuja: (npc, icono, renglon) => socialMundo?.burbuja(npc, icono, { renglon }), voz: (npc, texto) => vozSocial(npc, texto),
+      anim: (g, id, o) => empezarAnim(g, id, o), leer: (l) => leerEnLaAldea(l), decir: (texto) => decirCharlaAldea(texto),
+      nota: (t, sub) => nota(t, sub), guardar: () => guardar(),
+    });
+  } catch (e) { fallaSistema('pueblo-detalles-armado', e); puebloDetalles = null; }
   // 3.9.0: la cantina: la mesa, la carta, la moza que te trae el pedido y el sorbo en primera persona (aislada: si falla, lo demás sigue)
   try {
     cantinaMundo = crearCantinaMundo({ escena, pisoY: () => cantinaJuego.lugar.pisoY() });
@@ -6920,6 +6936,7 @@ function actualizarAldea(dt) {
   if (!desafio) noticiasJuego?.actualizar(dt);   // 3.7.5 (noticias): el diario, las cartas de lejos y el aviso de mañana
   if (!desafio) amorMundo?.actualizar(dt);   // 3.7.1 (mundo): lo que se ve del amor
   if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
+  if (!desafio) puebloDetalles?.actualizar(dt);   // 4.31.0 (B): el pueblo y la gente, al detalle
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
 // 4.2: y los golpes de pico que pide ese pedrero (según su tamaño, el nivel de picapedrero y el filo)
@@ -10938,6 +10955,7 @@ const ctxCasa = { pos: null, horas: 0, viento: 0, vidrio: null };
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
+let cachePueblo = null;   // 4.31.0 (B): el perro, el cartel, la llave de la luz o la puerta para golpear (ver pueblo-detalles-juego.js)
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
 let cacheEmpleo = null;   // 4.3: lo que se hace con E en el cartel de turnos o en el lugar de la tarea que toca (ver empleo-juego.js)
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
@@ -10963,6 +10981,7 @@ function accionInteraccion(nombre, enE) {
     case 'puestos': return enE ? puestosJuego?.accion(js) : cachePuestos;
     case 'tablon': return enE ? tablonJuego?.accion(js) : cacheTablon;
     case 'mecanica': return enE ? mecanicasAldea?.accion(js) : cacheMecanica;
+    case 'pueblo': return enE ? puebloDetalles?.accion(js) : cachePueblo;   // 4.31.0 (B)
     case 'granja': return enE ? granjaJuego?.accion(js) : cacheGranja;
     case 'taller': return enE ? tallerTren?.accion(js) : cacheTaller;
     case 'fiesta': return enE ? fiestasJuego?.accion(js) : cacheFiesta;
@@ -10984,6 +11003,7 @@ function limpiarInteraccion(nombre) {
     case 'puestos': cachePuestos = null; break;
     case 'tablon': cacheTablon = null; break;
     case 'mecanica': cacheMecanica = null; break;
+    case 'pueblo': cachePueblo = null; break;   // 4.31.0 (B)
     case 'granja': cacheGranja = null; break;
     case 'taller': cacheTaller = null; break;
     case 'fiesta': cacheFiesta = null; break;
@@ -12168,6 +12188,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheObraTrabaja = obraQueTrabajaCerca();
       cacheObraAldea = aldeaGente ? aldeaGente.obraCerca(js.pos) : null;
       cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
+      cachePueblo = puebloDetalles ? puebloDetalles.accion(js) : null;   // 4.31.0 (B)
       cacheTablon = tablonJuego ? tablonJuego.accion(js) : null;   // 4.6 gente
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
@@ -12801,6 +12822,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__ultraVida = () => ultraVida;   // 4.29.0 (B)
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__pueblo = () => puebloDetalles;   // 4.31.0 (B): para las pruebas y las capturas
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
   // 4.2 (huevos de pascua): para las pruebas y las capturas

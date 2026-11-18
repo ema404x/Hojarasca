@@ -46,6 +46,8 @@ import { sanearVecindad, vecindadNueva } from './vecindad.js';
 import { conSocial } from './vecindad-social.js';
 // 3.6 (mecánicas): lo de cada lugar de la aldea (el aljibe del día, el libro prestado)
 import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
+// 4.31.0 (B)
+import { sanearPueblo, puebloNuevo } from './pueblo-detalles.js';
 // 3.7.0: la vida de la aldea (calendario, visitantes, mascota, apodo, familia, cartas) y su ritmo
 import { sanearVidaAldea, vidaNueva, sanearRitmo } from './aldea-vida.js';
 // 4.10 base: la experiencia de las defensas que se curten y los trofeos del tablero
@@ -469,6 +471,8 @@ export function progresoNuevo() {
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
     mecanicas: mecanicasNuevas(),
+    // 4.31.0 (B): las luces de la aldea que apagaste vos (en el Desafío no hay aldea)
+    ...(desafio ? {} : { puebloDetalles: puebloNuevo() }),
     // 3.7.5: las fiestas: ninguna vista todavía (en el Desafío, ninguna)
     ...(desafio ? {} : { fiestas: fiestasNuevas() }),
     // 3.7.2 (granja): vacía (en el Desafío, ninguna); la semilla decide el pelaje de la vaca, los mellizos y las camadas
@@ -681,6 +685,8 @@ function sanearProgreso(p) {
     vecindad: sanearVecindad(p.vecindad),
     // 3.6 (mecánicas): una partida vieja no lo trae: arranca sin nada
     mecanicas: sanearMecanicas(p.mecanicas),
+    // 4.31.0 (B): las luces de la aldea que apagaste vos. Una partida vieja no lo trae: todas prendidas (sólo edificios con llave y días posibles)
+    puebloDetalles: modoPartida === 'desafio' ? undefined : sanearPueblo(p.puebloDetalles, Math.max(1, Math.floor(finito(p.dia, 1)))),
     // 3.7.5: las fiestas. Una partida vieja no las trae: arrancan de cero (sin recuerdos, la minga sin hacer, tu
     // cumpleaños el día de siempre); un guardado roto, saneado (sólo fechas y recuerdos que existen, nada del futuro).
     // En el Desafío no hay fiestas
