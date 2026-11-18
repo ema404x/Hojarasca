@@ -203,18 +203,76 @@ function modeloHuertaChicos(canteros, sueloMundo, centro) {
   });
   return P.geometria();
 }
-// El retablo de los títeres: un teatrito de tablas pintado de verde con la guarda, la boca con cortinas coloradas
-function modeloRetablo() {
+// El retablo de los títeres: un teatrito de tablas pintadas de verde, armado sobre cuatro parantes, con la repisa, la
+// guarda de rombos, la boca con su cenefa y las cortinas coloradas recogidas, el telón de fondo azul de noche con la luna,
+// y arriba la cornisa, el frontón y el remate. Mira a +Z (a la plaza).
+// 4.30.1 (B): antes era una caja verde lisa de 1,7 × 2,5 m: de atrás (y de costado) no se veía ni una tabla, la boca era un
+// agujero negro y, al lado de la gente, parecía un ropero. Ahora: 1,5 m de ancho, 2,49 m hasta la punta del remate, tablas
+// de verdad en las cuatro caras (con su junta oscura), los travesaños y la cortina de lienzo por donde entran los
+// titiriteros atrás, y los mismos títeres (modeloTiteres) asomando sobre la repisa.
+export function modeloRetablo() {
   const P = new Pieza();
-  P.caja('#3e6a5a', 1.7, 1.55, 0.5, [0, 0.375, 0], [0, 0, 0], { pincel: 0.1 });                 // el cuerpo de abajo (entra 40 cm en el piso)
-  for (let i = 0; i < 7; i++) P.caja(i % 2 ? '#d8b040' : '#a03a28', 0.22, 0.08, 0.02, [-0.66 + i * 0.22, 1.02, 0.26], [0, 0, 0], { pincel: 0 });   // la guarda
-  for (const sx of [-1, 1]) P.caja('#3e6a5a', 0.22, 0.75, 0.5, [sx * 0.74, 1.52, 0], [0, 0, 0]);   // los costados de la boca
-  P.caja('#3e6a5a', 1.7, 0.32, 0.5, [0, 2.05, 0], [0, 0, 0]);                                       // el dintel
-  P.caja('#d8b040', 1.5, 0.06, 0.04, [0, 2.12, 0.26], [0, 0, 0], { pincel: 0 });
-  P.cono('#a03a28', 0.22, 0.32, [0, 2.36, 0], [0, PI / 4, 0], 4);                                   // el remate
-  for (const sx of [-1, 1]) P.caja('#b02a28', 0.24, 0.66, 0.04, [sx * 0.52, 1.5, 0.2], [0, 0, sx * 0.05], { pincel: 0.2 });   // las cortinas
-  P.caja('#2a2420', 1.26, 0.7, 0.04, [0, 1.5, -0.2], [0, 0, 0], { pincel: 0 });                    // el fondo oscuro
-  P.caja('#5a4a3a', 1.3, 0.05, 0.3, [0, 1.15, 0.05], [0, 0, 0]);                                    // la repisa
+  const AN = 1.5, FO = 0.56, X = AN / 2, Z = FO / 2, PA = 0.07;      // el ancho y el fondo (por afuera de los parantes) y el parante
+  const Y0 = -0.3, YR = 1.15, YB = 1.84, YD = 2.08;                  // el pie (entra 30 cm en el piso), la repisa, el borde de arriba de la boca, el dintel
+  const VERDES = ['#3e6a5a', '#47725f', '#3a6354', '#43705d'], ROJO = '#a8342a', OCRE = '#d8b040', MARCO = '#7a3a28', TELA = '#b02a28', OSCURO = '#221a16';
+  const nada = [0, 0, 0];
+  // las tablas paradas de una cara, de `ya` a `yb`, a lo largo de `largo` (centradas en 0), con 1,5 cm de junta; `poner(u, ancho, alto, ym, i)`
+  const tablas = (n, largo, ya, yb, poner) => { const a = largo / n; for (let i = 0; i < n; i++) poner(-largo / 2 + a * (i + 0.5), a - 0.015, yb - ya, (ya + yb) / 2, i); };
+  const LX = AN - 2 * PA, LZ = FO - 2 * PA, zf = Z - 0.018, xc = X - 0.018;   // lo que va entre parantes; las caras, 5 mm adentro del parante
+  // el alma: lo que se ve oscuro en las juntas, abajo y en los costados de arriba
+  P.caja(OSCURO, AN - 0.06, YR - Y0, FO - 0.06, [0, (Y0 + YR) / 2, 0], nada, { pincel: 0 });
+  // abajo: tablas adelante, atrás y a los costados
+  tablas(7, LX, Y0, YR, (u, a, h, ym, i) => {
+    P.caja(VERDES[i % 4], a, h, 0.026, [u, ym, zf], nada, { pincel: 0.16, oscuroAbajo: 0.5 });
+    P.caja(VERDES[(i + 2) % 4], a, h, 0.026, [u, ym, -zf], nada, { pincel: 0.16, oscuroAbajo: 0.5 });
+  });
+  tablas(3, LZ, Y0, YD, (u, a, h, ym, i) => { for (const sx of [-1, 1]) P.caja(VERDES[(i + 1) % 4], 0.026, h, a, [sx * xc, ym, u], nada, { pincel: 0.16, oscuroAbajo: 0.5 }); });
+  // arriba, atrás: el telón de tablas (de afuera, verde; de adentro, el azul de noche con la luna y unas estrellas)
+  tablas(7, LX, YR, YD, (u, a, h, ym, i) => P.caja(VERDES[(i + 3) % 4], a, h, 0.026, [u, ym, -zf], nada, { pincel: 0.16 }));
+  P.caja('#26324a', LX, YB - YR, 0.012, [0, (YR + YB) / 2, -zf + 0.019], nada, { pincel: 0.08 });
+  P.bola('#efe6c8', 0.065, [0.0, 1.58, -zf + 0.03], [1, 1, 0.25], [10, 6], { pincel: 0 });
+  for (const [x, y] of [[-0.3, 1.62], [-0.14, 1.5], [0.15, 1.63], [0.3, 1.42], [-0.28, 1.36], [0.12, 1.35]]) P.caja(OCRE, 0.025, 0.025, 0.008, [x, y, -zf + 0.027], [0, 0, PI / 4], { pincel: 0 });
+  // los cuatro parantes, pintados de colorado oscuro
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.caja(MARCO, PA, YD + 0.04 - Y0, PA, [sx * (X - PA / 2), (Y0 + YD + 0.04) / 2, sz * (Z - PA / 2)], nada, { pincel: 0.12 });
+  // adelante, arriba: los marcos de la boca (dos tablas angostas a los costados) y el dintel con su guarda
+  for (const sx of [-1, 1]) P.caja(VERDES[1], 0.16, YD - YR, 0.026, [sx * (LX / 2 - 0.08), (YR + YD) / 2, zf], nada, { pincel: 0.14 });
+  P.caja(VERDES[0], LX - 0.32, YD - YB, 0.026, [0, (YB + YD) / 2, zf], nada, { pincel: 0.14 });
+  for (let i = 0; i < 9; i++) P.caja(i % 2 ? OCRE : ROJO, 0.075, 0.075, 0.01, [-0.48 + i * 0.12, (YB + YD) / 2, zf + 0.016], [0, 0, PI / 4], { pincel: 0 });
+  // la cenefa (el volado colorado de arriba de la boca, con flecos ocres) y las cortinas recogidas a los costados (tres pliegues)
+  P.caja(TELA, LX - 0.32, 0.1, 0.03, [0, YB - 0.05, zf - 0.01], nada, { pincel: 0.18 });
+  for (let i = 0; i < 8; i++) P.bola(i % 2 ? TELA : '#8e2220', 0.055, [-0.4 + i * 0.115, YB - 0.1, zf - 0.012], [1, 0.55, 0.3], [8, 4], { pincel: 0.12 });
+  for (let i = 0; i < 15; i++) P.caja(OCRE, 0.012, 0.035, 0.012, [-0.42 + i * 0.06, YB - 0.142, zf - 0.005], nada, { pincel: 0 });
+  for (const sx of [-1, 1]) {
+    for (let k = 0; k < 3; k++) P.caja(k % 2 ? '#8e2220' : TELA, 0.07, YB - YR - 0.12, 0.03, [sx * (LX / 2 - 0.19 - k * 0.055), (YR + YB) / 2 - 0.02, zf - 0.03 - k * 0.012], [0, 0, sx * 0.04 * (k + 1)], { pincel: 0.18 });
+    P.bola(OCRE, 0.022, [sx * (LX / 2 - 0.24), 1.42, zf - 0.005], [1.6, 1, 1], [6, 4], { pincel: 0 });   // el lazo que las recoge
+  }
+  // la repisa (donde se apoyan los títeres) y, abajo, la guarda de rombos y el sol pintado en el medio
+  P.caja(MARCO, AN + 0.06, 0.05, 0.16, [0, YR + 0.025, Z - 0.03], nada, { pincel: 0.12 });
+  P.caja(MARCO, AN + 0.02, 0.03, 0.03, [0, YR - 0.02, Z + 0.035], nada, { pincel: 0.1 });
+  for (let i = 0; i < 11; i++) P.caja(i % 2 ? OCRE : ROJO, 0.085, 0.085, 0.01, [-0.6 + i * 0.12, YR - 0.13, zf + 0.016], [0, 0, PI / 4], { pincel: 0 });
+  P.cil(OCRE, 0.2, 0.2, 0.012, [0, 0.55, zf + 0.016], [PI / 2, 0, 0], 16, { pincel: 0.06 });
+  P.cil(ROJO, 0.11, 0.11, 0.014, [0, 0.55, zf + 0.022], [PI / 2, 0, 0], 12, { pincel: 0.06 });
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2; P.caja(OCRE, 0.03, 0.09, 0.01, [Math.sin(a) * 0.27, 0.55 + Math.cos(a) * 0.27, zf + 0.016], [0, 0, -a], { pincel: 0 }); }
+  // el zócalo (abajo, contra el piso) en las cuatro caras
+  P.caja('#3a2c24', AN + 0.01, 0.12, FO + 0.01, [0, 0.0, 0], nada, { pincel: 0.1 });
+  // atrás: los dos travesaños y la cortina de lienzo por donde entran los titiriteros (con sus pliegues)
+  for (const y of [0.32, 0.92, YR + 0.02, 1.62]) P.caja(MARCO, LX, 0.06, 0.03, [0, y, -Z - 0.002], nada, { pincel: 0.12 });
+  for (let k = 0; k < 4; k++) P.caja(k % 2 ? '#a08458' : '#b8986a', 0.16, 0.78, 0.02, [-0.24 + k * 0.16, 0.5, -Z - 0.022 - (k % 2) * 0.01], nada, { pincel: 0.16 });
+  P.palo(MARCO, [-0.36, 0.9, -Z - 0.04], [0.36, 0.9, -Z - 0.04], 0.015, 5);
+  // a los costados, un rombo grande pintado
+  for (const sx of [-1, 1]) { P.caja(OCRE, 0.012, 0.22, 0.22, [sx * (xc + 0.016), 0.6, 0], [PI / 4, 0, 0], { pincel: 0 }); P.caja(ROJO, 0.014, 0.12, 0.12, [sx * (xc + 0.02), 0.6, 0], [PI / 4, 0, 0], { pincel: 0 }); }
+  // arriba: la cornisa, el frontón con su borde y el remate
+  P.caja(MARCO, AN + 0.12, 0.05, FO + 0.1, [0, YD + 0.065, 0], nada, { pincel: 0.1 });
+  // (el frontón: un prisma de tres lados acostado, con la punta para arriba, estirado a lo ancho; con las normales planas)
+  const fronton = (color, ancho, alto, fondo, y, z) => {
+    const g = new THREE.CylinderGeometry(1, 1, 1, 3, 1, false).toNonIndexed(); g.computeVertexNormals();
+    P.geo(g, color, [0, y + alto / 3, z], [-PI / 2, 0, 0], [ancho / Math.sqrt(3), fondo, alto / 1.5], { pincel: 0.1 });
+  };
+  fronton(MARCO, AN + 0.08, 0.22, 0.05, YD + 0.09, Z - 0.005);
+  fronton(VERDES[2], AN - 0.1, 0.16, 0.03, YD + 0.112, Z + 0.012);
+  for (let i = 0; i < 3; i++) P.caja(i === 1 ? ROJO : OCRE, 0.055, 0.055, 0.01, [(i - 1) * 0.17, YD + 0.15 + (i === 1 ? 0.012 : 0), Z + 0.032], [0, 0, PI / 4], { pincel: 0 });
+  P.cono(ROJO, 0.055, 0.1, [0, YD + 0.36, Z - 0.005], [0, PI / 4, 0], 4, { pincel: 0 });
+  P.bola(OCRE, 0.022, [0, YD + 0.315, Z - 0.005], [1, 1, 1], [6, 4], { pincel: 0 });
   return P.geometria();
 }
 // Los títeres (el zorro y el pudú), en el marco del retablo
@@ -823,8 +881,8 @@ export function crearRinconesMundo(ctx) {
   function montarCuerpos() {
     if (!ctx.col?.agregar || cuerpos.fijos) return;
     cuerpos.fijos = true;
-    // el retablo (1,7 × 0,5 m, alto) y el atril
-    { const L = lugarEnMundo('retablo'); lado(enLugarLocal(L, -0.6, 0), enLugarLocal(L, 0.6, 0), 0.25, 2.5); }
+    // el retablo (1,5 × 0,56 m y la repisa, 2,45 m de alto: 4.30.1 (B)) y el atril
+    { const L = lugarEnMundo('retablo'); lado(enLugarLocal(L, -0.5, 0.02), enLugarLocal(L, 0.5, 0.02), 0.3, 2.45); }
     { const L = lugarEnMundo('atril'); const p = { x: L.x, z: L.z }; circulo(p.x, p.z, 0.25, 1.1); }
     // el cerco de la huerta de todos: cuatro lados (9 × 6) con la tranquera del lado de la calle (el de −u, 1,6 m en el medio)
     { const H = LUGARES_RINCONES.huerta, a = H.ancho / 2, l = H.largo / 2, P = (u, v) => puntoDeLugar('huerta', u, v);

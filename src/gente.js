@@ -1328,7 +1328,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           const h0 = T.altura(g.pos.x - 0.115 * cr + 0.05 * sr, g.pos.z + 0.115 * sr + 0.05 * cr) - g.pos.y;
           const h1 = T.altura(g.pos.x + 0.115 * cr + 0.05 * sr, g.pos.z - 0.115 * sr + 0.05 * cr) - g.pos.y;
           // (con tope: más alto, la rodilla saldría por delante del poncho o la pollera)
-          const tope = g.mate || R_PONCHO.has(g.clave) || g.conPoncho ? 0.035 : 0.07;   // (3.6: y los de poncho de la aldea)
+          // 4.30.1 (B): y las de pollera (`conPollera`, gente-cuerpo.js): con 7 cm la pierna de arriba doblaba 0,86 rad la rodilla y la rodilla y
+          // el borde de la bota alta asomaban por delante de la pollera (Lucía, parada en la ladera de atrás del retablo)
+          const tope = g.mate || R_PONCHO.has(g.clave) || g.conPoncho || g.conPollera ? 0.035 : 0.07;   // (3.6: y los de poncho de la aldea)
           bajaObj = Math.min(0.1, Math.max(0, -Math.min(h0, h1)));
           alza0 = Math.min(tope, h0 + bajaObj); alza1 = Math.min(tope, h1 + bajaObj);
         }
@@ -1542,7 +1544,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     const mateVisto = npc.mateVisible ? npc.mateVisible.visible : true;
     const bandejaAntes = npc.bandeja ? npc.bandeja.estado() : null;   // 3.9: la bandeja de la moza pasa a la ropa nueva con sus vasos
     Object.assign(npc, { cabeza: m.cabeza, torso: m.torso, patas: m.patas, brazos: m.brazos, mano: m.mano, muneca: m.muneca, mateVisible: m.mateVisible,
-      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
+      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, conPollera: m.conPollera, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
     if (npc.mate) { npc.mate = m.mateVisible; if (npc.mate) npc.mate.visible = mateVisto; }
     if (bandejaAntes && m.bandeja) { m.bandeja.vasos(bandejaAntes.vasos); m.bandeja.visible(bandejaAntes.visible); }
     g.updateMatrixWorld(true);
