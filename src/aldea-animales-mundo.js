@@ -106,6 +106,10 @@ export function crearAnimalesAldea(ctx) {
     const andando = a.vel > 0.1;
     a.m.patas?.forEach((p, k) => { p.rotation.x = andando ? Math.sin(a.fase + (k % 2 ? Math.PI : 0) + (k > 1 ? Math.PI / 2 : 0)) * 0.5 : 0; });
     if (a.m.cola) a.m.cola.rotation.z = Math.sin(a.fase * 2.2) * (andando ? 0.4 : 0.15);
+    // 4.31.0 (B): mientras lo acariciás, se sienta (la cola baja, el pecho arriba) y mueve la cola rápido
+    const mimo = a.mimo > performance.now() / 1000 && !andando;
+    g.rotation.x = mimo ? -0.32 : 0;
+    if (mimo && a.m.cola) a.m.cola.rotation.z = Math.sin(performance.now() / 55) * 0.75;
   }
 
   // 4.30.1: un caballo atado, parado en el lugar libre más cercano a su lugar del plano (caballo.js) y apoyado en sus cuatro cascos
@@ -163,7 +167,8 @@ export function crearAnimalesAldea(ctx) {
             // detrás tuyo, a un par de metros
             const ax = js.pos.x + Math.sin(js.yaw || 0) * 1.8, az = js.pos.z + Math.cos(js.yaw || 0) * 1.8;
             const falta = Math.hypot(ax - a.x, az - a.z);
-            caminar(a, ax, az, falta > 6 ? 4.2 : falta > 1.2 ? 2.2 : 0, dt);
+            if (a.mimo > ahora) a.vel = 0;   // 4.31.0 (B): mientras lo acariciás, quieto
+            else caminar(a, ax, az, falta > 6 ? 4.2 : falta > 1.2 ? 2.2 : 0, dt);
           }
         }
         if (a.estado === 'vuelve' && caminar(a, a.casa.x, a.casa.z, 1.6, dt) < 0.3) a.estado = 'casa';
@@ -250,11 +255,31 @@ export function crearAnimalesAldea(ctx) {
     dibujarPerro(a, tallaMascota(m, p.dia));
   }
 
+  // 4.31.0 (B): acariciar a un perro de la aldea (ver pueblo-detalles-juego.js): el más cercano a `radio` m o menos, y acariciarlo
+  // (se sienta y mueve la cola un par de segundos, mirándote, y después te sigue `extra` segundos más)
+  function perroCerca(pos, radio = 1.7) {
+    let mejor = null, d0 = radio;
+    for (const [id, a] of perros) {
+      if (!a.m.g.visible) continue;
+      const d = Math.hypot(a.x - pos.x, a.z - pos.z);
+      if (d < d0) { d0 = d; mejor = { id, nombre: a.def.nombre, x: a.x, y: a.y, z: a.z, d }; }
+    }
+    return mejor;
+  }
+  function acariciar(id, extra = 40, desde = null) {
+    const a = perros.get(id);
+    if (!a) return false;
+    const ahora = performance.now() / 1000;
+    a.mimo = ahora + 2.6; a.vel = 0;
+    if (desde) a.rumbo = Math.atan2(desde.x - a.x, desde.z - a.z);
+    a.estado = 'sigue'; a.hasta = ahora + 2.6 + extra; a.cuando = ahora;
+    return true;
+  }
   return {
-    actualizar,
+    actualizar, perroCerca, acariciar,
     // para las pruebas
     estado: () => ({
-      armada, perros: [...perros.entries()].map(([id, a]) => ({ id, x: a.x, z: a.z, visible: a.m.g.visible, estado: a.estado })),
+      armada, perros: [...perros.entries()].map(([id, a]) => ({ id, x: a.x, z: a.z, visible: a.m.g.visible, estado: a.estado, rumbo: a.rumbo })),   // (4.31.0 (B): y hacia dónde mira)
       caballos: caballos.map((c) => ({ id: c.def.id, visible: c.m.g.visible, x: c.x, z: c.z, malla: c.m.g })), gallinas: gallinas?.count || 0,   // (4.30.1: dónde quedó parado)
       cachorro: cachorro ? { x: cachorro.x, z: cachorro.z, visible: cachorro.m.g.visible, talla: cachorro.m.g.scale.x } : null,
     }),
