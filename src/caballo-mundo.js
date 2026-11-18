@@ -1,11 +1,11 @@
 // El zaino en el mundo: la malla y cómo anda. Las reglas están en caballo.js.
 import * as THREE from 'three';
-import { compactar, inclinacionTerrenoMamifero, MAT_FAUNA } from './vida.js';
+import { compactar, MAT_FAUNA } from './vida.js';
 import { bola, tubo, torno, miembro, huso, deformar, pintar, color, ruido3, etiquetar } from './formas.js';
 // 4.12.2: la piel por huesos de los animales (cerca, Media y Alta)
 import { armarPielCaballo } from './animales-piel.js';
 import { lerp } from './ruido.js';
-import { marcha } from './caballo.js';
+import { marcha, lugarLibreCaballo, caballoLibre, apoyoCaballo } from './caballo.js';
 import { sanearCaballoPersonal, firmaCaballo, PELAJE_CABALLO } from './personal-caballo.js';
 import { desechar } from './personal-mallas.js';
 import { ENGANCHE } from './carro.js';
@@ -28,6 +28,15 @@ function caja(mat, tam, pos, rot = [0, 0, 0]) {
 }
 
 // ---------------------------------------------------------------- el zaino
+// 4.30.1: el eje del pescuezo (en el grupo del cuello) y su grosor, hasta la nuca; y el camino de las riendas (lado +x; el otro, espejado)
+export const CUELLO_CABALLO = Object.freeze({
+  puntos: [[0, -0.2, -0.2], [0, 0.08, 0.06], [0, 0.36, 0.24], [0, 0.6, 0.36], [0, 0.7, 0.42]],
+  radios: [0.28, 0.21, 0.16, 0.135, 0.11],
+});
+export const RIENDAS_CABALLO = Object.freeze([[0.11, 0.56, 0.8], [0.14, 0.46, 0.6], [0.19, 0.24, 0.36], [0.225, 0.04, 0.08], [0.215, 0.03, -0.2], [0.15, 0.13, -0.46]]);
+export function curvaRiendas(l = 1) {
+  return new THREE.CatmullRomCurve3(RIENDAS_CABALLO.map(([x, y, z]) => new THREE.Vector3(l * x, y, z)));
+}
 // 2.8: `ap` es cómo lo elegiste en "Personalizar" (ver `personal-caballo.js`): el pelaje y
 // los colores del recado. Con lo de siempre sale el zaino de Don Ramón, ahora con riendas.
 // 3.4: el criollo como es: compacto y musculoso, de pecho hondo y lomo corto, cuello grueso con
@@ -76,7 +85,11 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null), { piel = true } =
   g.add(pintar(bola('#d8ccb2', [0.25, 0.05, 0.3], [0, 1.72, 0.02]), (c, p) => { c.multiplyScalar(1 + ruido3(p.x * 40, p.y * 40, p.z * 40) * 0.08); }));
   for (const l of [-1, 1]) {
     g.add(tubo(cuero, 0.015, 0.015, 0.55, [l * 0.38, 1.42, 0.05], null, 6, true));
-    g.add(torno(metal, [[0.035, -0.04], [0.045, 0.0], [0.035, 0.04]], [l * 0.38, 1.13, 0.05], [0, 0, Math.PI / 2], [1, 1, 0.5], 10));
+    // 4.30.1: el estribo, un arco de hierro con su piso (antes un disco chato que de costado se veía como una bola colgando de una cuerda)
+    const arco = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.009, 4, 10, Math.PI), color(metal));
+    arco.position.set(l * 0.385, 1.09, 0.05); arco.rotation.set(0, Math.PI / 2, 0);
+    g.add(arco);
+    g.add(caja(color(metal), [0.05, 0.012, 0.125], [l * 0.385, 1.09, 0.05]));
   }
   // 2.8: las alforjas, a los dos lados detrás de la montura
   if (ap.conAlforjas) {
@@ -100,13 +113,15 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null), { piel = true } =
   }
   // ---- el cuello y la cabeza, con la crin (se mueven juntos al pastar)
   const cuello = new THREE.Group(); cuello.position.set(0, 1.55, 0.8);
-  const pescuezo = miembro(pelo, [[0, -0.2, -0.2], [0, 0.08, 0.06], [0, 0.36, 0.24], [0, 0.6, 0.36]], [0.28, 0.21, 0.16, 0.135], 10, 14);
+  // 4.30.1: el pescuezo llega hasta la nuca (antes terminaba 10 cm abajo y la cabeza asomaba encima como una pieza encastrada) y la garganta
+  // une la quijada con el cuello por abajo
+  const pescuezo = miembro(pelo, CUELLO_CABALLO.puntos, CUELLO_CABALLO.radios, 10, 14);
   pescuezo.scale.set(0.74, 1, 1);
   cuello.add(conPelaje(pescuezo));
   // la crin, tupida, echada sobre el borde de arriba del pescuezo
   // 3.5: una raíz fina sobre el borde y, colgando de ella hacia un lado, mechones sueltos de
   // largos distintos (antes era una sola lámina lisa)
-  const lomoCrin = [[0.03, 0.08, -0.2], [0.04, 0.34, -0.02], [0.035, 0.56, 0.15], [0.02, 0.7, 0.27]];
+  const lomoCrin = [[0.03, 0.08, -0.2], [0.04, 0.34, -0.02], [0.035, 0.56, 0.15], [0.02, 0.74, 0.29]];
   const crin = miembro(oscuro, lomoCrin, [0.045, 0.055, 0.045, 0.025], 10, 8);
   crin.scale.set(0.6, 1, 1);
   cuello.add(pintar(crin, cerda));
@@ -124,6 +139,7 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null), { piel = true } =
   testa.scale.set(0.8, 1, 1);
   cabeza.add(conPelaje(testa));
   cabeza.add(conPelaje(bola(pelo, [0.1, 0.13, 0.13], [0, -0.03, 0.04])));                     // la quijada
+  cabeza.add(conPelaje(bola(pelo, [0.085, 0.1, 0.12], [0, -0.1, -0.06], [0.5, 0, 0])));       // 4.30.1: la garganta, de la quijada al cuello
   cabeza.add(pintar(bola(pelo, [0.08, 0.08, 0.095], [0, -0.085, 0.46]), (c) => c.lerp(cOsc, 0.75)));   // el hocico, más oscuro
   for (const l of [-1, 1]) {
     cabeza.add(bola(ojo, [0.016, 0.024, 0.026], [l * 0.094, 0.05, 0.12]));
@@ -139,10 +155,13 @@ export function mallaCaballo(ap = sanearCaballoPersonal(null), { piel = true } =
   cabeza.add(correa);
   cuello.add(cabeza);
   // 2.8: las riendas, de las argollas del freno hasta la cruz (se mueven con el cuello)
+  // 4.30.1: de cuero flojo: bajan por el cachete, cuelgan en curva por el costado del pescuezo (sin atravesarlo) y suben a la cabeza del basto.
+  // Antes eran un palo recto de la boca a la cruz, que de cerca pasaba por adentro del cuello; ahora un tubo con 20 tramos, que con la piel por
+  // huesos se dobla con el cuello
   const riendas = color(ap.riendas);
   for (const l of [-1, 1]) {
     cuello.add(bola(metal, [0.025, 0.025, 0.025], [l * 0.11, 0.56, 0.8]));
-    cuello.add(paloEntre(riendas, 0.012, [l * 0.11, 0.56, 0.8], [l * 0.16, 0.05, -0.28]));
+    cuello.add(new THREE.Mesh(new THREE.TubeGeometry(curvaRiendas(l), 20, 0.011, 4, false), riendas));
   }
   g.add(cuello);
   // ---- las patas: antebrazo, rodilla, caña, menudillo y casco adelante; muslo, garrón y caña
@@ -211,11 +230,13 @@ export function mallaCarro() {
 // 4.12.2: `alturaPie(x, z, y)` (opcional) es sobre qué se apoya algo en (x, z): el piso de una obra, el Puente de Troncos o un muelle si hay, y si no
 // el terreno (igual que el jugador a pie). Sin ella (pruebas viejas) vale sólo el terreno, como antes.
 // `empujar(pos, radio, alto)` (opcional) saca una posición {x, y, z} de lo que choca (la misma colisión que usan el jugador y los animales).
-export function crearCaballo(T, escena, alturaPie = null, empujar = null) {
+// 4.30.1: `paredEntre(ax, az, bx, bz, y0, y1)` (opcional): si una pared fina corta el tramo (para no dejarlo con la cabeza del otro lado de una pared).
+export function crearCaballo(T, escena, alturaPie = null, empujar = null, paredEntre = null) {
   const alto = (x, z, y) => (alturaPie ? alturaPie(x, z, y) : T.altura(x, z));
   let apariencia = sanearCaballoPersonal(null);
   const m = mallaCaballo(apariencia);
   m.g.visible = false;
+  m.g.rotation.order = 'YXZ';   // 4.30.1: el cabeceo y el ladeo, sobre los ejes del caballo (con XYZ el cabeceo iba sobre el eje x del mundo)
   escena.add(m.g);
   const est = { x: 0, z: 0, yaw: 0, fase: 0, vel: 0, montado: false, visible: false, conCarro: false };
   // 4.11.5: el carro, si lo enganchaste: sigue al balancín como un remolque (el eje queda a ENGANCHE.largo del enganche)
@@ -227,6 +248,7 @@ export function crearCaballo(T, escena, alturaPie = null, empujar = null) {
     est.montado = montado;
     est.visible = visible;
     m.g.visible = visible;
+    if (!visible) est.apoyado = false;   // 4.30.1
     if (!visible) { seguirCarro(dt, false); return; }
     est.x = donde.x; est.z = donde.z;
     est.yaw = donde.yaw;
@@ -234,14 +256,18 @@ export function crearCaballo(T, escena, alturaPie = null, empujar = null) {
     const mc = marcha(est.vel);
     est.fase += dt * mc.cadencia;
     // 4.12.2: montado, el caballo está a la altura en que vas vos (la cubierta del puente, no el lecho del arroyo de abajo)
-    const y = alto(est.x, est.z, Number.isFinite(donde.y) ? donde.y : m.g.position.y);
+    let y = alto(est.x, est.z, Number.isFinite(donde.y) ? donde.y : m.g.position.y);
+    // 4.12.2: sobre un piso (puente, muelle) va derecho: la inclinación del terreno de abajo no vale
+    // 4.30.1: en el terreno, los cuatro cascos apoyan: la altura y la inclinación salen del suelo bajo cada casco (apoyoCaballo, caballo.js)
+    const suelo = y > T.altura(est.x, est.z) + 0.3 ? { pitch: 0, roll: 0 } : apoyoCaballo(alto, est.x, est.z, est.yaw, y);
+    if (Number.isFinite(suelo.y)) y = suelo.y;
     est.y = y;
     m.g.position.set(est.x, y + (mc.modo === 'quieto' ? 0 : Math.abs(Math.sin(est.fase)) * 0.05 * mc.amplitud), est.z);
     m.g.rotation.y = est.yaw;
-    // 4.12.2: sobre un piso (puente, muelle) va derecho: la inclinación del terreno de abajo no vale
-    const suelo = y > T.altura(est.x, est.z) + 0.3 ? { pitch: 0, roll: 0 } : inclinacionTerrenoMamifero(T, { x: est.x, z: est.z }, est.yaw, 0.22);
-    m.g.rotation.x = lerp(m.g.rotation.x, suelo.pitch, 1 - Math.exp(-dt * 6));
-    m.g.rotation.z = lerp(m.g.rotation.z, suelo.roll, 1 - Math.exp(-dt * 6));
+    const k = est.apoyado ? 1 - Math.exp(-dt * 10) : 1;   // (la primera vez que se lo ve, ya apoyado)
+    est.apoyado = true;
+    m.g.rotation.x = lerp(m.g.rotation.x, suelo.pitch, k);
+    m.g.rotation.z = lerp(m.g.rotation.z, suelo.roll, k);
     // patas: el trote es diagonal (mano izquierda con pata derecha), el galope va de a pares
     const galope = mc.modo === 'galope';
     m.patas.forEach((p, k) => {
@@ -306,6 +332,23 @@ export function crearCaballo(T, escena, alturaPie = null, empujar = null) {
 
   const distancia = (pos) => Math.hypot(pos.x - est.x, pos.z - est.z);
 
+  // 4.30.1: dónde queda parado: el lugar libre más cercano a `d` ({x, z, yaw}), sin troncos, paredes ni muebles adentro del cuerpo
+  // (lugarLibreCaballo, caballo.js). Se recuerda por lugar pedido y se vuelve a mirar cada 2,5 s (una obra nueva, una puerta, las colisiones
+  // que se cargan tarde); si lo que había quedado libre sigue libre, no se mueve.
+  const libre = { x: NaN, z: NaN, yaw: NaN, t: -1e9, r: null };
+  const opLibre = { empujar, alturaEn: (x, z, y) => alto(x, z, Number.isFinite(y) ? y : T.altura(x, z)), paredEntre };
+  function acomodar(d) {
+    if (!empujar || !d || !Number.isFinite(d.x) || !Number.isFinite(d.z)) return d;
+    const ahora = performance.now();
+    const igual = libre.r && d.x === libre.x && d.z === libre.z && d.yaw === libre.yaw;
+    if (igual && ahora - libre.t < 2500) return libre.r;
+    let r = null;
+    if (igual && caballoLibre(libre.r.x, libre.r.z, libre.r.yaw, opLibre)) r = libre.r;
+    else { const l = lugarLibreCaballo(d, opLibre); r = { x: l.x, z: l.z, yaw: l.yaw }; if (Number.isFinite(d.y)) r.y = d.y; }
+    libre.x = d.x; libre.z = d.z; libre.yaw = d.yaw; libre.t = ahora; libre.r = r;
+    return r;
+  }
+
   // 2.8: lo elegido en "Personalizar". Si cambió cómo se ve, se rearma la malla sin
   // moverlo: el grupo es el mismo, cambian las piezas de adentro.
   function personalizar(datos) {
@@ -325,5 +368,5 @@ export function crearCaballo(T, escena, alturaPie = null, empujar = null) {
     m.cuello.rotation.x = cuelloX;
     return true;
   }
-  return { actualizar, distancia, est, malla: m.g, carro: () => carro, conCarro: () => est.conCarro, personalizar, apariencia: () => apariencia, nombre: () => apariencia.nombre };
+  return { actualizar, acomodar, distancia, est, malla: m.g, carro: () => carro, conCarro: () => est.conCarro, personalizar, apariencia: () => apariencia, nombre: () => apariencia.nombre };
 }

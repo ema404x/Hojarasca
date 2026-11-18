@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { mallaPerro } from './perro.js';
 import { mallaCaballo } from './caballo-mundo.js';
+import { lugarLibreCaballo, apoyoCaballo, CUERPO_CABALLO } from './caballo.js';
 import { geometriaGallina } from './gallinero-mundo.js';
 import { sanearPerro } from './personal-perro.js';
 import { sanearCaballoPersonal } from './personal-caballo.js';
@@ -63,11 +64,12 @@ export function crearAnimalesAldea(ctx) {
     for (const def of ANIMALES_ALDEA.caballos) {
       const m = mallaCaballo(sanearCaballoPersonal({ pelaje: def.pelaje }), { piel: false });   // 4.12.2: rígido siempre
       const w = enMundo(def.x, def.z);
+      m.g.rotation.order = 'YXZ';   // 4.30.1: el cabeceo y el ladeo, sobre los ejes del caballo
       m.g.position.set(w.x, T.altura(w.x, w.z), w.z);
       m.g.rotation.y = M.rotMundo(def.rot);
       m.g.visible = false;
       escena.add(m.g);
-      caballos.push({ m, def, x: w.x, z: w.z, fase: Math.random() * 6 });
+      caballos.push({ m, def, x: w.x, z: w.z, x0: w.x, z0: w.z, yaw0: M.rotMundo(def.rot), revisar: 0, fase: Math.random() * 6 });
     }
     const total = ANIMALES_ALDEA.gallinas.reduce((s, g) => s + g.n, 0);
     gallinas = new THREE.InstancedMesh(geometriaGallina(), new THREE.MeshLambertMaterial({ vertexColors: true }), total);
@@ -104,6 +106,26 @@ export function crearAnimalesAldea(ctx) {
     const andando = a.vel > 0.1;
     a.m.patas?.forEach((p, k) => { p.rotation.x = andando ? Math.sin(a.fase + (k % 2 ? Math.PI : 0) + (k > 1 ? Math.PI / 2 : 0)) * 0.5 : 0; });
     if (a.m.cola) a.m.cola.rotation.z = Math.sin(a.fase * 2.2) * (andando ? 0.4 : 0.15);
+  }
+
+  // 4.30.1: un caballo atado, parado en el lugar libre más cercano a su lugar del plano (caballo.js) y apoyado en sus cuatro cascos
+  // (tampoco encima del otro caballo atado: sus cuatro discos cuentan como obstáculos)
+  function pararCaballo(c) {
+    const col = ctx.col?.();
+    const alturaEn = (x, z, y) => pie(x, z, y);
+    const otros = caballos.filter((o) => o !== c && o.puesto);
+    const empujar = (q, r, h) => {
+      col.resolver(q, r, h);
+      for (const o of otros) for (const [d, rd] of CUERPO_CABALLO) {
+        const ox = o.x + Math.sin(o.yaw) * d, oz = o.z + Math.cos(o.yaw) * d, dx = q.x - ox, dz = q.z - oz, dd = Math.hypot(dx, dz), min = r + rd;
+        if (dd < min) { const k = dd > 1e-6 ? min / dd : 0; q.x = ox + (k ? dx * k : min); q.z = oz + (k ? dz * k : 0); }
+      }
+    };
+    const l = col ? lugarLibreCaballo({ x: c.x0, z: c.z0, yaw: c.yaw0 }, { empujar, alturaEn, paredEntre: col.paredEntre ? (ax, az, bx, bz, y0, y1) => !!col.paredEntre(ax, az, bx, bz, y0, y1, false) : null }) : { x: c.x0, z: c.z0, yaw: c.yaw0 };
+    const ap = apoyoCaballo(alturaEn, l.x, l.z, l.yaw);
+    c.x = l.x; c.z = l.z; c.yaw = l.yaw; c.puesto = true;
+    c.m.g.position.set(l.x, ap.y, l.z);
+    c.m.g.rotation.set(ap.pitch, l.yaw, ap.roll);
   }
 
   // ---------------------------------------------------------------- cada cuadro
@@ -153,7 +175,11 @@ export function crearAnimalesAldea(ctx) {
       for (const c of caballos) {
         const visible = deDia && Math.hypot(c.x - js.pos.x, c.z - js.pos.z) < VER;
         c.m.g.visible = visible;
-        if (!visible) continue;
+        if (!visible) { c.revisar = 0; continue; }
+        // 4.30.1: donde cabe y con los cuatro cascos en el suelo (el Moro quedaba con medio cuerpo adentro del retablo y de un árbol de la plaza,
+        // y en la loma con dos cascos en el aire); se vuelve a mirar cada 3 s (las colisiones de la plaza se cargan después)
+        c.revisar -= dt;
+        if (c.revisar <= 0) { c.revisar = 3; pararCaballo(c); }
         c.fase += dt;
         if (c.m.cuello) c.m.cuello.rotation.x = 0.35 + Math.sin(c.fase / 2.4) * 0.25;
       }
@@ -229,7 +255,7 @@ export function crearAnimalesAldea(ctx) {
     // para las pruebas
     estado: () => ({
       armada, perros: [...perros.entries()].map(([id, a]) => ({ id, x: a.x, z: a.z, visible: a.m.g.visible, estado: a.estado })),
-      caballos: caballos.map((c) => ({ id: c.def.id, visible: c.m.g.visible })), gallinas: gallinas?.count || 0,
+      caballos: caballos.map((c) => ({ id: c.def.id, visible: c.m.g.visible, x: c.x, z: c.z, malla: c.m.g })), gallinas: gallinas?.count || 0,   // (4.30.1: dónde quedó parado)
       cachorro: cachorro ? { x: cachorro.x, z: cachorro.z, visible: cachorro.m.g.visible, talla: cachorro.m.g.scale.x } : null,
     }),
   };

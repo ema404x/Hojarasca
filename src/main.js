@@ -1034,7 +1034,7 @@ async function construir() {
   marcarPisos();   // 3.5
   renovales = crearRenovales(T, escena, col);
   majadaMundo = crearMajada(T, escena);
-  caballoMundo = esDesafio ? null : crearCaballo(T, escena, (x, z, y) => alturaDePie(T, col, x, z, y), (p, r, h) => col.resolver(p, r, h));   // 4.12.2: sobre el puente/los pisos como el jugador
+  caballoMundo = esDesafio ? null : crearCaballo(T, escena, (x, z, y) => alturaDePie(T, col, x, z, y), (p, r, h) => col.resolver(p, r, h), (ax, az, bx, bz, y0, y1) => !!col.paredEntre?.(ax, az, bx, bz, y0, y1, false));   // 4.12.2: sobre el puente/los pisos como el jugador   // (4.30.1: y parado, donde cabe)
   majadaMundo?.refrescarLana(majada(), progreso.dia);
   desalojo = { obras: { mudadas: 0, desarmadas: 0 }, renovales: { mudados: 0, devueltos: 0 }, carpa: null, materiales: {} };   // 3.6.2
   progreso.renovales = desalojarRenovales(progreso.renovales);   // 3.6.2: (antes, renovales.sincronizar)
@@ -7425,7 +7425,9 @@ function dondeEstaElCaballo() {
   if (atado) return atado;
   if (js.montado) return { x: js.pos.x, z: js.pos.z, yaw: yawCaballo(js.yaw), y: js.pos.y };   // 4.12.2: y, para que se dibuje sobre el puente
   if (caballoVuelve) return caballoVuelve;   // 3.8.4: lo mandaste al refugio desde un puente y todavía lo ves
-  return dondeEspera(caballo(), T.lugares.refugio);
+  // 4.30.1: parado, en el lugar libre más cercano a donde lo dejaste (no adentro de un tronco, una pared o un mueble)
+  const d = dondeEspera(caballo(), T.lugares.refugio);
+  return caballoMundo?.acomodar ? caballoMundo.acomodar(d) : d;
 }
 function caballoCerca() {
   if (!tieneCaballo() || caballoEnElTren()) return false;

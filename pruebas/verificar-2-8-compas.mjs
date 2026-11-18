@@ -213,7 +213,7 @@ const MODULOS = ['personal-perro', 'personal-caballo', 'personal-botes', 'person
   assert.ok(perroJs.includes('function personalizar(datos)') && perroJs.includes("m.g.rotation.order = 'YXZ'"), 'perro: personalizar');
   assert.ok(perroJs.includes('apariencia.trucos.sentarse') && perroJs.includes('apariencia.trucos.traer') && perroJs.includes('apariencia.trucos.avisar'), 'perro: las tres pruebas');
   assert.ok(perroJs.includes('desechar(c, [MAT_FAUNA])') && cab.includes('desechar(c, [MAT_FAUNA])'), 'el material de la fauna no se suelta');
-  assert.ok(cab.includes('function personalizar(datos)') && cab.includes('paloEntre(riendas'), 'caballo: personalizar y riendas');
+  assert.ok(cab.includes('function personalizar(datos)') && (cab.includes('paloEntre(riendas') || cab.includes('TubeGeometry(curvaRiendas(l)')), 'caballo: personalizar y riendas');
   assert.ok(!/confianza/.test(cab), 'caballo: no se inventa la confianza');
   assert.ok(kay.includes('function personalizar(datos)') && kay.includes('mallaBanderin') && kay.includes('cartelNombre(d.nombre'), 'kayak: casco, nombre y banderín');
   assert.ok(tro.includes('function personalizar(datos)') && tro.includes('repintarVertices(tren.loco') && tro.includes('sonido.silbatoElegido = d.silbato'), 'trochita: pintura, nombre y silbato');
