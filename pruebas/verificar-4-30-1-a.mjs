@@ -22,6 +22,7 @@ let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; };
 const CAB = process.env.HX_CAB || path.join(raiz, 'src/caballo.js');
 const CABM = process.env.HX_CABM || path.join(raiz, 'src/caballo-mundo.js');
+const JUG = process.env.HX_JUG || path.join(raiz, 'src/jugador.js');
 const SOLO = process.env.HX_SOLO || '';   // (en una mutación: qué parte correr)
 const C = await import(pathToFileURL(CAB).href);
 const { crearColisiones } = await import('../src/colisiones.js');
@@ -215,13 +216,54 @@ async function pruebaAldea() {
   ok(errs.length === 4 && Math.max(...errs.map(Math.abs)) < 0.02, `el Moro apoya los cuatro cascos (${errs.map((e) => (e * 100).toFixed(1)).join(', ')} cm)`);
 }
 
+// ---------------------------------------------------------------- 5. montado, el caballo entero choca (jugador.js de verdad, con un DOM mínimo)
+async function pruebaMontado() {
+  globalThis.document ??= { addEventListener() {}, pointerLockElement: null };
+  globalThis.window ??= { addEventListener() {}, self: 1, top: 1 };
+  globalThis.HTMLElement ??= function HTMLElement() {};
+  HTMLElement.prototype.requestPointerLock ??= () => {};
+  const { crearJugador, MONTADO_CHOCA } = await import(pathToFileURL(JUG).href);
+  const T = { altura: () => 0, normal: () => ({ x: 0, y: 1, z: 0 }), agua: () => null, indice: () => 0, distSendero: [9], bosque: [0], pasto: [0] };
+  const cabeza = MONTADO_CHOCA.find(([d]) => d > 0), grupa = MONTADO_CHOCA.find(([d]) => d < 0);
+  const nuevo = (arboles) => {
+    const col = crearColisiones();
+    for (const [x, z] of arboles) col.agregar({ x, z, r: 0.4 });
+    const J = crearJugador(new THREE.PerspectiveCamera(), T, col, { activo: () => true, lienzo: { addEventListener() {} }, sensibilidad: () => 1, invierno: () => 0, otono: () => 0, fov: () => 70 });
+    J.ubicar(0, 0, 0); J.estado.montado = { trote: 6.2, galope: 11, alto: 0.95, aguaMax: 0.9 };
+    return J;
+  };
+  // (dónde queda un disco del caballo: mira para donde mirás, -z con yaw 0)
+  const disco = (e, d) => ({ x: e.pos.x - Math.sin(e.yaw) * d, z: e.pos.z - Math.cos(e.yaw) * d });
+  // de frente: al trote contra un tronco, la cabeza no entra
+  let J = nuevo([[0, -4]]);
+  J.teclas.add('KeyW');
+  let peor = Infinity;
+  for (let i = 0; i < 80; i++) { J.actualizar(0.05); const c = disco(J.estado, cabeza[0]); peor = Math.min(peor, Math.hypot(c.x, c.z + 4) - 0.4 - cabeza[1]); }
+  ok(peor > -0.03 && J.estado.pos.z > -4 + 0.4 + cabeza[0] + cabeza[1] - 0.05, `montado de frente contra un tronco, la cabeza no entra (${(peor * 100).toFixed(1)} cm, centro en ${J.estado.pos.z.toFixed(2)})`);
+  // de costado: girás en el lugar con el tronco al lado: la cabeza lo barre y el caballo se corre
+  J = nuevo([[1.25, 0]]);
+  peor = Infinity;
+  for (let i = 0; i <= 40; i++) { J.estado.yaw = -(Math.PI / 2) * (i / 40); J.actualizar(0.05); const c = disco(J.estado, cabeza[0]); peor = Math.min(peor, Math.hypot(c.x - 1.25, c.z) - 0.4 - cabeza[1]); }
+  ok(peor > -0.03, `girando con el tronco al costado, la cabeza no lo atraviesa (${(peor * 100).toFixed(1)} cm)`);
+  // de cola: la grupa adentro de un tronco (arrancás pegado): un paso y sale
+  J = nuevo([[0, 0.9]]);
+  J.actualizar(0.05);
+  const g = disco(J.estado, grupa[0]);
+  ok(Math.hypot(g.x, g.z - 0.9) >= 0.4 + grupa[1] - 0.02, `la grupa sale del tronco (${(Math.hypot(g.x, g.z - 0.9) - 0.4 - grupa[1]).toFixed(3)} m)`);
+  // a pie, nada de esto: tu disco de siempre
+  J = nuevo([[0, -1.6]]); J.estado.montado = null; J.teclas.add('KeyW');
+  for (let i = 0; i < 60; i++) J.actualizar(0.05);
+  ok(J.estado.pos.z < -1.6 + 0.4 + 0.35 + 0.05, `a pie llegás hasta el tronco como siempre (${J.estado.pos.z.toFixed(2)})`);
+}
+
+if (!SOLO || SOLO === 'montado') await pruebaMontado();
 if (!SOLO || SOLO === 'lugar') pruebaLugar();
 if (!SOLO || SOLO === 'apoyo') pruebaApoyo();
 if (!SOLO || SOLO === 'forma') await pruebaForma();
 if (!SOLO || SOLO === 'mundo') await pruebaMundo();
 if (!SOLO || SOLO === 'textos') pruebaTextos();
 if (!SOLO || SOLO === 'aldea') await pruebaAldea();
-if (process.env.HX_CAB || process.env.HX_CABM) { console.log('mutación sin atrapar'); process.exit(0); }
+if (process.env.HX_CAB || process.env.HX_CABM || process.env.HX_JUG) { console.log('mutación sin atrapar'); process.exit(0); }
 
 // ---------------------------------------------------------------- mutaciones (una copia con otro nombre y un proceso por mutación)
 const MUT = [
@@ -234,6 +276,8 @@ const MUT = [
   ['src/caballo.js', 'apoyo', 'el cabeceo al revés', 'pitch: lim(Math.atan2((ti + td) / 2 - (ai + ad) / 2, 2 * A), 0.55)', 'pitch: lim(Math.atan2((ai + ad) / 2 - (ti + td) / 2, 2 * A), 0.55)'],
   ['src/caballo.js', 'apoyo', 'el ladeo con tope viejo', 'roll: lim(Math.atan2((ad + td) / 2 - (ai + ti) / 2, 2 * L), 0.45)', 'roll: lim(Math.atan2((ad + td) / 2 - (ai + ti) / 2, 2 * L), 0.1)'],
   ['src/caballo.js', 'apoyo', 'la altura del centro, no el promedio', 'y: (ai + ad + ti + td) / 4,', 'y: alturaEn(x, z, yRef),'],
+  ['src/jugador.js', 'montado', 'montado choca sólo el centro', 'for (let pasada = 0; pasada < 2; pasada++) {', 'for (let pasada = 0; pasada < 0; pasada++) {'],
+  ['src/jugador.js', 'montado', 'la cabeza mira para atrás', 'const fx = -Math.sin(estado.yaw), fz = -Math.cos(estado.yaw);', 'const fx = Math.sin(estado.yaw), fz = Math.cos(estado.yaw);'],
   ['src/caballo-mundo.js', 'mundo', 'sin el orden YXZ', "m.g.rotation.order = 'YXZ';   // 4.30.1", "m.g.rotation.order = 'XYZ';   // 4.30.1"],
   ['src/caballo-mundo.js', 'mundo', 'sin la altura de los cuatro cascos', 'if (Number.isFinite(suelo.y)) y = suelo.y;', ''],
   ['src/caballo-mundo.js', 'mundo', 'sin buscar lugar', 'else { const l = lugarLibreCaballo(d, opLibre);', 'else { const l = { x: d.x, z: d.z, yaw: d.yaw };'],
@@ -248,7 +292,7 @@ for (const [archivo, solo, nombre, de, a] of MUT) {
   const copia = path.join(raiz, path.dirname(archivo), `__mut-4301a-${atrapadas}-${path.basename(archivo)}`);
   fs.writeFileSync(copia, texto.replace(de, a));
   try {
-    const envm = { ...process.env, HX_SOLO: solo, [archivo.endsWith('caballo.js') ? 'HX_CAB' : 'HX_CABM']: copia };
+    const envm = { ...process.env, HX_SOLO: solo, [archivo.endsWith('jugador.js') ? 'HX_JUG' : archivo.endsWith('caballo.js') ? 'HX_CAB' : 'HX_CABM']: copia };
     const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], { env: envm, encoding: 'utf8' });
     assert.ok(r.status !== 0 && /AssertionError/.test(r.stderr || ''), `la mutación «${nombre}» no se atrapó (o se rompió por otra cosa): ${(r.stdout || '').slice(-200)} ${(r.stderr || '').slice(0, 300)}`);
     atrapadas++;

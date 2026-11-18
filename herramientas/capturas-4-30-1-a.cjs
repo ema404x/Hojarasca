@@ -122,6 +122,25 @@ const ESCENARIOS = {
     prep: `(() => { const L = H.__rincones.mundo().lugar('retablo'); const x = L.x + 9, z = L.z - 6; H.progreso.caballo = { x, z, yaw: 1.2 }; H.jugador.ubicar(x, z, 0); H.montar(); const c = H.dondeEstaElCaballo(); return { x: c.x, z: c.z, yaw: c.yaw }; })()`,
     cam: (p) => { const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), sx = fz, sz = -fx; return { x: p.x + sx * 5.5, z: p.z + sz * 5.5, dy: 1.7, tx: p.x, tz: p.z, pitch: -0.02, fov: 55, sinUbicar: true }; },
   },
+  // 4.30.1: montado contra un álamo de la plaza: de frente (al trote hasta que frena) y de costado (girando en el lugar con el tronco al lado)
+  'montado-frente': {
+    prep: `(() => { const L = H.__rincones.mundo().lugar('retablo'); H.jugador.ubicar(L.x + 3, L.z + 3, 0); H.volverAlJuego?.(true); for (let i = 0; i < 40; i++) H.__bucle(); const a = window.__CAP.arbol(L.x, L.z, 20); if (!a) return { error: 'sin árbol' };
+      const ux = 0.6, uz = 0.8, js = H.jugador.estado, yaw = Math.atan2(-ux, -uz);
+      H.jugador.ubicar(a.x - ux * 4, a.z - uz * 4, yaw); js.yaw = yaw; js.montado = { trote: 6.2, galope: 11, alto: 0.95, aguaMax: 0.9 };
+      H.jugador.teclas.add('KeyW'); for (let i = 0; i < 50; i++) { js.yaw = yaw; H.jugador.actualizar(0.05); } H.jugador.teclas.clear();
+      const cx = js.pos.x - Math.sin(js.yaw) * 1.3, cz = js.pos.z - Math.cos(js.yaw) * 1.3;
+      return { x: js.pos.x, z: js.pos.z, yaw: js.yaw + Math.PI, cabezaAlTronco: +(Math.hypot(cx - a.x, cz - a.z) - a.r - 0.3).toFixed(3) }; })()`,
+    cam: (p) => { const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), sx = fz, sz = -fx; return { x: p.x + sx * 5.5 + fx * 1, z: p.z + sz * 5.5 + fz * 1, dy: 1.7, tx: p.x + fx * 1, tz: p.z + fz * 1, pitch: -0.04, fov: 55, sinUbicar: true }; },
+  },
+  'montado-costado': {
+    prep: `(() => { const L = H.__rincones.mundo().lugar('retablo'); H.jugador.ubicar(L.x + 3, L.z + 3, 0); H.volverAlJuego?.(true); for (let i = 0; i < 40; i++) H.__bucle(); const a = window.__CAP.arbol(L.x, L.z, 20); if (!a) return { error: 'sin árbol' };
+      const ux = 0.6, uz = 0.8, px = uz, pz = -ux, js = H.jugador.estado, y0 = Math.atan2(-ux, -uz);
+      H.jugador.ubicar(a.x - px * 1.35, a.z - pz * 1.35, y0); js.montado = { trote: 6.2, galope: 11, alto: 0.95, aguaMax: 0.9 };
+      for (let i = 0; i <= 30; i++) { js.yaw = y0 + (Math.PI / 2) * (i / 30); H.jugador.actualizar(0.05); }
+      const cx = js.pos.x - Math.sin(js.yaw) * 1.3, cz = js.pos.z - Math.cos(js.yaw) * 1.3;
+      return { x: js.pos.x, z: js.pos.z, yaw: js.yaw + Math.PI, cabezaAlTronco: +(Math.hypot(cx - a.x, cz - a.z) - a.r - 0.3).toFixed(3) }; })()`,
+    cam: (p) => { const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), sx = fz, sz = -fx; return { x: p.x + sx * 5.5 + fx * 1, z: p.z + sz * 5.5 + fz * 1, dy: 1.7, tx: p.x + fx * 1, tz: p.z + fz * 1, pitch: -0.04, fov: 55, sinUbicar: true }; },
+  },
   // el Puente de Troncos: montado sobre la cubierta
   puente: {
     prep: `(() => { const P = H.T.lugares.puente; if (!P) return { error: 'sin puente' }; H.progreso.caballo = { x: P.x, z: P.z, yaw: 0 }; H.jugador.ubicar(P.x, P.z, 0, P.y); H.montar(); H.jugador.ubicar(P.x, P.z, H.jugador.estado.yaw, P.y); const c = H.dondeEstaElCaballo(); return { x: c.x, z: c.z, yaw: c.yaw, y: P.y }; })()`,

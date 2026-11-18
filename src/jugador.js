@@ -6,6 +6,9 @@ const LIMITE_PENDIENTE = 50 * Math.PI / 180;   // más empinado que esto, se res
 import { clamp, lerp, smoothstep } from './ruido.js';
 // 3.8.4: el caballo no cruza los puentes colgantes
 import { noPisa } from './caballo.js';
+// 4.30.1: montado, además de tu disco de 0,6 m, chocan el pecho y la cabeza ([adelante, radio]) y la grupa
+export const MONTADO_CHOCA = Object.freeze([[1.3, 0.3], [-0.72, 0.42]]);
+const _choca = { x: 0, y: 0, z: 0 };
 
 export function crearJugador(camara, T, col, opciones) {
   const estado = {
@@ -326,6 +329,22 @@ export function crearJugador(camara, T, col, opciones) {
     const alturaFisica = estado.montado ? ALTURA_OJOS + estado.montado.alto : estado.agachado ? ALTURA_AGACHADO : ALTURA_OJOS;
     const radioFisico = estado.montado ? 0.6 : 0.35;
     col.resolver(estado.pos, radioFisico, alturaFisica);
+    // 4.30.1: montado, el caballo entero choca: además de tu disco (la cinchera), el pecho y la cabeza adelante y la grupa atrás
+    // (MONTADO_CHOCA). Lo que empuja a cada uno corre todo el caballo; así la cabeza y el anca no entran en troncos ni paredes.
+    if (estado.montado) {
+      const fx = -Math.sin(estado.yaw), fz = -Math.cos(estado.yaw);   // (el caballo mira para donde mirás: -z con yaw 0)
+      for (let pasada = 0; pasada < 2; pasada++) {
+        let movio = false;
+        for (const [d, r] of MONTADO_CHOCA) {
+          _choca.x = estado.pos.x + fx * d; _choca.z = estado.pos.z + fz * d; _choca.y = estado.pos.y;
+          const x0 = _choca.x, z0 = _choca.z;
+          col.resolver(_choca, r, alturaFisica);
+          const dx = _choca.x - x0, dz = _choca.z - z0;
+          if (dx * dx + dz * dz > 1e-8) { estado.pos.x += dx; estado.pos.z += dz; movio = true; }
+        }
+        if (!movio) break;
+      }
+    }
     // Las plataformas también tienen cantos físicos: un entrepiso demasiado
     // alto para subir no puede atravesarse lateralmente como si no existiera.
     col.resolverPlataformas(estado.pos, radioFisico, alturaFisica, 0.62);
