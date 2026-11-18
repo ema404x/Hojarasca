@@ -159,7 +159,7 @@ app.whenReady().then(async () => {
     // caminando de verdad por la ladera de atrás del retablo, con la cámara al costado siguiéndola: Lucía (pollera a la rodilla) y la abuela
     // (chamal hasta el tobillo); capturas seguidas, una cada 0,13 s (un paso entero son unas ocho)
     await seccion('caminar', async () => {
-      for (const k of ['aldea-nena', 'aldea-abuela']) {
+      for (const k of (process.env.HUMO_CAMINAN || 'aldea-nena,aldea-abuela,aldea-padre,ramon').split(',')) {
         await N(`(() => { const g = N.quien('${k}'), a = N.plaza(-6, -10.5), b = N.plaza(12, -10.5); N.fijos = []; N.trabar(g);
           g.pos.set(a.x, H.T.altura(a.x, a.z), a.z); g.camino = [{ x: b.x, z: b.z }]; g.ruta = null; g.velocidad = 0.9; g.sinFrenar = true; g.g.visible = true; N.__anda = { g, a, b }; return 1 })()`);
         const sigue = `(() => { const { g, a, b } = N.__anda, ux = (b.x - a.x) / Math.hypot(b.x - a.x, b.z - a.z), uz = (b.z - a.z) / Math.hypot(b.x - a.x, b.z - a.z);
