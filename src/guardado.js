@@ -85,6 +85,7 @@ import { sanearAjusteBorrachera } from './pena.js';
 import { sanearGenteCampo, genteCampoNueva } from './gente-campo.js';
 // 4.25.2: los bultos de lo que tiraste con V
 import { sanearBultos, sanearDejadas } from './tirar.js';
+import { sanearCasa } from './casa-detalles.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -728,6 +729,8 @@ function sanearProgreso(p) {
   else { limpio.economia = sanearEconomia(p.economia); convertirYerba(limpio); limpio.negocios = sanearNegocios(p.negocios, limpio.dia); limpio.negocioPropio = sanearNegocioPropio(p.negocioPropio, limpio.dia); limpio.cantina = sanearCantina(p.cantina, limpio.dia); limpio.casaTe = sanearCantina(p.casaTe, limpio.dia); }   // 3.9.2: la libreta de la casa de té (una partida de antes: vacía)   // 3.9.0: la cuenta de la cantina (una partida de antes no la trae: arranca vacía)   // 3.8.8: los negocios (negocios.js)
   // 4.3: el empleo fijo (sólo en el Relax). Una partida de antes no lo trae: sale vacío, sin ningún puesto, y lo demás queda como estaba
   limpio.empleo = modoPartida === 'desafio' ? undefined : sanearEmpleo(p.empleo, limpio.dia);
+  // 4.31.0 (A): lo prendido, lo abierto y lo corrido en el refugio (casa-detalles.js; sólo en el Relax). Una partida de antes no lo trae: el refugio como estaba
+  limpio.casa = modoPartida === 'desafio' ? undefined : sanearCasa(p.casa);
   // 4.4: los empleados de tu negocio propio (sólo en el Relax). Una partida de antes no los trae: sale vacío, nadie contratado, y lo demás queda como estaba
   limpio.empleadosNegocio = modoPartida === 'desafio' ? undefined : sanearEmpleadosNegocio(p.empleadosNegocio, limpio.dia);
   // 4.4: los negocios que le compraste a un vecino y tus sociedades (sólo en el Relax). Una partida de antes no lo trae: sale vacío y lo demás queda como estaba

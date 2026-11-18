@@ -180,6 +180,8 @@ import { horasHasta, frente, frasePronostico } from './pronostico.js';
 import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
 // 3.8.8: el reloj y el almanaque propios
 import { textoHud as textoRelojHud, partesReloj, partesAlmanaque } from './reloj-almanaque.js';
+import { crearCasaDetalles } from './casa-detalles-juego.js';
+import { crearCasaDetallesMundo } from './casa-detalles-mundo.js';
 // 3.8.8: el reloj y el almanaque de pared (lo que se usa con E)
 import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 // 4.2: el lujo y los pesos de cualquier plano (obra-pesos.js)
@@ -1056,6 +1058,21 @@ async function construir() {
   // el complejo sale del presupuesto de distancia.
   const raizRefugio = est.conjuntos?.find((c) => c.clave === 'refugio')?.obj;
   if (raizRefugio && refugioVivo.grupo) raizRefugio.attach(refugioVivo.grupo);
+  // 4.31.0 (A): lo que se toca en el refugio y en tus casas (la lámpara, el hogar, la bomba, las ventanas, el baúl…; ver casa-detalles*.js). Sólo en el Relax
+  if (!esDesafio) {
+    try {
+      const dirCasa = new THREE.Vector3();
+      casaDetalles = crearCasaDetalles({
+        ref: T.lugares.refugio, col, sonido, mundo: crearCasaDetallesMundo({ T, ref: T.lugares.refugio, raiz: raizRefugio, escena, col }),
+        progreso: () => progreso, adelante: () => camara.getWorldDirection(dirCasa), nota: (t, sub) => nota(t, sub), guardar: () => guardar(),
+        leer: (l) => leerEnLaAldea(l), sentar: (q) => sentarEnLaAldea(q), relojHora: () => partesReloj({ hora: progreso.horas, dia: progreso.dia }),
+        obrasCerca: (p, r) => (obras?.obras || []).filter((o) => o !== obras.editando && Math.abs(o.datos.x - p.x) < r && Math.abs(o.datos.z - p.z) < r && Math.abs((o.datos.y ?? p.y) - p.y) < 2.2 && obraTerminada(o)),
+        relojCerca: (p, r) => { const o = (obras?.obras || []).find((x) => (x.plano.id === 'reloj-pared' || x.plano.id === 'reloj-pie') && obraTerminada(x) && Math.hypot(x.datos.x - p.x, x.datos.z - p.z) < r); return o ? { x: o.datos.x, y: o.datos.y + 1.6, z: o.datos.z } : null; },
+        despensa: () => ENTRADAS.filter((x) => x.seccion === 'recetas' && (progreso.entradas[x.id]?.cantidad || 0) > 0).map((x) => x.nombre.toLowerCase()),
+        programaRadio: () => { const p = noticiasJuego?.radio?.(); return p ? `${p.nombre}: ${p.texto}` : null; },
+      });
+    } catch (e) { console.warn('casa', e); casaDetalles = null; }
+  }
   prepararVisibilidad();
   enMano = crearEnMano(camara);
   // 3.7.4: las burbujas, los íconos y las emociones de arriba de las cabezas (un solo dibujo) y tus manos en los gestos
@@ -9289,6 +9306,7 @@ function actualizarCasaViva(dt) {
   const propios = fuegosDeObra();   // 3.8.7: todas las estufas y los hogares prendidos
   const chs = propios.map((o) => chimeneaDe(lugarObra(o))).filter(Boolean);
   chimeneasTodas = chs.length ? [...chimeneas, ...chs] : chimeneas;
+  if (casaDetalles && !casaDetalles.hogarPrendido()) chimeneasTodas = chimeneasTodas.filter((c) => c !== T.lugares.refugio.chimenea);   // 4.31.0 (A): con el hogar del refugio apagado, su chimenea no humea
   const brillo = brilloVentanas(1 - (luzUltimaFoto?.dia ?? 1));
   let lista = [];
   if (brillo > 0) {
@@ -10915,6 +10933,8 @@ let estadoTren = null;
 let acumuladoBuscar = 0, acumuladoVecino = 99, acumuladoInteraccion = 99;
 const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
 let cachePanal = null;   // 4.27.0: el panal silvestre que tenés a mano (ver panales.js)
+let casaDetalles = null, cacheCasa = null;   // 4.31.0 (A): lo que se toca en el refugio y tus casas, y lo que tenés de frente (ver casa-detalles-juego.js)
+const ctxCasa = { pos: null, horas: 0, viento: 0, vidrio: null };
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
@@ -10950,6 +10970,7 @@ function accionInteraccion(nombre, enE) {
     case 'pena': return enE ? penaJuego?.accion(js) : cachePena;
     case 'recursos': return enE ? recursosZona?.accion(js) : cacheRecursosZona;
     case 'duende': return enE ? rinconesJuego?.accionDuende(js) : cacheDuende;
+    case 'casa': return enE ? casaDetalles?.accion(js, camara) : cacheCasa;   // 4.31.0 (A)
     default: return null;
   }
 }
@@ -10970,6 +10991,7 @@ function limpiarInteraccion(nombre) {
     case 'pena': cachePena = null; break;
     case 'recursos': cacheRecursosZona = null; break;
     case 'duende': cacheDuende = null; break;
+    case 'casa': cacheCasa = null; break;   // 4.31.0 (A)
   }
 }
 // Lo de al lado que no es de un módulo: la E lo busca en el momento; el aviso usa lo buscado
@@ -12024,15 +12046,21 @@ function cuadroDelJuego(tRaf, manual) {
   const diaInterior = luzCielo ? luzCielo.dia : 1;
   const rellenoInterior = 0.55 + diaInterior * (2.25 - clima.estado.nublado * 0.55);
   const colorInterior = U.uCieloBajo.value;
-  ref.luz.intensity = encendido * 4 * (alcance(cam, ref, 60) ? 1 : 0);
+  // 4.31.0 (A): con lo que prendiste o apagaste adentro (la lámpara, el hogar, las velas, las cortinas y el farol: ver casa-detalles.js); sin eso, como antes
+  const brilloCasa = casaDetalles ? casaDetalles.brillos(encendido) : null;
+  ref.luz.intensity = (brilloCasa ? brilloCasa.luz : encendido * 4) * (alcance(cam, ref, 60) ? 1 : 0);
   if (ref.interior) {
-    ref.interior.intensity = alcance(cam, ref, 22) ? rellenoInterior : 0;
+    ref.interior.intensity = alcance(cam, ref, 22) ? rellenoInterior * (brilloCasa ? brilloCasa.relleno : 1) : 0;
     ref.interior.color.copy(colorInterior).lerp(COLOR_RAYO, encendido * 0.08);
   }
-  brilloVentana(ref.vidrio, encendido, diaInterior);
+  brilloVentana(ref.vidrio, brilloCasa ? brilloCasa.ventana : encendido, diaInterior);
   if (ref.farol) {
-    brilloVentana(ref.farol.vidrio, encendido * 0.9, diaInterior);
-    ref.farol.luz.intensity = encendido * 2.2 * (alcance(cam, ref, 45) ? 1 : 0);
+    brilloVentana(ref.farol.vidrio, encendido * 0.9 * (brilloCasa ? brilloCasa.farol : 1), diaInterior);
+    ref.farol.luz.intensity = encendido * 2.2 * (brilloCasa ? brilloCasa.farol : 1) * (alcance(cam, ref, 45) ? 1 : 0);
+  }
+  if (casaDetalles) {
+    ctxCasa.pos = js.pos; ctxCasa.horas = progreso.horas; ctxCasa.viento = clima.estado.viento; ctxCasa.vidrio = ref.vidrio;
+    try { casaDetalles.actualizar(dt, ctxCasa); } catch (e) { fallaSistema('casa', e); }
   }
   for (const p of tren.paradas) {
     brilloVentana(p.vidrio, encendido, diaInterior);
@@ -12154,6 +12182,7 @@ function cuadroDelJuego(tRaf, manual) {
       cachePena = penaJuego ? penaJuego.accion(js) : null;   // 3.9.1
       cacheSemillaArbol = arbolParaSemilla();
       cachePanal = panalCerca();   // 4.27.0
+      cacheCasa = casaDetalles ? casaDetalles.accion(js, camara) : null;   // 4.31.0 (A)
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
       if (matasHuerta && canterosTerminados().length !== canterosVistos) refrescarHuerta();
@@ -12317,6 +12346,7 @@ function cuadroDelJuego(tRaf, manual) {
   // 2.0: bajo techo pero sin paredes es un alero; la carpa es la carpa
   ctxSonido.techo = techoAudioActual;
   ctxSonido.espacio = techoAudioActual === 'lona' ? 'carpa' : !bajoTecho ? 'bosque' : espacioAudioActual === 'bosque' ? 'alero' : espacioAudioActual;
+  if (ctxSonido.espacio === 'adentro' && casaDetalles?.ventanaAbierta() && dentroDelRefugio(js.pos)) ctxSonido.espacio = 'alero';   // 4.31.0 (A): con una ventana del refugio abierta, se oye lo de afuera
   ctxSonido.panal = (ambienteBichos && ambienteBichos.panal) || zumbidoColmena();
   if (cascada && cascada.pos) {
     const dc = Math.hypot(cam.x - cascada.pos.x, cam.z - cascada.pos.z);
@@ -12687,7 +12717,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 2.3: las diez ideas
     __obraQueTrabajaCerca: obraQueTrabajaCerca, __usarObraQueTrabaja: usarObraQueTrabaja, __avisoObraQueTrabaja: avisoObraQueTrabaja, __golpesParaTalar: () => golpesParaTalarAhora(), __golpesParaPicar: (m) => golpesParaPicarAhora(m),
     // 2.4
-    __casaViva: () => ({ chimeneas: chimeneasTodas || chimeneas, ventanas: ventanasMundo?.malla, corral: corralMundo, kayak }), __actualizarCasaViva: (dt = 3) => actualizarCasaViva(dt),
+    __casaDetalles: () => casaDetalles, __casaViva: () => ({ chimeneas: chimeneasTodas || chimeneas, ventanas: ventanasMundo?.malla, corral: corralMundo, kayak }), __actualizarCasaViva: (dt = 3) => actualizarCasaViva(dt),
     __tenirPieza: () => tenirPieza(), __hornear: () => hornear(), __amarrarKayak: amarrarKayak, __vela: () => vela, __tirolesas: () => tirolesas, __helarLaHuerta: () => helarLaHuerta(huerta()), __refrescarCorral: refrescarCorral,
     __arbolParaSemilla: arbolParaSemilla, __juntarSemilla: juntarSemilla, __plantarRenoval: plantarRenoval, __encenderFuego: encenderFuego,
     __dormir: dormir, __atrapar: atrapar, __fogonDeVisita: fogonDeVisita, __actualizarVisitas: (dt) => { relojVisitas = 0; actualizarVisitas(dt); },

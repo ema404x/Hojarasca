@@ -113,6 +113,10 @@ export const INTERACCIONES = [
   { id: 'telar', cuando: (c, enE) => aMano(c) && c.cerca('telar', enE), aviso: (c) => c.textoTelar(), hacer: (c) => c.tejer() },
   // 4.27.0: un panal silvestre colgado de un árbol del bosque, a 2,5 m o menos y mirándolo (ver panales.js); el «Anotar lenga» del tronco donde cuelga no le gana
   { id: 'panal', cuando: (c, enE) => libre(c.js) && (!c.objetivo || c.objetivo.tipo === 'arbol') && c.cerca('panal', enE), aviso: (c, h) => c.textoPanal(h), hacer: (c, h) => c.sacarMielDelPanal(h) },
+  // 4.31.0 (A): lo que se toca en el refugio y en tus casas (la lámpara, el hogar, la bomba, las ventanas y cortinas, el baúl, la radio, la pava,
+  // los libros, el sillón…; ver casa-detalles.js): gana lo que mirás de frente y a mano; en el Relax, a pie, sin mirar algo para juntar
+  // (un asiento, la cama o el tocadiscos sí: si apuntás de frente a la lámpara, la lámpara le gana a la cama o al tocadiscos de al lado)
+  { id: 'casa', ...delModulo('casa', (c) => !c.desafio && libre(c.js) && !c.js.montado && (!c.objetivo || c.objetivo.tipo === 'sentarse' || c.objetivo.tipo === 'tocadiscos')) },
   // 2.3: colmena, ahumadero, vivero, leñera y las obras que trabajan (sin texto, el aviso sigue; la E la usa igual)
   { id: 'obra-trabaja', cuando: (c, enE) => aMano(c) && c.cerca('obraTrabaja', enE), sigue: true, aviso: (c, o) => c.avisoObraQueTrabaja(o), hacer: (c, o) => c.usarObraQueTrabaja(o) },
   // 3.6: parado en el lote de una obra de la aldea, E aporta lo que tengas
