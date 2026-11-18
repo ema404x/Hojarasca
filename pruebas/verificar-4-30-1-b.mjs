@@ -5,14 +5,15 @@
 //      arbustos) quedan lejos del retablo y de tu talla; los frutales de los patios, con la copa fuera de las otras casas; nada en la calle;
 //   3. las de pollera, paradas en la ladera, doblan la pierna de arriba como las de poncho (`conPollera`, de gente-cuerpo.js a gente.js, también
 //      al cambiarse de ropa);
-//   4. con la piel de verdad: nada de la pierna sale por la pollera, ni parada en la ladera ni en todo el ciclo del paso (`pasoPollera`).
+//   4. con la piel de verdad: nada de la pierna sale por la pollera, ni parada en la ladera ni en todo el ciclo del paso (`pasoPollera`);
+//   5. caminando, el pie de apoyo no patina contra el suelo (cadenciaPaso) y el ritmo no se vuelve frenético.
 // Con mutaciones de verdad (un proceso por mutación: `--mutacion=<id>`).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { expresion, enUnaLinea } from './ayuda-codigo.mjs';
+import { expresion, enUnaLinea, funcion } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -34,10 +35,14 @@ const MUTACIONES = {
   'pollera-tope': ['src/gente.js', '|| g.conPoncho || g.conPollera ? 0.035 : 0.07;', '|| g.conPoncho ? 0.035 : 0.07;'],
   'sin-conPollera': ['src/gente-cuerpo.js', 'r.conPollera = !!(A.R && A.R.pollera);', 'r.conPollera = false;'],
   'vestir-sin-pollera': ['src/gente.js', 'conPoncho: m.conPoncho, conPollera: m.conPollera, pasoPollera', 'conPoncho: m.conPoncho, pasoPollera'],
+  'cadencia-vieja': ['src/gente.js', 'return Math.PI * v / (2 * L * Math.sin(A));', 'return (2.6 + v * 5) * 1.25;'],
+  'sin-tope-pasos': ['src/gente.js', 'return Math.min(v, PASOS_POLLERA_MAX * 2 * L * Math.sin(0.5 * pp.cadera));', 'return v;'],
+  'sin-escala': ['src/gente.js', 'const L = 0.79 * (g.g?.scale?.y || 1), A', 'const L = 0.79, A'],
   'vestir-sin-paso': ['src/gente.js', 'conPollera: m.conPollera, pasoPollera: m.pasoPollera, soltar', 'conPollera: m.conPollera, soltar'],
-  'paso-largo': ['src/gente-cuerpo.js', '{ cadera: 0.5, rodilla: 0.5, cadencia: 1.25 }', '{ cadera: 1, rodilla: 1, cadencia: 1 }'],
-  'paso-largo-tobillo': ['src/gente-cuerpo.js', '{ cadera: 0.34, rodilla: 0.32, cadencia: 1.4 }', '{ cadera: 0.5, rodilla: 0.5, cadencia: 1.25 }'],
-  'sin-pasoPollera': ['src/gente.js', 'p2.rotation.x = andando ? Math.sin(f) * 0.5 * (pp ? pp.cadera : 1) : -alza;', 'p2.rotation.x = andando ? Math.sin(f) * 0.5 * (pp ? pp.cadera / pp.cadera : 1) : -alza;'],
+  'paso-largo': ['src/gente-cuerpo.js', '{ cadera: 0.5, rodilla: 0.5 }', '{ cadera: 1, rodilla: 1 }'],
+  'paso-largo-tobillo': ['src/gente-cuerpo.js', '{ cadera: 0.34, rodilla: 0.32 }', '{ cadera: 0.5, rodilla: 0.5 }'],
+  'sin-pasoPollera': ['src/gente.js', 'p2.rotation.x = andando ? (pp ? perfilPaso(f) * pp.cadera : Math.sin(f)) * 0.5 : -alza;', 'p2.rotation.x = andando ? (pp ? perfilPaso(f) : Math.sin(f)) * 0.5 : -alza;'],
+  'paso-en-seno': ['src/gente.js', 'return Math.asin(0.985 * Math.sin(f)) / Math.asin(0.985);', 'return Math.sin(f);'],
 };
 
 // ---------------------------------------------------------------- el padre: corre la prueba y cada mutación en su proceso
@@ -188,7 +193,7 @@ const ok = (c, t) => { pasos++; assert.ok(c, t); };
 {
   const gente = fuente('src/gente.js');
   const tope = (g) => expresion(gente, 'const tope = ', { g, R_PONCHO: new Set(['ramon']) });
-  const cadera = (f, pp) => expresion(gente, 'p2.rotation.x = ', { andando: true, f, pp, alza: 0 }, 'pp.cadera');
+  const cadera = (f, pp) => expresion(gente, 'p2.rotation.x = ', { andando: true, f, pp, alza: 0, perfilPaso: funcion(gente, 'perfilPaso') }, 'pp.cadera');
   const rodilla = (f, pp) => expresion(gente, 'if (rod) rod.rotation.x = ', { andando: true, f, pp, alza: 0 }, 'pp.rodilla');
   const GC = M.gente_cuerpo, NB = 48, ropa = fuente('src/gente-ropa.js');
   const claves = [];
@@ -236,6 +241,48 @@ const ok = (c, t) => { pasos++; assert.ok(c, t); };
       if (c > paso) { paso = c; fPeor = f; }
     }
     ok(paso <= 0.5, `${k}, caminando (todo el paso, de a 11,25°): no asoma nada (lo peor: ${paso.toFixed(1)} cm en ${(fPeor * 180 / Math.PI).toFixed(0)}°)`);
+  }
+}
+
+// ---------------------------------------------------------------- 5. el pie de apoyo no patina (con pollera, paso corto)
+// Cada una de pollera camina de verdad: caminarHacia (gente.js) la mueve hacia adelante cuadro a cuadro (1/120 s), el ciclo avanza con cadenciaPaso y las
+// piernas toman la pose del paso (las expresiones de gente.js). Mientras un pie es el de apoyo (cos f > 0), lo que se corre contra el suelo es lo que
+// patina: ≤ 2 cm por paso. Y sin ponerse frenética: a lo sumo PASOS_POLLERA_MAX pasos por segundo (también chica, con la talla de Lucía, y apurada).
+{
+  const gente = fuente('src/gente.js');
+  const PASOS_POLLERA_MAX = expresion(gente, 'export const PASOS_POLLERA_MAX = ');
+  ok(PASOS_POLLERA_MAX <= 2.7, `el tope de pasos por segundo con pollera (${PASOS_POLLERA_MAX})`);
+  const velocidadPollera = funcion(gente, 'velocidadPollera', { PASOS_POLLERA_MAX });
+  const caminar = funcion(gente, 'caminarHacia', { alturaDePie: () => 0, velocidadPollera });
+  const cadencia = funcion(gente, 'cadenciaPaso', {});
+  const cadera = (f, pp) => expresion(gente, 'p2.rotation.x = ', { andando: true, f, pp, alza: 0, perfilPaso: funcion(gente, 'perfilPaso') }, 'pp.cadera');
+  const rodilla = (f, pp) => expresion(gente, 'if (rod) rod.rotation.x = ', { andando: true, f, pp, alza: 0 }, 'pp.rodilla');
+  const ropa = fuente('src/gente-ropa.js'), claves = [];
+  { let k = null; for (const l of ropa.split('\n')) { const m = /^  '?([a-z][a-z-]*)'?: \{\s*$/.exec(l); if (m) k = m[1]; else if (k && /^    R: \{.*\bpollera: true/.test(l) && !claves.includes(k)) claves.push(k); } }
+  const T = { agua: () => false }, col = { resolver() {} }, w = new THREE.Vector3();
+  for (const [k, talla, apuro] of [...claves.map((c) => [c, 1, 0.8]), ['aldea-nena', 0.72, 0.8], ['ercilia', 1, 1.3]]) {
+    const r = M.gente_cuerpo.crearPersona({}, k, false, {}, {});
+    r.g.scale.multiplyScalar(talla);
+    const g = { g: r.g, pos: r.g.position, vel: 0, paso: 0, pasoPollera: r.pasoPollera, __sinChoque: true };
+    const dt = 1 / 120, pies = r.patas.map((p) => p.userData.rodilla.userData.tobillo);
+    const apoyo = [null, null], patina = [];
+    let t = 0, pasos = 0, antes = null, paso0 = 0;
+    for (let n = 0; n < 120 * 6; n++) {
+      caminar(g, dt, { x: 0, z: 1000 }, apuro, T, col);
+      g.paso += dt * cadencia(g);
+      r.patas.forEach((p, i) => { const f = g.paso + i * Math.PI; p.rotation.x = cadera(f, g.pasoPollera); p.userData.rodilla.rotation.x = rodilla(f, g.pasoPollera); });
+      r.g.updateMatrixWorld(true);
+      const z = pies.map((p) => p.getWorldPosition(w).z);
+      const abajo = Math.cos(g.paso) > 0 ? 0 : 1;   // (el de apoyo: el que tiene cos f > 0, con la rodilla derecha, como en gente.js)
+      if (n < 240) { antes = abajo; paso0 = g.paso; continue; }   // (dos segundos para entrar en ritmo)
+      t += dt;
+      if (abajo !== antes) { pasos++; const a = apoyo[antes]; if (a) patina.push(a.max - a.min); apoyo[abajo] = { min: z[abajo], max: z[abajo] }; }
+      else if (apoyo[abajo]) { apoyo[abajo].min = Math.min(apoyo[abajo].min, z[abajo]); apoyo[abajo].max = Math.max(apoyo[abajo].max, z[abajo]); }
+      antes = abajo;
+    }
+    const peor = Math.max(...patina) * 100, ritmo = (g.paso - paso0) / Math.PI / t;   // (dos pasos por vuelta del ciclo)
+    ok(patina.length >= 4 && peor <= 2, `${k}, caminando a ${g.vel.toFixed(2)} m/s: el pie de apoyo no patina (lo peor: ${peor.toFixed(1)} cm por paso, en ${patina.length} pasos)`);
+    ok(ritmo <= PASOS_POLLERA_MAX + 0.1, `${k}${talla < 1 ? ' (de chica)' : ''}${apuro > 1 ? ' (apurada)' : ''}: sin ponerse frenética (${ritmo.toFixed(2)} pasos por segundo)`);
   }
 }
 

@@ -899,6 +899,7 @@ function mallaVieja(colores, clave, conMate, R) {
 // Cada personaje camina entre sus puntos y hace algo al llegar
 const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
+  if (g.pasoPollera) velocidad = velocidadPollera(g, velocidad);   // 4.30.1 (B): con pollera, sin pasar de PASOS_POLLERA_MAX (ver cadenciaPaso)
   const dx = destino.x - g.pos.x, dz = destino.z - g.pos.z;
   const d = Math.hypot(dx, dz);
   if (d < cerca) { g.vel = 0; return true; }
@@ -921,6 +922,29 @@ function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
   return false;
 }
 
+// 4.30.1 (B): lo rápido que avanza el ciclo del paso (rad/s de `g.paso`). El de siempre: 2,6 + 5·vel. Con pollera (`pasoPollera`, paso corto) el
+// ritmo sale de la velocidad: en medio ciclo el pie de apoyo va de adelante (cadera −A) a atrás (+A), 2·L·sen A, y en ese tiempo el cuerpo avanza
+// vel·π/ω: igualándolos, el pie no patina (medido en verificar-4-30-1-b.mjs). L: el radio con que se mueve el tobillo (0,79 m por la escala
+// de la figura, ajustado con la medición). Con el paso de antes (×1,25) el pie de apoyo avanzaba un 38 % menos que el cuerpo: patinaba
+// Y para que el paso corto no se vuelva frenético: a lo sumo PASOS_POLLERA_MAX pasos por segundo (los chicos, con la pierna corta, y las de pollera hasta el
+// tobillo caminan un poco más despacio)
+export const PASOS_POLLERA_MAX = 2.6;
+function velocidadPollera(g, v) {
+  const pp = g.pasoPollera, L = 0.79 * (g.g?.scale?.y || 1);
+  return Math.min(v, PASOS_POLLERA_MAX * 2 * L * Math.sin(0.5 * pp.cadera));
+}
+function cadenciaPaso(g) {
+  const pp = g.pasoPollera, v = g.vel || 0;
+  if (!pp || v <= 0.05) return 2.6 + v * 5;
+  const L = 0.79 * (g.g?.scale?.y || 1), A = 0.5 * pp.cadera;
+  return Math.PI * v / (2 * L * Math.sin(A));
+}
+// 4.30.1 (B): con pollera, la pierna no va y viene en seno sino casi en línea recta (un triángulo con las puntas apenas redondeadas): con el seno el pie
+// de apoyo iba más rápido que el cuerpo en el medio del paso y más lento en las puntas, y aun con el ritmo justo se corría 7 cm para atrás y para
+// adelante en cada apoyo. Va de −1 (adelante) a 1 (atrás) mientras cos f > 0 (el apoyo, con la rodilla derecha) y vuelve en la otra mitad
+function perfilPaso(f) {
+  return Math.asin(0.985 * Math.sin(f)) / Math.asin(0.985);
+}
 export const caminarHaciaParaPruebas = (...a) => caminarHacia(...a);   // (4.25.2: verificar-4-25-2-npc.mjs; las pruebas viejas leen `function caminarHacia(` al comienzo de la línea)
 // 4.25.2: el de ruta (Ramón, Josefina, Fermín, Nicanor, Tobías…) que no se acerca a su próxima parada: después de la noche de la nevada o de una escena que lo
 // dejó lejos vuelve en línea recta y se trababa para siempre contra el lago (Fermín, de la puerta del refugio al galpón) o contra una pared (Josefina, a 4 m del mirador).
@@ -1304,7 +1328,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
 
       // RC23: locomoción/rutina siguen continuas, pero huesos y gestos de NPCs
       // lejanos se recalculan a menor frecuencia. Cerca o charlando = tiempo real.
-      g.paso += dt * (2.6 + g.vel * 5) * (g.pasoPollera?.cadencia || 1);   // (4.30.1 (B): con pollera, el paso corto va más seguido)
+      g.paso += dt * cadenciaPaso(g);   // (4.30.1 (B): con pollera, al ritmo justo para que el pie no patine)
       g.__poseAcum = (g.__poseAcum || 0) + dt;
       const pasoPose = (charlando || d < 38 || g.enEscena) ? (charlando || g.enEscena || d < POSE_ENTERA_M ? 0 : PASO_POSE_MEDIA) : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
       const actualizarPose = pasoPose === 0 || g.__poseAcum >= pasoPose;
@@ -1342,7 +1366,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           p2.position.y = 0.82 - g.baja + alz;
           const alza = Math.sqrt(Math.max(0, i ? alza1 : alza0) / 0.41);
           const pp = g.pasoPollera;   // 4.30.1 (B): con pollera, el paso corto (gente-cuerpo.js): la rodilla y la pantorrilla no salen por la tela
-          p2.rotation.x = andando ? Math.sin(f) * 0.5 * (pp ? pp.cadera : 1) : -alza;
+          p2.rotation.x = andando ? (pp ? perfilPaso(f) * pp.cadera : Math.sin(f)) * 0.5 : -alza;
           const rod = p2.userData.rodilla;
           if (rod) rod.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 * (pp ? pp.rodilla : 1) : 0.03 + alza * 2;
         });

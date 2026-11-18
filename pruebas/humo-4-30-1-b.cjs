@@ -167,6 +167,16 @@ app.whenReady().then(async () => {
           return N.mirar({ x: g.pos.x + uz * 2.6 + ux * 0.8, z: g.pos.z - ux * 2.6 + uz * 0.8 }, { x: g.pos.x, z: g.pos.z }, -0.32) })()`;
         await N(sigue); await N('N.tick(2.5)');
         for (let i = 0; i < 10; i++) { await N(sigue); await N('N.tick(0.13)'); await foto(`4-caminar-${k}-${i}`); }
+        // y medido en el juego: cuánto se corre contra el suelo el pie de apoyo (cos de su fase > 0) en cada apoyo, 4 s cuadro a cuadro
+        const m = await N(`(async () => { const { g, b } = N.__anda, V = new H.THREE.Vector3(), lista = []; let ap = null, antes = null, t0 = performance.now(), pasos = 0;
+          while (performance.now() - t0 < 4000) { if (!g.camino || !g.camino.length) g.camino = [{ x: b.x, z: b.z }]; H.__bucle(); await new Promise((r) => setTimeout(r, 14));
+            const i = Math.cos(g.paso) > 0 ? 0 : 1, p = g.patas[i].userData.rodilla.userData.tobillo.getWorldPosition(V);
+            if (i !== antes) { if (ap && ap.n > 3) lista.push(Math.hypot(ap.x1 - ap.x0, ap.z1 - ap.z0)); ap = { x0: p.x, z0: p.z, x1: p.x, z1: p.z, n: 0, mx: 0 }; pasos++; }
+            else { ap.n++; ap.mx = Math.max(ap.mx, Math.hypot(p.x - ap.x0, p.z - ap.z0)); ap.x1 = p.x; ap.z1 = p.z; }
+            if (ap) lista.mx = Math.max(lista.mx || 0, ap.mx);
+            antes = i; }
+          return { vel: +g.vel.toFixed(2), pasosPorSeg: +(pasos / 4).toFixed(2), corrimientoCm: lista.map((d) => +(d * 100).toFixed(1)), maxDentroDelApoyoCm: +((lista.mx || 0) * 100).toFixed(1) } })()`);
+        console.log(`  ${k} caminando, pie de apoyo:`, JSON.stringify(m));
         await N(`(() => { const g = N.__anda.g; N.fijos = [{ g, x: g.pos.x, z: g.pos.z, mira: 0 }]; return N.soltar() })()`);
       }
     });
