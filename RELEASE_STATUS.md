@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.30.1 (sobre main = 4.30.0): LA CAPTURA DE LA PLAZA (CAMBIOS_4_30_1_A/B.md) — caballos fuera de los árboles y con riendas, el retablo de los títeres de verdad, árboles despegados y la gente que camina sin patinar
 - 4.30.0 (sobre main = 4.29.2): CACERÍA GRANDE DE BUGS (CAMBIOS_4_30_0_A/B/C.md) — lo que la gente lleva en la mano, el poncho, el espejo adentro del refugio, la casa del molino, los puentes, la cascada y el arroyo, la mochila y la física
 - 4.29.2 (sobre main = 4.29.1): LO QUE QUEDÓ AFUERA DE ULTRA (CAMBIOS_4_29_2_A/B.md) — grano del suelo de cerca, bordes de pasto irregulares, la cascada, fuego en hornos y fraguas y huellas en el ripio
 - 4.29.1 (sobre main = 4.29.0): ULTRA MEDIDO Y EL PUEBLO (CAMBIOS_4_29_1_A/B.md) — Ultra un poco más liviano, V que no tira con un panel abierto, el aviso de la trochita, el cartel del banco, el alero del andén y el suelo de la Aldea
