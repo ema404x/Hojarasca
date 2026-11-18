@@ -587,5 +587,6 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
   for (const s of soltadosGuardados) soltar(s.tipo, s.x, s.z, s);
 
   return { buscar, usar, soltar, items, tipos, ENTRADA, actualizar, tocadiscos: vitrola, ponerCabe: (f) => { cabe = f; },
-    tirarBulto, bultos: () => progreso.bultos, ponerLugar: (f) => { lugarMochila = typeof f === 'function' ? f : null; } };   // 4.25.2
+    tirarBulto, bultos: () => progreso.bultos, ponerLugar: (f) => { lugarMochila = typeof f === 'function' ? f : null; },   // 4.25.2
+    arrancar: (it) => quitar(it) };   // 4.31.0 (C): arrancar un amancay ya anotado (sale del valle como lo juntado; ver naturaleza-juego.js)
 }

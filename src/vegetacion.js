@@ -2785,6 +2785,30 @@ export function generarVegetacion(T, calidad, escena) {
   }
   // Un hachazo que todavía no lo voltea: el árbol se estremece.
   function sacudir(a) { return !!animarArbol(a, 'sacude'); }
+  // 4.31.0 (C): sacudir una mata (con la E o al pasar por adentro): una copia suya se estremece y la de su tramo se apaga mientras tanto.
+  // El bloque del sotobosque se rehace al empezar y al terminar (dos veces por sacudida, nada por cuadro); los árboles y sus sombras no se tocan.
+  function sacudirMata(m, fuerza = 1, desde = null) {
+    if (!m?.ref || m.sacado || m.despejado) return false;
+    let an = animados.find((x) => x.a === m);
+    if (!an) {
+      if (animados.length > 4) return false;
+      const M = matrizDe(m);
+      if (!M) return false;
+      const im = copiaDe(m, M);
+      if (!im) return false;
+      for (const mm of mallasDe(m.ref)) { mm.setMatrixAt(m.ref.i, cero); mm.instanceMatrix.needsUpdate = true; }
+      sotoSucio = true;
+      M.decompose(_p2, _q2, _s2);
+      an = { a: m, im, pos: _p2.clone(), giro: _q2.clone(), esc: _s2.clone(), eje: new THREE.Vector3(1, 0, 0), mata: true };
+      animados.push(an);
+    }
+    an.modo = 'sacude';
+    an.t = 0;
+    an.amp = 0.13 * Math.max(0.2, Math.min(1.5, fuerza));
+    // se mece de cara a quien la mueve (el eje, de costado a esa dirección)
+    if (desde) { const dx = m.x - desde.x, dz = m.z - desde.z, d = Math.hypot(dx, dz) || 1; an.eje.set(-dz / d, 0, dx / d); }
+    return true;
+  }
 
   // Se llama desde el bucle: casi siempre no hay nada que hacer.
   function actualizarCaidas(dt) {
@@ -2796,7 +2820,8 @@ export function generarVegetacion(T, calidad, escena) {
       an.t += dt;
       if (an.modo === 'sacude') {
         const fin = an.t >= DUR_SACUDIDA;
-        _qGiro.setFromAxisAngle(_eje.set(1, 0, 0), fin ? 0 : 0.038 * Math.exp(-an.t * 3.4) * Math.sin(an.t * 27));
+        // (4.31.0 C: la mata que sacudís o que rozás al pasar se mueve más que un tronco: `amp`)
+        _qGiro.setFromAxisAngle(an.eje, fin ? 0 : (an.amp ?? 0.038) * Math.exp(-an.t * 3.4) * Math.sin(an.t * 27));
         an.im.setMatrixAt(0, _M.compose(an.pos, _q2.copy(_qGiro).multiply(an.giro), an.esc));
         an.im.instanceMatrix.needsUpdate = true;
         if (fin) { terminarAnimado(i, true); continue; }
@@ -2822,6 +2847,8 @@ export function generarVegetacion(T, calidad, escena) {
     animados.splice(i, 1);
     // si el árbol sigue en pie, vuelve a su instancia del chunk (y con él su sombra
     // de contacto: la apagó `ocultarInstancia` al empezar a moverse).
+    // 4.31.0 (C): la mata vuelve a su instancia y a su bloque del sotobosque (sin rehacer las sombras ni los árboles cercanos)
+    if (an.mata) { if (!an.a.sacado) { for (const m of mallasDe(an.a.ref)) { m.setMatrixAt(an.a.ref.i, an.a.matriz0); m.instanceMatrix.needsUpdate = true; } sotoSucio = true; } return; }
     if (devolver && !an.a.sacado) {
       ponerMatriz(an.a.ref, an.a.matriz0);
       if (an.a.contactoRef && an.a.matrizContacto) ponerMatriz(an.a.contactoRef, an.a.matrizContacto);
@@ -2907,5 +2934,5 @@ export function generarVegetacion(T, calidad, escena) {
   const impostoresListos = () => impostores;
   const cantidadTocones = () => tocones.length;
 
-  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, rehornearImpostores: () => (impostores ? impostores.rehornear() : 0), statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual, sombrasArboles: () => sombras };
+  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, sacudirMata, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, rehornearImpostores: () => (impostores ? impostores.rehornear() : 0), statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual, sombrasArboles: () => sombras };
 }

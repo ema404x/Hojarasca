@@ -1075,7 +1075,14 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
         }
         mp.t = 1 + r() * 2;
       }
-      mp.pos.lerp(mp.obj, 1 - Math.exp(-1.6 * dt));
+      // 4.31.0 (C): la mariposa que tenés a menos de dos metros se va: sube y se aleja de vos, más rápido que su vuelo de siempre
+      if (!(mp.huye > 0) && Math.hypot(mp.pos.x - js.pos.x, mp.pos.z - js.pos.z) < 2.2) {
+        const ah = Math.atan2(mp.pos.x - js.pos.x, mp.pos.z - js.pos.z) + (r() - 0.5) * 0.8;
+        mp.obj.set(mp.pos.x + Math.sin(ah) * 7, mp.pos.y + 2.2, mp.pos.z + Math.cos(ah) * 7);
+        mp.t = 2.6; mp.huye = 2.6;
+      }
+      if (mp.huye > 0) mp.huye -= dt;
+      mp.pos.lerp(mp.obj, 1 - Math.exp(-(mp.huye > 0 ? 3.2 : 1.6) * dt));
       mp.fase += dt * 9;
       mp.g.position.copy(mp.pos);
       mp.g.position.y += Math.sin(mp.fase) * 0.09;
