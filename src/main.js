@@ -206,6 +206,8 @@ import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
 // 4.27.0: los panales silvestres
+// 4.31.0 (C): la naturaleza que se toca (sacudir, arrancar, la leña suelta, el agua, el sapito, las piedritas, las ranas, mojarse)
+import { crearNaturalezaJuego } from './naturaleza-juego.js';
 import { PANALES, TEXTO_PANAL, elegirPanales, avanzarPanales, usarPanal, panalConMiel, panalAlAlcance, hayAbejasPanal, colmenaDisponible } from './panales.js';
 import { AHUMADERO, TRUCHAS, sanearAhumadero, teLaQuedas, avanzarAhumado, usarAhumadero, avisoAhumadero } from './ahumadero.js';
 import { VIVERO, ARBOLES_VIVERO, sanearVivero, sanearJuntadas, puedeJuntarSemilla, usarVivero, avisoVivero, plantinDisponible } from './vivero.js';
@@ -1111,6 +1113,15 @@ async function construir() {
   });
   // 4.6.0: el juncal y las hierbas, en su propio claro: sin pasto alto ni helechos encima (antes, crecido y «al ras» casi no se
   // distinguían entre el pasto y el helecho del mallín)
+  // 4.31.0 (C): la naturaleza que se toca. Las mallas nacen ya (vacías y apagadas), así no se arma nada a mitad de juego
+  if (!esDesafio) naturalezaJuego = crearNaturalezaJuego({
+    T, veg, escena, sonido, objetos, camara: () => camara, jugador: () => jugador, progreso: () => progreso,
+    nota: (t, sub) => nota(t, sub), guardar: () => guardar(), registrar: (id, juntado) => registrar(id, juntado), cabeJuntar: (k, n) => cabeJuntar(k, n),
+    ramitas: () => progreso.ramitas || 0, sumarRamitas: (n) => { progreso.ramitas = Math.min(12, (progreso.ramitas || 0) + n); },
+    dia: () => progreso.dia, horas: () => progreso.horas, bajoTecho: () => bajoTecho, cercaDelFuego: () => cercaDelFuego(),
+    ambiente: () => ({ lluvia: clima?.estado?.lluvia || 0, viento: U.uViento.value, invierno: U.uInvierno.value, otono: U.uOtono.value }),
+    distanciaAldea: (x, z) => distanciaAldea(x, z), pelarPasto: (x, z, r) => pelarPastoTemporal(x, z, r),
+  });
   if (recursosZona) for (const id of ['juncal', 'hierbas']) { const p = PUNTO_ZONA[id]; veg.despejar(p.x, p.z, 3.4); pelarPastoTemporal(p.x, p.z, 3.6); }
   // 3.1: el desafío del día (4.5.1: sin carreras ni torneo)
   { const estilo = document.createElement('style'); estilo.textContent = CSS_MODOS; document.head.appendChild(estilo); }
@@ -6453,6 +6464,7 @@ let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fech
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 let recursosZona = null;   // 4.6 recursos: ver recursos-zona-mundo.js
+let naturalezaJuego = null;   // 4.31.0 (C): ver naturaleza-juego.js (sólo en el Relax y la Historia)
 let huevosJuego = null, huevosMundo = null, huevosPortada = null;   // 4.2 (huevos de pascua): ver huevos-juego.js y huevos-mundo.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 let puestosRutaMundo = null, puestosJuego = null;   // 4.6 puestos: ver puestos-ruta-mundo.js y puestos-ruta-juego.js
@@ -10922,6 +10934,7 @@ let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-
 let cacheEmpleo = null;   // 4.3: lo que se hace con E en el cartel de turnos o en el lugar de la tarea que toca (ver empleo-juego.js)
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRecursosZona = null;   // 4.6 recursos: la veta, el juncal, las hierbas, la arcilla o el pehuén que tenés al lado
+let cacheNaturaleza = null;   // 4.31.0 (C): el arbusto, el pasto, la leña suelta o el agua que tenés a mano (ver naturaleza-juego.js)
 let cacheHuevos = null;   // 4.2 (huevos de pascua): lo que se puede hacer acá (ver huevos-juego.js)
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cachePuestos = null;   // 4.6 puestos: lo que se puede hacer en el puesto de ruta de acá (ver puestos-ruta-juego.js)
@@ -10949,6 +10962,7 @@ function accionInteraccion(nombre, enE) {
     case 'cantina': return enE ? cantinaJuego && (cantinaJuego.accion(js) || teJuego?.accion(js)) : cacheCantina;   // (3.9.2: o sentado en la casa de té)
     case 'pena': return enE ? penaJuego?.accion(js) : cachePena;
     case 'recursos': return enE ? recursosZona?.accion(js) : cacheRecursosZona;
+    case 'naturaleza': return enE ? naturalezaJuego?.accion(js) : cacheNaturaleza;   // 4.31.0 (C)
     case 'duende': return enE ? rinconesJuego?.accionDuende(js) : cacheDuende;
     default: return null;
   }
@@ -10969,6 +10983,7 @@ function limpiarInteraccion(nombre) {
     case 'cantina': cacheCantina = null; break;
     case 'pena': cachePena = null; break;
     case 'recursos': cacheRecursosZona = null; break;
+    case 'naturaleza': cacheNaturaleza = null; break;   // 4.31.0 (C)
     case 'duende': cacheDuende = null; break;
   }
 }
@@ -11812,6 +11827,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
   try { if (modo === 'jugando' && !desafio) huevosJuego?.actualizar(dt); } catch (e) { fallaSistema('huevos', e); }   // 4.2 (huevos de pascua)
   try { if (modo === 'jugando' && !desafio) recursosZona?.actualizar(dt, jugador.estado.pos); } catch (e) { fallaSistema('recursos-zona', e); }   // 4.6 recursos
+  try { if (modo === 'jugando' && !desafio) naturalezaJuego?.actualizar(dt); } catch (e) { fallaSistema('naturaleza', e); }   // 4.31.0 (C)
   try { if (modo === 'jugando' && !desafio && !foto.activo) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }   // 4.0.3: ni el correo con la hora del deslizador
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
@@ -12101,8 +12117,9 @@ function cuadroDelJuego(tRaf, manual) {
 
   if (modo === 'jugando') {
     // pasos y chapuzones
-    while (jugador.eventos.paso.length) { const f = jugador.eventos.paso.shift(); if (js.montado) sonido.casco?.(js.superficie, f); else sonido.paso(js.superficie, f, js.corriendo); }
-    while (jugador.eventos.chapuzon.length) { jugador.eventos.chapuzon.shift(); sonido.chapuzon(); }
+    // (4.31.0 C: a pie, el ripio de la aldea y de la vía, el agua que salpica y la ramita que cruje: naturalezaJuego.alPaso)
+    while (jugador.eventos.paso.length) { const f = jugador.eventos.paso.shift(); if (js.montado) sonido.casco?.(js.superficie, f); else sonido.paso(naturalezaJuego?.alPaso(js, f) || js.superficie, f, js.corriendo); }
+    while (jugador.eventos.chapuzon.length) { jugador.eventos.chapuzon.shift(); sonido.chapuzon(); naturalezaJuego?.alChapuzon(js); }
     jugador.eventos.salto.length = 0;
 
     // Qué hay adelante: NPCs y scans de recursos no necesitan 60/120 consultas por segundo.
@@ -12148,6 +12165,7 @@ function cuadroDelJuego(tRaf, manual) {
       cachePuestos = puestosJuego ? puestosJuego.accion(js) : null;   // 4.6 puestos
       cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null;   // 4.2 (huevos de pascua)
       cacheRecursosZona = recursosZona ? recursosZona.accion(js) : null;   // 4.6 recursos
+      cacheNaturaleza = naturalezaJuego && !objetivo ? naturalezaJuego.accion(js) : null;   // 4.31.0 (C)
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
       cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5
       cacheCantina = cantinaJuego ? (cantinaJuego.accion(js) || teJuego?.accion(js) || null) : null;   // 3.9.0 (3.9.2: y la casa de té)
@@ -12778,6 +12796,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta(), amistad: (k, n) => sumarAmistadDe(progreso, k, n, progreso.dia) };
   // 4.6 recursos: para las pruebas: los puntos, reponer todo y dar o vender las herramientas de zona (como lo harán los personajes)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__naturaleza = () => naturalezaJuego;   // 4.31.0 (C): pruebas/humo-4-31-0-c.cjs
   if (HOJARASCA_DEBUG) window.__hojarasca.__recursosZona = { mundo: () => recursosZona, reponer: () => recursosZona?.reponer(), HERRAMIENTAS: HERRAMIENTAS_ZONA,
     dar: (id) => { const r = darHerramienta(progreso, id); refrescarBarra(true); return r; }, vender: (id) => { const r = venderHerramienta(progreso, id, { nivel: nivelDe(HERRAMIENTAS_ZONA[id]?.requisito?.oficio || 'picapedrero') }); refrescarBarra(true); return r; },
     puede: (id) => puedeComprarHerramienta(progreso, id, { nivel: nivelDe(HERRAMIENTAS_ZONA[id]?.requisito?.oficio || 'picapedrero') }) };

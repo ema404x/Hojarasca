@@ -1729,6 +1729,7 @@ export class Sonido {
         nivel = 0.3;
         break;
       case 'piedra': nivel = 0.3; break;
+      case 'ripio': nivel = 0.28; break;   // 4.31.0 (C)
       case 'madera':
         // 2.0: el tablón es un golpe de verdad (ver `impactos.js`): el taco contra la
         // tabla y, abajo, el aire del hueco entre el piso y la tierra, que es lo que

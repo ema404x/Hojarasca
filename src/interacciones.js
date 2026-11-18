@@ -181,6 +181,9 @@ export const INTERACCIONES = [
   { id: 'tendal', cuando: (c) => sinObjetivo(c) && c.tendalCerca(), aviso: (c, t) => c.avisoTendal(t), hacer: (c) => c.usarElTendal() },
   { id: 'huellas', sigueE: true, cuando: (c) => sinObjetivo(c) && c.rastroAlPie(), aviso: (c, r) => c.textoHuellas(r), hacer: (c) => c.mirarRastro() },
   { id: 'semilla', cuando: (c, enE) => aMano(c) && c.cerca('semillaArbol', enE), aviso: (c, s) => c.textoSemilla(s), hacer: (c, s) => c.juntarSemilla(s) },
+  // 4.31.0 (C): la naturaleza que se toca (ver naturaleza-juego.js): sacudir un arbusto o un árbol chico, arrancar pasto o un amancay anotado,
+  // la leña suelta, tocar el agua agachado y el sapito. A pie y sin mirar nada para juntar o anotar; después de todo lo demás (no le saca la E a nadie)
+  { id: 'naturaleza', ...delModulo('naturaleza', aPie) },
   // lo que mirás: juntar, anotar, sentarse, leer…
   { id: 'objetivo', cuando: (c) => c.objetivo, aviso: (c, o) => o.texto, hacer: (c) => c.usarObjetivo() },
 ];

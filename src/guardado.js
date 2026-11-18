@@ -12,6 +12,7 @@ import { sanearHuerta, desdeCanteroViejo, claveCantero, sanearSemillaElegida } f
 import { sanearGallineros } from './gallinero.js';
 import { sanearFeria } from './feria.js';
 import { sanearPanales } from './panales.js';
+import { sanearNaturaleza } from './naturaleza-toque.js';
 import { sanearVisitas, visitasNuevas } from './visitas.js';
 import { sanearMajada, majadaNueva } from './majada.js';
 import { sanearCorral } from './corral.js';
@@ -706,6 +707,8 @@ function sanearProgreso(p) {
     semillasJuntadas: p.semillasJuntadas && typeof p.semillasJuntadas === 'object' ? { dia: Math.floor(finito(p.semillasJuntadas.dia, 0)), arboles: arr(p.semillasJuntadas.arboles).filter(Number.isInteger).slice(0, 64) } : null,
     // 4.27.0: los panales silvestres de los que ya sacaste miel ({ id: horas de recarga }); una partida vieja no trae ninguno
     panales: sanearPanales(p.panales),
+    // 4.31.0 (C): la naturaleza que se toca: el récord del sapito, cuántas piedras tiraste y la leña suelta juntada hoy. Una partida vieja no la trae: vacía
+    naturaleza: sanearNaturaleza(p.naturaleza),
     humedadLena: Math.max(0, Math.min(1, finito(p.humedadLena, 0))),
     lomoUltimo: Math.floor(finito(p.lomoUltimo, -99)),
     ranura: Math.max(0, Math.min(7, Math.floor(finito(p.ranura, 0)))),

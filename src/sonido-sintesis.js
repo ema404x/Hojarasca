@@ -467,6 +467,8 @@ export const SUELOS = {
   escarcha: { golpe: [320, 0.012, 0.3], granos: [5200, 0.07, 0.9, 0.62], roce: [4800, 0.05, 0.2] },
   piedra: { golpe: [700, 0.006, 0.9], granos: [500, 0.04, 0.85, 0.35], roce: [2600, 0.03, 0.12], chasquido: true },
   madera: { golpe: [0, 0, 0], granos: [400, 0.04, 0.5, 0.2], roce: [1700, 0.06, 0.4] },
+  // 4.31.0 (C): el ripio de las calles de la aldea y el balasto de la vía: piedritas sueltas que se corren y crujen bajo la suela
+  ripio: { golpe: [360, 0.014, 0.7], granos: [3000, 0.13, 0.75, 0.75], roce: [2400, 0.07, 0.3] },
 };
 
 function* contacto(d, i0, S, fuerza, tasa, azar, largoCompresion = 1) {
