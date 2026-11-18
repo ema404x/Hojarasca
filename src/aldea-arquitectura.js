@@ -3416,7 +3416,7 @@ function plaza(K) {
   for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.15, -0.2, D / 2 + 0.6], [5.4 + l * 1.15, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.15, D / 2 + 0.6, 0.08, 0, 1.6); }
   K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
   K.punto('musico', 1.3, 1.25, Math.PI * 0.75, 0.05);
-  K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [4.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));
+  K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [7.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));   // (4.30.1 (B): el de atrás a la derecha, lejos del retablo: ver ALAMOS_PLAZA en aldea-mundo.js)
 }
 
 // ---------------------------------------------------------------- 3.7.0: la calle de la loma

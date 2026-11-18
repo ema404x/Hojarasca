@@ -899,6 +899,7 @@ function mallaVieja(colores, clave, conMate, R) {
 // Cada personaje camina entre sus puntos y hace algo al llegar
 const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
+  if (g.pasoPollera) velocidad = velocidadPaso(g, velocidad);   // 4.30.1 (B): con pollera, hasta un 10 % más despacio (ver cadenciaPaso); con pantalón, a su velocidad
   const dx = destino.x - g.pos.x, dz = destino.z - g.pos.z;
   const d = Math.hypot(dx, dz);
   if (d < cerca) { g.vel = 0; return true; }
@@ -921,6 +922,47 @@ function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
   return false;
 }
 
+// 4.30.1 (B): el paso de la gente, sin que el pie de apoyo patine. Antes la pierna iba y venía en seno (cadera ±0,5 rad) a un ritmo fijo (2,6 + 5·vel
+// rad/s) que no tenía que ver con lo que avanzaba el cuerpo: el pie de apoyo se corría 21–30 cm en cada apoyo (medido en el juego). Ahora:
+//   · el pie va casi en línea recta (perfilPaso: el ángulo de la cadera es el arcoseno, para que lo que avanza el pie sea parejo también con el paso
+//     largo) de adelante (−A) a atrás (+A) mientras cos f > 0 (el apoyo, con la rodilla derecha);
+//   · el ritmo sale de la velocidad (cadenciaPaso): en medio ciclo el pie de apoyo recorre 2·L·sen A y el cuerpo vel·π/ω; igualándolos, no patina.
+//     L: el radio con que se mueve el tobillo, 0,775 m por la escala de la figura (ajustado midiendo, verificar-4-30-1-b.mjs);
+//   · el largo del paso (amplitudPaso): PASO_PANTALON con pantalón y, con pollera, el corto de `pasoPollera` (gente-cuerpo.js: más largo la rodilla
+//     sale por la tela); si con ese largo hubiera que dar más de PASOS_MAX (o PASOS_POLLERA_MAX) pasos por segundo —más, los chicos: la pierna es
+//     más corta—, el paso se alarga;
+//   · las de pollera, antes de alargar el paso, caminan un poco más despacio (velocidadPaso), a lo sumo TARDE_MAX (10 %) más lento; los de pantalón,
+//     siempre a su velocidad.
+export const PASOS_MAX = 2.4;
+export const PASOS_POLLERA_MAX = 2.6;
+export const PASO_PANTALON = 0.35;
+export const TARDE_MAX = 1.1;
+function escalaPaso(g) {
+  return g.g?.scale?.y || 1;
+}
+function pasosMax(g) {
+  return (g.pasoPollera ? PASOS_POLLERA_MAX : PASOS_MAX) / escalaPaso(g) * Math.max(1, Math.sqrt((g.vel || 0) / 1.4));   // (más rápido que 1,4 m/s, trotando: pasos más seguidos)
+}
+function velocidadPaso(g, v) {
+  const pp = g.pasoPollera;
+  if (!pp) return v;
+  return Math.max(v / TARDE_MAX, Math.min(v, pasosMax(g) * 2 * 0.775 * escalaPaso(g) * Math.sin(0.5 * pp.cadera)));
+}
+function amplitudPaso(g) {
+  const A0 = g.pasoPollera ? 0.5 * g.pasoPollera.cadera : PASO_PANTALON;
+  return Math.max(A0, Math.asin(Math.min(0.95, (g.vel || 0) / (pasosMax(g) * 2 * 0.775 * escalaPaso(g)))));
+}
+function cadenciaPaso(g) {
+  const v = g.vel || 0;
+  if (v <= 0.05) return 2.6 + v * 5;
+  return Math.PI * v / (2 * 0.775 * escalaPaso(g) * Math.sin(amplitudPaso(g)));
+}
+// 4.30.1 (B): la pierna no va y viene en seno sino casi en línea recta (un triángulo con las puntas apenas redondeadas): con el seno el pie
+// de apoyo iba más rápido que el cuerpo en el medio del paso y más lento en las puntas, y aun con el ritmo justo se corría 7 cm para atrás y para
+// adelante en cada apoyo. Va de −1 (adelante) a 1 (atrás) mientras cos f > 0 (el apoyo, con la rodilla derecha) y vuelve en la otra mitad
+function perfilPaso(f) {
+  return Math.asin(0.998 * Math.sin(f)) / Math.asin(0.998);
+}
 export const caminarHaciaParaPruebas = (...a) => caminarHacia(...a);   // (4.25.2: verificar-4-25-2-npc.mjs; las pruebas viejas leen `function caminarHacia(` al comienzo de la línea)
 // 4.25.2: el de ruta (Ramón, Josefina, Fermín, Nicanor, Tobías…) que no se acerca a su próxima parada: después de la noche de la nevada o de una escena que lo
 // dejó lejos vuelve en línea recta y se trababa para siempre contra el lago (Fermín, de la puerta del refugio al galpón) o contra una pared (Josefina, a 4 m del mirador).
@@ -1304,7 +1346,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
 
       // RC23: locomoción/rutina siguen continuas, pero huesos y gestos de NPCs
       // lejanos se recalculan a menor frecuencia. Cerca o charlando = tiempo real.
-      g.paso += dt * (2.6 + g.vel * 5);
+      g.paso += dt * cadenciaPaso(g);   // (4.30.1 (B): al ritmo justo para que el pie de apoyo no patine)
       g.__poseAcum = (g.__poseAcum || 0) + dt;
       const pasoPose = (charlando || d < 38 || g.enEscena) ? (charlando || g.enEscena || d < POSE_ENTERA_M ? 0 : PASO_POSE_MEDIA) : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
       const actualizarPose = pasoPose === 0 || g.__poseAcum >= pasoPose;
@@ -1328,7 +1370,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           const h0 = T.altura(g.pos.x - 0.115 * cr + 0.05 * sr, g.pos.z + 0.115 * sr + 0.05 * cr) - g.pos.y;
           const h1 = T.altura(g.pos.x + 0.115 * cr + 0.05 * sr, g.pos.z - 0.115 * sr + 0.05 * cr) - g.pos.y;
           // (con tope: más alto, la rodilla saldría por delante del poncho o la pollera)
-          const tope = g.mate || R_PONCHO.has(g.clave) || g.conPoncho ? 0.035 : 0.07;   // (3.6: y los de poncho de la aldea)
+          // 4.30.1 (B): y las de pollera (`conPollera`, gente-cuerpo.js): con 7 cm la pierna de arriba doblaba 0,86 rad la rodilla y la rodilla y
+          // el borde de la bota alta asomaban por delante de la pollera (Lucía, parada en la ladera de atrás del retablo)
+          const tope = g.mate || R_PONCHO.has(g.clave) || g.conPoncho || g.conPollera ? 0.035 : 0.07;   // (3.6: y los de poncho de la aldea)
           bajaObj = Math.min(0.1, Math.max(0, -Math.min(h0, h1)));
           alza0 = Math.min(tope, h0 + bajaObj); alza1 = Math.min(tope, h1 + bajaObj);
         }
@@ -1339,9 +1383,10 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           const f = g.paso + i * Math.PI;
           p2.position.y = 0.82 - g.baja + alz;
           const alza = Math.sqrt(Math.max(0, i ? alza1 : alza0) / 0.41);
-          p2.rotation.x = andando ? Math.sin(f) * 0.5 : -alza;
+          const pp = g.pasoPollera;   // 4.30.1 (B): con pollera, el paso corto (gente-cuerpo.js): la rodilla y la pantorrilla no salen por la tela
+          p2.rotation.x = andando ? Math.asin(perfilPaso(f) * Math.sin(amplitudPaso(g))) : -alza;   // (4.30.1 (B): el pie, en línea recta: ver perfilPaso)
           const rod = p2.userData.rodilla;
-          if (rod) rod.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 : 0.03 + alza * 2;
+          if (rod) rod.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 * (pp ? pp.rodilla : 1) : 0.03 + alza * 2;
         });
         g.torso.rotation.y = andando ? Math.sin(g.paso) * 0.06 : 0;
         g.torso.rotation.z = andando ? Math.cos(g.paso) * 0.022 : Math.sin(g.fase * 0.45) * 0.012;
@@ -1542,7 +1587,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     const mateVisto = npc.mateVisible ? npc.mateVisible.visible : true;
     const bandejaAntes = npc.bandeja ? npc.bandeja.estado() : null;   // 3.9: la bandeja de la moza pasa a la ropa nueva con sus vasos
     Object.assign(npc, { cabeza: m.cabeza, torso: m.torso, patas: m.patas, brazos: m.brazos, mano: m.mano, muneca: m.muneca, mateVisible: m.mateVisible,
-      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
+      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, conPollera: m.conPollera, pasoPollera: m.pasoPollera, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
     if (npc.mate) { npc.mate = m.mateVisible; if (npc.mate) npc.mate.visible = mateVisto; }
     if (bandejaAntes && m.bandeja) { m.bandeja.vasos(bandejaAntes.vasos); m.bandeja.visible(bandejaAntes.visible); }
     g.updateMatrixWorld(true);

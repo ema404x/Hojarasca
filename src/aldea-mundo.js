@@ -374,6 +374,13 @@ function sobreMurete(lx, lz, margen, desniveles) {
   });
 }
 
+// Los seis álamos de alrededor de la plaza (en su marco: +Z a la estación), que la plaza deja para el mundo (`extra.alamos` en
+// aldea-arquitectura.js). 4.30.1 (B): el de atrás a la derecha estaba en (4,5, −8,5), a 1 m del retablo de los títeres (rincones.js,
+// en (3,6, −8,1) de la plaza): el tronco y la copa salían pegados al retablo, como si naciera de adentro. Va 3 m más allá, a (7,5, −8,5).
+export const ALAMOS_PLAZA = [[-10.5, -6], [-10.5, 3.5], [10.5, -6], [10.5, 3.5], [-4.5, -8.5], [7.5, -8.5]];
+// 4.30.1 (B): a cuánto de las otras casas va el frutal del patio (la copa de frutal(), en aldea-arquitectura.js, llega a 1,8 m del tronco)
+export const COPA_FRUTAL = 2.1;
+
 // Los accesorios de la aldea, en el plano: { tipo, lx, lz, giro, largo }. Siempre los mismos.
 // (`especial`: armado con otras medidas que el de su tipo; `yFijo`: a esa altura, sin inclinarse)
 export function planAccesorios() {
@@ -489,9 +496,14 @@ export function planAccesorios() {
   for (const id of IDS_EDIFICIOS) {
     const e = EDIFICIOS_ALDEA[id];
     if (e.rol !== 'casa' && !CON_FRUTAL.has(id)) continue;
-    const c = Math.cos(e.rot), s = Math.sin(e.rot), bx = -(e.lado || 1) * (e.ancho / 2 - 0.5), bz = -e.fondo / 2 - 2.0;
-    const lx = e.x + bx * c + bz * s, lz = e.z - bx * s + bz * c;
-    if (enCalle(lx, lz, 2) || ocupado(lx, lz, 0.6, id) || sobreMurete(lx, lz, 1.6, desniveles)) continue;
+    // 4.30.1 (B): la copa (hasta 1,8 m de radio) no se mete en la casa de al lado: el frutal de los Jones quedaba a 1 m de la pared de la casa
+    // de Nélida y la copa entraba en el alero. Se prueba el rincón de siempre del patio, el otro y el medio; si ninguno queda a COPA_FRUTAL de las
+    // otras casas, ese patio va sin frutal
+    const c = Math.cos(e.rot), s = Math.sin(e.rot), bz = -e.fondo / 2 - 2.0;
+    const lugar = [-(e.lado || 1), e.lado || 1, 0].map((k) => { const bx = k * (e.ancho / 2 - 0.5); return { lx: e.x + bx * c + bz * s, lz: e.z - bx * s + bz * c }; })
+      .find((q) => !(enCalle(q.lx, q.lz, 2) || ocupado(q.lx, q.lz, COPA_FRUTAL, id) || sobreMurete(q.lx, q.lz, 1.6, desniveles)));
+    if (!lugar) continue;
+    const { lx, lz } = lugar;
     const k = 1 + (nFrutal++ % 3);
     lista.push({ tipo: 'frutal', lx, lz, giro: azarPlano(lx, lz) * 6.283, especial: { clave: `frutal|${k}`, nombre: 'frutal', opciones: { semilla: k } } });
   }
@@ -1488,7 +1500,7 @@ export function crearAldeaMundo(ctx) {
       // (con los seis de alrededor de la plaza, que la plaza deja para el mundo: `extra.alamos`)
       const lista = accesorios.filter((a) => a.tipo === 'alamo' && !a.agua);
       const pz = EDIFICIOS_ALDEA.plaza;
-      for (const [i, q] of [[-10.5, -6], [-10.5, 3.5], [10.5, -6], [10.5, 3.5], [-4.5, -8.5], [4.5, -8.5]].entries()) {
+      for (const [i, q] of ALAMOS_PLAZA.entries()) {
         const c = Math.cos(pz.rot), s = Math.sin(pz.rot);
         const w = aMundo(pz.x + q[0] * c + q[1] * s, pz.z - q[0] * s + q[1] * c);
         lista.push({ tipo: 'alamo', x: w.x, z: w.z, y: alturaEn(w.x, w.z), giro: i * 1.7, escala: 0.85 + (i % 3) * 0.06, plaza: true });
