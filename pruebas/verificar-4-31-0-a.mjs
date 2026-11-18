@@ -152,23 +152,31 @@ async function pruebaMundo() {
   const ref = { x: 10, y: 2, z: -4, rot: 0.4 };
   const T = { altura: () => 1.6 };
   const vidrioCasa = new THREE.MeshBasicMaterial({ color: 0x223344, side: THREE.DoubleSide });
-  const fundido = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), vidrioCasa); escena.add(fundido);   // el vidrio de siempre, fundido con el refugio
+  // el vidrio de siempre, fundido con el refugio: las dos ventanas (la del frente y la del costado) en una malla, en el marco del refugio
+  const g0 = new THREE.PlaneGeometry(1.1, 0.8).translate(2.2, 1.45, 2.77), g1 = new THREE.PlaneGeometry(1.1, 0.8).rotateY(-Math.PI / 2).translate(-3.52, 1.45, 0);
+  const pos = new Float32Array([...g0.toNonIndexed().attributes.position.array, ...g1.toNonIndexed().attributes.position.array]);
+  const geoF = new THREE.BufferGeometry(); geoF.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const fundido = new THREE.Mesh(geoF, vidrioCasa); fundido.position.set(ref.x, ref.y, ref.z); fundido.rotation.y = ref.rot; escena.add(fundido);
   ref.vidrio = vidrioCasa;
+  const antesF = Array.from(pos);
   const M = crearCasaDetallesMundo({ T, ref, escena, col: { agregar: (c) => choques.push(c) } });
-  ok(!fundido.visible && M.escondidos.length === 1, 'el vidrio fundido del refugio se esconde: cada ventana pone el suyo');
-  M.mostrar(false); ok(fundido.visible, 'lejos vuelve el de siempre'); M.mostrar(true);
+  ok(fundido.visible && M.vidrioDe[0].length === 6 && M.vidrioDe[1].length === 6, `el vidrio fundido (con su material: el reflejo de Ultra) queda; se reconocen las dos ventanas (${M.vidrioDe[0].length} y ${M.vidrioDe[1].length} vértices)`);
   ok(Object.keys(M.puntos).length === C.COSAS_REFUGIO.length, 'cada cosa tiene sus puntos en el mundo');
   ok(choques.length >= 4, `el baúl, la alacena y la bomba frenan (${choques.length} círculos)`);
   const tipos = new Set();
   escena.traverse((o) => { if (o.isMesh) tipos.add(`${o.material.type}|${o.material.side}|${o.material.transparent}|${o.material.vertexColors}`); });
   ok([...tipos].every((t) => t === 'MeshLambertMaterial|0|false|true' || t === 'MeshBasicMaterial|2|false|false'), `sólo los materiales de siempre (ningún programa nuevo): ${[...tipos].join(' · ')}`);
   let mallas = 0; escena.traverse((o) => { if (o.isMesh) mallas++; });
-  ok(mallas <= 26, `pocas mallas (${mallas}); se esconden lejos del refugio`);
+  ok(mallas <= 25, `pocas mallas (${mallas}); se esconden lejos del refugio`);
   const e = { ...C.casaNueva(), velas: true, hogar: false, ventanas: [1, 0], cortinas: [0, 1], baul: true };
   for (let i = 0; i < 40; i++) M.actualizar(0.05, e, { t: i * 0.05, horas: 3.5, viento: 0.5 }, vidrioCasa);
   const P = M.partes;
   ok(P.llamasVelas.visible && !P.fuego.visible, 'las velas prendidas se ven; el hogar apagado no tiene llama');
-  ok(P.hojas[0].visible && !P.fijos[0].visible && !P.hojas[1].visible && P.fijos[1].visible, 'la ventana abierta: se ve la hoja abierta y no el vidrio de siempre; la cerrada, como siempre');
+  const area = (k) => { const a = geoF.attributes.position, v = (i) => new THREE.Vector3().fromBufferAttribute(a, i); return v(k + 1).sub(v(k)).cross(v(k + 2).sub(v(k))).length(); };
+  ok(P.hojas[0].visible && !P.hojas[1].visible && area(0) < 1e-9 && area(3) < 1e-9 && area(6) > 0.1 && area(9) > 0.1, 'la ventana abierta: se ve la hoja y su vidrio fijo desaparece; la cerrada, con su vidrio de siempre');
+  M.actualizar(0.05, { ...e, ventanas: [0, 0] }, { t: 2 }, vidrioCasa); for (let i = 0; i < 40; i++) M.actualizar(0.05, { ...e, ventanas: [0, 0] }, { t: 2 + i * 0.05 }, vidrioCasa);
+  ok(Array.from(geoF.attributes.position.array).every((x, i) => x === antesF[i]), 'cerrada otra vez, el vidrio vuelve entero, igual que antes');
+  for (let i = 0; i < 40; i++) M.actualizar(0.05, e, { t: 4 + i * 0.05 }, vidrioCasa);
   ok(Math.abs(P.hojas[0].rotation.y) > 1.2, `la hoja de la ventana gira hacia afuera (${P.hojas[0].rotation.y.toFixed(2)})`);
   ok(P.cortinas[1][0].scale.x > 0.95 && P.cortinas[0][0].scale.x < 0.35, 'la cortina corrida cubre la ventana; la abierta queda recogida');
   ok(P.tapaBaul.rotation.z < -1.3, `la tapa del baúl, levantada (${P.tapaBaul.rotation.z.toFixed(2)})`);
@@ -221,8 +229,9 @@ const MUT = [
   ['src/casa-detalles-juego.js', 'juego', 'el reloj suena lejos', 'const reloj = cerca(x.pos, CASA.oyeReloj) ? M.puntos.reloj[0] : api.relojCerca?.(x.pos, CASA.oyeReloj);', 'const reloj = M.puntos.reloj[0];'],
   ['src/casa-detalles-juego.js', 'juego', 'sentado se ofrece sentarse', 'if (k.sentarse && js.sentado) continue;', ''],
   ['src/casa-detalles-juego.js', 'juego', 'la canilla sin chorro', 'chorroEn = { de, a }; chorroObra = CASA.chorro;', 'chorroEn = { de, a };'],
-  ['src/casa-detalles-mundo.js', 'mundo', 'el vidrio tapa la ventana abierta', 'fijos[v].visible = abierta <= 0.01;', ''],
-  ['src/casa-detalles-mundo.js', 'mundo', 'el vidrio fundido no se esconde', 'o.visible = false; escondidos.push(o);', 'escondidos.push(o);'],
+  ['src/casa-detalles-mundo.js', 'mundo', 'el vidrio tapa la ventana abierta', 'taparVidrio(v, abierta > 0.01);', ''],
+  ['src/casa-detalles-mundo.js', 'mundo', 'el vidrio no vuelve al cerrar', 'else q.A.setXYZ(q.i, q.x, q.y, q.z);', ''],
+  ['src/casa-detalles-mundo.js', 'mundo', 'se lleva las dos ventanas', "const v = Math.abs(lz - 2.77) < 0.15 && Math.abs(lx - 2.2) < 0.7 ? 0 :", 'const v = 0 && 0 ? 0 :'],
   ['src/casa-detalles-mundo.js', 'mundo', 'la hoja se abre para adentro', "hojas[v].rotation.y = (v ? -Math.PI / 2 : 0) - abierta * 1.35;", "hojas[v].rotation.y = (v ? -Math.PI / 2 : 0) + abierta * 0.2;"],
   ['src/casa-detalles-mundo.js', 'mundo', 'el fuego no se apaga', 'fuego.visible = !!e.hogar;', 'fuego.visible = true;'],
   ['src/casa-detalles-mundo.js', 'mundo', 'un material transparente nuevo', 'const basico = (color) => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });', 'const basico = (color) => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true });'],

@@ -201,11 +201,29 @@ export function crearCasaDetallesMundo({ T, ref, raiz = null, escena, col = null
     return g;
   };
   const hojas = [hoja([1.65, 1.45, 2.8], 0), hoja([-3.55, 1.45, -0.55], -Math.PI / 2)];
-  // el vidrio de siempre está fundido con el resto del refugio (las dos ventanas en una malla): se esconde y cada ventana cerrada pone el
-  // suyo, con el mismo color (la malla escondida sigue sirviendo para los halos de noche, que la buscan por su material)
-  const fijos = [[2.2, 1.45, 2.77, 0], [-3.52, 1.45, 0, -Math.PI / 2]].map(([x, y, z, g]) => { const v = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.8), matHoja); v.position.set(x, y, z); v.rotation.y = g; grupo.add(v); return v; });
-  const escondidos = [];
-  if (ref.vidrio) (raiz || escena).traverse((o) => { if (o.isMesh && o.material === ref.vidrio && !o.userData.casaDetalle) { o.visible = false; escondidos.push(o); } });
+  // el vidrio de siempre está fundido con el resto del refugio (las dos ventanas en una malla, con su material: el de Ultra refleja el cielo).
+  // No se esconde ni se reemplaza: con una ventana abierta, sólo los vértices de ESA ventana se juntan en un punto (el vidrio de esa ventana
+  // desaparece) y al cerrarla vuelven; el otro sigue igual, con su reflejo, y los halos de noche (que lo buscan por su material) no cambian.
+  const vidrioDe = [[], []];
+  const vw = new THREE.Vector3();
+  if (ref.vidrio) (raiz || escena).traverse((o) => {
+    if (!o.isMesh || o.material !== ref.vidrio || !o.geometry?.attributes?.position) return;
+    o.updateWorldMatrix(true, false);
+    const A = o.geometry.attributes.position;
+    for (let i = 0; i < A.count; i++) {
+      vw.fromBufferAttribute(A, i).applyMatrix4(o.matrixWorld);
+      const dx = vw.x - ref.x, dz = vw.z - ref.z, lx = dx * cr - dz * sr, lz = dx * sr + dz * cr;
+      const v = Math.abs(lz - 2.77) < 0.15 && Math.abs(lx - 2.2) < 0.7 ? 0 : Math.abs(lx + 3.52) < 0.15 && Math.abs(lz) < 0.7 ? 1 : -1;
+      if (v >= 0) vidrioDe[v].push({ A, i, x: A.getX(i), y: A.getY(i), z: A.getZ(i) });
+    }
+  });
+  const sinVidrio = [false, false];
+  const taparVidrio = (v, sacar) => {
+    if (sinVidrio[v] === sacar || !vidrioDe[v].length) return;
+    sinVidrio[v] = sacar;
+    const p0 = vidrioDe[v][0];
+    for (const q of vidrioDe[v]) { if (sacar) q.A.setXYZ(q.i, p0.x, p0.y, p0.z); else q.A.setXYZ(q.i, q.x, q.y, q.z); q.A.needsUpdate = true; }
+  };
   // el chorro (en el mundo: sirve para la bomba y para la canilla de tus casas)
   const chorro = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 1, 6, 1, true).translate(0, -0.5, 0), matAgua);
   chorro.visible = false; chorro.name = 'casa:chorro';
@@ -239,7 +257,7 @@ export function crearCasaDetallesMundo({ T, ref, raiz = null, escena, col = null
       for (const p of cortinas[v]) { p.scale.x = 0.26 + 0.74 * anim.cortinas[v]; p.rotation.x = flamea; }
       hojas[v].visible = abierta > 0.01;
       hojas[v].rotation.y = (v ? -Math.PI / 2 : 0) - abierta * 1.35;
-      fijos[v].visible = abierta <= 0.01;
+      taparVidrio(v, abierta > 0.01);
     }
     if (vidrioCasa) matHoja.color.copy(vidrioCasa.color);
     // lo que brilla: la llama tiembla un poco
@@ -267,8 +285,7 @@ export function crearCasaDetallesMundo({ T, ref, raiz = null, escena, col = null
       chorro.scale.set(1 + 0.15 * Math.sin(t * 31), Math.max(0.05, ch.de.y - ch.a.y), 1 + 0.15 * Math.sin(t * 27));
     } else chorro.visible = false;
   }
-  // lejos no se dibuja lo nuevo; el vidrio de siempre vuelve (de lejos se ve igual y no hay nada que mover)
-  function mostrar(si) { grupo.visible = si; if (!si) chorro.visible = false; for (const o of escondidos) o.visible = !si; }
+  function mostrar(si) { grupo.visible = si; if (!si) chorro.visible = false; }
 
-  return { grupo, puntos, sentarse, actualizar, mostrar, picoBomba, escondidos, partes: { fijos, tuboLampara, llamasVelas, fuego, cajon, alacenaI, alacenaD, tapaBaul, pendulo, hojas, cortinas, chorro, manija, dial } };
+  return { grupo, puntos, sentarse, actualizar, mostrar, picoBomba, vidrioDe, sinVidrio, partes: { tuboLampara, llamasVelas, fuego, cajon, alacenaI, alacenaD, tapaBaul, pendulo, hojas, cortinas, chorro, manija, dial } };
 }

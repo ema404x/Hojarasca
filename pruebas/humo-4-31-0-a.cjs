@@ -90,7 +90,7 @@ app.whenReady().then(async () => {
   };
   try {
     await w.loadFile(url, { search: '?debug=1' });
-    await js(`localStorage.clear(); ${ajustes({ calidad: CALIDAD })}`);
+    await js(`localStorage.clear(); ${ajustes({ calidad: CALIDAD, ultra: process.env.HUMO_ULTRA === '1' })}`);
     await w.loadFile(url, { search: '?debug=1' });
     await js('window.__sinPausaPorBlur = true; 1');
     if (!(await esperarJuego())) throw new Error('el juego no cargó');
@@ -110,6 +110,19 @@ app.whenReady().then(async () => {
       await N('N.mirarA(2.6, 6.5, N.local(2.2, 1.4, 2.75))'); await N('N.ajustarPitch(N.local(2.2, 1.4, 2.75))'); await N('N.tick(1)'); await foto('90-ventana-debug');
       console.log('  en el hueco: ' + await N('(() => { const T3 = H.THREE, ray = new T3.Raycaster(); const o = N.local(2.2, 1.45, 3.6), d = N.local(2.2, 1.45, 1.0); const O = new T3.Vector3(o.x, o.y, o.z), D = new T3.Vector3(d.x - o.x, d.y - o.y, d.z - o.z).normalize(); ray.set(O, D); ray.far = 3; const hits = ray.intersectObjects(H.escena.children, true).filter((h) => h.object.visible); return JSON.stringify(hits.slice(0, 6).map((h) => { const p = []; let q = h.object; while (q) { p.push(q.name || q.type); q = q.parent; } return { d: +h.distance.toFixed(2), mat: h.object.material && (h.object.material.name || h.object.material.type), color: h.object.material && h.object.material.color && h.object.material.color.getHexString(), cadena: p.slice(0, 4).join("<") }; })) })()'));
       await N('(() => { P.casa.ventanas = [0, 0]; return 1 })()');
+    });
+    await seccion('vidrios', async () => {
+      console.log('  calidad ' + await N('H.ajustes.calidad') + ' · ultra ' + await N('H.ajustes.ultra'));
+      const vista = async (h, nombre) => { await N('(() => { P.horas = ' + h + '; return 1 })()'); await N('N.mirarA(3.4, 5.2, N.local(1.2, 1.45, 2.75))'); await N('N.ajustarPitch(N.local(1.2, 1.45, 2.75))'); await N('N.tick(1.5)'); await foto(nombre); };
+      const lejos = async (h, nombre) => { await N('(() => { P.horas = ' + h + '; return 1 })()'); await N('N.mirarA(2.0, 40, N.local(0.6, 1.6, 2.75))'); await N('N.ajustarPitch(N.local(0.6, 1.6, 2.75))'); await N('N.tick(1.5)'); await foto(nombre); };
+      for (const [h, t] of [[11, 'dia'], [22, 'noche']]) {
+        await N('(() => { P.casa.ventanas = [0, 0]; P.casa.cortinas = [0, 0]; return 1 })()');
+        await vista(h, '40-vidrio-' + t + '-cerrada');
+        await lejos(h, '41-vidrio-' + t + '-lejos');
+        await N('(() => { P.casa.ventanas = [1, 0]; return 1 })()'); await vista(h, '42-vidrio-' + t + '-abierta');
+        await N('(() => { P.casa.ventanas = [0, 0]; P.casa.cortinas = [1, 1]; return 1 })()'); await vista(h, '43-vidrio-' + t + '-cortina');
+      }
+      await N('(() => { P.casa.ventanas = [0, 0]; P.casa.cortinas = [0, 0]; P.horas = 11; return 1 })()');
     });
     await seccion('dia', async () => {
       await N('N.mirarA(-0.2, 2.1, N.local(0.3, 0.9, -1.5))'); await N('N.ajustarPitch(N.local(0.3, 0.9, -1.5))'); await N('N.tick(1)'); await foto('00-adentro');
