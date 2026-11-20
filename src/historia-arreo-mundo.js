@@ -34,28 +34,33 @@ export function crearArreoMundo(ctx) {
     const o = arreoDeOptativa(h, ctx.eventos?.() || {});
     return o ? { clave: `opt-${o.clave}`, destino: o.destino, optativa: o } : null;
   }
-  let destinoActual = null;
+  let destinoActual = null, guardarCada = 0;
   function actualizar(dt) {
     const h = ctx.historia();
     const cf = configuracion(h);
-    if (!cf) { if (A) soltar(); return; }
+    if (!cf) { if (A) soltar(); if (h && h.arreoEnCurso) h.arreoEnCurso = null; return; }
     if (clave !== cf.clave) {
       soltar();
+      // 4.31.1 (A): si la partida se guardó a mitad del arreo, las ovejas siguen donde quedaron
+      const quedo = h.arreoEnCurso && h.arreoEnCurso.clave === cf.clave ? h.arreoEnCurso.ovejas : null;
       if (cf.majada) {
         const pu = ctx.puntoDe('puesto'), dest = ctx.puntoDe(cf.majada.punto);
         if (!pu || !dest) return;
-        abrir(cf.clave, { x: pu.x + 5, z: pu.z + 3 }, dest);
+        abrir(cf.clave, { x: pu.x + 5, z: pu.z + 3 }, dest, quedo ? { posiciones: quedo } : {});
       } else {
         const pos = posicionesArreo(cf.optativa, (k) => ctx.puntoDe(k));
         if (!pos) return;
-        abrir(cf.clave, pos.corral, pos.corral, { posiciones: pos.ovejas, min: cf.optativa.min });
+        abrir(cf.clave, pos.corral, pos.corral, { posiciones: quedo || pos.ovejas, min: cf.optativa.min });
       }
       destinoActual = cf.destino;
     }
     const j = ctx.jugador().estado;
     const lleg = pasoArreo(A, { x: j.pos.x, z: j.pos.z, yaw: j.yaw, aCaballo: !!j.montado }, dt);
     A.ovejas.forEach((o, i) => { const g = mallas[i]; g.position.set(o.x, T.altura(o.x, o.z), o.z); g.rotation.y = o.rumbo; g.position.y += Math.abs(Math.sin(performance.now() / 160 + i)) * (o.vel > 0.2 ? 0.05 : 0); });
-    if (lleg) ctx.llego(destinoActual);
+    // 4.31.1 (A): dónde va cada una, cada 2 s (lo guarda la partida con lo demás de la historia)
+    guardarCada -= dt;
+    if (guardarCada <= 0) { guardarCada = 2; h.arreoEnCurso = { clave, ovejas: A.ovejas.map((o) => ({ x: +o.x.toFixed(2), z: +o.z.toFixed(2) })) }; }
+    if (lleg) { h.arreoEnCurso = null; ctx.llego(destinoActual); }
   }
   return { actualizar, soltar, activo: () => !!A, get estado() { return A; }, ARREO, juntadas: () => cercaDelDestino(A), get clave() { return clave; } };
 }

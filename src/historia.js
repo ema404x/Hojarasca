@@ -1026,9 +1026,17 @@ export function historiaNueva() {
     optativas: {}, oidas: {}, panRosa: null, flechasExtra: 0, encargosLazo: null,
     // 4.21.0: la Historia empezada desde la 4.21.0 trae su propia estación (no depende de «Que pasen solas») y no muestra «Primeros pasos»; las anteriores quedan como estaban
     arranqueNuevo: false,
+    arreoEnCurso: null,   // 4.31.1 (A): ver sanearArreoEnCurso
   };
 }
 const FASES = ['intro', 'jugando', 'outro', 'fin'];
+// 4.31.1 (A): el arreo en marcha (la majada del capítulo 9 o las ovejas de una optativa): dónde iba cada oveja, para que al cargar la partida el arreo siga
+// donde quedó (antes volvían todas al corral del Puesto Alto). `{ clave, ovejas: [{ x, z }] }` o null; hasta 12 ovejas, números de verdad.
+export function sanearArreoEnCurso(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v) || typeof v.clave !== 'string' || !/^[a-z0-9:-]{1,60}$/.test(v.clave) || !Array.isArray(v.ovejas)) return null;
+  const ovejas = v.ovejas.slice(0, 12).filter((o) => o && Number.isFinite(o.x) && Number.isFinite(o.z) && Math.abs(o.x) < 5000 && Math.abs(o.z) < 5000).map((o) => ({ x: +o.x.toFixed(2), z: +o.z.toFixed(2) }));
+  return ovejas.length ? { clave: v.clave, ovejas } : null;
+}
 export function sanearHistoria(v) {
   const h = historiaNueva();
   if (!v || typeof v !== 'object' || Array.isArray(v)) return h;
@@ -1093,6 +1101,7 @@ export function sanearHistoria(v) {
     let n = 0;
     for (const [k, d] of Object.entries(v.encargosLazo)) { if (n >= 200) break; if (idSeguro(k)) { h.encargosLazo[k] = ent(d); n++; } }
   }
+  h.arreoEnCurso = sanearArreoEnCurso(v.arreoEnCurso);   // 4.31.1 (A)
   // una historia terminada no vuelve atrás
   if (h.terminada) { h.capitulo = CAPITULOS.length - 1; h.fase = 'fin'; }
   return h;

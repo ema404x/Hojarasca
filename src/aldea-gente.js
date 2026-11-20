@@ -410,6 +410,28 @@ export function distanciaAldea(x, z, M = marcoAldea(PARADA_ALDEA)) {
 // guardar(), sonido, redibujar(), registrar(id), sumarMaterial(k, n), sumarEntrada(k, n),
 // conMateriales(fn), refrescarBarra(), hablandoCon(), alJugador(campo, valor), leerCarta(id),
 // mandarFoto(id), partitura(id), pronostico(), ambiente() → { clima, estacion }, decir(texto).
+// 4.31.1 (A): acostados en su cama. El punto `cama` de aldea-arquitectura.js (`cama`) queda al costado del colchón (a 0,925 m del centro, 0,2 m hacia los pies,
+// mirando a la cama) o, en las camas puestas de pie contra la pared, a los pies (a 1,425 m del centro, mirando a la almohada). La almohada va hacia -z del
+// edificio en las de costado. Devuelve dónde van los pies (la figura acostada de gente.js, pose `dormir`, tiene la cabeza hacia atrás de donde mira), a
+// qué altura y para dónde mira; `i`/`n`: el lugar entre los que comparten la cama (de a dos, uno al lado del otro). Puro: se prueba en Node.
+export const LECHO = { lado: 0.925, pie: 1.425, haciaPies: 0.2, largo: 1.95, alto: 0.5, juntos: 0.17 };
+export function lechoDe(c, i = 0, n = 1) {
+  if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.z) || !Number.isFinite(c.mira)) return null;
+  const mx = Math.sin(c.mira), mz = Math.cos(c.mira);
+  const deCostado = !c.alPie;   // (las de costado tienen la almohada contra la pared de atrás del edificio)
+  let cx, cz, px, pz;   // el centro del colchón y hacia dónde van los pies
+  if (deCostado) {
+    const r = Number(c.rot) || 0;
+    px = Math.sin(r); pz = Math.cos(r);   // +z del edificio: los pies (la almohada contra la pared de atrás)
+    cx = c.x + mx * LECHO.lado - px * LECHO.haciaPies; cz = c.z + mz * LECHO.lado - pz * LECHO.haciaPies;
+  } else {
+    px = -mx; pz = -mz;   // parado a los pies, mirando a la almohada
+    cx = c.x + mx * LECHO.pie; cz = c.z + mz * LECHO.pie;
+  }
+  const lado = n > 1 ? (i - (n - 1) / 2) * 2 * LECHO.juntos : 0;
+  const pies = LECHO.largo / 2 - 0.12;
+  return { x: cx + px * pies + pz * lado, z: cz + pz * pies - px * lado, y: (Number(c.y) || 0) + LECHO.alto, mira: Math.atan2(px, pz) };
+}
 export function crearAldeaGente(ctx) {
   const M = marcoAldea(PARADA_ALDEA);
   const personas = new Map();   // clave → { npc, destino, clave del destino, trabado }
@@ -628,7 +650,29 @@ export function crearAldeaGente(ctx) {
     d.x = r.x; d.z = r.z; const l = M.aLocal(r.x, r.z); d.lx = l.lx; d.lz = l.lz;
     return true;
   }
+  // 4.31.1 (A): acostarlo en su cama (si se la conoce: aldea-mundo.js da las de todas las casas y locales) y levantarlo
+  function acostar(npc, d, k) {
+    if (!/^cama/.test(d?.punto || '')) return false;
+    const juntos = [...personas].filter(([, s]) => s.destino && s.destino.edificio === d.edificio && s.destino.punto === d.punto).map(([q]) => q);
+    const L = lechoDe(ctx.camaDe?.(d.edificio, d.punto));
+    if (!L) return false;   // (sin la cama de verdad, como antes: parado al lado)
+    // (las camas son de una plaza: si la comparten dos —los padres de los Jones—, se ve al primero; el otro no se dibuja: de a dos quedaban uno encima del otro)
+    if (juntos.indexOf(k) > 0) { npc.dormido = true; return true; }
+    if (!npc.__lecho) npc.__lecho = { x: npc.pos.x, z: npc.pos.z };
+    npc.pos.set(L.x, L.y, L.z); npc.camino = []; npc.vel = 0;
+    npc.rumbo = npc.rumboObjetivo = npc.miraFinal = L.mira; if (npc.g?.rotation) npc.g.rotation.y = L.mira;
+    npc.pose = 'dormir'; npc.asiento = undefined; npc.soloCerca = VER_ADENTRO;
+    return true;
+  }
+  function levantar(npc) {
+    const l = npc?.__lecho;
+    if (!l) return;
+    npc.__lecho = null;
+    npc.pos.set(l.x, ctx.alturaDePie(l.x, l.z, npc.pos.y), l.z);
+    if (npc.pose === 'dormir') npc.pose = null;
+  }
   function ubicar(npc, d) {
+    npc.__lecho = null;   // 4.31.1 (A)
     // (3.7.1 (mundo): `d.y`: la altura justa, la de la cama del refugio donde se acuesta)
     npc.pos.set(d.x, Number.isFinite(d.y) ? d.y : ctx.alturaDePie(d.x, d.z, yDesde(npc, d, d)), d.z);
     npc.camino = [];
@@ -642,6 +686,7 @@ export function crearAldeaGente(ctx) {
     if (Number.isFinite(d.asiento)) npc.asiento = d.asiento;   // 3.7.1 (mundo): o la que diga el amor
   }
   function encaminar(npc, d) {
+    levantar(npc);   // 4.31.1 (A): de la cama se levanta al costado antes de caminar
     const l = M.aLocal(npc.pos.x, npc.pos.z);
     // 3.7.0 (integración): por la escalera: si está arriba, baja primero (hasta el rodeo); si va arriba, sube
     // desde el rodeo
@@ -1352,9 +1397,11 @@ export function crearAldeaGente(ctx) {
         // 3.7.0: parado en su lugar, sobre el piso de verdad: el que se ubicó de lejos antes de que su local tuviera
         // piso (recién abierto, o armándose todavía) quedaba en el terreno, 30 cm hundido en las tablas, hasta que
         // le tocaba ir a otro lado
+        if (!acostar(n, d, k)) {   // (4.31.1 (A): o acostado en su cama)
         const y = ctx.alturaDePie(n.pos.x, n.pos.z, yDesde(n, d));
         if (Number.isFinite(y) && Math.abs(y - n.pos.y) > 0.05) n.pos.y = y;
         n.soloCerca = d.adentro ? VER_ADENTRO : 0; n.pose = poseDe(d); n.asiento = alturaAsiento(d, n);   // 3.6 (vida): ya llegó: su pose (3.6.1: y su asiento)
+        }
       }
     }
     if (despierta && js) buscarCharla(js);

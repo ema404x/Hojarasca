@@ -6528,6 +6528,7 @@ function armarOficiosYAldea(esDesafio) {
     temporada: () => temporadaDelDia(progreso.dia),   // 3.8.8: la demanda del pueblo. 4.11.2 (S2): por el calendario (negocios-fx.js), no por el cielo: coherente con los precios de los puestos y con «Estación fija»
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
     col: () => col,   // 4.26.5: para correr los puntos de pie que caen en un muro
+    camaDe: (id, punto) => { const pe = aldeaMundo?.puntosEdificio?.(id), c = pe?.nombrados?.[punto]; return c && pe.sitio ? { x: c.x, y: c.y, z: c.z, mira: c.mira, rot: pe.sitio.rot || 0, alPie: !!c.alPie } : null; },   // 4.31.1 (A): la cama de verdad (ver `lechoDe` en aldea-gente.js)
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), agua: (x, z) => !!T.agua(x, z),   // (4.25.2: el visitante que guiás no aparece en el agua)
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
@@ -7250,6 +7251,7 @@ function puestoDeCargasCerca() {
   return tren.puestoCerca(jugador.estado.pos);
 }
 function subirALaCabina() {
+  if (!desafio && valle?.antesDeLaCabina?.()) return;   // 4.31.1 (A): la primera vez en el capítulo 4, Elsa te explica en el andén («En la cabina»); la E siguiente te sube
   tren.subirACabina(jugador);
   if (enLasCargas()) puestoCargas.cerrar();
   registrar('viaje');

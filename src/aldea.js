@@ -379,6 +379,8 @@ const PUNTOS_ESTRUCTURA = {
 };
 // 3.8.7: los bancos del redondel de la plaza (los mismos de aldea-arquitectura.js: radio 3,9 − 0,62, de 1,7 m, asientos a ±0,34)
 export const BANCOS_PLAZA = { radio: 3.9 - 0.62, angulos: [0, PI, PI / 2 - 0.33, PI / 2 + 0.33, -PI / 2 - 0.33, -PI / 2 + 0.33], asiento: 0.4 * 1.7 / 2 };
+// 4.31.1 (A): el lugar de las fiestas de la plaza, a lo largo de la plaza (z del marco de la plaza): delante del duende tallado, del lado del mástil, fuera del tronco (ver aldea-arquitectura.js)
+export const PUNTO_FIESTA_PLAZA = 1.5;
 function puntosLocales(id) {
   const e = EDIFICIOS_ALDEA[id];
   const { ancho: W, fondo: D } = e;
@@ -399,7 +401,9 @@ function puntosLocales(id) {
   if (e.rol === 'plaza') {
     // la plaza mira a la estación (su +Z da a la calle de la Vía): el duende tallado recibe al que
     // llega y el músico toca en el medio, de cara a la estación
-    const p = { mastil: { x: 0, z: 0, rot: 0 }, duende: { x: -3, z: 2.5, rot: 0 }, musico: { x: 0, z: -2.6, rot: 0 } };
+    // (4.31.1 (A): `mastil`, donde se junta la aldea en las fiestas de la plaza: al pie del duende, del lado del mástil (antes en el (0, 0): adentro del tronco
+    // del duende tallado), lejos del escalón donde te sentás; aldea-arquitectura.js pone el mismo punto)
+    const p = { mastil: { x: 0, z: PUNTO_FIESTA_PLAZA, rot: PI }, duende: { x: -3, z: 2.5, rot: 0 }, musico: { x: 0, z: -2.6, rot: 0 } };
     // 3.6 (mecánicas): al pie de la soga del mástil (el de aldea-arquitectura.js, en z 5,25), donde
     // el jefe de estación iza la bandera a las 8 y la arría a las 19, mirando al mástil
     p.soga = { x: -1.4, z: 5.7, rot: 1.88 };

@@ -1995,7 +1995,7 @@ export function crearAldeaMundo(ctx) {
     if (!b?.datos || !b.montada) return null;
     if (b.puntosMundo?.version === b.montada) return b.puntosMundo;
     const s = b.sitio, P = b.datos.puntos || {}, nombrados = {};
-    for (const [k, q] of Object.entries(P.nombrados || {})) nombrados[k] = enMundo(s, q);
+    for (const [k, q] of Object.entries(P.nombrados || {})) nombrados[k] = q?.alPie ? { ...enMundo(s, q), alPie: true } : enMundo(s, q);   // (4.31.1 (A): la cama a los pies)
     const ab = b.datos.extra?.abejas;
     b.puntosMundo = {
       id, version: b.montada, etapa: b.datos.etapa, sitio: { ...s }, nombrados,

@@ -40,6 +40,11 @@ const MUTACIONES = {
   'golpe-un-cuadro': ['src/gesto-golpe.js', '  b.rotation.x += (q.x - b.rotation.x) * k;', ''],
   'golpe-sin-final': ['src/gesto-golpe.js', "if (!b || q.t <= 0) { g.__golpe = null; return; }", 'if (!b) return;'],
   'quietud-con-martillo': ['src/gente-cuerpo.js', ' || !!g.__enMano;   // (4.31.1 (A)', ';   // (4.31.1 (A)'],
+  'acostado-al-reves': ['src/aldea-gente.js', 'const deCostado = !c.alPie;', 'const deCostado = !!c.alPie;'],
+  'sin-alpie': ['src/aldea-arquitectura.js', '    if (o.alPie) q.alPie = true;', ''],
+  'cabina-en-el-tren': ['src/main.js', '  if (!desafio && valle?.antesDeLaCabina?.()) return;', ''],
+  'arreo-sin-guardar': ['src/historia.js', '  return ovejas.length ? { clave: v.clave, ovejas } : null;', '  return null;'],
+  'fiesta-en-el-tronco': ['src/aldea.js', 'export const PUNTO_FIESTA_PLAZA = 1.5;', 'export const PUNTO_FIESTA_PLAZA = 0;'],
   'estacion-sin-carteles': ['src/aldea-mundo.js', "E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {}, carteles };", "E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {} };"],
 };
 
@@ -299,6 +304,52 @@ const igual = (a, b, t) => { pasos++; assert.equal(a, b, t); };
   // la pierna del jinete; el brazo de tu cuerpo (el mate en el saludo: no se reprodujo en el juego, no se tocó)
   ok(/p2\.position\.y = 0\.82 - g\.baja \+ alz;\n\s*p2\.rotation\.z = 0;/.test(gente), 'la pierna abierta del jinete se repone al caminar');
   ok(/brazos\[0\]\.rotation\.z = 0; brazos\[1\]\.rotation\.z = 0;/.test(fuente('personal-personaje-mundo.js')), 'tu cuerpo: el brazo vuelve después de soltar la mano');
+}
+
+// ---------------------------------------------------------------- 5. lo anotado, arreglado (segunda tanda)
+{
+  // los que duermen, acostados en su cama (aldea-gente.js, lechoDe)
+  const { registrarThree } = await import(pathToFileURL(path.join(raiz, 'pruebas', 'ayuda-three.mjs')).href);
+  registrarThree();
+  const AG = await importar('aldea-gente.js');
+  const ARQ = await importar('aldea-arquitectura.js');
+  // de costado (edificio sin girar): parado al costado (+x), mirando a la cama (-x): los pies hacia +z (la almohada contra la pared de atrás)
+  const L1 = AG.lechoDe({ x: 1, y: 0.3, z: 0, mira: -Math.PI / 2, rot: 0 });
+  ok(Math.abs(L1.x - (1 - 0.925)) < 1e-6 && L1.z > 0.6 && Math.abs(L1.mira) < 1e-6 && Math.abs(L1.y - 0.8) < 1e-6, `de costado: en el colchón, los pies hacia el frente (${JSON.stringify(L1)})`);
+  // a los pies (cama girada): mirando a la almohada, los pies del lado de donde estás
+  const L2 = AG.lechoDe({ x: 0, y: 0, z: 0, mira: Math.PI / 2, rot: 0, alPie: true });
+  ok(L2.x > 0.4 && L2.x < 0.7 && Math.abs(L2.z) < 1e-6 && Math.abs(L2.mira + Math.PI / 2) < 1e-6, `a los pies: acostado a lo largo de la cama (${JSON.stringify(L2)})`);
+  const a = AG.lechoDe({ x: 1, y: 0, z: 0, mira: -Math.PI / 2, rot: 0 }, 0, 2), b = AG.lechoDe({ x: 1, y: 0, z: 0, mira: -Math.PI / 2, rot: 0 }, 1, 2);
+  ok(Math.abs(Math.hypot(a.x - b.x, a.z - b.z) - 0.34) < 1e-6, 'de a dos, uno al lado del otro (sin salirse de la cama)');
+  ok(AG.lechoDe(null) === null, 'sin cama conocida, nada (queda como antes)');
+  // la cama de verdad de cada casa dice si es a los pies
+  const camas = ['casa-nelida', 'casa-abuela', 'casa-jefe', 'panaderia'].map((id) => [id, ARQ.armarEdificio(id, 4).puntos.nombrados.cama]);
+  ok(camas.every(([, c]) => c) && camas.some(([, c]) => c.alPie === true) && camas.some(([, c]) => !c.alPie), `las camas, de costado y a los pies (${camas.map(([id, c]) => id + ':' + (c.alPie ? 'pie' : 'costado')).join(', ')})`);
+  const ag = fuente('aldea-gente.js');
+  ok(/if \(!acostar\(n, d, k\)\) \{/.test(ag) && /levantar\(npc\);   \/\/ 4\.31\.1 \(A\)/.test(ag), 'aldea-gente.js los acuesta al llegar y los levanta al irse');
+  ok(/camaDe: \(id, punto\) =>/.test(fuente('main.js')) && /alPie: !!c\.alPie/.test(fuente('main.js')), 'main.js le da la cama de verdad');
+  // «En la cabina»: en el andén, al subir
+  const ui = fuente('historia-ui.js');
+  ok(/function antesDeLaCabina\(\)/.test(ui) && /return dir\.disparar\('cabina-elsa'\) === true;/.test(ui), 'historia-ui.js lanza «En la cabina» antes de subir');
+  ok(/function subirALaCabina\(\) \{\n  if \(!desafio && valle\?\.antesDeLaCabina\?\.\(\)\) return;/.test(fuente('main.js')), 'y main.js la pide al subir a la cabina');
+  ok(DISP.DISPARADORES['cabina-elsa']?.cap === 'ramal' && DISP.DISPARADORES['cabina-elsa'].requiere.includes('anden-graciela'), 'la escena sigue siendo del capítulo 4, después del andén');
+  // el arreo guardado
+  const s1 = HIST.sanearArreoEnCurso({ clave: 'majada-a', ovejas: [{ x: 10.123, z: -3 }, { x: 'x', z: 1 }, { x: 1e9, z: 0 }] });
+  ok(s1 && s1.ovejas.length === 1 && s1.ovejas[0].x === 10.12, 'el arreo en curso se guarda saneado');
+  ok(HIST.sanearArreoEnCurso({ clave: '<x>', ovejas: [{ x: 1, z: 1 }] }) === null && HIST.sanearArreoEnCurso(null) === null, 'lo raro no pasa');
+  ok(HIST.sanearHistoria({ arreoEnCurso: { clave: 'majada-c', ovejas: [{ x: 1, z: 2 }] } }).arreoEnCurso?.clave === 'majada-c', 'sanearHistoria lo conserva');
+  ok(HIST.sanearHistoria({}).arreoEnCurso === null, 'una partida vieja, sin arreo');
+  const am = fuente('historia-arreo-mundo.js');
+  ok(/const quedo = h\.arreoEnCurso && h\.arreoEnCurso\.clave === cf\.clave \? h\.arreoEnCurso\.ovejas : null;/.test(am) && /abrir\(cf\.clave, \{ x: pu\.x \+ 5, z: pu\.z \+ 3 \}, dest, quedo \? \{ posiciones: quedo \} : \{\}\);/.test(am), 'el arreo vuelve con las ovejas donde quedaron');
+  // la fiesta de la plaza: el mismo punto en el plano y en la arquitectura, fuera del tronco y lejos del escalón
+  const pl = ARQ.armarEdificio('plaza', 4), Np = pl.puntos.nombrados, fiesta = A.puntosDe('plaza').mastil, pz = ARQ.EDIFICIOS_ALDEA ? null : null;
+  const plano = { x: 0, z: A.PUNTO_FIESTA_PLAZA };
+  ok(Math.abs(Np.mastil.lx - plano.x) < 1e-6 && Math.abs(Np.mastil.lz - plano.z) < 1e-6, 'el punto de la fiesta, igual en aldea.js y en aldea-arquitectura.js');
+  const tronco = pl.colisiones.obstaculos.find((o) => !o.seg && Math.hypot(o.x, o.z) < 0.01 && o.r >= 0.6);
+  ok(tronco && Math.hypot(plano.x, plano.z) - 0.55 > tronco.r + 0.2, 'la ronda de la fiesta no se mete en el tronco del duende');
+  const escalones = pl.puntos.asientos.filter((s) => s.nombre === 'el escalón del mástil');
+  ok(escalones.length === 2 && escalones.every((s) => Math.hypot(s.lx - plano.x, s.lz - plano.z) > 3), `lejos del escalón del mástil (${escalones.map((s) => Math.hypot(s.lx - plano.x, s.lz - plano.z).toFixed(1)).join(', ')} m)`);
+  ok(fiesta && Number.isFinite(fiesta.x), 'el punto existe en el plano');
 }
 
 ok(!/\r/.test(fuente('gesto-golpe.js')) && !/\r/.test(fuente('pueblo-detalles-juego.js')), 'fines de línea LF');

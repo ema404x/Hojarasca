@@ -1585,7 +1585,8 @@ function cama(K, x, z, giro = 0, o = {}) {
     // al costado de la cama que da al centro de la casa
     const p1 = F.p(A / 2 + 0.45, 0, 0.2), p2 = F.p(-A / 2 - 0.45, 0, 0.2);
     const p = o.alPie ? F.p(0, 0, L / 2 + 0.45) : Math.hypot(p1[0], p1[2]) < Math.hypot(p2[0], p2[2]) ? p1 : p2;
-    K.punto(o.nombre ?? 'cama', p[0], p[2], Math.atan2(x - p[0], z - p[2]));
+    const q = K.punto(o.nombre ?? 'cama', p[0], p[2], Math.atan2(x - p[0], z - p[2]));
+    if (o.alPie) q.alPie = true;   // 4.31.1 (A): parado a los pies, mirando a la almohada (para acostarse: ver lechoDe en aldea-gente.js)
   }
 }
 // cocina a leña de hierro, con su caño hasta el cielorraso (el de afuera lo pone el casco)
@@ -3393,7 +3394,7 @@ function plaza(K) {
   });
   K.mueble(0, ZM, 1.5, 1.5, 0.42, 0, 0);
   mastil(K, 0, ZM, { alto: 8.0, giro: 0.3, base: false, soga: 1.45 });
-  K.punto('mastil', 0, ZM + 1.3, Math.PI, 0.03);
+  K.punto('mastil', 0, 1.5, Math.PI, 0.03);   // 4.31.1 (A): donde se junta la aldea en las fiestas (el mismo de aldea.js, PUNTO_FIESTA_PLAZA): al pie del duende, lejos del escalón (antes, a 44 cm del escalón)
   // los canteros con borde de troncos, entre los senderos
   canteroTroncos(K, r, -3.15, ZM + 0.1, 1.8, 1.0);
   canteroTroncos(K, r, 3.15, ZM + 0.1, 1.8, 1.0);
@@ -4876,7 +4877,8 @@ function nombrar(K) {
   if (P.adentro) N.adentro = copia(P.adentro);
   const trabajo = P.trabajo[0] || P.atiende || P.cocina || P.pizarron;
   if (trabajo) N.trabajo = copia(trabajo);
-  if (P.cama) N.cama = copia(P.cama);
+  if (P.cama) N.cama = P.cama.alPie ? { ...copia(P.cama), alPie: true } : copia(P.cama);   // (4.31.1 (A): y si es a los pies)
+  if (P['cama-2']) N['cama-2'] = copia(P['cama-2']);   // 4.31.1 (A): la segunda cama de la cantina (la de Dalia), para acostarla
   // 3.6 (pulido): para las mecánicas de cada lugar (PLAN_ALDEA §14)
   P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
   P.estufas.forEach((a, i) => { N[i ? 'estufa-' + (i + 1) : 'estufa'] = copia(a); });

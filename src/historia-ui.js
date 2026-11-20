@@ -13,6 +13,7 @@ import { textoObjetivo, lineasCarta, decisionPendiente, tomarDecision, avisoLazo
 import { escenaPendiente, aplicarVistas, alCerrarCapitulo, accionDeObjeto, objetosVisibles, COMIENZO, COLOCACION_ESCENA } from './historia-disparadores.js';
 // 4.17.1: la bolsa del umbral también después del final
 import { conEDespuesDelFinal } from './historia-disparadores.js';
+import { DISPARADORES } from './historia-disparadores.js';
 import { tarjetaAviso } from './historia-reinicio.js';
 import { marcarVista } from './escenas.js';
 import { revisarNoche, armaPorPedir } from './historia.js';
@@ -525,6 +526,18 @@ export function crearValleUi(ctx) {
     const s = estado();
     return !!escenaPendiente(h, s, { modo: 'hablar', clave, apuntaArbolVivo: s.apuntaArbolVivo, visitaActiva: s.visitaActiva });
   }
+  // 4.31.1 (A): «En la cabina» (capítulo 4): pedía estar manejando y ninguna escena puede empezar en el tren, así que nunca salía. Ahora se juega en el andén, al
+  // apretar E para subir a la cabina (Elsa te explica el regulador antes del primer tramo); la E siguiente te sube. Devuelve true si la escena arrancó.
+  function antesDeLaCabina() {
+    const h = historia();
+    if (ctx.esDesafio || !h.activa || h.fase !== 'jugando') return false;
+    const s = estado(), d = DISPARADORES['cabina-elsa'];
+    if (!d || capituloActual(h).id !== d.cap || s.escenas.has('cabina-elsa') || !(d.requiere || []).every((x) => s.escenas.has(x))) return false;
+    const dir = ctx.escenas?.();
+    if (!dir || dir.activa() || (typeof dir.hay === 'function' && !dir.hay('cabina-elsa'))) return false;
+    if (ctx.puedeEscena && !ctx.puedeEscena(false)) return false;
+    return dir.disparar('cabina-elsa') === true;
+  }
   // La E sobre un objeto de historia del mundo: { aviso, hacer } o null
   function accionObjeto(id) {
     const h = historia();
@@ -833,7 +846,7 @@ export function crearValleUi(ctx) {
 
   return {
     actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas, noche,
-    alHablarCon, hayEscenaCon, accionObjeto, accionPuerta, aplicarEscenas,
+    alHablarCon, hayEscenaCon, antesDeLaCabina, accionObjeto, accionPuerta, aplicarEscenas,
     aceleracion: () => aceleracion, estacionForzada: () => forzada, coihueTalado, harinaMolida,   // 4.16.0
     // 4.17.0: la nevada de la historia, los blancos de práctica, la bolsa del umbral y el final
     nevada: () => { const h = historia(); return h.activa && nevadaForzada(h, estado()); },

@@ -21,6 +21,7 @@ app.commandLine.appendSwitch('force-device-scale-factor', '1');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 14 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 14 * 60 * 1000).unref?.();
 const DESAFIO = process.env.HUMO_MODO === 'desafio';
+const FIESTA_Z = Number(process.env.HUMO_FIESTA_Z || 1.5);   // dónde se junta la fiesta de la plaza (0 en la 4.31.0)
 const PARTES = (process.env.HUMO_PARTES || (DESAFIO ? 'desafio' : 'nota,montado,mate,charla,cama,graciela')).split(',');
 const parte = (p) => PARTES.includes(p);
 const IDS_CAP = ['llave', 'bolsa', 'mesa', 'ramal', 'rueda', 'perdido', 'cosecha', 'cuaderno', 'frios', 'golpea', 'arco', 'nevada', 'deshielo'];
@@ -218,8 +219,81 @@ app.whenReady().then(async () => {
       console.log(`  saludos ${s0} → ${s1} · último «${await N('H.__pueblo().info().ultimoSaludo || ""')}»`);
       await foto('cama-adentro');
       ver(s1 === s0, 'a las 3, el que está en la cama no te saluda');
+      // 4.31.1 (A): acostados en su cama (no parados al lado): mirarlos desde adentro de cada casa
+      for (const id of ['casa-nelida', 'casa-familia', 'casa-abuela', 'casa-jefe', 'panaderia', 'carpinteria', 'cantina']) {
+        const r = JSON.parse(await N(`(() => { const e = H.__aldeaMundo().estadoEdificio(${JSON.stringify(id)}); if (!e || !e.puertas.length) return 'null'; const pu = e.puertas[0], s = e.sitio; const ux = pu.x - s.x, uz = pu.z - s.z, l = Math.hypot(ux, uz) || 1;
+          H.jugador.ubicar(pu.x - ux / l * 1.2, pu.z - uz / l * 1.2, 0); return JSON.stringify({ x: pu.x, z: pu.z }) })()`));
+        if (!r) { console.log('  sin', id); continue; }
+        for (let i = 0; i < 4; i++) { await N('(() => { H.__aldea.actualizar(2); return 1 })()'); await N('N.tick(0.4)'); }
+        const l = JSON.parse(await N(`(() => { const D = (k) => H.__aldea.mundo().destinoDe(k); return JSON.stringify(H.gente.gente.filter((g) => g.claveAldea && D && /^cama/.test(D(g.claveAldea)?.punto || '') && D(g.claveAldea)?.edificio === ${JSON.stringify(id)}).map((g) => ({ k: g.claveAldea, visible: g.g.visible && !g.dormido, pose: g.pose, rx: +g.g.rotation.x.toFixed(2), sobrePiso: +(g.pos.y - H.__aldeaMundo().puntosEdificio(${JSON.stringify(id)}).sitio.y).toFixed(2), x: +g.pos.x.toFixed(2), z: +g.pos.z.toFixed(2) }))) })()`));
+        console.log(`  ${id}: ${JSON.stringify(l)}`);
+        const vis = l.filter((q) => q.visible);
+        if (!vis.length) continue;
+        ver(vis.every((q) => q.pose === 'dormir' && Math.abs(q.rx) > 1.4), `${id}: los que duermen, acostados (${vis.map((q) => q.k).join(', ')})`);
+        const q = vis[0];
+        console.log('    datos:', await N(`(() => { const g = N.quien(${JSON.stringify(q.k)}); const c = H.__aldeaMundo().puntosEdificio(${JSON.stringify(id)}); return JSON.stringify({ pos: [+g.pos.x.toFixed(2), +g.pos.z.toFixed(2)], mira: +g.g.rotation.y.toFixed(2), lado: g.__lecho, cama: c.nombrados.cama, rot: c.sitio.rot }) })()`));
+        await N(`(() => { const g = N.quien(${JSON.stringify(q.k)}); const m = g.g.rotation.y, fx = Math.sin(m), fz = Math.cos(m); const cm = H.__aldeaMundo().puntosEdificio(${JSON.stringify(id)}).nombrados[H.__aldea.mundo().destinoDe(g.claveAldea).punto] || g.__lecho; const centro = { x: g.pos.x - fx * 0.8, z: g.pos.z - fz * 0.8 }; const ux = cm.x - centro.x, uz = cm.z - centro.z, ul = Math.hypot(ux, uz) || 1; const de = { x: centro.x + ux / ul * 1.5, z: centro.z + uz / ul * 1.5 }; N.mirarA(de, centro); H.jugador.estado.pitch = -0.6; try { H.linterna && H.linterna.prender && H.linterna.prender(true); } catch (e) {} return 1 })()`);
+        await N('N.tick(0.8)');
+        await foto('cama-' + id);
+      }
     });
 
+    // ------------------------------------------------ «En la cabina» (capítulo 4): en la cabina de la trochita, parada, Elsa te enseña a manejar
+    await seccion('cabina', async () => {
+      await N('N.prep(3, { vistas: ["trochita-boleto", "estacion-llegada", "anden-graciela"] })');
+      await N('(() => { P.horas = 11; const e = H.T.lugares.estacion; H.jugador.ubicar(e.x + 4, e.z + 4, 0); return 1 })()'); await N('N.tick(1)'); await N('N.despejar()');
+      let esp = 0; for (; esp < 3 && !(await N('!!H.tren.parado() && !H.jugador.estado.enTren')); esp++) await N('N.tick(1)');
+      console.log('  el tren paró en una parada a los', esp, 's');
+      await N('(() => { H.__subirALaCabina(); return 1 })()');
+      let id = null;
+      for (let i = 0; i < 20 && !id; i++) { await N('N.tick(0.5)'); id = await N('(() => { const es = H.__escenas; if (!es || !es.activa()) return null; const d = es.director.datos && es.director.datos(); return (d && (d.id || d.escena)) || "activa" })()'); }
+      console.log('  escena al subir a la cabina:', id, '· en el tren', await N('!!H.jugador.estado.enTren'), '· conduciendo', await N('!!H.tren.conduciendo()'), '· parado', await N('!!H.tren.parado()'));
+      if (id) { await N('N.tick(1.2)'); await foto('cabina-1'); await N('(() => { document.dispatchEvent(new KeyboardEvent("keydown", { code: "Enter", key: "Enter", bubbles: true })); return 1 })()'); await N('N.tick(2.5)'); await foto('cabina-2'); await N('(() => { document.dispatchEvent(new KeyboardEvent("keydown", { code: "Enter", key: "Enter", bubbles: true })); return 1 })()'); await N('N.tick(2.5)'); await foto('cabina-3'); }
+      await N('N.despejar()'); await N('N.tick(0.6)');
+      const vistas = await N('JSON.stringify(Object.keys(P.historia.escenas.vistas))');
+      ver(/cabina-elsa/.test(vistas), `«En la cabina» se vio (${vistas})`);
+      await N('(() => { H.__subirALaCabina(); return 1 })()'); await N('N.tick(0.5)');
+      ver(await N('!!H.jugador.estado.enTren && !!H.tren.conduciendo()'), 'después de la escena, la E siguiente te sube a la cabina');
+      ver(!(await N('!!(H.__escenas && H.__escenas.activa())')), 'y no se repite la escena');
+      await N('(() => { try { H.__bajarDeLaCabina(); } catch (e) {} return 1 })()');
+    });
+
+    // ------------------------------------------------ el arreo del capítulo 9: guardar a mitad de camino y volver a cargar
+    await seccion('arreo', async () => {
+      await N('(() => { if (H.jugador.estado.enTren) { try { H.tren.bajarDeCabina(H.jugador) || H.tren.bajar(H.jugador); } catch (e) {} if (H.jugador.estado.enTren) { H.tren.est.conduce = false; H.tren.est.subido = false; H.jugador.estado.enTren = false; } } return 1 })()');   // (la sección de la cabina te deja arriba)
+      await N('N.prep(8, { decisiones: { majada: "a" }, vistas: ["ramon-cama"] })');
+      const pu = await N('(() => { const p = H.__puntosHistoria(); const a = p.puesto, b = p.galpon; return a && b ? { ax: a.x, az: a.z, bx: b.x, bz: b.z } : null })()');
+      ver(!!pu, 'el puesto y el galpón');
+      if (!pu) return;
+      await N(`(() => { H.jugador.ubicar(${pu.ax} + 5, ${pu.az} + 3, 0); P.horas = 11; return 1 })()`); await N('N.tick(2)'); await N('N.despejar()');
+      ver(await N('!!H.__arreo().activo()'), 'el arreo está en marcha');
+      // caminar hacia el galpón de a poco (las ovejas te siguen)
+      for (let i = 0; i < 14; i++) { await N(`(() => { const j = H.jugador.estado.pos, dx = ${pu.bx} - j.x, dz = ${pu.bz} - j.z, d = Math.hypot(dx, dz) || 1; H.jugador.ubicar(j.x + dx / d * 2.2, j.z + dz / d * 2.2, Math.atan2(-dx, -dz)); return 1 })()`); await N('N.tick(0.9)'); await N('N.despejar()'); if (i % 5 === 0) console.log('    oveja', await N('JSON.stringify({ o: H.__arreo().estado && H.__arreo().estado.ovejas[0], j: [H.jugador.estado.pos.x, H.jugador.estado.pos.z], clave: H.__arreo().clave, lleg: H.__arreo().estado && H.__arreo().estado.llegado })')); if (i % 5 === 0) console.log('    paso', i, 'modo', await N('String(typeof H.modoJuego === "function" ? H.modoJuego() : H.modoJuego)'), 'tarjeta', await N('N.tarjeta()'), 'escena', await N('!!(H.__escenas && H.__escenas.activa())')); }
+      const antes = JSON.parse(await N('JSON.stringify(H.__arreo().estado.ovejas.map((o) => ({ x: +o.x.toFixed(1), z: +o.z.toFixed(1) })))'));
+      const dCorral = (l) => l.reduce((s, o) => s + Math.hypot(o.x - (pu.ax + 5), o.z - (pu.az + 3)), 0) / Math.max(1, l.length);
+      console.log('  ovejas a', dCorral(antes).toFixed(1), 'm del corral antes de guardar');
+      await N('N.tick(2.5)'); await N('(() => { H.guardar(); return 1 })()'); await N('N.tick(0.5)');
+      await w.loadFile(url, { search: '?debug=1' });
+      await js('window.__sinPausaPorBlur = true; 1');
+      if (!(await esperarJuego())) throw new Error('no volvió a cargar');
+      await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(3000);
+      await js(PAGINA); await js('window.__sinPausaPorBlur = true; 1');
+      await N('N.tick(2)'); await N('N.despejar()'); await N('N.tick(1)');
+      const desp = JSON.parse(await N('JSON.stringify(H.__arreo().activo() ? H.__arreo().estado.ovejas.map((o) => ({ x: +o.x.toFixed(1), z: +o.z.toFixed(1) })) : [])'));
+      console.log('  después de cargar: ovejas a', dCorral(desp).toFixed(1), 'm del corral');
+      ver(desp.length > 0 && dCorral(desp) > dCorral(antes) * 0.6 && dCorral(antes) > 10, 'cargada la partida, las ovejas siguen donde iban (no vuelven al corral)');
+      await N('(() => { const j = H.jugador.estado.pos, o = H.__arreo().estado.ovejas[0]; if (o) { const d = { x: o.x + 5, z: o.z + 5 }; N.mirarA(d, o); H.jugador.estado.pitch = -0.3; } return 1 })()'); await N('N.tick(0.8)'); await foto('arreo-cargado');
+    });
+
+    // ------------------------------------------------ el escalón del mástil y el lugar de las fiestas de la plaza (puntos en el mundo)
+    await seccion('escalon', async () => {
+      const r = await N('(() => { const pe = H.__aldeaMundo().puntosEdificio("plaza"); const N0 = pe.nombrados; const esc = Object.entries(N0).filter(([k]) => /^asiento-/.test(k)).slice(-2).map(([k, q]) => ({ k, x: +q.x.toFixed(2), z: +q.z.toFixed(2) })); return JSON.stringify({ sitio: { x: pe.sitio.x, z: pe.sitio.z, rot: pe.sitio.rot }, mastil: N0.mastil && { x: +N0.mastil.x.toFixed(2), z: +N0.mastil.z.toFixed(2) }, duende: N0.duende && { x: +N0.duende.x.toFixed(2), z: +N0.duende.z.toFixed(2) }, escalon: esc }) })()');
+      console.log('  plaza:', r);
+      const q = JSON.parse(r);
+      // la gente de la fiesta en su lugar (en ronda de 0,55 m, como la reparte aldea-gente.js) y vos en el escalón
+      await N(`(() => { const pe = H.__aldeaMundo().puntosEdificio('plaza'), s = pe.sitio, fx = Math.sin(s.rot), fz = Math.cos(s.rot); const c = { x: s.x + fx * ${FIESTA_Z}, z: s.z + fz * ${FIESTA_Z} }; const l = H.gente.gente.filter((g) => g.claveAldea && g.g.visible && !g.dormido && !g.enEscena).slice(0, 6); l.forEach((g, i) => { const a = i / l.length * 6.28; N.poner(g, c.x + Math.cos(a) * 0.55, c.z + Math.sin(a) * 0.55, Math.atan2(fx, fz)); }); const e = pe.nombrados['asiento-13']; const de = { x: c.x - fx * 4.5 + fz * 2.5, z: c.z - fz * 4.5 - fx * 2.5 }; N.mirarA(de, { x: (c.x + e.x) / 2, z: (c.z + e.z) / 2 }); H.jugador.estado.pitch = -0.15; return JSON.stringify({ fiesta: c, aEscalon: +Math.hypot(c.x - e.x, c.z - e.z).toFixed(2), aTronco: +Math.hypot(c.x - s.x, c.z - s.z).toFixed(2) }) })()`).then((x) => console.log('  fiesta:', x));
+      await N('N.tick(0.8)'); await foto('escalon-fiesta');
+    });
     // ------------------------------------------------ Graciela: en el capítulo 4 (el ramal) está en la estación; fuera de él, no
     await seccion('graciela', async () => {
       const est = await N('(() => { const e = H.T.lugares.estacion; return e ? { x: e.x, z: e.z } : null })()');
