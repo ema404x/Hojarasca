@@ -1,5 +1,6 @@
 # RELEASE STATUS — 4.0.4
 
+- 4.31.1 (sobre main = 4.31.0): MEGA CACERÍA DE BUGS (CAMBIOS_4_31_1_A/B/C.md) — la E que gana lo que mirás, los que duermen acostados, el hogar, las puertas, troncos y bordes del valle, la naturaleza que no atraviesa nada
 - 4.31.0 (sobre main = 4.30.1): HOJARASCA DETALLISTA (CAMBIOS_4_31_0_A/B/C.md) — luces, fuego, ventanas, cortinas, radio, reloj y muebles del refugio; vecinos que reaccionan, puertas, campanas, perro y aljibe; sacudir, patear, juntar, salpicar y hacer sapito
 - 4.30.1 (sobre main = 4.30.0): LA CAPTURA DE LA PLAZA (CAMBIOS_4_30_1_A/B.md) — caballos fuera de los árboles y con riendas, el retablo de los títeres de verdad, árboles despegados y la gente que camina sin patinar
 - 4.30.0 (sobre main = 4.29.2): CACERÍA GRANDE DE BUGS (CAMBIOS_4_30_0_A/B/C.md) — lo que la gente lleva en la mano, el poncho, el espejo adentro del refugio, la casa del molino, los puentes, la cascada y el arroyo, la mochila y la física
