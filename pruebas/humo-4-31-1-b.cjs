@@ -175,6 +175,72 @@ app.whenReady().then(async () => {
         }
       });
 
+      await seccion('mochila', async () => {
+        // la mochila objeto por objeto: elegir cada ranura con su número, tirar con V y volver a juntar con la E (que no se pierda ni se duplique)
+        await N('(() => { P.horas = 11; P.materiales = Object.assign(P.materiales || {}, { tronco: 4, tabla: 4, piedra: 4 }); P.cosas = Object.assign(P.cosas || {}, { yerba: 2 }); P.entradas["pan-casero"] = { dia: P.dia, hora: 11, cantidad: 2 }; H.__refrescarBarra && H.__refrescarBarra(); return 1 })()');
+        await N('N.mirarA(3, 8, N.local(3, 0, 12))'); await N('N.tick(0.8)');
+        const total = 'JSON.stringify({ mat: P.materiales, yerba: P.cosas && P.cosas.yerba, pan: P.entradas["pan-casero"] && P.entradas["pan-casero"].cantidad, bultos: (P.bultos || []).length, pesos: P.economia && P.economia.pesos })';
+        console.log('  al empezar:', await N(total));
+        for (let i = 1; i <= 8; i++) {
+          await N(`(async () => { N.tecla("Digit${i}", "${i}", "keydown"); N.tecla("Digit${i}", "${i}", "keyup"); await N.tick(0.15); return 1 })()`);
+          const nombre = await N('H.__ranuraActual()');
+          if (!nombre) continue;
+          const antes = await N(total);
+          await N('(async () => { N.tecla("KeyV", "v", "keydown"); N.tecla("KeyV", "v", "keyup"); await N.tick(0.5); return 1 })()');
+          const tirado = await N(total);
+          const nota = await N('[...document.querySelectorAll("#notas .nota")].slice(-1).map((n) => (n.__titulo || n.innerText || "").replace(/\\s+/g, " ").slice(0, 80)).join("")');
+          // juntarlo: mirar el bulto y E
+          const b = await N('JSON.stringify((P.bultos || []).slice(-1)[0] || null)');
+          let junto = '';
+          if (b !== 'null') {
+            await N(`(async () => { const b = ${b}; const j = H.jugador.estado.pos; N.ajustarPitch({ x: b.x, y: (b.y ?? H.T.altura(b.x, b.z)) + 0.15, z: b.z }); await N.tick(0.4); return 1 })()`);
+            const av = await N('N.aviso()');
+            await N('(async () => { N.e(); await N.tick(0.5); return 1 })()');
+            junto = ` · aviso «${av}» → E → ${await N(total)}`;
+          }
+          console.log(`  ranura ${i} «${nombre}»: ${antes} → V → ${tirado} (nota «${nota}»)${junto}`);
+        }
+        await foto('m-mochila');
+        // comer: el pan con U
+        for (let i = 1; i <= 8; i++) { await N(`(async () => { N.tecla("Digit${i}", "${i}", "keydown"); N.tecla("Digit${i}", "${i}", "keyup"); await N.tick(0.12); return 1 })()`); if (/pan/i.test(await N('H.__ranuraActual()'))) break; }
+        const pan0 = await N(total);
+        await N('(async () => { N.tecla("KeyU", "u", "keydown"); N.tecla("KeyU", "u", "keyup"); await N.tick(0.4); return 1 })()');
+        console.log(`  comer («${await N('H.__ranuraActual()')}» con U): ${pan0} → ${await N(total)}`);
+        // la colmena con miel, el gallinero un día después, y la pesca (una trucha que se queda)
+        const pon = await N(`(() => { const PL = Array.isArray(H.PLANOS) ? H.PLANOS : Object.values(H.PLANOS); const et = (id) => (PL.find((p) => p.id === id)?.etapas?.length || 1);
+          const out = []; for (const [plano, lx, lz] of [['colmena', -6, 14], ['gallinero', 6, 16]]) { const b = N.local(lx, 0, lz); const o = { plano, x: b.x, z: b.z, y: H.T.altura(b.x, b.z), rot: 0, etapas: et(plano) }; P.obras.push(o); H.obras.sincronizar([o]); out.push(plano); } return out.join(' ') })()`);
+        await N('N.tick(0.6)');
+        const usarObra = async (plano, prep) => {
+          await N(`(async () => { const o = H.obras.obras.find((x) => x.plano.id === ${JSON.stringify(plano)}); ${prep || ''} const d = o.datos; H.jugador.estado.sentado = false; H.jugador.ubicar(d.x, d.z + 1.8, 0); await N.tick(0.3); N.ajustarPitch({ x: d.x, y: d.y + 0.7, z: d.z }); await N.tick(0.5); return 1 })()`);
+          const av = await N('N.aviso()'), a0 = await N('JSON.stringify({ miel: P.entradas.miel && P.entradas.miel.cantidad, huevo: P.entradas.huevo && P.entradas.huevo.cantidad })');
+          await N('(async () => { N.e(); await N.tick(0.5); return 1 })()');
+          const a1 = await N('JSON.stringify({ miel: P.entradas.miel && P.entradas.miel.cantidad, huevo: P.entradas.huevo && P.entradas.huevo.cantidad })');
+          await foto('m-' + plano);
+          console.log(`  ${plano}: aviso «${av}» · ${a0} → E → ${a1} · nota «${await N('[...document.querySelectorAll("#notas .nota")].slice(-1).map((n) => (n.innerText || "").replace(/\\s+/g, " ").slice(0, 90)).join("")')}»`);
+        };
+        console.log('  obras puestas:', pon);
+        await usarObra('colmena', 'o.datos.colmena = { miel: 2, horas: 0 };');
+        await usarObra('colmena', '');
+        await usarObra('gallinero', 'P.dia += 2; P.horas = 12; await N.tick(0.5);');
+        const pesca = await N(`(() => { const a = JSON.stringify({ peces: P.peces && P.peces.arcoiris, trucha: P.entradas["trucha-fresca"] && P.entradas["trucha-fresca"].cantidad });
+          H.__atrapar({ id: 'arcoiris', cm: 34, def: { nombre: 'trucha arcoíris' } });
+          return a + ' → ' + JSON.stringify({ peces: P.peces && P.peces.arcoiris, trucha: P.entradas["trucha-fresca"] && P.entradas["trucha-fresca"].cantidad }) })()`);
+        console.log('  pesca (una trucha arcoíris de 34 cm):', pesca);
+        // una venta en el puesto de cargas de la aldea, con la trochita parada
+        const venta = await N(`(async () => { const t = H.tren, e = t.est, q = t.paradas.find((x) => x.aldea); e.subido = false; e.conduce = false; e.varado = false; e.s = t.poste(q) % t.largo; e.parado = 120; e.vel = 0; e.proxima = q;
+          P.economia.pesos = 1000; P.materiales.tabla = 8; H.jugador.estado.sentado = false; H.jugador.ubicar(q.cargas.x + 1.2, q.cargas.z + 0.6, Math.atan2(-(q.cargas.x - q.cargas.x - 1.2), -(q.cargas.z - q.cargas.z - 0.6))); await N.tick(0.8);
+          const av = N.aviso(); N.tecla("KeyE", "e", "keydown"); N.tecla("KeyE", "e", "keyup"); await N.tick(0.4); N.tecla("Tab", "Tab", "keydown"); N.tecla("Tab", "Tab", "keyup"); await N.tick(0.3);
+          const p = document.getElementById("cargas") || document.querySelector(".panel-cargas"); const txt = p ? p.innerText.replace(/\\s+/g, " ") : "";
+          const a = { pesos: P.economia.pesos, huevo: P.entradas.huevo && P.entradas.huevo.cantidad, caja: (txt.match(/caja del puesto hay \\$[0-9.]+/) || [""])[0] };
+          const fila = (txt.match(/1[^0-9]{1,6}Tablas[^$]{0,40}\\$\\s?[0-9.]+/) || [""])[0];
+          N.tecla("Digit2", "2", "keydown"); N.tecla("Digit2", "2", "keyup"); await N.tick(0.4);
+          const txt2 = p ? p.innerText.replace(/\\s+/g, " ") : ""; const b = { pesos: P.economia.pesos, huevo: P.entradas.huevo && P.entradas.huevo.cantidad, caja: (txt2.match(/caja del puesto hay \\$[0-9.]+/) || [""])[0] };
+          N.tecla("Escape", "Escape", "keydown"); await N.tick(0.2);
+          return JSON.stringify({ aviso: av, panel: txt.slice(0, 260), fila, antes: a, despues: b }) })()`);
+        console.log('  venta:', venta);
+        await foto('m-venta');
+      });
+
       await seccion('afuera', async () => {
         // la ventana del frente desde afuera: al medio y al borde (donde están los costados de la cortina)
         for (const [n, a] of [['medio', [2.2, 1.45, 2.6]], ['borde-izq', [1.6, 1.5, 2.6]], ['borde-der', [2.8, 1.5, 2.6]]]) {
@@ -183,6 +249,12 @@ app.whenReady().then(async () => {
           console.log(`  ventana desde afuera (${n}): aviso «${await N('N.aviso()')}»`);
         }
         await foto('a-ventana-afuera');
+        // la puerta: mirándola sí; de espaldas a 1,5 m, no; parado en el vano, sí
+        for (const [n, lx, lz, a] of [['de frente', 0.2, 4.4, [0, 1.1, 2.78]], ['en diagonal', 1.4, 4.0, [0, 1.1, 2.78]], ['de espaldas', 0, 4.3, [0, 1.1, 8]], ['en el vano', 0, 3.2, [3, 1.1, 3.2]]]) {
+          await N(`(() => { const a = N.local(${a.join(',')}); N.mirarA(${lx}, ${lz}, a); return 1 })()`); await N('N.tick(0.3)');
+          await N(`N.ajustarPitch(N.local(${a.join(',')}))`); await N('N.tick(0.4)');
+          console.log(`  la puerta (${n}): aviso «${await N('N.aviso()')}»`);
+        }
         // la ventana del costado desde afuera
         for (const [n, a] of [['medio', [-3.35, 1.45, 0]], ['borde', [-3.35, 1.5, 0.6]]]) {
           await N(`(() => { const a = N.local(${a.join(',')}); N.mirarA(-4.9, 0.2, a); return 1 })()`); await N('N.tick(0.3)');

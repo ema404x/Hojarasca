@@ -103,6 +103,11 @@ export function crearCasaDetallesMundo({ T, ref, raiz = null, escena, col = null
   }
   // la losa de piedra delante de la boca del hogar, donde arde el fuego
   caja(c, [-2.4, P + 0.012, -1.66], [1.15, 0.025, 0.42], '#6f6b66', [0, 0, 0], 4, 0.12);
+  // 4.31.1 (B): la boca del hogar: dos jambas de piedra y el dintel, con el techito tiznado, adelante de la cara del hogar (que es un bloque
+  // macizo): el fuego, los leños y la pava quedan adentro de la boca y no delante, sobre el piso
+  for (const s of [-1, 1]) caja(c, [-2.4 + s * 0.72, P + 0.33, -1.7], [0.14, 0.66, 0.32], '#6b6660', [0, 0, 0], 4, 0.1);
+  caja(c, [-2.4, P + 0.74, -1.7], [1.58, 0.16, 0.34], '#6b6660', [0, 0, 0], 4, 0.1);
+  caja(c, [-2.4, P + 0.655, -1.72], [1.3, 0.02, 0.3], '#241d18', [0, 0, 0], 4, 0.02);
   // el libro sobre la cama, cerca de la almohada
   caja(c, [1.95, 0.83, -1.78], [0.17, 0.035, 0.24], '#2f4a3a', [0, 0.3, 0], 4, 0.05);
   caja(c, [1.95, 0.831, -1.78], [0.155, 0.03, 0.23], '#e8e0cc', [0, 0.3, 0], 4, 0.02);
@@ -136,6 +141,7 @@ export function crearCasaDetallesMundo({ T, ref, raiz = null, escena, col = null
   circulo(3.05, -0.78, 0.27, P - 0.1, P + 0.75); circulo(3.05, -0.32, 0.27, P - 0.1, P + 0.75);
   circulo(0.35, -2.36, 0.21, P - 0.1, P + 1.4); circulo(0.75, -2.36, 0.21, P - 0.1, P + 1.4);
   circulo(4.15, 1.2, 0.22, sB - 0.1, sB + 1.1);
+  for (const s of [-1, 1]) circulo(-2.4 + s * 0.72, -1.7, 0.12, P - 0.1, P + 0.85);   // 4.31.1 (B): las jambas de la boca del hogar
   quieto.receiveShadow = true;
 
   // ---------------------------------------------------------------- lo que se mueve o brilla

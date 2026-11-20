@@ -201,6 +201,28 @@ export function crearPuertas(T, escena, col, sonido) {
     return mejor;
   }
 
+  // 4.31.1 (B): la puerta que mirás (para la E): de las de `cerca`, la que tenés adelante y con el rayo de la vista (en planta) pasando
+  // por su vano (medio ancho y un poco más); parado en el vano mismo (a menos de 0,9 m), cualquier vista. Antes la E era de la puerta más
+  // cercana aunque miraras otra cosa: apuntando desde afuera al marco de la ventana del refugio, a 2 m, se abría la puerta. `dir`: { x, z }.
+  function mirada(pos, dir, radio = 3.2) {
+    const dl = Math.hypot(dir?.x || 0, dir?.z || 0);
+    if (!(dl > 1e-6)) return cerca(pos, radio);
+    const fx = dir.x / dl, fz = dir.z / dl;
+    let mejor = null, d0 = radio;
+    const py = Number.isFinite(pos?.y) ? pos.y : null;
+    for (const p of lista) {
+      const dy = py === null ? 0 : Math.abs(py - p.y);
+      if (dy > 1.55) continue;
+      const d = Math.hypot(p.x - pos.x, p.z - pos.z, dy * 0.45);
+      if (d >= d0) continue;
+      const vx = p.x - pos.x, vz = p.z - pos.z;
+      const avanza = vx * fx + vz * fz, costado = Math.abs(vx * fz - vz * fx);
+      if (d >= 0.9 && (avanza <= 0 || costado > (p.ancho || 0.95) / 2 + 0.4)) continue;
+      d0 = d; mejor = p;
+    }
+    return mejor;
+  }
+
   function sincronizarColision(puerta) {
     if (!puerta?.col) return;
     // La colisión sigue físicamente a la hoja durante toda la animación. Así
@@ -273,5 +295,5 @@ export function crearPuertas(T, escena, col, sonido) {
     return { abierta: puerta.abierta || 0, objetivo: puerta.objetivo || 0, puerta };
   }
 
-  return { agregar, agregarCorrediza, agregarPostigos, eliminarPorDuenio, cerca, accionar, actualizar, aperturaPorDuenio, lista };
+  return { agregar, agregarCorrediza, agregarPostigos, eliminarPorDuenio, cerca, mirada, accionar, actualizar, aperturaPorDuenio, lista };
 }

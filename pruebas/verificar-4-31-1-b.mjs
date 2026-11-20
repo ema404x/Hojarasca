@@ -25,6 +25,7 @@ const JUG = process.env.HX_JUG || path.join(raiz, 'src/jugador.js');
 const MAIN = process.env.HX_MAIN || path.join(raiz, 'src/main.js');
 const CD = process.env.HX_CD || path.join(raiz, 'src/casa-detalles.js');
 const CDM = process.env.HX_CDM || path.join(raiz, 'src/casa-detalles-mundo.js');
+const PUE = process.env.HX_PUE || path.join(raiz, 'src/puertas.js');
 const SOLO = process.env.HX_SOLO || '';
 const { crearColisiones } = await import('../src/colisiones.js');
 
@@ -103,10 +104,58 @@ async function pruebaSillon() {
   ok(js.pitch === -0.05, 'sin vista pedida, la de siempre (-0,05)');
 }
 
+// ---------------------------------------------------------------- 4. la E de la puerta, sólo mirándola (puertas.js de verdad)
+async function pruebaPuerta() {
+  const { crearPuertas } = await import(pathToFileURL(PUE).href);
+  const escena = new THREE.Scene(), col = crearColisiones();
+  const P = crearPuertas({ altura: () => 0 }, escena, col, null);
+  // la puerta del refugio: en (0, 2,78) de un refugio sin girar; el marco de la ventana del frente, a 1,6 m de costado
+  const pu = P.agregar({ sitio: { x: 0, z: 0, y: 0 }, rot: 0, lx: 0, lz: 2.78, ancho: 1.2, nombre: 'la puerta del refugio' });
+  const dir = (de, a) => ({ x: a.x - de.x, z: a.z - de.z });
+  const ojo = { x: 2.2, y: 0, z: 4.1 };
+  ok(P.cerca(ojo) === pu, 'por cercanía sola, la puerta está a mano (por eso le ganaba a la ventana)');
+  ok(P.mirada(ojo, dir(ojo, { x: 1.6, z: 2.6 })) === null, 'mirando el marco de la ventana desde afuera, la puerta no');
+  ok(P.mirada({ x: 0.2, y: 0, z: 4.4 }, dir({ x: 0.2, z: 4.4 }, { x: 0, z: 2.78 })) === pu, 'mirando la puerta de frente, sí');
+  ok(P.mirada({ x: 1.4, y: 0, z: 4.0 }, dir({ x: 1.4, z: 4.0 }, { x: 0, z: 2.78 })) === pu, 'mirando la puerta en diagonal, sí');
+  ok(P.mirada({ x: 0, y: 0, z: 4.3 }, { x: 0, z: 1 }) === null, 'de espaldas a la puerta, no');
+  ok(P.mirada({ x: 0, y: 0, z: 3.2 }, { x: 1, z: 0 }) === pu, 'parado en el vano, mirando para el costado, sí');
+  ok(P.mirada({ x: 0, y: 0, z: 4.3 }, { x: 0, z: 0 }) === pu, 'sin vista (0, 0), como antes: la más cercana');
+  const fm = fs.readFileSync(MAIN, 'utf8');
+  ok(fm.includes('puertaCerca: () => puertas && (puertas.mirada ? puertas.mirada(jugador.estado.pos, camara.getWorldDirection(dirPuertaE))'), 'main.js usa la puerta que mirás para la E');
+}
+
+// ---------------------------------------------------------------- 5. el fuego del hogar, adentro de la boca (casa-detalles-mundo.js)
+async function pruebaHogar() {
+  const { crearCasaDetallesMundo } = await import(pathToFileURL(CDM).href);
+  const escena = new THREE.Scene(), circulos = [];
+  const M = crearCasaDetallesMundo({ T: { altura: () => 0 }, ref: { x: 0, y: 0, z: 0, rot: 0 }, escena, col: { agregar: (c) => circulos.push(c) } });
+  const jambas = circulos.filter((c) => Math.abs(c.z + 1.7) < 0.01 && Math.abs(Math.abs(c.x + 2.4) - 0.72) < 0.01);
+  ok(jambas.length === 2, 'las dos jambas de la boca del hogar frenan');
+  // piedra delante de la cara del hogar: a los dos costados del fuego y arriba (el dintel), en la cara de adelante (z = -1,54)
+  let izq = 0, der = 0, arriba = 0;
+  const v = new THREE.Vector3();
+  for (const o of M.grupo.children) {
+    if (!o.isMesh || o.parent !== M.grupo) continue;
+    const pos = o.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      if (v.z < -1.56 || v.z > -1.52) continue;
+      if (v.x < -3.0 && v.x > -3.2 && v.y < 0.37 + 0.5) izq++;
+      if (v.x > -1.8 && v.x < -1.6 && v.y < 0.37 + 0.5) der++;
+      if (v.y > 0.37 + 0.8 && v.y < 0.37 + 0.84 && Math.abs(v.x + 2.4) < 0.8) arriba++;
+    }
+  }
+  ok(izq >= 2 && der >= 2 && arriba >= 2, `hay jambas y dintel delante del fuego (${izq}, ${der}, ${arriba} vértices)`);
+  const f = M.partes.fuego.position;
+  ok(Math.abs(f.x + 2.4) < 0.05 && f.z > -1.86 && f.z < -1.54, 'el fuego está en la boca, entre la cara del hogar y el frente de las jambas');
+}
+
+if (!SOLO || SOLO === 'puerta') await pruebaPuerta();
+if (!SOLO || SOLO === 'hogar') await pruebaHogar();
 if (!SOLO || SOLO === 'sentado') await pruebaSentado();
 if (!SOLO || SOLO === 'alacena') pruebaAlacena();
 if (!SOLO || SOLO === 'sillon') await pruebaSillon();
-if (process.env.HX_JUG || process.env.HX_MAIN || process.env.HX_CD || process.env.HX_CDM) { console.log('mutación sin atrapar'); process.exit(0); }
+if (process.env.HX_PUE || process.env.HX_JUG || process.env.HX_MAIN || process.env.HX_CD || process.env.HX_CDM) { console.log('mutación sin atrapar'); process.exit(0); }
 
 // ---------------------------------------------------------------- mutaciones
 const MUT = [
@@ -118,6 +167,12 @@ const MUT = [
   ['src/casa-detalles.js', 'HX_CD', 'sillon', 'el sillón sin vista baja', "mira: [-0.7, -0.72], pitch: -0.32 }", "mira: [-0.7, -0.72] }"],
   ['src/casa-detalles.js', 'HX_CD', 'sillon', 'la vista al techo', "mira: [-0.7, -0.72], pitch: -0.32 }", "mira: [-0.7, -0.72], pitch: 0.32 }"],
   ['src/casa-detalles-mundo.js', 'HX_CDM', 'sillon', 'el mundo no pasa la vista', ', pitch: s.pitch };', ' };'],
+  ['src/casa-detalles-mundo.js', 'HX_CDM', 'hogar', 'sin la boca del hogar', 'for (const s of [-1, 1]) caja(c, [-2.4 + s * 0.72, P + 0.33, -1.7]', 'for (const s of []) caja(c, [-2.4 + s * 0.72, P + 0.33, -1.7]'],
+  ['src/casa-detalles-mundo.js', 'HX_CDM', 'hogar', 'las jambas no frenan', 'for (const s of [-1, 1]) circulo(-2.4 + s * 0.72', 'for (const s of []) circulo(-2.4 + s * 0.72'],
+  ['src/puertas.js', 'HX_PUE', 'puerta', 'la puerta por cercanía otra vez', 'if (d >= 0.9 && (avanza <= 0 || costado > (p.ancho || 0.95) / 2 + 0.4)) continue;', ''],
+  ['src/puertas.js', 'HX_PUE', 'puerta', 'de espaldas también', 'avanza <= 0 || costado', 'costado'],
+  ['src/puertas.js', 'HX_PUE', 'puerta', 'en el vano, no', 'if (d >= 0.9 && (', 'if (d >= 0 && ('],
+  ['src/main.js', 'HX_MAIN', 'puerta', 'main.js con la más cercana', 'puertaCerca: () => puertas && (puertas.mirada ? ', 'puertaCerca: () => puertas && (false ? '],
 ];
 let atrapadas = 0;
 for (const [archivo, clave, solo, nombre, de, a] of MUT) {
