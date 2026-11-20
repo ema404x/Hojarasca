@@ -22,7 +22,7 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 14 minutos'); try { app.exit(2); } catch { process.exit(2); } }, 14 * 60 * 1000).unref?.();
 const DESAFIO = process.env.HUMO_MODO === 'desafio';
 const FIESTA_Z = Number(process.env.HUMO_FIESTA_Z || 1.5);   // dónde se junta la fiesta de la plaza (0 en la 4.31.0)
-const PARTES = (process.env.HUMO_PARTES || (DESAFIO ? 'desafio' : 'nota,montado,mate,charla,cama,graciela')).split(',');
+const PARTES = (process.env.HUMO_PARTES || (DESAFIO ? 'desafio' : 'nota,montado,mate,charla,cama,graciela,cabina,arreo,escalon')).split(',');
 const parte = (p) => PARTES.includes(p);
 const IDS_CAP = ['llave', 'bolsa', 'mesa', 'ramal', 'rueda', 'perdido', 'cosecha', 'cuaderno', 'frios', 'golpea', 'arco', 'nevada', 'deshielo'];
 
@@ -158,6 +158,7 @@ app.whenReady().then(async () => {
     // ------------------------------------------------ el mate durante el saludo
     await seccion('mate', async () => {
       await N('N.prep(3, {})');
+      await N('(() => { P.horas = 11; H.clima.estado.lluvia = 0; return 1 })()');   // (la sección del caballo deja la noche: de noche la gente está adentro)
       const plaza = await N('(() => { const s = H.__aldeaMundo().estadoEdificio("plaza").sitio; return { x: s.x, z: s.z } })()');
       await N(`(() => { H.jugador.ubicar(${plaza.x}, ${plaza.z} + 6, 0); return 1 })()`);
       for (let i = 0; i < 6; i++) { await N('(() => { H.__aldea.actualizar(2); return 1 })()'); await N('N.tick(0.6)'); await N('N.despejar()'); }

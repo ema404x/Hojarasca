@@ -1433,7 +1433,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         // 3.7.0: con las dos manos en lo suyo (Pocha cosiendo, Inés con el mortero), el mate se deja a un lado
         // (`__mateDejado`: lo guardó esto; lo que guardó otro, como los aliados del Desafío, no se toca)
         if (g.mate) {
-          const deja = !!g.pose && !andando && MANOS_OCUPADAS.has(g.pose);
+          const deja = (!!g.pose && !andando && MANOS_OCUPADAS.has(g.pose)) || !!g.animSocial;   // 4.31.1: también mientras saluda o hace un gesto social
           if (deja && g.mate.visible !== false) { g.mate.visible = false; g.__mateDejado = true; }
           else if (!deja && g.__mateDejado) { g.mate.visible = true; g.__mateDejado = false; }
         }

@@ -11171,7 +11171,8 @@ const ctxInteraccion = {
   tablonAldeaCerca: () => !!desafio?.aldeaMundo?.cerca(jugador.estado.pos), avisoTablonAldea: () => desafio.aldeaMundo.avisoCerca(jugador.estado.pos), abrirTablonAldea: () => desafio.aldeaMundo.usarCerca(jugador.estado.pos),   // 4.9 dias
   trofeosCerca: () => !!desafio?.baseCrece?.cerca(jugador.estado.pos), avisoTrofeos: () => desafio.baseCrece.avisoCerca(jugador.estado.pos), usarTrofeos: () => desafio.baseCrece.usarCerca(jugador.estado.pos),   // 4.10 base: el tablero de trofeos
   distanciaTrofeos: () => desafio?.baseCrece?.distancia?.(jugador.estado.pos), distanciaPuerta: (p) => Math.hypot(p.x - jugador.estado.pos.x, p.z - jugador.estado.pos.z),   // 4.10.2: tablero o puerta, la más cercana
-  puertaCerca: () => puertas && (puertas.mirada ? puertas.mirada(jugador.estado.pos, camara.getWorldDirection(dirPuertaE)) : puertas.cerca(jugador.estado.pos)),   // 4.31.1 (B): la puerta que mirás, no la más cercana accionarPuerta: (p) => puertas.accionar(p),
+  puertaCerca: () => puertas && (puertas.mirada ? puertas.mirada(jugador.estado.pos, camara.getWorldDirection(dirPuertaE)) : puertas.cerca(jugador.estado.pos)),   // 4.31.1 (B): la puerta que mirás, no la más cercana
+  accionarPuerta: (p) => puertas.accionar(p),
   rastro: () => rastro, mirandoAlPerro: () => mirandoAlPerro(jugador.estado, perro.est.pos),
   dejarRastro: () => dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`),
   puedoPedirRastro: () => puedoPedirRastro(), pedirRastro: () => pedirRastro(),
