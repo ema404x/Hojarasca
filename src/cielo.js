@@ -249,7 +249,10 @@ export function crearCielo(escena, calidad) {
     }
   };
   // el piedemonte: 14 anillos de 520 a 3800 m
-  filas(14, LADOS_PIE, (a, j) => { const r = 520 * Math.pow(3800 / 520, j / 13); return [r, piedemonte(a, r)]; });
+  // 4.31.1 (C): lo del piedemonte que cae adentro del cuadrado del valle (en las esquinas, de 520 a 724 m del centro) va bien abajo: el
+  // terreno lo tapa siempre (en el borde sube 95 m). Antes quedaba a 18 m y, donde el suelo de las esquinas es más bajo (hasta 1,4 m, en
+  // unas 1.700 celdas de 4 m del lado caminable), se veía un piso plano gris verdoso que cortaba los troncos del bosque
+  filas(14, LADOS_PIE, (a, j) => { const r = 520 * Math.pow(3800 / 520, j / 13); const y = piedemonte(a, r); return [r, Math.abs(Math.cos(a) * r) < 512 && Math.abs(Math.sin(a) * r) < 512 ? Math.min(y, -12) : y]; });
   // los cordones: radio, forma, ancho del faldeo (adelante y atrás), altura de cresta y agujas
   // (el borde del valle es una loma de unos 100 m: desde el valle tapa hasta ~11° de altura;
   // el primer cordón asoma apenas y los de atrás se levantan cada vez más)

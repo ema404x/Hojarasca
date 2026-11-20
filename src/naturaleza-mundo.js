@@ -154,7 +154,8 @@ export function crearNaturalezaMundo({ escena, T }) {
       soltar('gota', x + Math.cos(a) * 0.15, y + 0.03, z + Math.sin(a) * 0.15, Math.cos(a) * v, (1.6 + Math.random() * 2.2) * fuerza, Math.sin(a) * v, 1.4, 0.7 + Math.random() * 0.7);
     }
   }
-  function gotear(x, y, z) { soltar('gota', x, y, z, (Math.random() - 0.5) * 0.1, -0.2, (Math.random() - 0.5) * 0.1, 1.2, 0.6); }
+  // (4.31.1: `piso`, el piso donde estás parado: adentro de la casa o en un puente la gota atravesaba el piso hasta el terreno)
+  function gotear(x, y, z, piso = null) { const s = soltar('gota', x, y, z, (Math.random() - 0.5) * 0.1, -0.2, (Math.random() - 0.5) * 0.1, 1.2, 0.6); if (s && Number.isFinite(piso)) s.piso = piso; }
   function pajaros(x, y, z, n, desdeX, desdeZ) {
     const huye = Math.atan2(x - desdeX, z - desdeZ);
     for (let k = 0; k < n; k++) {
@@ -190,10 +191,10 @@ export function crearNaturalezaMundo({ escena, T }) {
       }
       s.y += s.vy * dt;
       const ag = T.agua(s.x, s.z);
-      const piso = ag ? ag.nivel : T.altura(s.x, s.z);
+      const piso = Math.max(ag ? ag.nivel : T.altura(s.x, s.z), s.piso ?? -Infinity);
       if (s.y <= piso + 0.01) {
         s.y = piso + 0.01;
-        if (ag || s.forma === 'gota' || s.forma === 'copo') { s.vida = Math.min(s.vida, s.t + (ag ? 0.05 : 0.25)); s.quieta = 1; }
+        if ((ag && !(s.piso > ag.nivel)) || s.forma === 'gota' || s.forma === 'copo') { s.vida = Math.min(s.vida, s.t + (ag ? 0.05 : 0.25)); s.quieta = 1; }
         else { s.quieta = 1; s.rx = Math.PI / 2 * 0.9; s.vida = Math.max(s.t + 1.5, Math.min(s.vida + 3, s.t + 4)); }
       }
     }

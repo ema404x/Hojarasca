@@ -202,7 +202,9 @@ export const INTERACCIONES = [
   { id: 'semilla', cuando: (c, enE) => aMano(c) && c.cerca('semillaArbol', enE), aviso: (c, s) => c.textoSemilla(s), hacer: (c, s) => c.juntarSemilla(s) },
   // 4.31.0 (C): la naturaleza que se toca (ver naturaleza-juego.js): sacudir un arbusto o un árbol chico, arrancar pasto o un amancay anotado,
   // la leña suelta, tocar el agua agachado y el sapito. A pie y sin mirar nada para juntar o anotar; después de todo lo demás (no le saca la E a nadie)
-  { id: 'naturaleza', ...delModulo('naturaleza', aPie) },
+  // 4.31.1 (C): la E sigue sacudiendo, pero el aviso le deja el lugar a la otra tecla que hay para hacer ahí (H para talar el ñire que
+  // mirás, F para el fogón, Y en el banco de aserrar): la mata o el pasto de al lado tapaban esos avisos (ver otraTeclaManda)
+  { id: 'naturaleza', ...delModulo('naturaleza', aPie), sigue: true, aviso: (c, a) => (otraTeclaManda(c, a) ? null : a.texto) },
   // lo que mirás: juntar, anotar, sentarse, leer…
   { id: 'objetivo', cuando: (c) => c.objetivo, aviso: (c, o) => o.texto, hacer: (c) => c.usarObjetivo() },
 ];
@@ -227,6 +229,21 @@ export const OTRAS_TECLAS = [
   { id: 'fogon', tecla: 'F', cuando: (c) => libre(c.js) && c.fogonApagadoCerca(), aviso: () => 'Encender el fogón' },
   { id: 'fogon-puesto', tecla: 'F', cuando: (c) => libre(c.js) && c.fogonDelPuestoApagado(), aviso: () => 'Encender el fogón del puesto' },
 ];
+// 4.31.1 (C): las otras teclas de un lugar que le ganan al aviso de la naturaleza que se toca: el fuego tuyo o el fogón de al lado, la
+// carpa armada, el banco de aserrar; y el hacha si mirás el árbol chico (talarlo o sacudirlo) o tenés al lado el tronco o la roca. Las que se
+// ofrecen en cualquier lado (plantar con semillas encima, aserrar a mano, armar la carpa, cocinar) no: taparían la naturaleza siempre
+const CEDE_NATURALEZA = ['fuego-propio', 'hacha', 'aserrar', 'levantar-carpa', 'fogon', 'fogon-puesto'];
+function otraTeclaManda(c, a) {
+  for (const en of OTRAS_TECLAS) {
+    if (!CEDE_NATURALEZA.includes(en.id)) continue;
+    const hit = en.cuando(c);
+    if (!hit) continue;
+    if (en.id === 'hacha' && a?.id !== 'arbol' && !hit.mata) continue;
+    if (en.id === 'aserrar' && hit !== 'banco') continue;
+    if (en.aviso(c, hit)) return true;
+  }
+  return false;
+}
 const TECLAS_DE_OBRA = ['H', 'T', 'Y', 'B', 'G'];   // con los planos abiertos, H no tala, T tiñe e Y levanta la obra
 
 // La tecla E: la primera entrada que aplica y tiene `hacer` (si `hacer` devuelve `false`, sigue). Devuelve el id.

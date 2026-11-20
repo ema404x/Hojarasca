@@ -12,7 +12,8 @@ const tiene = (o, k) => !!o && typeof o === 'object' && Object.hasOwn(o, k);
 
 // ctx: { T, veg, escena, sonido, objetos, camara(), jugador(), progreso(), nota(t, sub), guardar(), registrar(id, juntado), cabeJuntar(k, n),
 //        sumarRamitas(n), dia(), horas(), ambiente() → { lluvia, viento, invierno, otono }, bajoTecho(), cercaDelFuego(),
-//        distanciaAldea(x, z), pelarPasto(x, z, r) → devolver }
+//        distanciaAldea(x, z), pelarPasto(x, z, r) → devolver, col (4.31.1: las colisiones, para no poner nada adentro de un tronco o una
+//        pared ni tocar algo del otro lado de una pared) }
 export function crearNaturalezaJuego(ctx) {
   const { T, veg, sonido } = ctx;
   const mundo = crearNaturalezaMundo({ escena: ctx.escena, T });
@@ -22,6 +23,25 @@ export function crearNaturalezaJuego(ctx) {
     if (!p.naturaleza || typeof p.naturaleza !== 'object') p.naturaleza = sanearNaturaleza(p.naturaleza);
     return p.naturaleza;
   };
+  // 4.31.1 (C): ¿(x, z) cae adentro de un tronco, una pared o un poste (con `margen` de holgura), o debajo de un piso (un puente, un
+  // andén)? La leña y las piñas salían metidas en los troncos (4 de cada 100: la barrida de humo-4-31-1-c.cjs) y una piedrita, bajo un puente
+  function ocupado(x, z, margen) {
+    const col = ctx.col;
+    if (!col) return false;
+    for (const o of col.cercanos(x, z)) {
+      if (o.despejado || o.sinTocon) continue;
+      const r = (o.r || 0) + margen;
+      if (o.seg) {
+        const ax = o.bx - o.ax, az = o.bz - o.az, l2 = ax * ax + az * az || 1;
+        const u = Math.max(0, Math.min(1, ((x - o.ax) * ax + (z - o.az) * az) / l2));
+        if (Math.hypot(o.ax + ax * u - x, o.az + az * u - z) < r) return true;
+      } else if (Math.hypot(o.x - x, o.z - z) < r) return true;
+    }
+    const p = col.plataformaBaja?.(x, z);
+    return !!(p && p.alto > T.altura(x, z) + 0.25);
+  }
+  // 4.31.1 (C): algo del otro lado de una pared (adentro de la casa, la mata de afuera) no se toca
+  const tapado = (js, x, z) => !!ctx.col?.paredEntre?.(js.pos.x, js.pos.z, x, z, js.pos.y + 0.3, js.pos.y + 1.4);
   const dir = { x: 0, z: -1, pitch: 0 };
   function mirar() {
     const cam = ctx.camara(), js = ctx.jugador()?.estado;
@@ -45,7 +65,7 @@ export function crearNaturalezaJuego(ctx) {
   const pilas = [];
   let cadaRevisar = 0, ultimoX = 1e9, ultimoZ = 1e9;
   const sueloPiedra = (x, z) => {
-    if (T.agua(x, z) || ctx.distanciaAldea(x, z) < 6) return null;
+    if (T.agua(x, z) || ctx.distanciaAldea(x, z) < 6 || ocupado(x, z, 0.15)) return null;   // (4.31.1: ni en un tronco ni bajo un puente)
     const k = T.indice(x, z);
     if (T.distSendero[k] < 2.6 || T.distRiel[k] < 3) return 'piedra';
     if (T.bosque[k] > 0.55) return 'pina';
@@ -56,7 +76,7 @@ export function crearNaturalezaJuego(ctx) {
   const lugarLena = (x, z) => {
     if (T.agua(x, z) || ctx.distanciaAldea(x, z) < 20) return false;
     const k = T.indice(x, z);
-    return T.bosque[k] > NATURALEZA.bosqueLena && T.distSendero[k] > 3 && T.distRiel[k] > 5 && T.pendiente[k] < 0.6;
+    return T.bosque[k] > NATURALEZA.bosqueLena && T.distSendero[k] > 3 && T.distRiel[k] > 5 && T.pendiente[k] < 0.6 && !ocupado(x, z, 0.7);   // (4.31.1: el atado mide 1,3 m)
   };
   function revisarLugar(px, pz) {
     ultimoX = px; ultimoZ = pz;
@@ -91,7 +111,7 @@ export function crearNaturalezaJuego(ctx) {
     for (const p of listaPiedras) {
       if (p.fuera) continue;
       if (!p.mueve) {
-        if (!js.enSuelo || js.nadando || js.montado) continue;
+        if (!js.enSuelo || js.nadando || js.montado || Math.abs(p.y - js.pos.y) > 0.45) continue;   // (4.31.1: desde un puente o un andén no se patea la de abajo)
         const k = patea({ dx: p.x - js.pos.x, dz: p.z - js.pos.z, vx: js.vel.x, vz: js.vel.z });
         if (!k) continue;
         p.vx = k.vx; p.vz = k.vz; p.vy = k.vy; p.mueve = true; p.rodar = 0;
@@ -126,7 +146,7 @@ export function crearNaturalezaJuego(ctx) {
     for (let t = 0; t < 10; t++) {
       const a = Math.random() * 6.28, d = 6 + Math.random() * (NATURALEZA.radioRanas - 6);
       const x = px + Math.cos(a) * d, z = pz + Math.sin(a) * d;
-      if (T.agua(x, z)) continue;
+      if (T.agua(x, z) || ocupado(x, z, 0.2)) continue;   // (4.31.1: ni adentro de un tronco ni debajo del muelle)
       for (let s = 0; s < 6; s++) {
         const b = (s / 6) * 6.28, ag = T.agua(x + Math.cos(b) * 1.3, z + Math.sin(b) * 1.3);
         if (ag) return { x, z, bx: x + Math.cos(b) * 1.6, bz: z + Math.sin(b) * 1.6, nivel: ag.nivel, giro: Math.atan2(Math.cos(b), Math.sin(b)) };
@@ -183,7 +203,7 @@ export function crearNaturalezaJuego(ctx) {
     relojGota = cada * (0.6 + Math.random() * 0.8);
     const d = mirar(), lado = (Math.random() - 0.5) * 0.5;
     // la gota cae de la manga y del borde de la campera: adelante tuyo, a la altura de la cintura (se ve mirando para abajo)
-    mundo.gotear(js.pos.x + d.x * 0.32 - d.z * lado, js.pos.y + 0.95 + Math.random() * 0.25, js.pos.z + d.z * 0.32 + d.x * lado);
+    mundo.gotear(js.pos.x + d.x * 0.32 - d.z * lado, js.pos.y + 0.95 + Math.random() * 0.25, js.pos.z + d.z * 0.32 + d.x * lado, js.pos.y > T.altura(js.pos.x, js.pos.z) + 0.15 ? js.pos.y : null);   // (4.31.1: en un piso o un puente, caen ahí)
     if (++gotas % 3 === 0) { const f = fuente({ x: js.pos.x, y: js.pos.y, z: js.pos.z }, 0.5, 0.1); if (f) sonido.golpeRuido({ dur: 0.04, frec: 2600 + Math.random() * 1600, q: 6, vol: 0.05 * mojado, destino: f, cuando: 0.35 }); }
   }
 
@@ -216,9 +236,15 @@ export function crearNaturalezaJuego(ctx) {
   const extra = [];
   function tirarPiedra(js, hit) {
     const e = est(), amb = ctx.ambiente();
-    const saltos = saltosSapito(Math.random, { agachado: !!js.agachado, corriendo: !!js.corriendo, viento: amb.viento || 0 });
+    let saltos = saltosSapito(Math.random, { agachado: !!js.agachado, corriendo: !!js.corriendo, viento: amb.viento || 0 });
     const d = mirar(), piques = piquesSapito(saltos + 1, 3.4 + Math.random() * 1.6);   // (el último pique es donde se hunde)
-    piedraEnVuelo = { t: 0, x0: js.pos.x + d.x * 0.4, y0: js.pos.y + 1.1, z0: js.pos.z + d.z * 0.4, dx: d.x, dz: d.z, nivel: hit.nivel, borde: hit.borde, piques, k: 0, saltos, x: 0, y: 0, z: 0 };
+    // 4.31.1 (C): la piedra no pica en tierra: con nueve saltos llega a 18 m y en una bahía chica las ondas salían en la orilla de enfrente
+    // (sólo se miraban 7 m de agua). Se hunde en el último pique que cae en el agua
+    const x0 = js.pos.x + d.x * 0.4, z0 = js.pos.z + d.z * 0.4;
+    let k = 0;
+    while (k < piques.length && T.agua(x0 + d.x * (hit.borde + piques[k]), z0 + d.z * (hit.borde + piques[k]))) k++;
+    if (k < piques.length) { piques.length = Math.max(1, k); saltos = piques.length - 1; }
+    piedraEnVuelo = { t: 0, x0, y0: js.pos.y + 1.1, z0, dx: d.x, dz: d.z, nivel: hit.nivel, borde: hit.borde, piques, k: 0, saltos, x: 0, y: 0, z: 0 };
     sonido.lanzar?.();
     const nuevo = anotarSapito(e, saltos);
     piedraEnVuelo.nuevo = nuevo;
@@ -298,21 +324,22 @@ export function crearNaturalezaJuego(ctx) {
     const enAguaBaja = js.superficie === 'agua';
     if (d.pitch < -0.3 && (js.agachado || enAguaBaja)) {
       const ag = enAguaBaja ? { x: px + d.x * 0.5, z: pz + d.z * 0.5, nivel: T.agua(px, pz)?.nivel ?? js.pos.y } : aguaAdelante(js, d, NATURALEZA.alcanceToque);
-      if (ag) c.tocarAgua = { ...ag };
+      if (ag && js.pos.y - ag.nivel < 0.9 && !tapado(js, ag.x, ag.z)) c.tocarAgua = { ...ag };   // (4.31.1: desde un puente o un muelle el agua no se alcanza)
     } else if (d.pitch > -0.45 && amb.invierno < 0.85) {
       const ag = aguaAdelante(js, d, NATURALEZA.alcanceOrilla);
-      if (ag && aguaSeguida(js, d, ag.borde + 1, NATURALEZA.aguaLibre)) c.sapito = { ...ag };
+      if (ag && aguaSeguida(js, d, ag.borde + 1, NATURALEZA.aguaLibre) && !tapado(js, ag.x, ag.z)) c.sapito = { ...ag };
     }
     // la leña suelta
     for (const l of pilas) {
       const dd = Math.hypot(l.x - px, l.z - pz);
+      if (Math.abs(l.y - js.pos.y) > 1.2 || (dd < NATURALEZA.alcanceLena && tapado(js, l.x, l.z))) continue;   // (4.31.1: ni desde otro piso ni del otro lado de una pared)
       if (dd < NATURALEZA.alcanceLena && mirando(px, pz, d.x, d.z, l.x, l.z) > NATURALEZA.mira) { c.lena = { pila: l, lleno: (ctx.ramitas() || 0) >= NATURALEZA.topeRamitas }; break; }
     }
     // el amancay ya anotado
     const prog = ctx.progreso();
     if (prog.entradas?.amancay) {
       const it = amancayCerca(px, pz);
-      if (it && mirando(px, pz, d.x, d.z, it.x, it.z) > 0.8) c.flor = { it };
+      if (it && mirando(px, pz, d.x, d.z, it.x, it.z) > 0.8 && !tapado(js, it.x, it.z)) c.flor = { it };
     }
     // los arbustos y los pastos (anotados: si no, la E anota)
     const matas = veg.matasCerca?.(px, pz, 3.2) || [];
@@ -324,12 +351,13 @@ export function crearNaturalezaJuego(ctx) {
       if (tiene(PASTOS, m.tipo) && dd < 1.6 && dd < mp) { mp = dd; mejorP = m; }
       else if (tiene(ARBUSTOS, m.tipo) && dd < NATURALEZA.alcanceMata + (m.esc || 1) * 0.3 && dd < md) { md = dd; mejorM = m; }
     }
-    if (mejorM) c.arbusto = { mata: mejorM, tipo: mejorM.tipo };
+    if (mejorM && !tapado(js, mejorM.x, mejorM.z)) c.arbusto = { mata: mejorM, tipo: mejorM.tipo };
+    if (mejorP && tapado(js, mejorP.x, mejorP.z)) mejorP = null;
     // un árbol chico
     for (const a of veg.arbolesCerca?.(px, pz, 4) || []) {
       if (a.sacado || a.caido || !tiene(ARBOLES_CHICOS, a.especie) || !((a.esc || 1) <= NATURALEZA.arbolChico)) continue;
       if (Math.hypot(a.x - px, a.z - pz) - (a.r || 0.4) > NATURALEZA.alcanceArbol) continue;
-      if (mirando(px, pz, d.x, d.z, a.x, a.z) < NATURALEZA.mira) continue;
+      if (mirando(px, pz, d.x, d.z, a.x, a.z) < NATURALEZA.mira || tapado(js, a.x, a.z)) continue;
       c.arbol = { arbol: a, especie: a.especie };
       break;
     }
@@ -337,7 +365,7 @@ export function crearNaturalezaJuego(ctx) {
     if (mejorP && (js.agachado || d.pitch < -0.35)) c.pasto = { mata: mejorP, tipo: mejorP.tipo, x: mejorP.x, z: mejorP.z };
     else if (js.agachado && d.pitch < -0.45 && amb.invierno < 0.5) {
       const x = px + d.x * 0.8, z = pz + d.z * 0.8, k = T.indice(x, z);
-      if (T.pasto[k] > 0.5 && !T.agua(x, z) && T.distSendero[k] > 1.8 && ctx.distanciaAldea(x, z) > 4) c.pasto = { x, z };
+      if (T.pasto[k] > 0.5 && !T.agua(x, z) && T.distSendero[k] > 1.8 && ctx.distanciaAldea(x, z) > 4 && Math.abs(T.altura(x, z) - js.pos.y) < 0.5 && !ocupado(x, z, 0.1)) c.pasto = { x, z };   // (4.31.1: no desde un piso o un puente)
     }
     return c;
   }
@@ -475,6 +503,6 @@ export function crearNaturalezaJuego(ctx) {
   return {
     accion, actualizar, alPaso, alChapuzon, mundo,
     mojado: () => mojado,
-    _debug: { piedras: listaPiedras, pilas, ranas, candidatos, hacer, est, ponerMojado: (v) => { mojado = v; }, enCalle },
+    _debug: { piedras: listaPiedras, pilas, ranas, candidatos, hacer, est, ponerMojado: (v) => { mojado = v; }, enCalle, sueloPiedra, lugarLena },
   };
 }

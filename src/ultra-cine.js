@@ -23,11 +23,14 @@ export function circuloCine(z, foco, k, max) {
 }
 export const CINE_PARAMS = { radio: 0.021, apertura: 1.5, muestras: 28, entra: 1.1, sale: 1.6, sigue: 7 };   // radio: fracción del alto; apertura: múltiplo del radio a 1 m
 
+// 4.31.1 (C): las lecturas del lazo, con textureLod (sin derivadas): con texture2D la placa avisaba en la consola (el aviso X3595 del
+// compilador: lecturas con derivadas dentro de un lazo que corre después de un return que depende del píxel). Las texturas no tienen
+// mipmaps: se lee lo mismo
 export const FRAG_CINE = /* glsl */`
   uniform sampler2D uColor; uniform sampler2D uProf; uniform mat4 uProyInv; uniform vec2 uTexel;
   uniform float uFoco; uniform float uK; uniform float uMax; uniform float uFuerza;
   varying vec2 vUv;
-  float zDe(vec2 uv) { float d = min(texture2D(uProf, uv).r, 0.99999); vec4 p = uProyInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); return -p.z / p.w; }
+  float zDe(vec2 uv) { float d = min(textureLod(uProf, uv, 0.0).r, 0.99999); vec4 p = uProyInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); return -p.z / p.w; }
   float cocDe(float z) { return min(uMax, uK * abs(z - uFoco) / max(z, 0.1) / max(uFoco, 0.3)) * uFuerza; }
   void main() {
     vec4 c0 = texture2D(uColor, vUv);
@@ -44,7 +47,7 @@ export const FRAG_CINE = /* glsl */`
       float cs = cocDe(zs);
       // lo de adelante (más cerca que este píxel) sólo se derrama hasta donde llega su propio círculo: lo nítido no mancha al fondo
       float w = zs >= z0 - 0.15 ? 1.0 : clamp(cs / max(dist, 1.0), 0.0, 1.0);
-      acc += texture2D(uColor, uv) * w; pesoT += w;
+      acc += textureLod(uColor, uv, 0.0) * w; pesoT += w;
     }
     gl_FragColor = acc / pesoT;
   }
