@@ -81,7 +81,7 @@ export function crearAcompanante(ctx) {
     const q = acompananteActual(ctx.historia?.());
     if (q !== clave) { soltar(); clave = q; }
     if (!q) return;
-    if (!npc) { const n = ctx.npcDe?.(q); if (!n) return; tomar(n); }
+    if (!npc) { if (ctx.tomada?.()) return; const n = ctx.npcDe?.(q); if (!n) return; tomar(n); }   // (4.31.1 (A): no se lo toma en medio de una escena: se guardaba lo que la escena le había puesto y al soltarlo quedaba congelado)
     if (ctx.tomada?.()) return;   // una escena lo está usando
     const j = ctx.jugador?.();
     if (!j) return;

@@ -13,6 +13,7 @@ import { pintarAtlasDespues, completarAtlas, atlasListo } from './gente-atlas.js
 import { animarSocial, volverDeAnim } from './social-anim.js';
 // 4.31.0 (B): taparse de la lluvia, frotarse las manos, sacudirse la nieve
 import { posarDetalle } from './pueblo-detalles-pose.js';
+import { brazoDeGolpe } from './gesto-golpe.js';
 
 // ---------------------------------------------------------------- historias
 export const HISTORIAS = [
@@ -1384,6 +1385,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         g.patas.forEach((p2, i) => {
           const f = g.paso + i * Math.PI;
           p2.position.y = 0.82 - g.baja + alz;
+          p2.rotation.z = 0;   // 4.31.1 (A): la pierna abierta de la pose del jinete (y de las de baile) no se reponía: se iba caminando con las piernas abiertas
           const alza = Math.sqrt(Math.max(0, i ? alza1 : alza0) / 0.41);
           const pp = g.pasoPollera;   // 4.30.1 (B): con pollera, el paso corto (gente-cuerpo.js): la rodilla y la pantorrilla no salen por la tela
           p2.rotation.x = andando ? Math.asin(perfilPaso(f) * Math.sin(amplitudPaso(g))) : -alza;   // (4.30.1 (B): el pie, en línea recta: ver perfilPaso)
@@ -1459,6 +1461,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         if (g.gestoAmor) gestoAmor(g);   // 3.7.1 (mundo): de la mano, del brazo, el bebé en brazos
         if (g.animSocial) animarSocial(g, dt);   // 3.7.4: el abrazo, la risa, chocar los cinco, la discusión, el baile lento...
         if (g.__detalle || g.__sacude || g.__pesoDetalle) posarDetalle(g, andando);   // 4.31.0 (B): ver pueblo-detalles-pose.js
+        if (g.__golpe) brazoDeGolpe(g, dt);   // 4.31.1 (A): el golpe del martillo o de la honda (gesto-golpe.js)
         if (g.pose === 'dormir' && !andando) for (const pp of g.cabeza.userData?.parpados || []) pp.rotation.x = 0.95;   // (y dormida, con los ojos cerrados)
         limitarCabeza(g);   // 3.7.2
         if (g.planilla || g.caña) {   // 4.30.0 (A): lo que lleva en la mano, con el ángulo que le toca (y anotando, el codo bien doblado: la tabla a la altura del pecho)

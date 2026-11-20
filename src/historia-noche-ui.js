@@ -8,7 +8,7 @@
 // (el premio y `terminada` salen de `cerrarCapitulo`, como antes). Perderla no cuesta nada: vuelve el reloj
 // a su hora, el refugio sigue como estaba y se puede intentar de nuevo todas las veces que se quiera.
 import { capituloActual, anotarRaro } from './historia.js';
-import { modoDeNoche, empezarIntento, cerrarIntento, dejarPerdida, sanearNoche, relojNoche } from './historia-noche.js';
+import { modoDeNoche, empezarIntento, cerrarIntento, dejarPerdida, sanearNoche, relojNoche, descontarIntento } from './historia-noche.js';
 
 export const CSS_NOCHE = `
 .noche-hud { position: absolute; left: 28px; top: 92px; width: min(300px, 46vw); padding: 10px 14px 10px; border-radius: 10px; background: rgba(16,20,18,.62); color: #f2e6c8; font-family: 'Spectral', Georgia, serif; pointer-events: none; }
@@ -131,6 +131,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
       // se dejó a medias (la historia en pausa, el juego cerrado): vuelve el reloj y nada más
       if (antes !== null) ctx.progreso().horas = antes;
       h.noche = sanearNoche(h.noche); h.noche.horasAntes = null;
+      descontarIntento(h);   // 4.31.1 (A): dejada a medias, no cuenta como intento
       ctx.guardar();
       return;
     }
@@ -200,7 +201,7 @@ export function crearNocheUi(ctx, tarjetas, util) {
     // se cerró el juego en plena noche: el reloj vuelve a la hora de antes
     const n = h.noche;
     if (n && n.horasAntes !== null && n.horasAntes !== undefined) {
-      ctx.progreso().horas = n.horasAntes; n.horasAntes = null; ctx.guardar();
+      ctx.progreso().horas = n.horasAntes; n.horasAntes = null; descontarIntento(h); ctx.guardar();   // (4.31.1 (A): y ese intento a medias no cuenta)
     }
   }
 

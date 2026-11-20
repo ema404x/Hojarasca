@@ -56,6 +56,10 @@ export function posarDetalle(g, andando = false) {
   if (w <= 0) { for (const b of g.brazos) if (b && !b.userData?.muneca) b.rotation.y = 0; g.__ultimoDetalle = null; return; }
   const P = poseDetalle(usar, Number(g.fase) || 0);
   if (!P) return;
+  // 4.31.1 (A): lo que lleva en la mano se guarda mientras dura el gesto (el brazo del mate subía por arriba de la cabeza, la planilla quedaba delante de la cara);
+  // gente.js lo vuelve a sacar al terminar (`__mateDejado`, `__enManoDejado`)
+  if (g.mate && g.mate.visible !== false) { g.mate.visible = false; g.__mateDejado = true; }
+  { const cosa = g.planilla || g.caña; if (cosa && cosa.visible !== false) { cosa.visible = false; g.__enManoDejado = true; } }
   const ws = suave(w);
   if (P.izq) brazo(g, 0, P.izq, ws);
   if (P.der) brazo(g, 1, P.der, ws);

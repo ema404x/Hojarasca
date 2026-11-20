@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { COMPANEROS, efectosPartida } from './desafio-reglas.js';
 import { FORTIN } from './desafio-fortin.js';
+import { golpear } from './gesto-golpe.js';
 import { avisoDelPerro, estaMirando } from './desafio-sentidos.js';
 import { ORDENES, RESPUESTAS, RADIO_ARREGLO, ordenDe, siguienteOrden, puntoDeOrden, centroDeArreglo, portonDeLaBase, velocidadSiguiendo, LEJOS_ALCANZA } from './desafio-ordenes.js';
 // 4.9 aliados: la orden «puesto» (marcar dónde se para cada uno) y la campana (que todos corran a su puesto)
@@ -106,7 +107,7 @@ export function crearAliados(api) {
     if (npc.mate) npc.mate.visible = false;
     if (npc.planilla) npc.planilla.visible = false;
     let arco = null;
-    if (clave === 'ema') { arco = mallaArco(); npc.mano.add(arco); }
+    if (clave === 'ema') { arco = mallaArco(); npc.mano.add(arco); npc.__enMano = true; }   // (4.31.1 (A): el brazo del arco no entra en las poses de quietud)
     activos.set(clave, { npc, t: Math.random() * 2, obra: null, arco, mira: { x: c.x, z: c.z } });
     return true;
   }
@@ -220,7 +221,7 @@ export function crearAliados(api) {
           c.golpe = (c.golpe || 0) - dt;
           if (c.golpe <= 0) {
             c.golpe = 0.55;
-            npc.brazos[1].rotation.x = -1.6;
+            golpear(npc, -1.6, 0.3);   // 4.31.1 (A): ver gesto-golpe.js
             api.efectos?.astillas({ x: c.obra.datos.x, y: c.obra.datos.y + 1, z: c.obra.datos.z }, 3);
             api.sonido.golpeRuido?.({ dur: 0.08, frec: 900, q: 2, vol: 0.18, destino: api.sonido.fuente?.(npc.pos, 0.7) });
           }

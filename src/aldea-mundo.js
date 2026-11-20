@@ -1945,7 +1945,7 @@ export function crearAldeaMundo(ctx) {
       for (const l of pz.edificio.luces) nuevaLuz({ raiz: E.raiz }, s, l, l.clase === 'farol' ? 'farol' : 'interior');
       // 3.6 (mecánicas): gancho mínimo: la campana del andén (pieza animable, que no iba en lo
       // fundido y no se montaba) y los puntos con nombre de cada pieza, para aldea-mecanicas-mundo.js
-      (E.puntos ??= {})[pz.id] = { sitio: { ...s }, nombrados: pz.edificio.puntos?.nombrados || {} };
+      (E.puntos ??= {})[pz.id] = { sitio: { ...s }, nombrados: pz.edificio.puntos?.nombrados || {}, carteles: pz.edificio.carteles || [] };   // (4.31.1 (A): y sus carteles: «Aldea de los Duendes» y «Cargas» no se leían)
       for (const a of pz.edificio.animables || []) (E.animables ??= []).push(animableEnSitio(a, s, E.raiz, 'estacion'));
       // 3.6.2 (visual): y sus techos (el galpón de cargas), para que no llueva abajo
       for (const c of pz.edificio.techo?.cubiertas || []) (E.cubiertas ??= []).push({ x: s.x, z: s.z, rot: s.rot, x0: c.x0, x1: c.x1, z0: c.z0, z1: c.z1, y: s.y + c.y, ax: c.ax || 0, ab: c.ab || 0, az: c.az || 0 });
@@ -1987,7 +1987,8 @@ export function crearAldeaMundo(ctx) {
       if (E.puntosMundo) return E.puntosMundo;
       const nombrados = {};
       for (const { sitio, nombrados: N } of Object.values(E.puntos)) for (const [k, q] of Object.entries(N)) if (!nombrados[k]) nombrados[k] = enMundo(sitio, q);
-      E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {} };
+      const carteles = Object.values(E.puntos).flatMap(({ sitio, carteles: C }) => (C || []).map((c) => ({ ...enMundo(sitio, c), texto: c.texto })));   // 4.31.1 (A)
+      E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {}, carteles };
       return E.puntosMundo;
     }
     const b = edificios.get(id);

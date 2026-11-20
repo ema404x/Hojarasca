@@ -162,7 +162,7 @@ export function crearAnimalesAldea(ctx) {
         if (a.estado === 'sigue') {
           const lejosDeCasa = Math.hypot(a.x - a.casa.x, a.z - a.casa.z);
           // (3.7.0 (integración): y si se traba contra algo, o entrás a una casa, deja de seguirte)
-          if (ahora > a.hasta || lejosDeCasa > SEGUIR_PERRO.lejos || js.montado || a.trabado > 1.5) { a.estado = 'vuelve'; a.trabado = 0; }
+          if (!(a.mimo > ahora) && (ahora > a.hasta || lejosDeCasa > SEGUIR_PERRO.lejos || js.montado || a.trabado > 1.5)) { a.estado = 'vuelve'; a.trabado = 0; }   // (4.31.1 (A): mientras lo acariciás se queda: lejos de su casa se iba en medio del mimo)
           else {
             // detrás tuyo, a un par de metros
             const ax = js.pos.x + Math.sin(js.yaw || 0) * 1.8, az = js.pos.z + Math.cos(js.yaw || 0) * 1.8;
@@ -262,7 +262,7 @@ export function crearAnimalesAldea(ctx) {
     for (const [id, a] of perros) {
       if (!a.m.g.visible) continue;
       const d = Math.hypot(a.x - pos.x, a.z - pos.z);
-      if (d < d0) { d0 = d; mejor = { id, nombre: a.def.nombre, x: a.x, y: a.y, z: a.z, d }; }
+      if (d < d0) { d0 = d; mejor = { id, nombre: a.def.nombre, x: a.x, y: a.y, z: a.z, d, lejosDeCasa: Math.hypot(a.x - a.casa.x, a.z - a.casa.z) > SEGUIR_PERRO.lejos }; }   // (4.31.1 (A): lejos de su casa no te sigue: el aviso lo dice)
     }
     return mejor;
   }

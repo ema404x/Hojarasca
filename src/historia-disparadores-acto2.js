@@ -58,7 +58,7 @@ export const DISPARADORES_ACTO2 = {
   'molienda-partir': { cap: 'cosecha', modo: 'interaccion', clave: 'raiz-molienda', cond: (s) => s.decisiones.molienda === 'c' && s.harina >= 1 && s.fletesHarina >= 2 && s.entregados.has('ercilia:harina-3') && !s.entregados.has('raiz:harina') },
   'minga-aldea': { cap: 'cosecha', modo: 'auto', lugar: en('plaza', 25), hora: [9, 17], cond: (s, h) => desde(s, h, 'cocinadas') >= 1 },
   'fermin-mulas': { cap: 'cosecha', modo: 'hablar', clave: 'fermin', requiere: ['minga-aldea'] },
-  'galpon-ronda': { cap: 'cosecha', modo: 'auto', requiere: ['minga-aldea'], lugar: en('galpon-propio', 16), hora: [5.5, 11], cond: (s, h) => s.dia > diaVista(h, 'minga-aldea') },
+  'galpon-ronda': { cap: 'cosecha', modo: 'auto', requiere: ['minga-aldea'], diaTras: 'minga-aldea', lugar: en('galpon-propio', 16), hora: [5.5, 11], cond: (s, h) => s.dia > diaVista(h, 'minga-aldea') },
   // ---- capítulo 8 · El cuaderno de Eusebio (las tres partes del cuaderno salen de la mesa del refugio: ver OBJETOS_ACTO2)
   'libreta-fiado': { cap: 'cuaderno', modo: 'hablar', clave: 'ercilia' },
   'cuaderno-abuelo': { cap: 'cuaderno', modo: 'hablar', clave: 'ema' },

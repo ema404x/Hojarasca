@@ -10,19 +10,22 @@
 // `ctx`: { progreso(), desafio(), jugador() → estado, camara() → { position }, gente() → [figuras], aldeaGente(), aldeaMundo(),
 //   puertas(), animales(), sonido, ambiente() → { lluvia, invierno }, dentroDe(pos) → id del edificio (o null), distanciaAldea(x, z),
 //   hablandoCon() → figura, burbuja(npc, icono, renglon), voz(npc, texto), anim(npc, id), leer({ quien, que, partes, id }),
-//   decir(texto), nota(t, sub), guardar(), nombreDe(k) }
+//   decir(texto), nota(t, sub), guardar(), nombreDe(k), tomada() → hay una escena, una charla o un panel (4.31.1 (A)), callar(texto) → borra el renglón
+//   sólo si sigue diciendo eso (4.31.1 (A)) }
 import { PUEBLO, saludoPara, leToca, quejaChoque, animQueja, loChocaste, climaDeGente, gestoDeClima, ocupacion, luzDeEdificio, hayHumo, respuestaPuerta, seGolpea, quejaLuz, tieneLlave, CAMPANITA, bienvenida, campanaEscuela, lecturaCartel, boletinDeAyer, mimoPerro, sanearPueblo, cambiarLuz, volvieron } from './pueblo-detalles.js';
 import { DUR_SACUDIR } from './pueblo-detalles-pose.js';
 import { EDIFICIOS_ALDEA } from './aldea.js';
 import { nombreCortoDe } from './aldea-vida.js';
 
 const LEJOS_ALDEA = 60;   // más lejos que esto del borde de la aldea, nada
+// 4.31.1 (A): en la cama (su destino es `cama…`): la figura queda parada junto a la cama, pero duerme: ni saluda ni se queja ni hace gestos
+const enLaCama = (AG, g) => { const k = g?.claveAldea; if (!k || !AG?.destinoDe) return false; try { const d = AG.destinoDe(k); return typeof d?.punto === 'string' && /^cama/.test(d.punto); } catch { return false; } };
 const deEdificio = (p) => (typeof p?.duenio === 'string' && p.duenio.startsWith('aldea:') ? p.duenio.slice(6) : null);
 
 export function crearPuebloDetalles(ctx) {
   const info = { saludos: 0, quejas: 0, golpes: 0, campanitas: 0, campanas: 0, caricias: 0, carteles: 0, llaves: 0, quejasLuz: 0, sacudidas: 0, tapados: 0, frotando: 0, ms: 0, msMax: 0 };
   let t = 0, acum = 0, acumOcup = 9, ocup = new Map(), horaAntes = null, ultimoUno = -Infinity;
-  const saludados = new WeakMap(), chocados = new WeakMap(), adentroDe = new WeakMap(), conDetalle = new Set();
+  const saludados = new WeakMap(), chocados = new WeakMap(), adentroDe = new WeakMap(), vistoEn = new WeakMap(), conDetalle = new Set();
   const golpeadas = new Map();     // edificio → t del golpe
   const campanitas = new Map();    // edificio → t de la última
   const pendientes = [];           // { t, hacer }
@@ -37,6 +40,8 @@ export function crearPuebloDetalles(ctx) {
   const despues = (seg, hacer) => pendientes.push({ t: t + seg, hacer });
   const nombre = (k) => ctx.nombreDe?.(k) || nombreCortoDe(k) || k;
   // la figura de alguien, si ya está armada (sin armarla: eso lo decide aldea-gente.js)
+  // 4.31.1 (A): borra el renglón de abajo sólo si sigue diciendo lo nuestro
+  const callar = (texto) => { if (ctx.callar) ctx.callar(texto); else ctx.decir?.(''); };
   const figura = (k) => (ctx.gente?.() || []).find((g) => g && (g.claveAldea === k || g.clave === k)) || null;
 
   // ------------------------------------------------ los sonidos (síntesis, bajitos)
@@ -119,7 +124,7 @@ export function crearPuebloDetalles(ctx) {
       campanitas.set(dentro, t);
       campanita({ x: js.pos.x, y: js.pos.y + 2, z: js.pos.z });
       info.campanitas++;
-      const o = ocup.get(dentro), quien = o?.despiertos?.[0];
+      const o = ocup.get(dentro), duenio = EDIFICIOS_ALDEA[dentro]?.poblador, quien = duenio && o?.despiertos?.includes(duenio) ? duenio : o?.despiertos?.[0];   // (4.31.1 (A): la da el dueño si está; si no, el primero: con Nélida comprando, te daba la bienvenida ella)
       const f = quien ? figura(quien) : null;
       if (f && f.g?.visible) { const txt = bienvenida(n++); despues(0.6, () => { ctx.burbuja?.(f, 'saludo', txt); ctx.voz?.(f, txt); }); }
     }
@@ -141,25 +146,33 @@ export function crearPuebloDetalles(ctx) {
     const o = ojo();
     const hablando = ctx.hablandoCon?.();
     const AM = ctx.aldeaMundo?.();
+    const AG = ctx.aldeaGente?.();
+    const tomada = !!ctx.tomada?.() || !!hablando;   // 4.31.1 (A)
     for (const g of ctx.gente?.() || []) {
       if (!g?.pos || !g.g) continue;
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
       const fuera = !g.g.visible || g.dormido || g.aBordo || g.enBase || d > PUEBLO.lejos;
       if (fuera) { if (g.__detalle) { g.__detalle = null; conDetalle.delete(g); } continue; }
+      const duerme = enLaCama(AG, g);   // 4.31.1 (A)
       // el gesto del clima (y sacudirse la nieve al entrar)
       const andando = g.vel > 0.05;
       const techo = !!(AM?.bajoCubierta?.(g.pos) || AM?.adentro?.(g.pos));
-      const gesto = g.enEscena ? null : gestoDeClima(clima, { andando, bajoTecho: techo, pose: g.pose, charlando: hablando === g });
+      const gesto = g.enEscena || duerme ? null : gestoDeClima(clima, { andando, bajoTecho: techo, pose: g.pose, charlando: hablando === g });
       if (gesto !== g.__detalle) { g.__detalle = gesto; if (gesto) { conDetalle.add(g); if (gesto === 'taparse') info.tapados++; else info.frotando++; } else conDetalle.delete(g); }
       const ed = AM?.adentro?.(g.pos)?.id || null, previo = adentroDe.get(g);
-      if (ed && previo === null && clima === 'nieve' && !g.enEscena) { g.__sacude = (Number(g.fase) || 0) + DUR_SACUDIR; info.sacudidas++; }
+      // 4.31.1 (A): si hace más de 20 s que no se lo veía, no se sabe cuándo entró: al volver a verlo adentro (horas después) se sacudía la nieve
+      const visto = vistoEn.get(g); vistoEn.set(g, t);
+      if (ed && previo === null && clima === 'nieve' && !g.enEscena) if (!duerme && t - (visto ?? -Infinity) < 20) {   // (4.31.1 (A): dormido, no; ni si no se lo veía)
+        g.__sacude = (Number(g.fase) || 0) + DUR_SACUDIR; info.sacudidas++; }
       adentroDe.set(g, ed);
       if (g.enEscena || g.deVisita || hablando === g || js.enTren || js.sentado) continue;
+      // 4.31.1 (A): ni el que duerme, ni el que camina con vos (el acompañante de la Historia, la cita), ni con una escena, una charla o un panel abierto
+      if (duerme || g.conVos || g.enCita || tomada) continue;
       // el choque: le pasaste por encima corriendo
       const hx = g.pos.x - js.pos.x, hz = g.pos.z - js.pos.z;
       const acerca = v > 0 && (mov.x * hx + mov.z * hz) / (d || 1e-6) > 0.2;
       const ch = chocados.get(g) || { t: -Infinity, veces: 0 };
-      if (loChocaste(d, v, acerca) && t - ch.t > PUEBLO.choque.cada) {
+      if (loChocaste(d, v, acerca) && t - ch.t > PUEBLO.choque.cada && !g.animSocial) {   // (4.31.1 (A): sin cortarle el abrazo o el baile: el otro quedaba abrazando el aire)
         ch.veces = t - ch.t < PUEBLO.choque.memoria ? ch.veces + 1 : 1; ch.t = t; chocados.set(g, ch);
         const txt = quejaChoque(ch.veces, n++);
         ctx.anim?.(g, animQueja(ch.veces), { hacia: js.pos });
@@ -194,12 +207,15 @@ export function crearPuebloDetalles(ctx) {
     const o = ojo(), p = prog();
     // el perro (a menos de 1,7 m y de frente)
     const perro = ctx.animales?.()?.perroCerca?.(js.pos, PUEBLO.perro.radio);
-    if (perro && mirando(o, perro, (perro.y ?? js.pos.y) + 0.4).cos > 0.55) {
+    // (4.31.1 (A): con una puerta a mano que mirás más de frente que al perro, gana la puerta: el perro del patio echado junto a la puerta te la robaba)
+    const qPerro = perro ? ctx.puertas?.()?.cerca?.(js.pos, 2.6) : null;
+    const cosPerro = perro ? mirando(o, perro, (perro.y ?? js.pos.y) + 0.4).cos : -1;
+    if (perro && cosPerro > 0.55 && !(qPerro && mirando(o, { x: qPerro.x, z: qPerro.z, y: (qPerro.y ?? js.pos.y) + 1.1 }).cos > cosPerro)) {
       return { tipo: 'perro', texto: `Acariciar a ${perro.nombre}`, hacer: () => {
         if (!ctx.animales?.()?.acariciar?.(perro.id, PUEBLO.perro.extra, js.pos)) return;
         contento({ x: perro.x, y: (perro.y ?? js.pos.y) + 0.5, z: perro.z });
         info.caricias++;
-        ctx.nota?.(mimoPerro(perro.nombre, n++), 'Te va a seguir un rato');
+        ctx.nota?.(mimoPerro(perro.nombre, n++), perro.lejosDeCasa ? 'Después se vuelve para su casa' : 'Te va a seguir un rato');   // (4.31.1 (A): lejos de su casa no te sigue)
       } };
     }
     const AM = ctx.aldeaMundo?.();
@@ -269,9 +285,9 @@ export function crearPuebloDetalles(ctx) {
     despues(1.3, () => {
       ctx.decir?.(r.texto);
       const f = r.quien ? figura(r.quien) : null;
-      if (f) { ctx.burbuja?.(f, r.tipo === 'abre' ? 'puerta' : 'z', r.texto.replace(/^[^«]*«|»$/g, '')); ctx.voz?.(f, r.texto); }
+      if (f) { ctx.burbuja?.(f, r.tipo === 'abre' ? 'puerta' : 'cansado', r.texto.replace(/^[^«]*«|»$/g, '')); ctx.voz?.(f, r.texto); }
     });
-    despues(5.5, () => ctx.decir?.(''));
+    despues(5.5, () => callar(r.texto));   // (4.31.1 (A): sólo si sigue diciendo esto: borraba la charla de los vecinos que estabas escuchando)
   }
   function usarLlave(id, q) {
     const e = estado(), p = prog();
@@ -285,7 +301,8 @@ export function crearPuebloDetalles(ctx) {
       const quien = o.despiertos[0], f = figura(quien), txt = quejaLuz(n++);
       info.quejasLuz++; info.ultimaQuejaLuz = txt;
       despues(0.5, () => { if (f) { ctx.anim?.(f, 'quejarse', { hacia: ctx.jugador?.()?.pos }); ctx.burbuja?.(f, 'enojado', txt); ctx.voz?.(f, txt); } ctx.decir?.(`${nombre(quien)}: «${txt}»`); });
-      pendientes.push({ t: t + PUEBLO.luz.vuelve, luz: id, hacer: () => { const e2 = estado(); if (e2 && Object.hasOwn(e2.apagadas, id)) { delete e2.apagadas[id]; llave({ x: q.x, y: (q.y ?? 0) + 1.3, z: q.z }); ctx.guardar?.(); } ctx.decir?.(''); } });
+      const dicho = `${nombre(quien)}: «${txt}»`;
+      pendientes.push({ t: t + PUEBLO.luz.vuelve, luz: id, hacer: () => { const e2 = estado(); if (e2 && Object.hasOwn(e2.apagadas, id)) { delete e2.apagadas[id]; llave({ x: q.x, y: (q.y ?? 0) + 1.3, z: q.z }); ctx.guardar?.(); } callar(dicho); } });
     }
     ctx.guardar?.();
   }

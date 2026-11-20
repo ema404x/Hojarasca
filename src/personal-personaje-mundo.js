@@ -118,6 +118,7 @@ export function crearCuerpoJugador(escena) {
     piernas[1].rotation.x = js.sentado ? -1.45 : -bal;
     brazos[0].rotation.x = -bal * 0.8;
     brazos[1].rotation.x = bal * 0.8;
+    brazos[0].rotation.z = 0; brazos[1].rotation.z = 0;   // 4.31.1 (A): soltada la mano de tu pareja, el brazo quedaba abierto
     // 3.7.1 (mundo): de la mano con tu pareja (amor-mundo.js): ese brazo, hacia ella (se ve en el modo foto y en la sombra)
     if (manoAmor !== null && brazos[manoAmor]) { const b = brazos[manoAmor]; b.rotation.x = -0.38; b.rotation.z = (manoAmor ? 1 : -1) * 0.11; }
     return cambio && conSombras;

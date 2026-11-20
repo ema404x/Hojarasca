@@ -2384,7 +2384,7 @@ function quietud(g, st, dt, andando, charlando) {
   const q = st.q || (st.q = { nombre: null, sig: null, w: 0, t: 2 + Math.random() * 4 });
   // 4.30.0 (A): con la planilla o la caña en la mano (a la vista), el brazo que la lleva no entra en la pose (como el del mate): la tabla o la caña atravesaban el pecho con
   // los brazos cruzados; y anotando o pescando (`__tareaMano`, gente.js) no hay quietud: Nicanor cruzaba los brazos con la caña tendida al agua
-  const enMano = !!((g.planilla && g.planilla.visible !== false) || (g.caña && g.caña.visible !== false));
+  const enMano = !!((g.planilla && g.planilla.visible !== false) || (g.caña && g.caña.visible !== false)) || !!g.__enMano;   // (4.31.1 (A): `__enMano`: el martillo de Anselmo y el arco de Josefina en el Desafío)
   if (g.__quietud !== undefined) q.sig = g.__quietud;
   else if (!andando && !charlando && !g.pose && !g.mate?.visible && !g.__tareaMano) {
     q.t -= dt;

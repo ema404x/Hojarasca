@@ -102,6 +102,15 @@ export function empezarIntento(h, horas) {
   espejarEnDuendes(h, { intento: true });
   return n;
 }
+// 4.31.1 (A): el intento que quedó a medias (la historia en pausa en plena noche, o el juego cerrado en medio) no cuenta: se descuenta. Si no, al volver la
+// noche arrancaba de nuevo y sumaba otro: «Nevó y no cedió» (al primer intento) se perdía y «Otra vez» se ganaba sin haber perdido nunca.
+export function descontarIntento(h) {
+  const n = h.noche = sanearNoche(h.noche);
+  n.intentos = Math.max(0, n.intentos - 1);
+  const d = h?.duendes;
+  if (d && typeof d === 'object' && !Array.isArray(d) && Number(d.intentos) > 0) d.intentos = Math.max(0, Math.floor(Number(d.intentos)) - 1);
+  return n;
+}
 // Termina el intento: ganó o perdió. Devuelve el reloj que había que devolver (o null).
 // 4.17.0: ganar cierra la noche; perder la deja pendiente (se repite con «Otra vez» o se deja con `dejarPerdida`: «Que amanezca»)
 export function cerrarIntento(h, gano) {

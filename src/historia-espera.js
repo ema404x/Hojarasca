@@ -37,6 +37,15 @@ export function horaEnTexto(h) {
   return `${hh}:${dosDigitos(mm)}`;
 }
 
+// 4.31.1 (A): la ventana vale recién desde el día siguiente: el del comienzo del capítulo (`despues`) o el de una escena (`diaTras`: la del galpón antes del
+// mirador, la minga antes de la ronda, la tranquera antes del canelo)
+const diaVistaDe = (h, id) => Math.max(0, Math.floor(Number(h?.escenas?.vistas && Object.hasOwn(h.escenas.vistas, id) ? h.escenas.vistas[id] : 0) || 0));
+export function faltaElDia(h, s, d) {
+  if (d?.despues && !(s.dia > (Number(h?.base?.dia) || 1))) return true;
+  if (typeof d?.diaTras === 'string' && !(s.dia > diaVistaDe(h, d.diaTras))) return true;
+  return false;
+}
+
 // Horas de juego hasta que empiece la ventana [a, b) desde la hora `h` (0 si ya estamos adentro)
 export function horasHastaVentana(h, ventana) {
   if (!Array.isArray(ventana)) return 0;
@@ -58,14 +67,14 @@ export function esperaDeObjetivo(h, s, o) {
   // lo único que falta es la hora (o el día): lo estructural tiene que estar (las escenas previas y las que se excluyen)
   const listos = ds.filter((d) => (!d.requiere || d.requiere.every((x) => s.escenas.has(x))) && (!d.no || !d.no.some((x) => s.escenas.has(x))));
   if (!listos.length) return null;
-  if (listos.some((d) => horaEntre(s.horas, d.hora[0], d.hora[1]) && !(d.despues && !(s.dia > (Number(h.base?.dia) || 1))))) return null;   // ya es la hora: lo que falta es otra cosa (el lugar, sentarse)
+  if (listos.some((d) => horaEntre(s.horas, d.hora[0], d.hora[1]) && !faltaElDia(h, s, d))) return null;   // ya es la hora: lo que falta es otra cosa (el lugar, sentarse)
   // la espera más corta entre los disparadores que podrían abrirse
   const x = ((Number(s.horas) % 24) + 24) % 24;
   let mejor = null;
   for (const d of listos) {
     const inicio = ((d.hora[0] % 24) + 24) % 24;
     // con «después del día en que empezó el capítulo» hay que pasar la medianoche: la ventana vale desde mañana
-    const esperaDia = !!d.despues && !(s.dia > (Number(h.base?.dia) || 1));
+    const esperaDia = faltaElDia(h, s, d);
     const horas = esperaDia ? (24 - x) + inicio : horasHastaVentana(s.horas, d.hora);
     if (!mejor || horas < mejor.horas) mejor = { horas, inicio, esperaDia };
   }

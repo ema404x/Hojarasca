@@ -557,7 +557,7 @@ export const CAPITULOS = [
       'Tu galpón tiene luz adentro, risas bajitas y olor a harina. Es tu galpón. Pero esta noche no está tan claro de quién es.',
     ],
     objetivos: [
-      { id: 'golpe', tecla: 'E', texto: 'Andá al galpón (tiene luz) y golpeá la puerta antes de abrir (E)', hecho: escena('galpon-golpe') },
+      { id: 'golpe', tecla: 'E', texto: 'Andá al galpón de noche (tiene luz) y golpeá la puerta antes de abrir (E)', hecho: escena('galpon-golpe') },
       { id: 'duendes', tecla: '·', texto: 'Decidí qué hacés con los que están adentro: ¿trato o pelea?', hecho: decision('duendes') },
       { id: 'cerro', tecla: 'E', texto: 'A la mañana, subí al mirador del pehuén y mirá el cerro (con Josefina o con Belisario)', hecho: escena('cerro-mirador') },
       { id: 'mesa', tecla: 'E', texto: 'Juntá a los vecinos en tu mesa (con la mesa puesta, a partir de las 16)', vecinos: true, hecho: escena('mesa-guerra') },
@@ -594,7 +594,7 @@ export const CAPITULOS = [
       // cadena C · lo prestado
       { id: 'prestado', tecla: 'E', texto: 'Pedí defensas prestadas: Anselmo (estacas), Guido (miel), Martín (la campana) y Elsa (durmientes); alcanzan tres', vecinos: true, meta: 3, cuenta: (s) => s.prestadoN },
       { id: 'deuda', tecla: 'E', visible: (s) => s.deuda > 0, texto: (s) => `Pagá lo que debés del trato: ${loQueSeDebe(s)}, en la raíz del coihue (o el tocón)`, hecho: (s) => s.deuda === 0 || s.escenas.has('recorrer-lado') },
-      { id: 'lado', tecla: 'E', texto: 'Recorré el lado del arroyo hasta el galpón, con Ramón o con Josefina (al atardecer)', hecho: escena('recorrer-lado') },
+      { id: 'lado', tecla: 'E', texto: 'Recorré el lado del arroyo hasta el galpón, con Ramón o con Josefina (al atardecer, con tres defensas prestadas)', hecho: escena('recorrer-lado') },
     ],
     outro: [
       'La radio del Cerro Negro lo dijo tres veces: nevada grande en la cordillera, baja al valle esta noche. Ercilia cerró temprano. Los chicos de los Jones pegaron la nariz al vidrio. Ramón pidió que lo llevaran al refugio «para mirar, nomás». Josefina se trajo el sombrero.',

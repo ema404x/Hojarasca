@@ -517,6 +517,14 @@ export function crearValleUi(ctx) {
     if (anotarCharla(h, clave)) ctx.guardar();
     return lanzarEscena(h, estado(), { modo: 'hablar', clave });
   }
+  // 4.31.1 (A): ¿el vecino tiene una escena esperándote? (para avisar «bajate del caballo» en vez de gastar la charla de historia: montado la escena no arranca)
+  function hayEscenaCon(clave) {
+    if (ctx.esDesafio) return false;
+    const h = historia();
+    if (!h.activa || h.fase !== 'jugando') return false;
+    const s = estado();
+    return !!escenaPendiente(h, s, { modo: 'hablar', clave, apuntaArbolVivo: s.apuntaArbolVivo, visitaActiva: s.visitaActiva });
+  }
   // La E sobre un objeto de historia del mundo: { aviso, hacer } o null
   function accionObjeto(id) {
     const h = historia();
@@ -527,7 +535,7 @@ export function crearValleUi(ctx) {
     if (h.fase === 'fin' && a.tipo !== 'bolsa') return null;   // (4.18.0: terminada la historia, sólo la bolsa de la costumbre del trato)
     if (a.tipo === 'reparar' && (s.tablas || 0) < 1) return { aviso: 'Para cambiar una tabla del alero hace falta una tabla', hacer: () => ctx.nota('Te falta una tabla', 'El banco de carpintero y el hacha te dan tablas') };
     if (a.tipo === 'escena' && !escenaPendiente(h, s, { modo: 'interaccion', clave: id })) return null;
-    return { aviso: a.aviso, hacer: () => usarObjeto(id, a) };
+    return { aviso: a.aviso, escena: a.tipo === 'escena', hacer: () => usarObjeto(id, a) };   // (4.31.1 (A): `escena`: a caballo cede a «Bajarte», ver interacciones.js)
   }
   function usarObjeto(id, a) {
     const h = historia();
@@ -825,7 +833,7 @@ export function crearValleUi(ctx) {
 
   return {
     actualizar, alEntrar, portada, hablo, empezar, pausar, historia, estado, eventos, tarjetas, noche,
-    alHablarCon, accionObjeto, accionPuerta, aplicarEscenas,
+    alHablarCon, hayEscenaCon, accionObjeto, accionPuerta, aplicarEscenas,
     aceleracion: () => aceleracion, estacionForzada: () => forzada, coihueTalado, harinaMolida,   // 4.16.0
     // 4.17.0: la nevada de la historia, los blancos de práctica, la bolsa del umbral y el final
     nevada: () => { const h = historia(); return h.activa && nevadaForzada(h, estado()); },

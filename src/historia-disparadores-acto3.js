@@ -26,7 +26,7 @@ export const DISPARADORES_ACTO3 = {
   'majada-fermin': { cap: 'frios', modo: 'auto', requiere: ['fermin-tranquera'], lugar: en('galpon', 30), cond: (s) => s.decisiones.majada === 'a' && s.temas.has('arreo:galpon-esquila') },
   'majada-vos': { cap: 'frios', modo: 'auto', requiere: ['fermin-tranquera'], lugar: en('puesto', 40), cond: (s) => s.decisiones.majada === 'b' && s.cuidados >= 3 },
   'majada-belisario': { cap: 'frios', modo: 'auto', requiere: ['fermin-tranquera'], lugar: en('puesto-paso', 30), cond: (s) => s.decisiones.majada === 'c' && s.temas.has('arreo:puesto-paso') },
-  'hojas-canelo': { cap: 'frios', modo: 'auto', requiere: ['fermin-tranquera'], lugar: en('puesto', 45), hora: [5, 10], cond: (s, h) => s.dia > diaVista(h, 'fermin-tranquera') },
+  'hojas-canelo': { cap: 'frios', modo: 'auto', requiere: ['fermin-tranquera'], diaTras: 'fermin-tranquera', lugar: en('puesto', 45), hora: [5, 10], cond: (s, h) => s.dia > diaVista(h, 'fermin-tranquera') },
   // Ramón camina despacio con vos hasta la aldea (o, si pasan dos días, ya lo llevó Marta). Es mecánica: B no la escribió, se da por vista.
   'ramon-sanitario': { cap: 'frios', modo: 'auto', requiere: ['ramon-cama'], lugar: en('plaza', 60), hora: [8, 21], cond: (s, h) => s.acompanante === 'ramon' || s.dia >= diaVista(h, 'ramon-cama') + 2 },
   'papel-elsa': { cap: 'frios', modo: 'auto', requiere: ['ramon-cama'], lugar: en('estacion', 22), hora: [8, 20] },
@@ -37,7 +37,8 @@ export const DISPARADORES_ACTO3 = {
   'galpon-encuentro': { cap: 'golpea', modo: 'auto', requiere: ['galpon-golpe'], lugar: en('galpon-noche', 22) },
   'galpon-trato': { cap: 'golpea', modo: 'auto', requiere: ['galpon-encuentro'], lugar: en('galpon-noche', 25), cond: (s) => s.trato === 'trato' },
   'galpon-pelea': { cap: 'golpea', modo: 'auto', requiere: ['galpon-encuentro'], lugar: en('galpon-noche', 25), cond: (s) => s.trato === 'pelea' },
-  'cerro-mirador': { cap: 'golpea', modo: 'auto', requiere: ['galpon-encuentro'], lugar: en('mirador', 16), hora: [6, 12], cond: (s, h) => (s.escenas.has('galpon-trato') || s.escenas.has('galpon-pelea')) && s.dia > diaVista(h, 'galpon-encuentro') },
+  // (4.31.1 (A): `diaTras`: la línea de espera sabe que hay que pasar la medianoche desde esa escena: golpeando después de las 0 decía «hasta las 6» y a las 6 no pasaba nada)
+  'cerro-mirador': { cap: 'golpea', modo: 'auto', requiere: ['galpon-encuentro'], diaTras: 'galpon-encuentro', lugar: en('mirador', 16), hora: [6, 12], cond: (s, h) => (s.escenas.has('galpon-trato') || s.escenas.has('galpon-pelea')) && s.dia > diaVista(h, 'galpon-encuentro') },
   'mesa-guerra': { cap: 'golpea', modo: 'auto', requiere: ['cerro-mirador'], lugar: en('refugio', 35), hora: [16, 21], cond: (s) => s.mesa },
   'llave-79': { cap: ['golpea', 'arco'], modo: 'interaccion', clave: 'cajon-trabado', requiere: ['galpon-encuentro'], cond: (s) => s.llave79 && s.final == null && s.trato === 'trato' },
   'pedir-perdon': { cap: ['golpea', 'arco'], modo: 'interaccion', clave: 'raiz-perdon', requiere: ['galpon-encuentro'], cond: (s) => s.trato === 'pelea' && !s.perdon },

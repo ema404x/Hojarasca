@@ -2503,12 +2503,25 @@ function historiaObjetoCerca() {
   if (!h.activa || (h.fase !== 'jugando' && !hayEDespuesDelFinal(h))) return null;   // (4.17.1: después del final, la bolsa del umbral)
   const visibles = Object.keys(objetosHist.posiciones);   // (4.16.0: todos los que tienen lugar; `accionObjeto` filtra los que se ven y tienen qué hacer)
   // 4.18.0: el que estás mirando le gana al más cercano (el frasco de la estantería y la nota de la mesa, adentro del refugio)
-  const id = objetoMirado(jugador.estado, visibles, objetosHist.posiciones, (k) => valle.accionObjeto(k)) || objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
+  const mirado = objetoMirado(jugador.estado, visibles, objetosHist.posiciones, (k) => valle.accionObjeto(k));
+  const id = mirado || objetosHist.cercano(jugador.estado.pos, visibles, (k) => valle.accionObjeto(k));
   let a = id ? valle.accionObjeto(id) : null;
   // 4.17.1: los objetos del umbral no le ganan la E a la puerta del refugio, salvo que los estés mirando
   if (a && cedeALaPuerta(id, jugador.estado, objetosHist.posiciones[id], puertas ? puertas.cerca(jugador.estado.pos) : null)) a = null;
-  cacheObjetoHist.v = a ? { id, ...a } : null;
+  cacheObjetoHist.v = a ? { id, ...a, mirado: !!mirado && miradoDeFrente(mirado) } : null;   // (4.31.1 (A): `mirado`: lo estás mirando; si sólo es el más cercano, lo que mirás del refugio le gana: ver interacciones.js)
   return cacheObjetoHist.v;
+}
+// 4.31.1 (A): «mirado» de frente también en altura (objetoMirado sólo mira el rumbo): el frasco de la repisa, al lado de la radio y arriba de la alacena, les ganaba
+// apuntándoles a ellas. Con la malla a la vista, el punto tiene que estar a menos de ~16° del centro de la mirada; sin malla, vale el rumbo.
+const _vMirado = new THREE.Vector3();
+function miradoDeFrente(id) {
+  const m = objetosHist?.mallas?.[id];
+  if (!m || !m.visible || !camara) return true;
+  m.getWorldPosition(_vMirado);
+  const js = jugador.estado, c = camara.position, cp = Math.cos(js.pitch || 0);
+  const fx = -Math.sin(js.yaw || 0) * cp, fy = Math.sin(js.pitch || 0), fz = -Math.cos(js.yaw || 0) * cp;
+  const dx = _vMirado.x - c.x, dy = _vMirado.y + 0.08 - c.y, dz = _vMirado.z - c.z, d = Math.hypot(dx, dy, dz) || 1;
+  return (dx * fx + dy * fy + dz * fz) / d > 0.96;
 }
 let cachePuertaHist = { t: -1, v: null };
 function historiaPuertaCerca() {
@@ -6803,6 +6816,9 @@ function armarOficiosYAldea(esDesafio) {
       hablandoCon: () => charla.npc, burbuja: (npc, icono, renglon) => socialMundo?.burbuja(npc, icono, { renglon }), voz: (npc, texto) => vozSocial(npc, texto),
       anim: (g, id, o) => empezarAnim(g, id, o), leer: (l) => leerEnLaAldea(l), decir: (texto) => decirCharlaAldea(texto),
       nota: (t, sub) => nota(t, sub), guardar: () => guardar(),
+      // 4.31.1 (A): con una escena, una charla o un panel abierto, nadie te saluda ni se queja; y el renglón de abajo se borra sólo si sigue siendo el nuestro
+      tomada: () => !!escenasMundo?.activa() || !!charla.npc || !!charla.menu || panelDelHudAbierto() || panelFueraDelHudAbierto(),
+      callar: (texto) => { if (renglonAldea && renglonAldea.style.display !== 'none' && renglonAldea.textContent === T_(texto)) decirCharlaAldea(''); },
     });
   } catch (e) { fallaSistema('pueblo-detalles-armado', e); puebloDetalles = null; }
   // 3.9.0: la cantina: la mesa, la carta, la moza que te trae el pedido y el sorbo en primera persona (aislada: si falla, lo demás sigue)
@@ -9469,6 +9485,8 @@ function hablar(npc) {
   // 4.25.2: con la clave corta de la Historia (`panadera`, `carpintero`, `martin`…): la figura de la aldea es `poblador-panadera` / `aldea-martin` y lleva la corta en
   // `claveAldea` (como en vecindad-juego.js, noticias-juego.js, concursos-juego.js). Con la larga, la E no disparaba ninguna escena: «Llevarla a Rosa» (capítulo 2) y el capítulo 11 se trababan
   const claveHist = npc.claveAldea || npc.clave;
+  // 4.31.1 (A): a caballo la escena no arranca (y la charla de historia se gastaba): te bajás y la E siguiente la empieza
+  if (!desafio && jugador?.estado?.montado && valle?.hayEscenaCon?.(claveHist)) { desmontar(); if (!jugador.estado.montado) nota(`${npc.nombre || 'Alguien'} quiere hablar con vos`, 'Te bajaste para charlar: E otra vez'); return; }
   if (!desafio && valle?.alHablarCon?.(claveHist)) return;
   // 4.18.0: la charla de historia: una línea arriba de todo, una sola vez (la de una optativa hecha o la del capítulo en curso; ver
   // historia-optativas.js). La E siguiente abre la charla de siempre.

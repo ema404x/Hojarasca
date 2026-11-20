@@ -1,0 +1,66 @@
+# 4.31.1 (A) · cacería de bugs: personajes, la Historia y el pueblo
+
+Rama `v4311-a` (desde main = 4.31.0). 0 programas de shader nuevos, 0 mallas ni llamadas de dibujo nuevas, **ninguna clave nueva de guardado**. Un módulo nuevo y chico: `src/gesto-golpe.js` (puro).
+
+## Método
+1. Inventario desde el código de la zona A (gente.js, gente-cuerpo.js, aldea-gente.js, desafio-vecinos*/desafio-aliados, historia*.js, pueblo-detalles*, interacciones.js, aldea-animales-mundo.js) con tres revisiones de sólo lectura en paralelo (pueblo 4.31.0, Historia de punta a punta, personajes): 37 candidatos. Cada uno se miró en el código antes de tocarlo; los que no se pudieron reproducir quedaron afuera (ver abajo).
+2. Partida real `pruebas/humo-4-31-1-a.cjs` (Electron minimizado, candado, perfil propio), **antes** (main 4.31.0, `hx\a4311\index-antes.html`) y **después**, mismas vistas: Historia (capítulos 3, 4, 5, 7 y 10, de día y de noche), Relax de la aldea, el Desafío (noche grande 12). Capturas en `%TEMP%\hx\a4311\antes|antes2|antes-desafio` y `despues|despues2|despues-desafio`.
+3. Repaso: `humo-4-31-0-b` (lo nuevo del pueblo) y `humo-4-18-4-recorridos` (la Historia jugada de punta a punta, ruta del trato) con esta rama.
+
+## Arreglado (por gravedad)
+
+### Molesta mucho (parece que el juego no responde)
+1. **La nota de Eusebio (y el frasco) le robaban la E a las cosas del refugio** (Historia, capítulos 1 a 13). El objeto de historia más cercano a 2,4 m ganaba aunque no lo miraras: apuntando a la lámpara o al cajón, «Releer la nota de Eusebio»; a la radio o a la alacena, «Llevarte el frasco de masa madre». Ahora el objeto que sólo es el más cercano cede a lo del refugio que mirás (`interacciones.js`, entrada `historia-objeto`), y «mirado» también mira la altura (`miradoDeFrente` en `main.js`: a menos de ~16° del centro de la mirada; antes sólo el rumbo, y el frasco de la repisa quedaba «mirado» apuntando a la radio de abajo). Mirando la nota, sigue ganando la nota. **Visto:** antes lámpara y cajón → la nota; después «Apagar la lámpara», «Abrir el cajón de la mesa», «Prender la radio», «Abrir la alacena», «Leer las cartas»; mirando la nota, la nota (`antes2\nota-*`, `despues2\nota-*`).
+2. **A caballo, la E sobre un objeto de historia que abre una escena no hacía nada** (la puerta del galpón del capítulo 10, las raíces, el cajón trabado): el aviso decía «Golpear la puerta del galpón» y la escena no arranca montado. Ahora ese objeto cede a «Bajarte del caballo» (`historia-ui.js` marca `escena`; `interacciones.js`). **Visto:** después, montado frente al galpón a las 22:30, el aviso dice «Bajarte del zaino» y la E te baja (`despues2\montado-*`).
+3. **A caballo, la E sobre un vecino con una escena para vos gastaba la charla de historia** (la línea se marca oída y la escena no sale). Ahora te bajás y la nota dice «X quiere hablar con vos · Te bajaste para charlar: E otra vez» (`main.js`, `hablar`; `historia-ui.js`, `hayEscenaCon`). Sólo leído en el código y probado en Node (no se vio a ojo).
+4. **La línea de espera mentía en tres escenas que piden «pasar la medianoche»** (el mirador del capítulo 10 después del galpón, la ronda del galpón del 7 después de la minga, el canelo del 9 después de la tranquera): golpeando el galpón a la 0:30 decía «Falta esperar hasta las 6:00» y a las 6 no pasaba nada. `diaTras` en los tres disparadores y `faltaElDia` en `historia-espera.js`: ahora dice «mañana a las 6:00» con las horas de verdad.
+5. **Textos de objetivos que no decían lo necesario:** «Andá al galpón **de noche** (tiene luz)…» (la puerta sólo se golpea de 19 a 6) y «Recorré el lado del arroyo… (al atardecer, **con tres defensas prestadas**)» (`historia.js`).
+
+### Se ve mal
+6. **El martillo de Anselmo y el arco de Josefina atravesaban el cuerpo** en el Desafío: en las poses de quietud (brazos cruzados, en la cintura) el brazo de la herramienta entraba en la pose. `npc.__enMano` (desafio-vecinos-mundo.js, desafio-aliados.js) y `quietud` (gente-cuerpo.js) lo deja afuera, como la planilla. **Visto:** antes Anselmo cruza los brazos con el martillo metido en el pecho; después cruza el izquierdo y el martillo cuelga al costado; Josefina con las manos en la cintura, el arco ya no se mete en la cadera (`antes-desafio\desafio-*`, `despues-desafio\desafio-*`).
+7. **El golpe del martillo duraba un cuadro**: el brazo se ponía arriba después de gente.js y al cuadro siguiente se pisaba (Anselmo «arreglaba» sin mover el brazo; lo mismo Ramón y la honda de los chicos). `gesto-golpe.js` (`golpear` / `brazoDeGolpe`): gente.js lo aplica en cada cuadro mientras dura (0,3 s). **Medido en el juego** con una empalizada rota al lado: brazo arriba 6 cuadros de 400 antes (uno por golpe) → 47 después.
+8. **Los que duermen saludaban y se quejaban**: a las 3, en su casa, la figura queda parada junto a la cama y te decía «Buenas noches.» (también se quejaba al chocarla y hacía los gestos del frío). Ahora el que tiene destino `cama…` no saluda, no se queja ni hace gestos (`pueblo-detalles-juego.js`, `enLaCama`). **Visto:** saludos 0 → 1 antes, 0 → 0 después (casa del jefe, 3:00).
+9. **Saludos y quejas encima de una escena, una charla o un panel**: hablando con alguien, el de al lado te saludaba; en una cinemática, un vecino que no estaba en la escena te saludaba con voz. Ahora no (ctx `tomada` en main.js). Tampoco el que camina con vos (`conVos`, `enCita`: el acompañante de la Historia, la cita). **Visto:** charla abierta con Ercilia mirando a la galesa: sin saludo (`antes2\charla-*`; el antes, en esta vista, tampoco saludó por el reloj de 7 s entre saludos: el arreglo queda probado en Node).
+10. **Los carteles de la estación no se leían** («Aldea de los Duendes», «Cargas»: la estación arma sus puntos aparte y no pasaba los carteles). `aldea-mundo.js`. Probado en Node; no se vio a ojo.
+11. **Con el mate (o la planilla, la caña) en la mano, los gestos del clima** (taparse con la lluvia, frotarse al frío, sacudirse) se llevaban el brazo del mate por arriba de la cabeza y la planilla delante de la cara: ahora, mientras dura el gesto, lo que lleva en la mano se guarda (`pueblo-detalles-pose.js`; gente.js lo vuelve a sacar al terminar, como en las poses). Un primer intento (sin gesto con algo en la mano) apagaba el gesto de Ercilia en la partida de la 4.31.0 B: se cambió por éste.
+12. **La sacudida de la nieve fuera de tiempo**: si un vecino entraba a una casa sin que lo vieras, al volver a verlo adentro (horas después) se sacudía. Ahora sólo se sacude si se lo vio hace menos de 20 s afuera; dormido, no.
+13. **La pierna abierta del jinete** (la jineteada) no se reponía: se iba caminando con las piernas abiertas hasta cambiar de ropa. gente.js repone `rotation.z` de las piernas en cada paso (las poses que la usan la vuelven a poner). Leído en el código; no se vio a ojo.
+14. **Tu cuerpo, después de soltar la mano de tu pareja**, dejaba el brazo abierto (modo foto, sombra). `personal-personaje-mundo.js`. No se vio a ojo.
+
+### Molesta
+15. **La queja por chocar cortaba otra animación** (pasando corriendo al lado de una pareja abrazada, uno se sorprendía y el otro abrazaba el aire): ahora el que está en una animación social no se queja.
+16. **La bienvenida del local la daba un cliente** (Nélida comprando: «¡Buenas! Enseguida te atiendo»): la da el dueño si está.
+17. **«¿A esta hora? Mañana, mañana.»** salía con un signo de pregunta (ícono `z`, que no existe): ahora `cansado`.
+18. **El renglón de abajo**: golpear una puerta o la queja por la luz borraban a los 4-5 s la charla de los vecinos que estabas escuchando. Ahora se borra sólo si sigue diciendo lo nuestro (`callar`).
+19. **El perro echado junto a una puerta le ganaba a la puerta**: si mirás la puerta más de frente que al perro, gana la puerta. Y acariciado lejos de su casa, la nota dice «Después se vuelve para su casa» (no «Te va a seguir un rato»), y no se va en medio del mimo (`aldea-animales-mundo.js`).
+20. **El intento de la noche de la nevada dejado a medias contaba** (la historia en pausa en plena noche, o el juego cerrado en medio): al volver se sumaba otro y «Nevó y no cedió» se perdía, «Otra vez» se ganaba sin haber perdido. `descontarIntento` (historia-noche.js) en el abandono y al volver de un cierre.
+21. **El acompañante tomado en medio de una escena** (Ramón, Tobías) podía quedar congelado: se guardaban los valores que le había puesto la escena. Ahora no se lo toma mientras hay escena (`historia-acompanante.js`). Leído en el código (carrera); no se reprodujo en el juego.
+
+## Visto y bien (sin cambios)
+- **Graciela**: en el capítulo 4 está en el andén de la Estación del Valle (sobre el piso, 0,55 m = el andén); en los capítulos 5 y 7, no está (`despues\graciela-cap4.jpg`).
+- Guardar en medio de una escena está bloqueado; saltear escenas aplica sus efectos una sola vez; premios de capítulo y de optativas, una vez; los props de escena se borran al terminar (revisión de código).
+- La campana de la escuela respeta días hábiles y escuela abierta; el saneado de `puebloDetalles` y las partidas viejas, bien.
+- El paso sin patinar (4.30.1): sin divisiones por cero ni NaN (revisión de código).
+
+## No reproducido (no se tocó)
+- «El mate reaparece durante el saludo»: en el juego, la madre de los Jones (`madre`) saluda con el mate guardado los 12 cuadros del saludo con main 4.31.0 (`antes2`). Se había hecho un arreglo y se sacó un arreglo y se sacó.
+- La planilla y la caña en los gestos sociales y del amor: mismo mecanismo que el mate, no se vio; sin tocar.
+- Montado, la E en la puerta del galpón: en el antes la escena no arrancaba (el aviso seguía) — confirmado; arreglado arriba.
+
+## Anotado, sin arreglar (dónde y por qué)
+- **«En la cabina» (cabina-elsa, capítulo 4) no sale nunca**: su condición es estar manejando (`s.conduciendo`) y ninguna escena puede empezar en el tren (`puedeEmpezarEscena`). Es una escena de sabor (el objetivo «cabina» no depende de ella). Hacerla andar pide decidir dónde se juega (en la cabina, con el tren parado, las posiciones de Elsa y Graciela son para adentro de la locomotora; en el andén, habría que reescribirlas): sin verla, no se tocó. `historia-disparadores.js:66`.
+- **Guardar y cargar en medio del arreo del capítulo 9**: las ovejas vuelven al corral del Puesto Alto (el arreo vive sólo en memoria, `historia-arreo-mundo.js`). Guardarlo pide una clave nueva; molesta, no traba.
+- **Los que duermen quedan parados junto a la cama** (`aldea.js`/`aldea-arquitectura.js`: el punto `cama` es al costado de la cama, a propósito desde la 3.6.1). Acostarlos pide saber para qué lado va la almohada en cada casa; se ve sólo entrando de noche a una casa ajena. Ahora al menos no saludan.
+- **El escalón del mástil (4.31.0 B) queda a 44 cm del punto `mastil`**, donde se junta la gente en los cumpleaños de la plaza: sentado ahí durante una fiesta, alguien se te puede parar encima. Raro; mover el asiento cambia el número de asientos (prueba de B).
+- **El bastón de Ramón** cuelga del cuerpo y no de la mano (`main.js` ~2585): no acompaña el brazo y al cambiar de ropa se arma de nuevo. Menor.
+- **Los dos chicos en el mismo puesto del Desafío** y **gente apilada entre los destinos del amor y los de la rutina** (`desafio-vecinos.js:165`, `aldea-gente.js:305`): dudosos, no se vieron.
+- **El gesto del clima entra de golpe** el primer cuadro (`pueblo-detalles-pose.js`): imperceptible.
+
+## Pruebas
+- Nueva `pruebas/verificar-4-31-1-a.mjs` (en `verify:pasos`): **53 comprobaciones** (el pueblo en un mundo de mentira, la tabla de la E con contextos falsos, la línea de espera con la historia de verdad, la noche y sus logros, el golpe, la quietud y el gesto del clima con figuras de mentira) y **19 mutaciones** (copia de `src` con otro nombre, un proceso cada una), todas detectadas.
+- Viejas que leen lo tocado (main, gente, gente-cuerpo, interacciones, historia*, pueblo, aldea-mundo, los animales, desafío, personal-personaje): **331** en una primera tanda, **325** (main, gente, interacciones, historia) y **32** (aldea-mundo, animales, acompañante, pueblo) después de los últimos cambios, en verde; `verificar-4-31-0-b` vuelta a correr al final (135 + 26 mutaciones). Fallaron una vez en paralelo y pasan solas: `verificar-3-7-2-granja` (mide tiempos), `verificar-4-19-0-a` y `verificar-4-18-4-a` (la carpeta temporal de sus mutaciones), `verificar-release` (vio archivos `.mut` que otra prueba creaba en `src`). **Ninguna prueba vieja se ajustó.** No se corrió `npm run verify` completo.
+- Partidas reales (Electron minimizado, candado, perfil `perfil-4311-a`):
+  - `humo-4-31-1-a` antes/después (ver arriba), 0 errores de consola.
+  - `humo-4-31-0-b` (lo nuevo del pueblo) con esta rama: todo en verde, **programas 104 → 106** de noche en la aldea, igual que con main 4.31.0 (104 → 106).
+  - `humo-4-18-4-recorridos` ruta del trato (la Historia de punta a punta, 13 capítulos, guardar y recargar con la historia terminada): 0 errores de consola, programas 97 en todos los capítulos; el único «problema» es «ramon-sanitario no se pudo disparar», que es de la herramienta (mecánica sin guion, ver `CAMBIOS_4_19_0_A.md`).
+- Sin claves nuevas de guardado. 0 programas de shader nuevos.
