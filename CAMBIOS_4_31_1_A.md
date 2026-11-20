@@ -44,6 +44,8 @@ Rama `v4311-a` (desde main = 4.31.0). 0 programas de shader nuevos, 0 mallas ni 
 
 Pruebas de esta tanda: `verificar-4-31-1-a` pasa a **72 comprobaciones y 24 mutaciones** (todas detectadas). Viejas vueltas a correr: las **326** que leen aldea, aldea-arquitectura, aldea-gente, aldea-mundo, historia y main, en verde (`verificar-4-18-4-a`, `verificar-release` y `verificar-4-28-0-c` fallaron una vez en paralelo y pasan solas); `verificar-3-6-gente` y `verificar-3-6-arquitectura` en verde (la primera versión, que escondía al que no tenía cama conocida, rompía `3-6-gente`: se volvió a dejarlo como antes).
 
+26. **A un vecino dormido la E ya no le habla**: acostado en su cama (pose `dormir`), el aviso dice «· Nélida Ojeda está durmiendo» y la E no abre la charla (`interacciones.js`, entrada `vecino`). **Visto** en lo de Nélida a las 3 (`hxa4311	anda11cama-casa-nelida.jpg`). Prueba: 75 comprobaciones y 25 mutaciones; las 64 viejas que leen la tabla de la E, en verde.
+
 ## Visto y bien (sin cambios)
 - **Graciela**: en el capítulo 4 está en el andén de la Estación del Valle (sobre el piso, 0,55 m = el andén); en los capítulos 5 y 7, no está (`despues\graciela-cap4.jpg`).
 - Guardar en medio de una escena está bloqueado; saltear escenas aplica sus efectos una sola vez; premios de capítulo y de optativas, una vez; los props de escena se borran al terminar (revisión de código).

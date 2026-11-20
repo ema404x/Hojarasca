@@ -23,6 +23,7 @@
 
 const libre = (js) => !js.enTren && !js.enKayak;   // ni en el tren ni en el kayak (ni en el velero)
 const sinObjetivo = (c) => !c.objetivo;
+const duerme = (c, v) => !c.desafio && v?.pose === 'dormir';   // 4.31.1 (A)
 const aMano = (c) => libre(c.js) && !c.objetivo;   // a pie (o a caballo) y sin mirar nada para juntar
 const aPie = (c) => libre(c.js) && !c.js.montado && !c.objetivo;
 // 4.24.0: lo que mirás es un lugar para sentarte (un banco, un escalón) y no la cama: un objeto de historia a tu alcance le gana (la leña y las botas del umbral quedaban al lado del banco de la puerta y la E te sentaba)
@@ -76,7 +77,8 @@ export const INTERACCIONES = [
   { id: 'urgente', cuando: (c) => c.urgente(), aviso: (c, u) => u.texto, hacer: (c, u) => { u.hacer(); c.limpiar('rincones'); } },
   // si estás mirando a una persona, E habla con ella antes de accionar puertas o mostradores (así se charla con
   // Ercilia detrás del mostrador); en la base del Desafío, le das una orden
-  { id: 'vecino', cuando: (c) => c.vecino, aviso: (c, v) => c.textoVecino(v), hacer: (c, v) => { if (c.desafio && v.enBase) c.ordenarCompanero(v); else c.hablar(v); } },
+  // 4.31.1 (A): acostado en su cama (pose `dormir`) no se le habla: el aviso dice que duerme y la E no abre la charla
+  { id: 'vecino', cuando: (c) => c.vecino, aviso: (c, v) => (duerme(c, v) ? { tecla: '·', texto: `${v.nombre || 'Alguien'} está durmiendo` } : c.textoVecino(v)), hacer: (c, v) => { if (duerme(c, v)) return; if (c.desafio && v.enBase) c.ordenarCompanero(v); else c.hablar(v); } },
   // 4.15.0: la Historia nueva: la llave de Eusebio en la puerta del refugio y los objetos de historia del mundo (el canto blanco, la puertita, el alero, la raíz del coihue…)
   { id: 'historia-puerta', cuando: (c) => !c.desafio && aMano(c) && !c.js.sentado && c.historiaPuerta(), aviso: (c, p) => p.aviso, hacer: (c, p) => p.hacer() },
   // 4.31.1 (A): el objeto que sólo es el más cercano (no lo mirás) cede a lo del refugio que mirás de frente (la nota de Eusebio, a 2,4 m, le robaba la E a la

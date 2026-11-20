@@ -45,6 +45,7 @@ const MUTACIONES = {
   'cabina-en-el-tren': ['src/main.js', '  if (!desafio && valle?.antesDeLaCabina?.()) return;', ''],
   'arreo-sin-guardar': ['src/historia.js', '  return ovejas.length ? { clave: v.clave, ovejas } : null;', '  return null;'],
   'fiesta-en-el-tronco': ['src/aldea.js', 'export const PUNTO_FIESTA_PLAZA = 1.5;', 'export const PUNTO_FIESTA_PLAZA = 0;'],
+  'habla-al-dormido': ['src/interacciones.js', "const duerme = (c, v) => !c.desafio && v?.pose === 'dormir';", 'const duerme = () => false;'],
   'estacion-sin-carteles': ['src/aldea-mundo.js', "E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {}, carteles };", "E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {} };"],
 };
 
@@ -236,6 +237,19 @@ const igual = (a, b, t) => { pasos++; assert.equal(a, b, t); };
   // los carteles de la estación (aldea-mundo.js arma `carteles` también para la estación)
   ok(/E\.puntosMundo = \{ id, version: 'estacion', etapa: 4, nombrados, asientos: \[\], extra: \{\}, carteles \};/.test(fuente('aldea-mundo.js')) && /carteles: pz\.edificio\.carteles \|\| \[\]/.test(fuente('aldea-mundo.js')), 'los carteles de la estación («Aldea de los Duendes», «Cargas») llegan a puntosEdificio');
   ok(PD.lecturaCartel('estacion-aldea', 'Aldea de los Duendes', { abierto: null, dia: 3 }).partes[0].includes('Ramal'), 'y se leen con su texto fijo');
+}
+
+// 4.31.1 (A): a un vecino dormido no se le habla
+{
+  const hechos = [];
+  const base = (pose) => new Proxy({ js: { pos: { x: 0, y: 0, z: 0 }, enTren: false, enKayak: false, sentado: false, montado: false }, objetivo: null, desafio: null,
+    vecino: { nombre: 'Nélida Ojeda', pose }, textoVecino: (v) => 'Hablar con ' + v.nombre, hablar: () => hechos.push('hablar'), limpiar: () => {} }, { get: (x, k) => (k in x ? x[k] : () => null) });
+  const a = IX.avisoDe(base('dormir'));
+  ok(a && a.tecla === '·' && /está durmiendo/.test(a.texto), `dormida, el aviso dice que duerme (${a && a.texto})`);
+  IX.hacerConE(base('dormir'));
+  ok(!hechos.includes('hablar'), 'y la E no abre la charla');
+  IX.hacerConE(base(null));
+  ok(hechos.includes('hablar') && IX.avisoDe(base(null))?.texto === 'Hablar con Nélida Ojeda', 'despierta, se le habla como siempre');
 }
 
 // ---------------------------------------------------------------- 3. la Historia
