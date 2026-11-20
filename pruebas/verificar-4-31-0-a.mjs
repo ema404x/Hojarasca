@@ -162,7 +162,7 @@ async function pruebaMundo() {
   const M = crearCasaDetallesMundo({ T, ref, escena, col: { agregar: (c) => choques.push(c) } });
   ok(fundido.visible && M.vidrioDe[0].length === 6 && M.vidrioDe[1].length === 6, `el vidrio fundido (con su material: el reflejo de Ultra) queda; se reconocen las dos ventanas (${M.vidrioDe[0].length} y ${M.vidrioDe[1].length} vértices)`);
   ok(Object.keys(M.puntos).length === C.COSAS_REFUGIO.length, 'cada cosa tiene sus puntos en el mundo');
-  ok(choques.length >= 4, `el baúl, la alacena y la bomba frenan (${choques.length} círculos)`);
+  ok(choques.length >= 7, `el baúl, la alacena, la bomba y (4.31.1 B) las jambas del hogar frenan (${choques.length} círculos)`);
   const tipos = new Set();
   escena.traverse((o) => { if (o.isMesh) tipos.add(`${o.material.type}|${o.material.side}|${o.material.transparent}|${o.material.vertexColors}`); });
   ok([...tipos].every((t) => t === 'MeshLambertMaterial|0|false|true' || t === 'MeshBasicMaterial|2|false|false'), `sólo los materiales de siempre (ningún programa nuevo): ${[...tipos].join(' · ')}`);

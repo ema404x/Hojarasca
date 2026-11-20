@@ -64,7 +64,8 @@ export const COSAS_REFUGIO = [
   { id: 'hogar', en: [[-2.4, 0.72, -1.78]], r: 0.45 },
   { id: 'pava', en: [[-2.02, 0.72, -1.72]], r: 0.2 },
   { id: 'silla', en: [[1.1, 0.85, -0.02]], r: 0.3, sentarse: { x: 1.1, z: 0.0, y: 0.86, mira: [0, -1] } },
-  { id: 'sillon', en: [[-1.45, 0.8, -0.95]], r: 0.38, sentarse: { x: -1.45, z: -0.95, y: 0.84, mira: [-0.7, -0.72] } },
+  // (4.31.1 B: sentado en el sillón, la vista baja al fuego: con la de siempre se veía sólo la chimenea de piedra)
+  { id: 'sillon', en: [[-1.45, 0.8, -0.95]], r: 0.38, sentarse: { x: -1.45, z: -0.95, y: 0.84, mira: [-0.7, -0.72], pitch: -0.32 } },
   { id: 'cajon', en: [[1.1, 0.75, -0.5]], r: 0.2 },
   { id: 'alacena', en: [[0.55, 1.0, -2.15]], r: 0.38 },
   { id: 'radio', en: [[0.42, 1.64, -2.36]], r: 0.2 },

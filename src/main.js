@@ -1072,7 +1072,7 @@ async function construir() {
         ref: T.lugares.refugio, col, sonido, mundo: crearCasaDetallesMundo({ T, ref: T.lugares.refugio, raiz: raizRefugio, escena, col }),
         progreso: () => progreso, adelante: () => camara.getWorldDirection(dirCasa), nota: (t, sub) => nota(t, sub), guardar: () => guardar(),
         leer: (l) => leerEnLaAldea(l), sentar: (q) => sentarEnLaAldea(q), relojHora: () => partesReloj({ hora: progreso.horas, dia: progreso.dia }),
-        obrasCerca: (p, r) => (obras?.obras || []).filter((o) => o !== obras.editando && Math.abs(o.datos.x - p.x) < r && Math.abs(o.datos.z - p.z) < r && Math.abs((o.datos.y ?? p.y) - p.y) < 2.2 && obraTerminada(o)),
+        obrasCerca: (p, r) => (obras?.obras || []).filter((o) => o !== obras.editando && !cocinaJuego?.esDeCocina?.(o) && Math.abs(o.datos.x - p.x) < r && Math.abs(o.datos.z - p.z) < r && Math.abs((o.datos.y ?? p.y) - p.y) < 2.2 && obraTerminada(o)),   // 4.31.1 (B): sin la alacena armada, que es de la cocina (su E dice lo que hay y con cuántos: la de la casa le ganaba con «Abrir la alacena»)
         relojCerca: (p, r) => { const o = (obras?.obras || []).find((x) => (x.plano.id === 'reloj-pared' || x.plano.id === 'reloj-pie') && obraTerminada(x) && Math.hypot(x.datos.x - p.x, x.datos.z - p.z) < r); return o ? { x: o.datos.x, y: o.datos.y + 1.6, z: o.datos.z } : null; },
         despensa: () => ENTRADAS.filter((x) => x.seccion === 'recetas' && (progreso.entradas[x.id]?.cantidad || 0) > 0).map((x) => x.nombre.toLowerCase()),
         programaRadio: () => { const p = noticiasJuego?.radio?.(); return p ? `${p.nombre}: ${p.texto}` : null; },
@@ -6913,7 +6913,7 @@ function leerEnLaAldea(l) {
 function sentarEnLaAldea(s) {
   const js = jugador.estado;
   js.pos.set(s.x, Math.max(s.y - 0.45, T.altura(s.x, s.z)), s.z);
-  if (s.mira !== undefined) { js.yaw = s.mira; js.pitch = -0.05; }
+  if (s.mira !== undefined) { js.yaw = s.mira; js.pitch = Number.isFinite(s.pitch) ? s.pitch : -0.05; }   // (4.31.1 B: el asiento puede pedir la vista un poco más abajo: el sillón del refugio, al fuego)
   jugador.sentarse(true);
 }
 // 3.6 (mecánicas): tu casilla en la estafeta de la aldea: lo mismo que el buzón (y que Ercilia)
@@ -10983,6 +10983,7 @@ let acumuladoBuscar = 0, acumuladoVecino = 99, acumuladoInteraccion = 99;
 const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
 let cachePanal = null;   // 4.27.0: el panal silvestre que tenés a mano (ver panales.js)
 let casaDetalles = null, cacheCasa = null;   // 4.31.0 (A): lo que se toca en el refugio y tus casas, y lo que tenés de frente (ver casa-detalles-juego.js)
+const dirPuertaE = new THREE.Vector3();   // 4.31.1 (B): hacia dónde mirás, para la puerta de la E
 const ctxCasa = { pos: null, horas: 0, viento: 0, vidrio: null };
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
@@ -11167,7 +11168,7 @@ const ctxInteraccion = {
   tablonAldeaCerca: () => !!desafio?.aldeaMundo?.cerca(jugador.estado.pos), avisoTablonAldea: () => desafio.aldeaMundo.avisoCerca(jugador.estado.pos), abrirTablonAldea: () => desafio.aldeaMundo.usarCerca(jugador.estado.pos),   // 4.9 dias
   trofeosCerca: () => !!desafio?.baseCrece?.cerca(jugador.estado.pos), avisoTrofeos: () => desafio.baseCrece.avisoCerca(jugador.estado.pos), usarTrofeos: () => desafio.baseCrece.usarCerca(jugador.estado.pos),   // 4.10 base: el tablero de trofeos
   distanciaTrofeos: () => desafio?.baseCrece?.distancia?.(jugador.estado.pos), distanciaPuerta: (p) => Math.hypot(p.x - jugador.estado.pos.x, p.z - jugador.estado.pos.z),   // 4.10.2: tablero o puerta, la más cercana
-  puertaCerca: () => puertas && puertas.cerca(jugador.estado.pos), accionarPuerta: (p) => puertas.accionar(p),
+  puertaCerca: () => puertas && (puertas.mirada ? puertas.mirada(jugador.estado.pos, camara.getWorldDirection(dirPuertaE)) : puertas.cerca(jugador.estado.pos)),   // 4.31.1 (B): la puerta que mirás, no la más cercana accionarPuerta: (p) => puertas.accionar(p),
   rastro: () => rastro, mirandoAlPerro: () => mirandoAlPerro(jugador.estado, perro.est.pos),
   dejarRastro: () => dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`),
   puedoPedirRastro: () => puedoPedirRastro(), pedirRastro: () => pedirRastro(),
