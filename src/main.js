@@ -780,12 +780,14 @@ async function construir() {
     texturaEstepa = { tex: texE, datos: estep, n: N };
 
     const seg = Math.min(RES, calidad.terrenoDetalle || RES);
-    const salto = RES / seg;
     const geo = new THREE.PlaneGeometry(1024, 1024, seg, seg);
     geo.rotateX(-Math.PI / 2);
     const p = geo.attributes.position;
+    // 4.31.1 (C): cada vértice con la altura de su lugar (`T.altura`, la que se pisa). Antes tomaba el nodo de 2 m más cercano (con 240 segmentos
+    // el vértice cae cada 4,27 m y el nodo hasta 1 m corrido): en las laderas el suelo dibujado se despegaba del que se pisa (en Alta, 34 cm o más
+    // en 1 de cada 20 lugares; ahora 12 cm). La misma cantidad de vértices
     for (let j = 0; j <= seg; j++) for (let i = 0; i <= seg; i++) {
-      p.setY(j * (seg + 1) + i, T.alturas[Math.round(j * salto) * N + Math.round(i * salto)]);
+      p.setY(j * (seg + 1) + i, T.altura(i * (1024 / seg) - 512, j * (1024 / seg) - 512));
     }
     geo.computeVertexNormals();
     geo.computeBoundingSphere();
@@ -1142,6 +1144,7 @@ async function construir() {
     dia: () => progreso.dia, horas: () => progreso.horas, bajoTecho: () => bajoTecho, cercaDelFuego: () => cercaDelFuego(),
     ambiente: () => ({ lluvia: clima?.estado?.lluvia || 0, viento: U.uViento.value, invierno: U.uInvierno.value, otono: U.uOtono.value }),
     distanciaAldea: (x, z) => distanciaAldea(x, z), pelarPasto: (x, z, r) => pelarPastoTemporal(x, z, r),
+    col,   // 4.31.1 (C): nada adentro de un tronco o bajo un puente, ni del otro lado de una pared
   });
   if (recursosZona) for (const id of ['juncal', 'hierbas']) { const p = PUNTO_ZONA[id]; veg.despejar(p.x, p.z, 3.4); pelarPastoTemporal(p.x, p.z, 3.6); }
   // 3.1: el desafío del día (4.5.1: sin carreras ni torneo)

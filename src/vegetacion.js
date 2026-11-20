@@ -1920,14 +1920,19 @@ export function generarVegetacion(T, calidad, escena) {
       const radioBase = seco ? 0.42 : ({ coihue: 0.62, lenga: 0.45, cipres: 0.35, arrayan: 0.45, nire: 0.32, maiten: 0.4 }[especie] || 0.4);
       const radio = radioBase * esc * Math.max(forma.sx, forma.sz) + 0.12;
       const escalaVisual = seco ? [esc * 0.92, esc * (0.78 + r() * 0.2), esc * 0.92] : [esc * forma.sx, esc * forma.sy, esc * forma.sz];
-      const ref = colocar(nombre, x, h - 0.25, z, escalaVisual, r() * Math.PI * 2, (especie === 'arrayan' ? 0.05 : 0.025) + forma.inclinacion);
+      // 4.31.1 (C): en una ladera el tronco nacía 25 cm bajo el suelo del centro y del lado de abajo quedaba en el aire (1.373 árboles con más
+      // de 10 cm; hasta 1,3 m en las laderas del borde): se entierra hasta 8 cm bajo el punto más bajo del suelo alrededor del tronco (tope 1,5 m
+      // más). Ni la x ni la z cambian: el árbol es el mismo, sólo baja
+      let pie = h - 0.25;
+      { const rt = Math.max(0.15, radio - 0.12); let bajo = Infinity; for (let k = 0; k < 8; k++) { const an = k * 0.7853982; bajo = Math.min(bajo, T.altura(x + Math.cos(an) * rt, z + Math.sin(an) * rt)); } pie = Math.max(h - 1.75, Math.min(pie, bajo - 0.08)); }
+      const ref = colocar(nombre, x, pie, z, escalaVisual, r() * Math.PI * 2, (especie === 'arrayan' ? 0.05 : 0.025) + forma.inclinacion);
       // Mancha de contacto instanciada: oscurece la unión raíz/suelo sin añadir luces ni sombras dinámicas por árbol.
       const contactoRef = (!seco && perfil.estepa < 0.42 && esc > 0.66)
         ? colocar('contactoArbol', x, h + 0.018, z, [radio * 1.75, 1, radio * 1.45], r() * Math.PI * 2)
         : null;
       const choque = { x, z, r: radio };
       colisiones.push(choque);
-      arboles.push({ x, z, y: h, especie: seco ? 'seco' : especie, esc, r: radio, ref, contactoRef, choque });
+      arboles.push({ x, z, y: h, pie, especie: seco ? 'seco' : especie, esc, r: radio, ref, contactoRef, choque });   // (4.31.1: `pie`, dónde nace el tronco)
     }
   }
 
@@ -1942,12 +1947,15 @@ export function generarVegetacion(T, calidad, escena) {
     }
     for (const [x, z, esc] of ubic) {
       const h = T.altura(x, z);
-      const ref = colocar('pehuen', x, h - 0.3, z, esc, r() * 6);
       const radioP = 0.62 * esc + 0.15;
+      // 4.31.1 (C): como los demás árboles, en la ladera el tronco se entierra del lado de abajo (uno quedaba 39 cm en el aire)
+      let pie = h - 0.3;
+      { const rt = Math.max(0.15, radioP - 0.15); let bajo = Infinity; for (let k = 0; k < 8; k++) { const an = k * 0.7853982; bajo = Math.min(bajo, T.altura(x + Math.cos(an) * rt, z + Math.sin(an) * rt)); } pie = Math.max(h - 1.8, Math.min(pie, bajo - 0.08)); }
+      const ref = colocar('pehuen', x, pie, z, esc, r() * 6);
       const contactoRef = colocar('contactoArbol', x, h + 0.018, z, [radioP * 1.8, 1, radioP * 1.5], r() * Math.PI * 2);
       const choque = { x, z, r: radioP };
       colisiones.push(choque);
-      arboles.push({ x, z, y: h, especie: 'pehuen', esc, r: radioP, ref, contactoRef, choque });
+      arboles.push({ x, z, y: h, pie, especie: 'pehuen', esc, r: radioP, ref, contactoRef, choque });
     }
     lug.mirador.pehuen = { x: ubic[0][0], z: ubic[0][1] };
   }
