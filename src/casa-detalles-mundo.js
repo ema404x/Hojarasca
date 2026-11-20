@@ -234,7 +234,7 @@ export function crearCasaDetallesMundo({ T, ref, raiz = null, escena, col = null
   const puntos = {};
   for (const k of COSAS_REFUGIO) puntos[k.id] = k.en.map(([x, y, z]) => aMundo(x, k.id === 'bomba' ? sB + 0.85 : y, z));
   const sentarse = {};
-  for (const k of COSAS_REFUGIO) if (k.sentarse) { const s = k.sentarse, q = aMundo(s.x, s.y, s.z), w = aMundo(s.mira[0], 0, s.mira[1]); sentarse[k.id] = { x: q.x, y: q.y, z: q.z, mira: Math.atan2(-(w.x - ref.x), -(w.z - ref.z)) }; }
+  for (const k of COSAS_REFUGIO) if (k.sentarse) { const s = k.sentarse, q = aMundo(s.x, s.y, s.z), w = aMundo(s.mira[0], 0, s.mira[1]); sentarse[k.id] = { x: q.x, y: q.y, z: q.z, mira: Math.atan2(-(w.x - ref.x), -(w.z - ref.z)), pitch: s.pitch }; }
 
   // Lo que se anima, hacia el estado: `e` la casa guardada, `x` lo de cada momento ({ pava, chorroBomba, chorroEn, viento, horas, t })
   const anim = { cajon: 0, alacena: 0, baul: 0, cortinas: [0, 0], ventanas: [0, 0], manija: 0 };

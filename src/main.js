@@ -1072,7 +1072,7 @@ async function construir() {
         ref: T.lugares.refugio, col, sonido, mundo: crearCasaDetallesMundo({ T, ref: T.lugares.refugio, raiz: raizRefugio, escena, col }),
         progreso: () => progreso, adelante: () => camara.getWorldDirection(dirCasa), nota: (t, sub) => nota(t, sub), guardar: () => guardar(),
         leer: (l) => leerEnLaAldea(l), sentar: (q) => sentarEnLaAldea(q), relojHora: () => partesReloj({ hora: progreso.horas, dia: progreso.dia }),
-        obrasCerca: (p, r) => (obras?.obras || []).filter((o) => o !== obras.editando && Math.abs(o.datos.x - p.x) < r && Math.abs(o.datos.z - p.z) < r && Math.abs((o.datos.y ?? p.y) - p.y) < 2.2 && obraTerminada(o)),
+        obrasCerca: (p, r) => (obras?.obras || []).filter((o) => o !== obras.editando && !cocinaJuego?.esDeCocina?.(o) && Math.abs(o.datos.x - p.x) < r && Math.abs(o.datos.z - p.z) < r && Math.abs((o.datos.y ?? p.y) - p.y) < 2.2 && obraTerminada(o)),   // 4.31.1 (B): sin la alacena armada, que es de la cocina (su E dice lo que hay y con cuántos: la de la casa le ganaba con «Abrir la alacena»)
         relojCerca: (p, r) => { const o = (obras?.obras || []).find((x) => (x.plano.id === 'reloj-pared' || x.plano.id === 'reloj-pie') && obraTerminada(x) && Math.hypot(x.datos.x - p.x, x.datos.z - p.z) < r); return o ? { x: o.datos.x, y: o.datos.y + 1.6, z: o.datos.z } : null; },
         despensa: () => ENTRADAS.filter((x) => x.seccion === 'recetas' && (progreso.entradas[x.id]?.cantidad || 0) > 0).map((x) => x.nombre.toLowerCase()),
         programaRadio: () => { const p = noticiasJuego?.radio?.(); return p ? `${p.nombre}: ${p.texto}` : null; },
@@ -6896,7 +6896,7 @@ function leerEnLaAldea(l) {
 function sentarEnLaAldea(s) {
   const js = jugador.estado;
   js.pos.set(s.x, Math.max(s.y - 0.45, T.altura(s.x, s.z)), s.z);
-  if (s.mira !== undefined) { js.yaw = s.mira; js.pitch = -0.05; }
+  if (s.mira !== undefined) { js.yaw = s.mira; js.pitch = Number.isFinite(s.pitch) ? s.pitch : -0.05; }   // (4.31.1 B: el asiento puede pedir la vista un poco más abajo: el sillón del refugio, al fuego)
   jugador.sentarse(true);
 }
 // 3.6 (mecánicas): tu casilla en la estafeta de la aldea: lo mismo que el buzón (y que Ercilia)

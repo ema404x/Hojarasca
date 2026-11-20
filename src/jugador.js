@@ -328,6 +328,9 @@ export function crearJugador(camara, T, col, opciones) {
     const antesX = estado.pos.x, antesZ = estado.pos.z;
     const alturaFisica = estado.montado ? ALTURA_OJOS + estado.montado.alto : estado.agachado ? ALTURA_AGACHADO : ALTURA_OJOS;
     const radioFisico = estado.montado ? 0.6 : 0.35;
+    // 4.31.1 (B): sentado no se choca: el asiento de tus muebles (el sillón, la mecedora, el sillón de cuero) está adentro de su cuerpo y el
+    // choque te sacaba del sillón (quedabas parado detrás del respaldo). Sentado no te movés; al levantarte volvés a la salida, que está afuera.
+    if (!estado.sentado) {
     col.resolver(estado.pos, radioFisico, alturaFisica);
     // 4.30.1: montado, el caballo entero choca: además de tu disco (la cinchera), el pecho y la cabeza adelante y la grupa atrás
     // (MONTADO_CHOCA). Lo que empuja a cada uno corre todo el caballo; así la cabeza y el anca no entran en troncos ni paredes.
@@ -348,6 +351,7 @@ export function crearJugador(camara, T, col, opciones) {
     // Las plataformas también tienen cantos físicos: un entrepiso demasiado
     // alto para subir no puede atravesarse lateralmente como si no existiera.
     col.resolverPlataformas(estado.pos, radioFisico, alturaFisica, 0.62);
+    }
     // 3.0.1: la corrección nunca puede dejarte del otro lado de una pared. El canto de un
     // peldaño empuja hacia su cara más cercana, que puede ser la de afuera: cayendo por el
     // hueco del faro, un peldaño sacaba al jugador a través del muro de la torre y se caía
